@@ -26451,6 +26451,12 @@ public class FirLightTreeOldFrontendDiagnosticsTestGenerated extends AbstractFir
             }
 
             @Test
+            @TestMetadata("intersectionOverrideWithProtectedAbstract.kt")
+            public void testIntersectionOverrideWithProtectedAbstract() throws Exception {
+                runTest("compiler/testData/diagnostics/tests/override/intersectionOverrideWithProtectedAbstract.kt");
+            }
+
+            @Test
             @TestMetadata("InvisiblePotentialOverride.kt")
             public void testInvisiblePotentialOverride() throws Exception {
                 runTest("compiler/testData/diagnostics/tests/override/InvisiblePotentialOverride.kt");
