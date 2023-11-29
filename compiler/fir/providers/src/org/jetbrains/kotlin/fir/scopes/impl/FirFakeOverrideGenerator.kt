@@ -120,10 +120,10 @@ object FirFakeOverrideGenerator {
         newModality: Modality? = null,
         newVisibility: Visibility? = null,
         callableCopySubstitutionForTypeUpdater: CallableCopySubstitution? = null,
-        newSource: KtSourceElement? = null,
+        newSource: KtSourceElement? = derivedClassLookupTag?.toSymbol(session)?.source ?: baseFunction.source,
         copyDefaultValues: Boolean = false,
     ): FirSimpleFunction = buildSimpleFunction {
-        source = newSource ?: derivedClassLookupTag?.toSymbol(session)?.source ?: baseFunction.source
+        source = newSource
         moduleData = session.nullableModuleData ?: baseFunction.moduleData
         this.origin = origin
         name = baseFunction.name
@@ -396,8 +396,9 @@ object FirFakeOverrideGenerator {
         newModality: Modality? = null,
         newVisibility: Visibility? = null,
         callableCopySubstitutionForTypeUpdater: CallableCopySubstitution? = null,
+        newSource: KtSourceElement? = derivedClassLookupTag?.toSymbol(session)?.source ?: baseProperty.source,
     ): FirProperty = buildProperty {
-        source = derivedClassLookupTag?.toSymbol(session)?.source ?: baseProperty.source
+        source = newSource
         moduleData = session.nullableModuleData ?: baseProperty.moduleData
         this.origin = origin
         name = baseProperty.name
