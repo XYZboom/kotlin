@@ -9,6 +9,7 @@ private const val KOTLIN_PACKAGE = "kotlin"
 private const val DELIMITER = "/"
 private const val KOTLIN_NUMERIC_TYPE_PREFIX = "${KOTLIN_PACKAGE}${DELIMITER}"
 
+const val UNIT = "${KOTLIN_NUMERIC_TYPE_PREFIX}Unit"
 const val BYTE = "${KOTLIN_NUMERIC_TYPE_PREFIX}Byte"
 const val SHORT = "${KOTLIN_NUMERIC_TYPE_PREFIX}Short"
 const val INT = "${KOTLIN_NUMERIC_TYPE_PREFIX}Int"

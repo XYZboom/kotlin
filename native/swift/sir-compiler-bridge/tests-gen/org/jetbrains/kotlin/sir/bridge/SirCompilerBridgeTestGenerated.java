@@ -53,4 +53,11 @@ public class SirCompilerBridgeTestGenerated extends AbstractKotlinSirBridgeTest 
     public void testUnsigned_primitive_types() throws Exception {
         runTest("native/swift/sir-compiler-bridge/testData/unsigned_primitive_types/");
     }
+
+    @Test
+    @TestMetadata("property_accessors")
+    public void testProperty_accessors() throws Exception {
+        runTest("native/swift/sir-compiler-bridge/testData/property_accessors/");
+    }
+
 }
