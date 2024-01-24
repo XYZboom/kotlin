@@ -18,6 +18,7 @@ import org.jetbrains.org.objectweb.asm.Opcodes
 fun abiMetadataProcessor(
     annotationVisitor: AnnotationVisitor,
     removeDataClassCopyIfConstructorIsPrivate: Boolean,
+    doNotSortMembers: Boolean,
 ): AnnotationVisitor =
     kotlinClassHeaderVisitor { header ->
         // kotlinx-metadata only supports writing Kotlin metadata of version >= 1.4, so we need to
@@ -32,13 +33,13 @@ fun abiMetadataProcessor(
             KotlinClassMetadata.transform(header) { metadata ->
                 when (metadata) {
                     is KotlinClassMetadata.Class -> {
-                        metadata.kmClass.removePrivateDeclarations(removeDataClassCopyIfConstructorIsPrivate)
+                        metadata.kmClass.removePrivateDeclarations(removeDataClassCopyIfConstructorIsPrivate, doNotSortMembers)
                     }
                     is KotlinClassMetadata.FileFacade -> {
-                        metadata.kmPackage.removePrivateDeclarations()
+                        metadata.kmPackage.removePrivateDeclarations(doNotSortMembers)
                     }
                     is KotlinClassMetadata.MultiFileClassPart -> {
-                        metadata.kmPackage.removePrivateDeclarations()
+                        metadata.kmPackage.removePrivateDeclarations(doNotSortMembers)
                     }
                     else -> Unit
                 }
@@ -149,27 +150,27 @@ private fun AnnotationVisitor.visitKotlinMetadata(header: Metadata) {
     visitEnd()
 }
 
-private fun KmClass.removePrivateDeclarations(removeCopyAlongWithConstructor: Boolean) {
+private fun KmClass.removePrivateDeclarations(removeCopyAlongWithConstructor: Boolean, doNotSortMembers: Boolean) {
     constructors.removeIf { it.visibility.isPrivate }
-    (this as KmDeclarationContainer).removePrivateDeclarations(
-        copyFunShouldBeDeleted(removeCopyAlongWithConstructor)
-    )
+    (this as KmDeclarationContainer).removePrivateDeclarations(copyFunShouldBeDeleted(removeCopyAlongWithConstructor), doNotSortMembers)
     localDelegatedProperties.clear()
     // TODO: do not serialize private type aliases once KT-17229 is fixed.
 }
 
-private fun KmPackage.removePrivateDeclarations() {
-    (this as KmDeclarationContainer).removePrivateDeclarations(false)
+private fun KmPackage.removePrivateDeclarations(doNotSortMembers: Boolean) {
+    (this as KmDeclarationContainer).removePrivateDeclarations(false, doNotSortMembers)
     localDelegatedProperties.clear()
     // TODO: do not serialize private type aliases once KT-17229 is fixed.
 }
 
-private fun KmDeclarationContainer.removePrivateDeclarations(copyFunShouldBeDeleted: Boolean) {
+private fun KmDeclarationContainer.removePrivateDeclarations(copyFunShouldBeDeleted: Boolean, doNotSortMembers: Boolean) {
     functions.removeIf { it.visibility.isPrivate || (copyFunShouldBeDeleted && it.name == "copy") }
     properties.removeIf { it.visibility.isPrivate }
 
-    functions.sortWith(compareBy(KmFunction::name, { it.signature.toString() }))
-    properties.sortWith(compareBy(KmProperty::name, { it.getterSignature.toString() }))
+    if (!doNotSortMembers) {
+        functions.sortWith(compareBy(KmFunction::name, { it.signature.toString() }))
+        properties.sortWith(compareBy(KmProperty::name, { it.getterSignature.toString() }))
+    }
 
     for (property in properties) {
         // Whether or not the *non-const* property is initialized by a compile-time constant is not a part of the ABI.

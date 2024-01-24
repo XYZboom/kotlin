@@ -55,6 +55,11 @@ public class JvmAbiContentTestGenerated extends AbstractJvmAbiContentTest {
         runTest("plugins/jvm-abi-gen/testData/content/class/");
     }
 
+    @TestMetadata("doNotSortMembersKeepsClassIntact")
+    public void testDoNotSortMembersKeepsClassIntact() throws Exception {
+        runTest("plugins/jvm-abi-gen/testData/content/doNotSortMembersKeepsClassIntact/");
+    }
+
     @TestMetadata("innerClasses")
     public void testInnerClasses() throws Exception {
         runTest("plugins/jvm-abi-gen/testData/content/innerClasses/");

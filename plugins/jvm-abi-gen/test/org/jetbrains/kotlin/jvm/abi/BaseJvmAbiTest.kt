@@ -84,7 +84,10 @@ abstract class BaseJvmAbiTest : TestCase() {
                     JvmAbiCommandLineProcessor.REMOVE_DATA_CLASS_COPY_IF_CONSTRUCTOR_IS_PRIVATE_OPTION.optionName, true.toString()
                 ).takeIf {
                     InTextDirectivesUtils.findStringWithPrefixes(directives, "// REMOVE_DATA_CLASS_COPY_IF_CONSTRUCTOR_IS_PRIVATE") != null
-                }
+                },
+                abiOption(JvmAbiCommandLineProcessor.DO_NOT_SORT_MEMBERS_OPTION.optionName, true.toString()).takeIf {
+                    InTextDirectivesUtils.findStringWithPrefixes(directives, "// DO_NOT_SORT_MEMBERS") != null
+                },
             ).toTypedArray()
             destination = compilation.destinationDir.canonicalPath
             noSourceDebugExtension = InTextDirectivesUtils.findStringWithPrefixes(directives, "// NO_SOURCE_DEBUG_EXTENSION") != null
