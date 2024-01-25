@@ -28,6 +28,7 @@ abstract class KotlinNpmInstallTask :
     DefaultTask(),
     UsesKotlinNpmResolutionManager {
     init {
+        notCompatibleWithConfigurationCache("KotlinNpmInstallTask uses Task.project")
         check(project == project.rootProject)
     }
 
