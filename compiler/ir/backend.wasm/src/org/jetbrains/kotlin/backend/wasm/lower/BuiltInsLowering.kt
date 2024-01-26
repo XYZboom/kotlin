@@ -14,6 +14,7 @@ import org.jetbrains.kotlin.config.AnalysisFlags
 import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.ir.backend.js.lower.calls.EnumIntrinsicsUtils
 import org.jetbrains.kotlin.ir.backend.js.utils.erasedUpperBound
+import org.jetbrains.kotlin.ir.backend.js.utils.getJsName
 import org.jetbrains.kotlin.ir.backend.js.utils.isEqualsInheritedFromAny
 import org.jetbrains.kotlin.ir.builders.*
 import org.jetbrains.kotlin.ir.declarations.IrFile
@@ -25,8 +26,6 @@ import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
-import org.jetbrains.kotlin.js.config.JSConfigurationKeys
-import org.jetbrains.kotlin.js.config.WasmTarget
 import org.jetbrains.kotlin.name.parentOrNull
 
 class BuiltInsLowering(val context: WasmBackendContext) : FileLoweringPass {
@@ -161,6 +160,17 @@ class BuiltInsLowering(val context: WasmBackendContext) : FileLoweringPass {
                 val type = call.getTypeArgument(0)!!
                 val klass = type.classOrNull?.owner ?: error("Invalid type")
 
+                if (klass.isExternal) {
+                    val typeName = klass.getJsName() ?: klass.name.asString()
+                    return createWasmTypeInfoData(
+                        builder = builder,
+                        packageName = "",
+                        typeName = typeName,
+                        typeId = 0.toIrConst(irBuiltins.intType),
+                        isExternal = true
+                    )
+                }
+
                 val typeId = builder.irCall(symbols.wasmTypeId).also {
                     it.putTypeArgument(0, type)
                 }
@@ -170,20 +180,19 @@ class BuiltInsLowering(val context: WasmBackendContext) : FileLoweringPass {
                         it.putValueArgument(0, typeId)
                     }
                 } else {
-                    val infoDataCtor = symbols.reflectionSymbols.wasmTypeInfoData.constructors.first()
                     val fqName = type.classFqName!!
                     val fqnShouldBeEmitted =
                         context.configuration.languageVersionSettings.getFlag(AnalysisFlags.allowFullyQualifiedNameInKClass)
                     val packageName = if (fqnShouldBeEmitted) fqName.parentOrNull()?.asString() ?: "" else ""
                     val typeName = fqName.shortName().asString()
 
-                    return with(builder) {
-                        irCallConstructor(infoDataCtor, emptyList()).also {
-                            it.putValueArgument(0, typeId)
-                            it.putValueArgument(1, packageName.toIrConst(context.irBuiltIns.stringType))
-                            it.putValueArgument(2, typeName.toIrConst(context.irBuiltIns.stringType))
-                        }
-                    }
+                    return createWasmTypeInfoData(
+                        builder = builder,
+                        packageName = packageName,
+                        typeName = typeName,
+                        typeId = typeId,
+                        isExternal = false
+                    )
                 }
             }
             symbols.enumValueOfIntrinsic ->
@@ -195,6 +204,21 @@ class BuiltInsLowering(val context: WasmBackendContext) : FileLoweringPass {
         }
 
         return call
+    }
+
+    private fun createWasmTypeInfoData(
+        builder: DeclarationIrBuilder,
+        packageName: String,
+        typeName: String,
+        typeId: IrExpression,
+        isExternal: Boolean
+    ): IrExpression = with(builder) {
+        irCallConstructor(symbols.reflectionSymbols.wasmTypeInfoData.constructors.first(), emptyList()).also {
+            it.putValueArgument(0, typeId)
+            it.putValueArgument(1, packageName.toIrConst(context.irBuiltIns.stringType))
+            it.putValueArgument(2, typeName.toIrConst(context.irBuiltIns.stringType))
+            it.putValueArgument(3, isExternal.toIrConst(context.irBuiltIns.booleanType))
+        }
     }
 
     override fun lower(irFile: IrFile) {

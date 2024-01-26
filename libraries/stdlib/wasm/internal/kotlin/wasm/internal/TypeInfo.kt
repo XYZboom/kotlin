@@ -19,7 +19,7 @@ internal const val TYPE_INFO_SUPER_TYPE_OFFSET = TYPE_INFO_TYPE_SIMPLE_NAME_PRT_
 internal const val TYPE_INFO_ITABLE_SIZE_OFFSET = TYPE_INFO_SUPER_TYPE_OFFSET + TYPE_INFO_ELEMENT_SIZE
 internal const val TYPE_INFO_ITABLE_OFFSET = TYPE_INFO_ITABLE_SIZE_OFFSET + TYPE_INFO_ELEMENT_SIZE
 
-internal class TypeInfoData(val typeId: Int, val packageName: String, val typeName: String)
+internal class TypeInfoData(val typeId: Int, val packageName: String, val typeName: String, val isExternal: Boolean)
 
 internal val TypeInfoData.isInterfaceType
     get() = typeId < 0
@@ -27,7 +27,7 @@ internal val TypeInfoData.isInterfaceType
 internal fun getTypeInfoTypeDataByPtr(typeInfoPtr: Int): TypeInfoData {
     val packageName = getPackageName(typeInfoPtr)
     val simpleName = getSimpleName(typeInfoPtr)
-    return TypeInfoData(typeInfoPtr, packageName, simpleName)
+    return TypeInfoData(typeInfoPtr, packageName, simpleName, isExternal = false)
 }
 
 internal fun getSimpleName(typeInfoPtr: Int) = getString(
