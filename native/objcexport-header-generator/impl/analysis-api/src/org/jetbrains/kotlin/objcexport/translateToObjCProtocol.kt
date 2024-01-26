@@ -50,6 +50,9 @@ internal fun KtClassOrObjectSymbol.superProtocols(): List<String> {
         .mapNotNull { qualifier -> qualifier as? KtClassTypeQualifier.KtResolvedClassTypeQualifier }
         .mapNotNull { it.symbol as? KtClassOrObjectSymbol }
         .filter { superInterface -> superInterface.classKind == KtClassKind.INTERFACE }
-        .map { superInterface -> superInterface.getObjCClassOrProtocolName().objCName }
+        .map { superInterface ->
+            dependencies.collect(superInterface)
+            superInterface.getObjCClassOrProtocolName().objCName
+        }
         .toList()
 }

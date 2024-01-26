@@ -4,11 +4,9 @@ import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
 import org.jetbrains.kotlin.analysis.api.KtStarTypeProjection
 import org.jetbrains.kotlin.analysis.api.KtTypeArgumentWithVariance
 import org.jetbrains.kotlin.analysis.api.symbols.KtCallableSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KtClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KtNamedClassOrObjectSymbol
-import org.jetbrains.kotlin.analysis.api.types.KtErrorType
-import org.jetbrains.kotlin.analysis.api.types.KtNonErrorClassType
-import org.jetbrains.kotlin.analysis.api.types.KtType
-import org.jetbrains.kotlin.analysis.api.types.KtTypeParameterType
+import org.jetbrains.kotlin.analysis.api.types.*
 import org.jetbrains.kotlin.backend.konan.objcexport.*
 import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.name.ClassId
@@ -112,11 +110,25 @@ private fun KtType.mapToReferenceTypeIgnoringNullability(): ObjCNonNullReference
     }
 
     if (fullyExpandedType is KtNonErrorClassType) {
-        val typeName = typesMap[classId]
-            ?: fullyExpandedType.classId.shortClassName.asString().getObjCKotlinStdlibClassOrProtocolName().objCName
-
+        val typeName = getTypeName(fullyExpandedType, typesMap, classId)
+        val classSymbol = if (classId != null) getClassOrObjectSymbolByClassId(classId) else null
+        val isInterface = classSymbol?.classKind == KtClassKind.INTERFACE
         val typeArguments = translateToObjCTypeArguments()
-        return ObjCClassType(typeName, typeArguments)
+
+        return if (isInterface) {
+            ObjCProtocolType(typeName)
+        } else {
+            if (classId == null) {
+                ObjCGenericTypeRawUsage(typeName)
+            } else {
+                ObjCClassType(typeName, typeArguments)
+            }
+
+        }.apply {
+            if (typesMap[classId] == null && classSymbol != null) {
+                dependencies.collect(classSymbol)
+            }
+        }
     }
 
     if (fullyExpandedType is KtTypeParameterType) {
@@ -131,6 +143,12 @@ private fun KtType.mapToReferenceTypeIgnoringNullability(): ObjCNonNullReference
 
     /* We cannot translate this, lets try to be lenient and emit the error type? */
     return objCErrorType
+}
+
+context(KtAnalysisSession, KtObjCExportSession)
+private fun KtType.getTypeName(fullyExpandedType: KtNonErrorClassType, typesMap: Map<ClassId, String>, classId: ClassId?): String {
+    return typesMap[classId]
+        ?: fullyExpandedType.classId.shortClassName.asString().getObjCKotlinStdlibClassOrProtocolName().objCName
 }
 
 
