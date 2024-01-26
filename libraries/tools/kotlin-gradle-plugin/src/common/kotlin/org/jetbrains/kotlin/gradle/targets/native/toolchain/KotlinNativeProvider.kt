@@ -28,7 +28,8 @@ import java.io.File
 /**
  * This is a nested provider for all native tasks
  */
-internal class KotlinNativeProvider(project: Project, konanTarget: KonanTarget) {
+internal class KotlinNativeProvider(project: Project, konanTargets: Set<KonanTarget>) {
+    constructor(project: Project, konanTarget: KonanTarget) : this(project, setOf(konanTarget))
 
     @get:Internal
     val konanDataDir: Provider<String?> = project.provider { project.konanDataDir }
@@ -51,7 +52,7 @@ internal class KotlinNativeProvider(project: Project, konanTarget: KonanTarget) 
                 kotlinNativeVersion,
                 bundleDir.asFile,
                 reinstallFlag,
-                konanTarget
+                konanTargets
             )
         }
         kotlinNativeVersion
@@ -72,7 +73,7 @@ internal class KotlinNativeProvider(project: Project, konanTarget: KonanTarget) 
         kotlinNativeVersion: String,
         bundleDir: File,
         reinstallFlag: Boolean,
-        konanTarget: KonanTarget,
+        konanTargets: Set<KonanTarget>,
     ) {
 
         if (reinstallFlag) {
@@ -97,13 +98,15 @@ internal class KotlinNativeProvider(project: Project, konanTarget: KonanTarget) 
             logger.info("Moved Kotlin/Native bundle from $gradleCachesKotlinNativeDir to ${bundleDir.absolutePath}")
         }
 
-        setupKotlinNativeDependencies(konanTarget)
+        setupKotlinNativeDependencies(konanTargets)
     }
 
-    private fun Project.setupKotlinNativeDependencies(konanTarget: KonanTarget) {
+    private fun Project.setupKotlinNativeDependencies(konanTargets: Set<KonanTarget>) {
         val distributionType = NativeDistributionTypeProvider(this).getDistributionType()
         if (distributionType.mustGeneratePlatformLibs) {
-            PlatformLibrariesGenerator(project, konanTarget).generatePlatformLibsIfNeeded()
+            konanTargets.forEach { konanTarget ->
+                PlatformLibrariesGenerator(project, konanTarget).generatePlatformLibsIfNeeded()
+            }
         }
     }
 
