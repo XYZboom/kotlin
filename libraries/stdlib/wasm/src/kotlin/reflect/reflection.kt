@@ -9,8 +9,7 @@ package kotlin.wasm.internal
 import kotlin.reflect.*
 import kotlin.reflect.wasm.internal.*
 
-internal fun <T : Any> getKClass(typeInfoData: TypeInfoData): KClass<T> =
-    KClassImpl(typeInfoData)
+internal expect fun <T : Any> getKClassForObject(obj: Any): KClass<T>
 
 @Suppress("UNCHECKED_CAST")
 internal fun <T : Any> getKClassFromExpression(e: T): KClass<T> =
@@ -34,7 +33,7 @@ internal fun <T : Any> getKClassFromExpression(e: T): KClass<T> =
         is DoubleArray -> PrimitiveClasses.doubleArrayClass
         is KClass<*> -> KClass::class
         is Array<*> -> PrimitiveClasses.arrayClass
-        else -> getKClass(getTypeInfoTypeDataByPtr(e.typeInfo))
+        else -> getKClassForObject(e)
     } as KClass<T>
 
 @Suppress("REIFIED_TYPE_PARAMETER_NO_INLINE")

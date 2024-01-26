@@ -61,6 +61,7 @@ class AssociatedObjectsLowering(val context: WasmBackendContext) : FileLoweringP
             for (klassAnnotation in declaration.annotations) {
                 val annotationClass = klassAnnotation.symbol.owner.parentClassOrNull ?: continue
                 if (klassAnnotation.valueArgumentsCount != 1) continue
+                if (declaration.isExternal) continue
                 val associatedObject = klassAnnotation.associatedObject() ?: continue
 
                 val builder = cachedBuilder ?: context.createIrBuilder(context.wasmSymbols.tryGetAssociatedObject)
@@ -71,7 +72,8 @@ class AssociatedObjectsLowering(val context: WasmBackendContext) : FileLoweringP
                     irBuiltIns = context.irBuiltIns,
                     targetClass = declaration.symbol,
                     keyAnnotation = annotationClass.symbol,
-                    associatedObject = associatedObject.symbol
+                    associatedObject = associatedObject.symbol,
+                    isWasmJs = context.isWasmJsTarget
                 )
                 tryGetAssociatedObject.add(0, selector)
             }
@@ -84,7 +86,8 @@ private fun IrBuilderWithScope.createAssociatedObjectSelector(
     irBuiltIns: IrBuiltIns,
     targetClass: IrClassSymbol,
     keyAnnotation: IrClassSymbol,
-    associatedObject: IrClassSymbol
+    associatedObject: IrClassSymbol,
+    isWasmJs: Boolean,
 ): IrStatement {
     val classIdParam = irGet(wasmSymbols.tryGetAssociatedObject.owner.valueParameters[0])
     val keyIdParam = irGet(wasmSymbols.tryGetAssociatedObject.owner.valueParameters[1])
@@ -96,11 +99,25 @@ private fun IrBuilderWithScope.createAssociatedObjectSelector(
         it.putTypeArgument(0, keyAnnotation.defaultType)
     }
 
+
+    val associatedObjectGetter = irGetObjectValue(associatedObject.defaultType, associatedObject)
+    val associatedObjectGetterAsAny: IrExpression
+    if (isWasmJs && associatedObject.owner.isExternal) {
+        associatedObjectGetterAsAny = irCall(
+            callee = wasmSymbols.jsRelatedSymbols.jsInteropAdapters.jsToKotlinAnyAdapter,
+            type = wasmSymbols.jsRelatedSymbols.jsAnyType
+        ).also {
+            it.putValueArgument(0, associatedObjectGetter)
+        }
+    } else {
+        associatedObjectGetterAsAny = associatedObjectGetter
+    }
+
     return irIfThen(
         condition = irEquals(classIdParam, classId),
         thenPart = irIfThen(
             condition = irEquals(keyIdParam, keyId),
-            thenPart = irReturn(irGetObjectValue(irBuiltIns.anyType, associatedObject))
+            thenPart = irReturn(associatedObjectGetterAsAny)
         )
     )
 }
