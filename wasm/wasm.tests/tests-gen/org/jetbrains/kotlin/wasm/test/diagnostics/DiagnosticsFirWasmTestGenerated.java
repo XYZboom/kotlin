@@ -40,6 +40,12 @@ public class DiagnosticsFirWasmTestGenerated extends AbstractDiagnosticsFirWasmT
         }
 
         @Test
+        @TestMetadata("associatedObjects.kt")
+        public void testAssociatedObjects() throws Exception {
+            runTest("compiler/testData/diagnostics/wasmTests/jsInterop/associatedObjects.kt");
+        }
+
+        @Test
         @TestMetadata("body.kt")
         public void testBody() throws Exception {
             runTest("compiler/testData/diagnostics/wasmTests/jsInterop/body.kt");
