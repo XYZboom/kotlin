@@ -1,0 +1,62 @@
+MODULE <kt56018_value_parameters_annotations.kt>
+    FRAGMENT test
+        classNames:
+            test/Annotation
+        CLASS test/Annotation
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: kt56018_value_parameters_annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        PACKAGE test
+            FUNCTION foo
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: kt56018_value_parameters_annotations.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER arg
+                        hasAnnotations: true
+                        ANNOTATION test/Annotation
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false

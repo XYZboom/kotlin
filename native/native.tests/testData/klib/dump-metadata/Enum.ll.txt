@@ -1,0 +1,244 @@
+MODULE <Enum.kt>
+    FRAGMENT <root>
+        classNames:
+            E.A
+            E.B
+            E.C
+            E
+        CLASS E.A
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_entry
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: Enum.kt
+            supertypes:
+                TYPE
+                    class: E
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+        CLASS E.B
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_entry
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: Enum.kt
+            supertypes:
+                TYPE
+                    class: E
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+        CLASS E.C
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_entry
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: Enum.kt
+            supertypes:
+                TYPE
+                    class: E
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            FUNCTION enumFun
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: Enum.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+        CLASS E
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: true
+            enumEntries:
+                A
+                B
+                C
+            klibEnumEntries:
+                A
+                B
+                C
+            isExternal: false
+            isExpect: false
+            sourceFile: Enum.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Enum
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+                    typeArguments:
+                        TYPE_ARGUMENT
+                            type:
+                                TYPE
+                                    class: E
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+                            variance: invariant
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: true
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            PROPERTY enumVal
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: true
+                compileTimeValue: IntValue(0)
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY enumVar
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: true
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/String
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+                SETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY x
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            FUNCTION enumFun
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: Enum.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+        PACKAGE

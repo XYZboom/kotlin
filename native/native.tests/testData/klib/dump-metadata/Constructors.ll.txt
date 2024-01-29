@@ -1,0 +1,424 @@
+MODULE <Constructors.kt>
+    FRAGMENT <root>
+        classNames:
+            A
+            Bar
+            Baz
+            Foo
+            Qux
+            Typed
+        CLASS A
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: Constructors.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS Bar
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: Constructors.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: true
+                ANNOTATION A
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+        CLASS Baz
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: Constructors.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+        CLASS Foo
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: Constructors.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: true
+                hasNonStableParameterNames: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: true
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Double
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: true
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Double
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                    VALUE_PARAMETER y
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: true
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Long
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: protected
+                isSecondary: true
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/String
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: true
+                ANNOTATION A
+                visibility: public
+                isSecondary: true
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: Foo
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+        CLASS Qux
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: Constructors.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: protected
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+        CLASS Typed
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: Constructors.kt
+            typeParameters:
+                TYPE_PARAMETER T
+                    id: 0
+                    variance: invariant
+                    isReified: false
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: true
+                hasNonStableParameterNames: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: true
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Double
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: true
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Double
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                    VALUE_PARAMETER y
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: true
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Long
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: protected
+                isSecondary: true
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/String
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: true
+                ANNOTATION A
+                visibility: public
+                isSecondary: true
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: Foo
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+        PACKAGE

@@ -1,0 +1,377 @@
+MODULE <data_class.kt>
+    FRAGMENT test
+        classNames:
+            test/DataClass
+            test/DataObject
+        CLASS test/DataClass
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: true
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: data_class.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER intProp
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                    VALUE_PARAMETER stringProp
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/String
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            PROPERTY intProp
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 8
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY stringProp
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 8
+                returnType:
+                    TYPE
+                        class: kotlin/String
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY nonConstructorProp
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: true
+                compileTimeValue: IntValue(0)
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 8
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            FUNCTION component1
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: synthesized
+                isOperator: true
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: data_class.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+            FUNCTION component2
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: synthesized
+                isOperator: true
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: data_class.kt
+                returnType:
+                    TYPE
+                        class: kotlin/String
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+            FUNCTION copy
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: synthesized
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: data_class.kt
+                returnType:
+                    TYPE
+                        class: test/DataClass
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER intProp
+                        hasAnnotations: false
+                        declaresDefaultValue: true
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                    VALUE_PARAMETER stringProp
+                        hasAnnotations: false
+                        declaresDefaultValue: true
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/String
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION equals
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: synthesized
+                isOperator: true
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                returnType:
+                    TYPE
+                        class: kotlin/Boolean
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER other
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Any
+                                isNullable: true
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION hashCode
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: synthesized
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+            FUNCTION toString
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: synthesized
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                returnType:
+                    TYPE
+                        class: kotlin/String
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+        CLASS test/DataObject
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: object
+            isFunInterface: false
+            isData: true
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: data_class.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: false
+                hasNonStableParameterNames: false
+            FUNCTION equals
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: synthesized
+                isOperator: true
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                returnType:
+                    TYPE
+                        class: kotlin/Boolean
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER other
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Any
+                                isNullable: true
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION hashCode
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: synthesized
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+            FUNCTION toString
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: synthesized
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                returnType:
+                    TYPE
+                        class: kotlin/String
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+        PACKAGE test

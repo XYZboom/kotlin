@@ -1,0 +1,252 @@
+MODULE <TopLevelPropertiesWithClassesRootPackage.kt>
+    FRAGMENT <root>
+        classNames:
+            Bar
+            Foo
+        CLASS Bar
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: object
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: TopLevelPropertiesWithClassesRootPackage.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS Foo
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: TopLevelPropertiesWithClassesRootPackage.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        PACKAGE <root>
+            TYPEALIAS MyTransformer
+                hasAnnotations: false
+                visibility: public
+                uniqId: 0
+                underlyingType:
+                    TYPE
+                        class: kotlin/Function1
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                        typeArguments:
+                            TYPE_ARGUMENT
+                                type:
+                                    TYPE
+                                        class: kotlin/String
+                                        isNullable: false
+                                        isDefinitelyNonNull: false
+                                        isSuspend: false
+                                variance: invariant
+                            TYPE_ARGUMENT
+                                type:
+                                    TYPE
+                                        class: kotlin/Int
+                                        isNullable: false
+                                        isDefinitelyNonNull: false
+                                        isSuspend: false
+                                variance: invariant
+                expandedType:
+                    TYPE
+                        class: kotlin/Function1
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                        typeArguments:
+                            TYPE_ARGUMENT
+                                type:
+                                    TYPE
+                                        class: kotlin/String
+                                        isNullable: false
+                                        isDefinitelyNonNull: false
+                                        isSuspend: false
+                                variance: invariant
+                            TYPE_ARGUMENT
+                                type:
+                                    TYPE
+                                        class: kotlin/Int
+                                        isNullable: false
+                                        isDefinitelyNonNull: false
+                                        isSuspend: false
+                                variance: invariant
+    FRAGMENT <root>
+        PACKAGE <root>
+            PROPERTY v1
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: true
+                compileTimeValue: IntValue(1)
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 3
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY v2
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: true
+                compileTimeValue: StringValue("hello")
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 3
+                returnType:
+                    TYPE
+                        class: kotlin/String
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY v3
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 3
+                returnType:
+                    TYPE
+                        class: kotlin/Function1
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                        typeArguments:
+                            TYPE_ARGUMENT
+                                type:
+                                    TYPE
+                                        class: kotlin/String
+                                        isNullable: false
+                                        isDefinitelyNonNull: false
+                                        isSuspend: false
+                                variance: invariant
+                            TYPE_ARGUMENT
+                                type:
+                                    TYPE
+                                        class: kotlin/Int
+                                        isNullable: false
+                                        isDefinitelyNonNull: false
+                                        isSuspend: false
+                                variance: invariant
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY v4
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 3
+                returnType:
+                    TYPE
+                        class: kotlin/Function1
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                        typeArguments:
+                            TYPE_ARGUMENT
+                                type:
+                                    TYPE
+                                        class: kotlin/String
+                                        isNullable: false
+                                        isDefinitelyNonNull: false
+                                        isSuspend: false
+                                variance: invariant
+                            TYPE_ARGUMENT
+                                type:
+                                    TYPE
+                                        class: kotlin/Int
+                                        isNullable: false
+                                        isDefinitelyNonNull: false
+                                        isSuspend: false
+                                variance: invariant
+                        abbreviatedType:
+                            TYPE
+                                typeAlias: MyTransformer
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false

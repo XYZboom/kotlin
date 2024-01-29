@@ -5,7 +5,7 @@
 
 package org.jetbrains.kotlin.cli.klib
 
-// TODO: Extract `library` package as a shared jar?
+import kotlinx.metadata.klib.KlibModuleMetadata
 import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageSupportForLinker
 import org.jetbrains.kotlin.backend.common.overrides.IrLinkerFakeOverrideProvider
 import org.jetbrains.kotlin.backend.common.serialization.BasicIrModuleDeserializer
@@ -40,7 +40,6 @@ import org.jetbrains.kotlin.konan.util.KonanHomeProvider
 import org.jetbrains.kotlin.library.*
 import org.jetbrains.kotlin.library.abi.*
 import org.jetbrains.kotlin.library.metadata.KlibMetadataFactories
-import org.jetbrains.kotlin.library.metadata.KlibMetadataProtoBuf
 import org.jetbrains.kotlin.library.metadata.kotlinLibrary
 import org.jetbrains.kotlin.library.metadata.parseModuleHeader
 import org.jetbrains.kotlin.psi2ir.descriptors.IrBuiltInsOverDescriptors
@@ -81,6 +80,7 @@ fun printUsage() {
                signatures                [DEPRECATED] Renamed to "dump-metadata-signatures". Please, use new command name.
                dump-metadata             Dump the metadata of all non-private declarations in the library in the form of Kotlin-alike code.
                                            The output of this command is intended to be used for debugging purposes only.
+               dump-ll-metadata          Dump the metadata of all declarations in the library in low-level details.
                contents                  [DEPRECATED] Renamed to "dump-metadata". Please, use new command name.
 
             and the options are:
@@ -178,18 +178,6 @@ object KlibToolLogger : Logger, IrMessageLogger {
 
 val defaultRepository = KFile(DependencyDirectories.localKonanDir.resolve("klib").absolutePath)
 
-open class ModuleDeserializer(val library: ByteArray) {
-    protected val moduleHeader: KlibMetadataProtoBuf.Header
-        get() = parseModuleHeader(library)
-
-    val moduleName: String
-        get() = moduleHeader.moduleName
-
-    val packageFragmentNameList: List<String>
-        get() = moduleHeader.packageFragmentNameList
-
-}
-
 private class KlibRepoDeprecationWarning {
     private var alreadyLogged = false
 
@@ -216,7 +204,7 @@ class Library(val libraryNameOrPath: String, val requestedRepository: String?) {
         val headerCompilerVersion = library.versions.compilerVersion
         val headerLibraryVersion = library.versions.libraryVersion
         val headerMetadataVersion = library.versions.metadataVersion
-        val moduleName = ModuleDeserializer(library.moduleHeaderData).moduleName
+        val moduleName = parseModuleHeader(library.moduleHeaderData).moduleName
 
         println("")
         println("Resolved to: ${KFile(library.libraryName).absolutePath}")
@@ -405,6 +393,20 @@ class Library(val libraryNameOrPath: String, val requestedRepository: String?) {
         printer.print(module)
     }
 
+    fun dumpLowLevelMetadata(output: Appendable) {
+        val library = libraryInCurrentDir(libraryNameOrPath)
+
+        val metadata = KlibModuleMetadata.read(
+                object : KlibModuleMetadata.MetadataLibraryProvider {
+                    override val moduleHeaderData get() = library.moduleHeaderData
+                    override fun packageMetadata(fqName: String, partName: String) = library.packageMetadata(fqName, partName)
+                    override fun packageMetadataParts(fqName: String) = library.packageMetadataParts(fqName)
+                }
+        )
+
+        DumpLowLevelMetadata(output).dumpModule(metadata)
+    }
+
     fun signatures(output: Appendable, signatureVersion: KotlinIrSignatureVersion?) {
         logWarning("\"signatures\" has been renamed to \"dump-metadata-signatures\". Please, use new command name.")
         dumpMetadataSignatures(output, signatureVersion)
@@ -501,6 +503,7 @@ fun main(args: Array<String>) {
         "dump-ir" -> library.dumpIr(System.out, printSignatures, signatureVersion)
         "dump-ir-signatures" -> library.dumpIrSignatures(System.out, signatureVersion)
         "dump-metadata" -> library.dumpMetadata(System.out, printSignatures, signatureVersion)
+        "dump-ll-metadata" -> library.dumpLowLevelMetadata(System.out)
         "dump-metadata-signatures" -> library.dumpMetadataSignatures(System.out, signatureVersion)
         "contents" -> library.contents(System.out, printSignatures, signatureVersion)
         "signatures" -> library.signatures(System.out, signatureVersion)

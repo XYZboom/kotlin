@@ -1,0 +1,159 @@
+MODULE <sourceRetainedAnnotation.kt>
+    FRAGMENT test
+        classNames:
+            test/A
+            test/Enum
+            test/Klass
+        CLASS test/A
+            hasAnnotations: true
+            ANNOTATION kotlin/annotation/Retention
+                value: EnumValue(kotlin/annotation/AnnotationRetention.SOURCE)
+            ANNOTATION kotlin/annotation/Target
+                allowedTargets: ArrayValue([EnumValue(kotlin/annotation/AnnotationTarget.CLASS), EnumValue(kotlin/annotation/AnnotationTarget.CONSTRUCTOR), EnumValue(kotlin/annotation/AnnotationTarget.FUNCTION), EnumValue(kotlin/annotation/AnnotationTarget.PROPERTY), EnumValue(kotlin/annotation/AnnotationTarget.VALUE_PARAMETER), EnumValue(kotlin/annotation/AnnotationTarget.TYPE), EnumValue(kotlin/annotation/AnnotationTarget.TYPE_PARAMETER)])
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: sourceRetainedAnnotation.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/Enum
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: true
+            enumEntries:
+                ENTRY
+            klibEnumEntries:
+                ENTRY
+            isExternal: false
+            isExpect: false
+            sourceFile: sourceRetainedAnnotation.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Enum
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+                    typeArguments:
+                        TYPE_ARGUMENT
+                            type:
+                                TYPE
+                                    class: test/Enum
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+                            variance: invariant
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/Klass
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: sourceRetainedAnnotation.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        PACKAGE test
+            PROPERTY property
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 5
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            FUNCTION function
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: sourceRetainedAnnotation.kt
+                typeParameters:
+                    TYPE_PARAMETER T
+                        id: 0
+                        variance: invariant
+                        isReified: false
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER param
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Unit
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false

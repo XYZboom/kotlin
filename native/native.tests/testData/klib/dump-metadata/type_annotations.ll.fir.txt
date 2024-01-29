@@ -1,0 +1,189 @@
+MODULE <type_annotations.kt>
+    FRAGMENT test
+        classNames:
+            test/AnnoBinary
+            test/AnnoRuntime
+            test/AnnoSource
+        CLASS test/AnnoBinary
+            hasAnnotations: true
+            ANNOTATION kotlin/annotation/Retention
+                value: EnumValue(kotlin/annotation/AnnotationRetention.BINARY)
+            ANNOTATION kotlin/annotation/Target
+                allowedTargets: ArrayValue([EnumValue(kotlin/annotation/AnnotationTarget.TYPE)])
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: type_annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoRuntime
+            hasAnnotations: true
+            ANNOTATION kotlin/annotation/Retention
+                value: EnumValue(kotlin/annotation/AnnotationRetention.RUNTIME)
+            ANNOTATION kotlin/annotation/Target
+                allowedTargets: ArrayValue([EnumValue(kotlin/annotation/AnnotationTarget.TYPE)])
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: type_annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoSource
+            hasAnnotations: true
+            ANNOTATION kotlin/annotation/Retention
+                value: EnumValue(kotlin/annotation/AnnotationRetention.SOURCE)
+            ANNOTATION kotlin/annotation/Target
+                allowedTargets: ArrayValue([EnumValue(kotlin/annotation/AnnotationTarget.TYPE)])
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: type_annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        PACKAGE test
+            FUNCTION withRuntimeAnnotation
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: type_annotations.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER id
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                ANNOTATION test/AnnoRuntime
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION withBinaryAnnotation
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: type_annotations.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER id
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                ANNOTATION test/AnnoBinary
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION withSourceAnnotation
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: type_annotations.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER id
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false

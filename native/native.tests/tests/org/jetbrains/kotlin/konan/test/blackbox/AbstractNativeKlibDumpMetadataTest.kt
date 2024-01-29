@@ -14,12 +14,15 @@ import org.jetbrains.kotlin.konan.test.blackbox.support.compilation.TestCompilat
 import org.jetbrains.kotlin.konan.test.blackbox.support.group.UsePartialLinkage
 import org.jetbrains.kotlin.konan.test.blackbox.support.runner.TestRunChecks
 import org.jetbrains.kotlin.konan.test.blackbox.support.settings.KotlinNativeClassLoader
+import org.jetbrains.kotlin.konan.test.blackbox.support.settings.PipelineType
 import org.jetbrains.kotlin.konan.test.blackbox.support.settings.Timeouts
+import org.jetbrains.kotlin.konan.test.blackbox.support.util.dumpLowLevelMetadata
 import org.jetbrains.kotlin.konan.test.blackbox.support.util.getAbsoluteFile
 import org.jetbrains.kotlin.konan.test.blackbox.support.util.dumpMetadata
 import org.jetbrains.kotlin.library.KotlinIrSignatureVersion
 import org.jetbrains.kotlin.test.services.JUnit5Assertions.assertEqualsToFile
 import org.jetbrains.kotlin.test.utils.withSuffixAndExtension
+import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import org.junit.jupiter.api.Tag
 import java.io.File
 
@@ -51,6 +54,15 @@ abstract class AbstractNativeKlibDumpMetadataTest : AbstractNativeSimpleTest() {
             )
 
             assertEqualsToFile(goldenDataFile, filteredMetadataDump)
+        }
+
+        run {
+            val lowLevelMetadataDump = klib.dumpLowLevelMetadata(kotlinNativeClassLoader.classLoader)
+
+            val firSpecificExt = runIf(testRunSettings.get<PipelineType>() == PipelineType.K2) { ".fir" }.orEmpty()
+            val goldenDataFile = testPathFull.withSuffixAndExtension(suffix = ".ll$firSpecificExt", extension = "txt")
+
+            assertEqualsToFile(goldenDataFile, lowLevelMetadataDump)
         }
     }
 

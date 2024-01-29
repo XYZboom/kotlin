@@ -1,0 +1,778 @@
+MODULE <annotations.kt>
+    FRAGMENT <root>
+        PACKAGE
+    FRAGMENT test
+        classNames:
+            test/AnnoBackingField
+            test/AnnoClass
+            test/AnnoClassTypeParameter
+            test/AnnoClassUsageTypeParameter
+            test/AnnoConstructor
+            test/AnnoConstructorParameter
+            test/AnnoDelegatedField
+            test/AnnoFunction
+            test/AnnoFunctionExtensionReceiver
+            test/AnnoFunctionParam
+            test/AnnoFunctionTypeParameter
+            test/AnnoGetter
+            test/AnnoProperty
+            test/AnnoPropertyExtensionReceiver
+            test/AnnoSetParam
+            test/AnnoSetParam2
+            test/AnnoSetter
+            test/AnnoSetter2
+            test/B
+            test/Foo
+        CLASS test/AnnoBackingField
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoClass
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoClassTypeParameter
+            hasAnnotations: true
+            ANNOTATION kotlin/annotation/Target
+                allowedTargets: ArrayValue([EnumValue(kotlin/annotation/AnnotationTarget.TYPE_PARAMETER)])
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoClassUsageTypeParameter
+            hasAnnotations: true
+            ANNOTATION kotlin/annotation/Target
+                allowedTargets: ArrayValue([EnumValue(kotlin/annotation/AnnotationTarget.TYPE)])
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoConstructor
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoConstructorParameter
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoDelegatedField
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoFunction
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoFunctionExtensionReceiver
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoFunctionParam
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoFunctionTypeParameter
+            hasAnnotations: true
+            ANNOTATION kotlin/annotation/Target
+                allowedTargets: ArrayValue([EnumValue(kotlin/annotation/AnnotationTarget.TYPE_PARAMETER)])
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoGetter
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoProperty
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoPropertyExtensionReceiver
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoSetParam
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoSetParam2
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoSetter
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/AnnoSetter2
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/B
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            typeParameters:
+                TYPE_PARAMETER T
+                    ANNOTATION test/AnnoClassTypeParameter
+                    id: 0
+                    variance: invariant
+                    isReified: false
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/Foo
+            hasAnnotations: true
+            ANNOTATION test/AnnoClass
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: true
+                ANNOTATION test/AnnoConstructor
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER i
+                        hasAnnotations: true
+                        ANNOTATION test/AnnoConstructorParameter
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            PROPERTY immutableProp
+                hasAnnotations: true
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: true
+                isExpect: false
+                file: 4
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+            PROPERTY mutableProp
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: true
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 4
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+                SETTER
+                    hasAnnotations: true
+                    ANNOTATION test/AnnoSetter2
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                    valueParameters:
+                        VALUE_PARAMETER x
+                            hasAnnotations: true
+                            ANNOTATION test/AnnoSetParam2
+                            declaresDefaultValue: false
+                            isCrossinline: false
+                            isNoinline: false
+                            type:
+                                TYPE
+                                    class: kotlin/Int
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+            PROPERTY prop
+                hasAnnotations: true
+                ANNOTATION test/AnnoProperty
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: true
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 4
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: true
+                    ANNOTATION test/AnnoGetter
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                SETTER
+                    hasAnnotations: true
+                    ANNOTATION test/AnnoSetter
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                    valueParameters:
+                        VALUE_PARAMETER x
+                            hasAnnotations: true
+                            ANNOTATION test/AnnoSetParam
+                            declaresDefaultValue: false
+                            isCrossinline: false
+                            isNoinline: false
+                            type:
+                                TYPE
+                                    class: kotlin/Int
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+        PACKAGE
+    FRAGMENT test
+        PACKAGE test
+            PROPERTY extProp
+                hasAnnotations: true
+                ANNOTATION test/AnnoPropertyExtensionReceiver
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 5
+                receiverParameterType:
+                    TYPE
+                        class: test/Foo
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+            FUNCTION f
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: annotations.kt
+                typeParameters:
+                    TYPE_PARAMETER T
+                        ANNOTATION test/AnnoFunctionTypeParameter
+                        id: 0
+                        variance: invariant
+                        isReified: false
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: test/B
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                                typeArguments:
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                ANNOTATION test/AnnoClassUsageTypeParameter
+                                                class: kotlin/Int
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+            FUNCTION extfun
+                hasAnnotations: true
+                ANNOTATION test/AnnoFunction
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: annotations.kt
+                receiverParameterType:
+                    TYPE
+                        class: test/Foo
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: true
+                        ANNOTATION test/AnnoFunctionParam
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false

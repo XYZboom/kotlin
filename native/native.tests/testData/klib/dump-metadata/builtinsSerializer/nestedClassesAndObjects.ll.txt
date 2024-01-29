@@ -1,0 +1,451 @@
+MODULE <nestedClassesAndObjects.kt>
+    FRAGMENT <root>
+        PACKAGE
+    FRAGMENT test
+        classNames:
+            test/ClassA.classB.BC
+            test/ClassA.classB.BO
+            test/ClassA.classB
+            test/ClassA.classC
+            test/ClassA
+            test/E.Companion.D
+            test/E.Companion
+            test/E
+            test/F.ObjA
+            test/F
+        CLASS test/ClassA.classB.BC
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: nestedClassesAndObjects.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+            PROPERTY memberFromBB
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: true
+                compileTimeValue: IntValue(150)
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        CLASS test/ClassA.classB.BO
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: object
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: nestedClassesAndObjects.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: false
+                hasNonStableParameterNames: false
+            PROPERTY memberFromBO
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: true
+                compileTimeValue: IntValue(175)
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        CLASS test/ClassA.classB
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            nestedClasses:
+                BC
+                BO
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: nestedClassesAndObjects.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+            FUNCTION memberFromB
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: nestedClassesAndObjects.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+        CLASS test/ClassA.classC
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: true
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: nestedClassesAndObjects.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+            PROPERTY memberFromC
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: true
+                compileTimeValue: IntValue(200)
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        CLASS test/ClassA
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            nestedClasses:
+                classB
+                classC
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: nestedClassesAndObjects.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/E.Companion.D
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: nestedClassesAndObjects.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+            PROPERTY memberFromD
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: true
+                compileTimeValue: IntValue(275)
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        CLASS test/E.Companion
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: companion_object
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            nestedClasses:
+                D
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: nestedClassesAndObjects.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: false
+                hasNonStableParameterNames: false
+            PROPERTY stat
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: true
+                compileTimeValue: IntValue(250)
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        CLASS test/E
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            nestedClasses:
+                Companion
+            companionObject: Companion
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: nestedClassesAndObjects.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/F.ObjA
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: object
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: nestedClassesAndObjects.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: false
+                hasNonStableParameterNames: false
+            PROPERTY memberFromObjA
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: true
+                compileTimeValue: IntValue(300)
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        CLASS test/F
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            nestedClasses:
+                ObjA
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: nestedClassesAndObjects.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        PACKAGE

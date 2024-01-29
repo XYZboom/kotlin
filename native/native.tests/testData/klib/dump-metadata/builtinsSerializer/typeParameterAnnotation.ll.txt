@@ -1,0 +1,102 @@
+MODULE <typeParameterAnnotation.kt>
+    FRAGMENT <root>
+        PACKAGE
+    FRAGMENT test
+        classNames:
+            test/Ann
+        CLASS test/Ann
+            hasAnnotations: true
+            ANNOTATION kotlin/annotation/Retention
+                value: EnumValue(kotlin/annotation/AnnotationRetention.BINARY)
+            ANNOTATION kotlin/annotation/Target
+                allowedTargets: ArrayValue([EnumValue(kotlin/annotation/AnnotationTarget.TYPE_PARAMETER)])
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: typeParameterAnnotation.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER value
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/String
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            PROPERTY value
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/String
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        PACKAGE
+    FRAGMENT test
+        PACKAGE test
+            FUNCTION foo
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: true
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: typeParameterAnnotation.kt
+                typeParameters:
+                    TYPE_PARAMETER T
+                        ANNOTATION test/Ann
+                            value: StringValue("abc")
+                        id: 0
+                        variance: invariant
+                        isReified: true
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false

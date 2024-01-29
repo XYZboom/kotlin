@@ -1,0 +1,149 @@
+MODULE <simple.kt>
+    FRAGMENT test
+        classNames:
+            test/Class
+        CLASS test/Class
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: simple.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+            FUNCTION member
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: simple.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Nothing
+                        isNullable: true
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+        PACKAGE test
+            PROPERTY property
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 8
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            FUNCTION function
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: simple.kt
+                returnType:
+                    TYPE
+                        class: test/Class
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER int
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                    VALUE_PARAMETER string
+                        hasAnnotations: false
+                        declaresDefaultValue: true
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/String
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION extension
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: simple.kt
+                typeParameters:
+                    TYPE_PARAMETER T
+                        id: 0
+                        variance: invariant
+                        isReified: false
+                receiverParameterType:
+                    TYPE
+                        typeParameter: 0
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                returnType:
+                    TYPE
+                        typeParameter: 0
+                        isNullable: true
+                        isDefinitelyNonNull: false
+                        isSuspend: false

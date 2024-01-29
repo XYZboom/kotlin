@@ -1,0 +1,222 @@
+MODULE <varargs.kt>
+    FRAGMENT <root>
+        PACKAGE
+    FRAGMENT test
+        classNames:
+            test/My.ALPHA
+            test/My.BETA
+            test/My.OMEGA
+            test/My
+            test/ann
+            test/annotated
+        CLASS test/My.ALPHA
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_entry
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: varargs.kt
+            supertypes:
+                TYPE
+                    class: test/My
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+        CLASS test/My.BETA
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_entry
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: varargs.kt
+            supertypes:
+                TYPE
+                    class: test/My
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+        CLASS test/My.OMEGA
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_entry
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: varargs.kt
+            supertypes:
+                TYPE
+                    class: test/My
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+        CLASS test/My
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: true
+            enumEntries:
+                ALPHA
+                BETA
+                OMEGA
+            klibEnumEntries:
+                ALPHA
+                BETA
+                OMEGA
+            isExternal: false
+            isExpect: false
+            sourceFile: varargs.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Enum
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+                    typeArguments:
+                        TYPE_ARGUMENT
+                            type:
+                                TYPE
+                                    class: test/My
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+                            variance: invariant
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/ann
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: varargs.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER m
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Array
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                                typeArguments:
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: test/My
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: out
+                        varargElementType:
+                            TYPE
+                                class: test/My
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            PROPERTY m
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 7
+                returnType:
+                    TYPE
+                        class: kotlin/Array
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                        typeArguments:
+                            TYPE_ARGUMENT
+                                type:
+                                    TYPE
+                                        class: test/My
+                                        isNullable: false
+                                        isDefinitelyNonNull: false
+                                        isSuspend: false
+                                variance: out
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        CLASS test/annotated
+            hasAnnotations: true
+            ANNOTATION test/ann
+                m: ArrayValue([EnumValue(test/My.ALPHA), EnumValue(test/My.BETA)])
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: varargs.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        PACKAGE

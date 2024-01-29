@@ -1,0 +1,180 @@
+MODULE <annotatedEnumEntry.kt>
+    FRAGMENT test
+        classNames:
+            test/Anno
+            test/Bnno
+            test/Eee
+        CLASS test/Anno
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotatedEnumEntry.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER value
+                        hasAnnotations: false
+                        declaresDefaultValue: true
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/String
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: true
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Int
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            PROPERTY value
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 8
+                returnType:
+                    TYPE
+                        class: kotlin/String
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY x
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 8
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        CLASS test/Bnno
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: annotatedEnumEntry.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/Eee
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: true
+            enumEntries:
+                Entry1
+                Entry2
+                Entry3
+                Entry4
+            klibEnumEntries:
+                Entry1
+                    ANNOTATION test/Anno
+                Entry2
+                Entry3
+                    ANNOTATION test/Anno
+                        value: StringValue("3")
+                    ANNOTATION test/Bnno
+                Entry4
+                    ANNOTATION test/Anno
+                        value: StringValue("4")
+                        x: IntValue(4)
+            isExternal: false
+            isExpect: false
+            sourceFile: annotatedEnumEntry.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Enum
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+                    typeArguments:
+                        TYPE_ARGUMENT
+                            type:
+                                TYPE
+                                    class: test/Eee
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+                            variance: invariant
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: false
+                hasNonStableParameterNames: false
+        PACKAGE test

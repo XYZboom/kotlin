@@ -1,0 +1,147 @@
+MODULE <propertyAccessorAnnotations.kt>
+    FRAGMENT test
+        classNames:
+            test/Anno
+        CLASS test/Anno
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: propertyAccessorAnnotations.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER value
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/String
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            PROPERTY value
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 3
+                returnType:
+                    TYPE
+                        class: kotlin/String
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        PACKAGE test
+            PROPERTY v1
+                hasAnnotations: true
+                ANNOTATION test/Anno
+                    value: StringValue("property")
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: true
+                compileTimeValue: StringValue("")
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 3
+                returnType:
+                    TYPE
+                        class: kotlin/String
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY v2
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: true
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 3
+                returnType:
+                    TYPE
+                        class: kotlin/String
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: true
+                    ANNOTATION test/Anno
+                        value: StringValue("getter")
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                SETTER
+                    hasAnnotations: true
+                    ANNOTATION test/Anno
+                        value: StringValue("setter")
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                    valueParameters:
+                        VALUE_PARAMETER value
+                            hasAnnotations: true
+                            ANNOTATION test/Anno
+                                value: StringValue("setparam")
+                            declaresDefaultValue: false
+                            isCrossinline: false
+                            isNoinline: false
+                            type:
+                                TYPE
+                                    class: kotlin/String
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false

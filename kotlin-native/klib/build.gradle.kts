@@ -19,6 +19,8 @@ dependencies {
     implementation(project(":compiler:ir.serialization.native"))
     implementation(project(":kotlin-native:utilities:basic-utils"))
     implementation(project(":kotlin-util-klib-abi"))
+    implementation(project(":kotlinx-metadata-klib")) { isTransitive = false }
+    implementation(project(":kotlinx-metadata")) { isTransitive = false }
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>> {

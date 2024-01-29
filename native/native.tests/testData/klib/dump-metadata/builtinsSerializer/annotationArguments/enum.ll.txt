@@ -1,0 +1,308 @@
+MODULE <enum.kt>
+    FRAGMENT <root>
+        PACKAGE
+    FRAGMENT test
+        classNames:
+            test/C1
+            test/C2
+            test/EnumArray
+            test/JustEnum
+            test/Weapon.ROCK
+            test/Weapon.PAPER
+            test/Weapon.SCISSORS
+            test/Weapon
+        CLASS test/C1
+            hasAnnotations: true
+            ANNOTATION test/JustEnum
+                weapon: EnumValue(test/Weapon.SCISSORS)
+            ANNOTATION test/EnumArray
+                enumArray: ArrayValue([])
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: enum.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/C2
+            hasAnnotations: true
+            ANNOTATION test/EnumArray
+                enumArray: ArrayValue([EnumValue(test/Weapon.PAPER), EnumValue(test/Weapon.ROCK)])
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: enum.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS test/EnumArray
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: enum.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER enumArray
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Array
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                                typeArguments:
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: test/Weapon
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+            PROPERTY enumArray
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 4
+                returnType:
+                    TYPE
+                        class: kotlin/Array
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                        typeArguments:
+                            TYPE_ARGUMENT
+                                type:
+                                    TYPE
+                                        class: test/Weapon
+                                        isNullable: false
+                                        isDefinitelyNonNull: false
+                                        isSuspend: false
+                                variance: invariant
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        CLASS test/JustEnum
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: enum.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+                valueParameters:
+                    VALUE_PARAMETER weapon
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: test/Weapon
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            PROPERTY weapon
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 4
+                returnType:
+                    TYPE
+                        class: test/Weapon
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+        CLASS test/Weapon.ROCK
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_entry
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: enum.kt
+            supertypes:
+                TYPE
+                    class: test/Weapon
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+        CLASS test/Weapon.PAPER
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_entry
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: enum.kt
+            supertypes:
+                TYPE
+                    class: test/Weapon
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+        CLASS test/Weapon.SCISSORS
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_entry
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: enum.kt
+            supertypes:
+                TYPE
+                    class: test/Weapon
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+        CLASS test/Weapon
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: enum_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: true
+            enumEntries:
+                ROCK
+                PAPER
+                SCISSORS
+            klibEnumEntries:
+                ROCK
+                PAPER
+                SCISSORS
+            isExternal: false
+            isExpect: false
+            sourceFile: enum.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Enum
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+                    typeArguments:
+                        TYPE_ARGUMENT
+                            type:
+                                TYPE
+                                    class: test/Weapon
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+                            variance: invariant
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: private
+                isSecondary: false
+                hasNonStableParameterNames: false
+        PACKAGE

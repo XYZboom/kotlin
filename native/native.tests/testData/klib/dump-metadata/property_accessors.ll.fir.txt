@@ -1,0 +1,384 @@
+MODULE <property_accessors.kt>
+    FRAGMENT test
+        classNames:
+            test/A
+        CLASS test/A
+            hasAnnotations: false
+            visibility: public
+            modality: abstract
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: property_accessors.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+            PROPERTY a
+                hasAnnotations: false
+                visibility: public
+                modality: abstract
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: abstract
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY b
+                hasAnnotations: false
+                visibility: public
+                modality: abstract
+                kind: declaration
+                isVar: true
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: abstract
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+                SETTER
+                    hasAnnotations: false
+                    visibility: protected
+                    modality: abstract
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                    valueParameters:
+                        VALUE_PARAMETER value
+                            hasAnnotations: false
+                            declaresDefaultValue: false
+                            isCrossinline: false
+                            isNoinline: false
+                            type:
+                                TYPE
+                                    class: kotlin/Int
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+            PROPERTY c
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY d
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+            PROPERTY e
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: true
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                SETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                    valueParameters:
+                        VALUE_PARAMETER value
+                            hasAnnotations: false
+                            declaresDefaultValue: false
+                            isCrossinline: false
+                            isNoinline: false
+                            type:
+                                TYPE
+                                    class: kotlin/Int
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+            PROPERTY f
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isVar: true
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: final
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+                SETTER
+                    hasAnnotations: false
+                    visibility: private
+                    modality: final
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                    valueParameters:
+                        VALUE_PARAMETER value
+                            hasAnnotations: false
+                            declaresDefaultValue: false
+                            isCrossinline: false
+                            isNoinline: false
+                            type:
+                                TYPE
+                                    class: kotlin/Int
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+            PROPERTY g
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: open
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+            PROPERTY h
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: declaration
+                isVar: false
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: open
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+            PROPERTY k
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: declaration
+                isVar: true
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: open
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                SETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: open
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                    valueParameters:
+                        VALUE_PARAMETER value
+                            hasAnnotations: false
+                            declaresDefaultValue: false
+                            isCrossinline: false
+                            isNoinline: false
+                            type:
+                                TYPE
+                                    class: kotlin/Int
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+            PROPERTY l
+                hasAnnotations: false
+                visibility: public
+                modality: open
+                kind: declaration
+                isVar: true
+                isConst: false
+                hasConstant: false
+                isLateInit: false
+                isExternal: false
+                isDelegated: false
+                isExpect: false
+                file: 6
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                GETTER
+                    hasAnnotations: false
+                    visibility: public
+                    modality: open
+                    isInline: false
+                    isNotDefault: false
+                    isExternal: false
+                SETTER
+                    hasAnnotations: false
+                    visibility: protected
+                    modality: open
+                    isInline: false
+                    isNotDefault: true
+                    isExternal: false
+                    valueParameters:
+                        VALUE_PARAMETER value
+                            hasAnnotations: false
+                            declaresDefaultValue: false
+                            isCrossinline: false
+                            isNoinline: false
+                            type:
+                                TYPE
+                                    class: kotlin/Int
+                                    isNullable: false
+                                    isDefinitelyNonNull: false
+                                    isSuspend: false
+        PACKAGE test

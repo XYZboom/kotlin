@@ -1,0 +1,747 @@
+MODULE <TopLevelFunctions.kt>
+    FRAGMENT <root>
+        classNames:
+            A
+            B
+            Foo
+        CLASS A
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: TopLevelFunctions.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS B
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: annotation_class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: TopLevelFunctions.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Annotation
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        CLASS Foo
+            hasAnnotations: false
+            visibility: public
+            modality: final
+            kind: class
+            isFunInterface: false
+            isData: false
+            isValue: false
+            isInner: false
+            hasEnumEntries: false
+            isExternal: false
+            isExpect: false
+            sourceFile: TopLevelFunctions.kt
+            supertypes:
+                TYPE
+                    class: kotlin/Any
+                    isNullable: false
+                    isDefinitelyNonNull: false
+                    isSuspend: false
+            CONSTRUCTOR
+                hasAnnotations: false
+                visibility: public
+                isSecondary: false
+                hasNonStableParameterNames: false
+        PACKAGE
+    FRAGMENT <root>
+        PACKAGE <root>
+            FUNCTION a
+                hasAnnotations: true
+                ANNOTATION A
+                ANNOTATION B
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+            FUNCTION f1
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: Foo
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION f2
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Int
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: Foo
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                    VALUE_PARAMETER y
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: Foo
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION i1
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: true
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER block
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Function0
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                                typeArguments:
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: Foo
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+            FUNCTION i2
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: true
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER block
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: true
+                        type:
+                            TYPE
+                                class: kotlin/Function0
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                                typeArguments:
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: Foo
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+            FUNCTION i3
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: true
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER block
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: true
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Function0
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                                typeArguments:
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: Foo
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+            FUNCTION i4
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER block
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Function1
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                                typeArguments:
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: Foo
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: kotlin/Int
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+            FUNCTION i5
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER block
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: kotlin/Function2
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                                typeArguments:
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: Foo
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: Foo
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: kotlin/Int
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+            FUNCTION i6
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER block
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                ANNOTATION kotlin/ExtensionFunctionType
+                                class: kotlin/Function1
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                                typeArguments:
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: Foo
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: kotlin/Int
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+            FUNCTION i7
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER block
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                ANNOTATION kotlin/ExtensionFunctionType
+                                class: kotlin/Function2
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                                typeArguments:
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: Foo
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: Foo
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+                                    TYPE_ARGUMENT
+                                        type:
+                                            TYPE
+                                                class: kotlin/Int
+                                                isNullable: false
+                                                isDefinitelyNonNull: false
+                                                isSuspend: false
+                                        variance: invariant
+            FUNCTION t1
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                typeParameters:
+                    TYPE_PARAMETER T
+                        id: 0
+                        variance: invariant
+                        isReified: false
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                class: Foo
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION t2
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                typeParameters:
+                    TYPE_PARAMETER T
+                        id: 0
+                        variance: invariant
+                        isReified: false
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                typeParameter: 0
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION t3
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                typeParameters:
+                    TYPE_PARAMETER T
+                        id: 0
+                        variance: invariant
+                        isReified: false
+                    TYPE_PARAMETER F
+                        id: 1
+                        variance: invariant
+                        isReified: false
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                typeParameter: 0
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                    VALUE_PARAMETER y
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                typeParameter: 1
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION t4
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: true
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                typeParameters:
+                    TYPE_PARAMETER T
+                        id: 0
+                        variance: invariant
+                        isReified: true
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                typeParameter: 0
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION t5
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                typeParameters:
+                    TYPE_PARAMETER T
+                        id: 0
+                        variance: invariant
+                        isReified: false
+                        upperBounds:
+                            TYPE
+                                class: kotlin/Number
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                valueParameters:
+                    VALUE_PARAMETER x
+                        hasAnnotations: false
+                        declaresDefaultValue: false
+                        isCrossinline: false
+                        isNoinline: false
+                        type:
+                            TYPE
+                                typeParameter: 0
+                                isNullable: false
+                                isDefinitelyNonNull: false
+                                isSuspend: false
+            FUNCTION e
+                hasAnnotations: false
+                visibility: public
+                modality: final
+                kind: declaration
+                isOperator: false
+                isInfix: false
+                isInline: false
+                isTailrec: false
+                isExternal: false
+                isExpect: false
+                isSuspend: false
+                hasNonStableParameterNames: false
+                sourceFile: TopLevelFunctions.kt
+                receiverParameterType:
+                    TYPE
+                        class: Foo
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
+                returnType:
+                    TYPE
+                        class: kotlin/Unit
+                        isNullable: false
+                        isDefinitelyNonNull: false
+                        isSuspend: false
