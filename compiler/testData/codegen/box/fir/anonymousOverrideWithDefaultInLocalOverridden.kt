@@ -1,4 +1,5 @@
 // ISSUE: KT-58902
+// JVM_ABI_K1_K2_DIFF: $ -> . for inner classes
 
 fun box(): String {
     open class Outer {

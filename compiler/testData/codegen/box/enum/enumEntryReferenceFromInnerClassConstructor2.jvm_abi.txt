@@ -6,7 +6,7 @@ MODULE main
 					K1
 						Test.FOO.Inner
 					K2
-						.Test.FOO.Inner
+						.Test$FOO$Inner
 	CLASS Test$FOO$Inner.class
 		METHOD getFooFoo()Ljava/lang/String;
 			Annotation: method.invisibleAnnotations

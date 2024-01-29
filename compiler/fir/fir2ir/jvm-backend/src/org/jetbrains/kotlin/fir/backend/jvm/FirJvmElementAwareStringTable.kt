@@ -6,7 +6,6 @@
 package org.jetbrains.kotlin.fir.backend.jvm
 
 import org.jetbrains.kotlin.backend.jvm.mapping.IrTypeMapper
-import org.jetbrains.kotlin.backend.jvm.mapping.mapClass
 import org.jetbrains.kotlin.fir.backend.Fir2IrComponents
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.serialization.FirElementAwareStringTable
@@ -25,12 +24,8 @@ class FirJvmElementAwareStringTable(
         components.classifierStorage.getCachedIrClass(firClass)?.getLocalClassIdReplacement()
             ?: throw AssertionError("not a local class: ${firClass.symbol.classId}")
 
-    private fun IrClass.getLocalClassIdReplacement(): ClassId =
-        when (val parent = parent) {
-            is IrClass -> parent.getLocalClassIdReplacement().createNestedClassId(name)
-            else -> {
-                val fqName = FqName(typeMapper.mapClass(this).internalName.replace('/', '.'))
-                ClassId(fqName.parent(), FqName.topLevel(fqName.shortName()), isLocal = true)
-            }
-        }
+    private fun IrClass.getLocalClassIdReplacement(): ClassId {
+        val fqName = FqName(typeMapper.classInternalName(this).replace('/', '.'))
+        return ClassId(fqName.parent(), FqName.topLevel(fqName.shortName()), isLocal = true)
+    }
 }

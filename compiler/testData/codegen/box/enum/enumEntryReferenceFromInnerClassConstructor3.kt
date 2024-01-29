@@ -1,4 +1,4 @@
-// JVM_ABI_K1_K2_DIFF: KT-62714, KT-63880
+// JVM_ABI_K1_K2_DIFF: KT-62714, KT-63880, $ -> . for inner classes
 
 interface IFoo {
     fun foo(): String

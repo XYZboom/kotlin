@@ -1,0 +1,8 @@
+MODULE main
+	CLASS AnonymousOverrideWithDefaultInLocalOverriddenKt$box$b$1$MyClass.class
+		CLASS METADATA
+			Property: class.metadata.superTypes
+				K1
+					[.AnonymousOverrideWithDefaultInLocalOverriddenKt$box$Outer.A]
+				K2
+					[.AnonymousOverrideWithDefaultInLocalOverriddenKt$box$Outer$A]

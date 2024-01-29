@@ -1,4 +1,4 @@
-// JVM_ABI_K1_K2_DIFF: KT-63655
+// JVM_ABI_K1_K2_DIFF: $ -> . for inner classes
 fun box(): String {
     val capture = "oh"
 

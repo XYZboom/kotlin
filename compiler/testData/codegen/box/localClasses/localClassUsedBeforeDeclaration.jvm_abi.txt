@@ -1,0 +1,9 @@
+MODULE main
+	CLASS LocalClassUsedBeforeDeclarationKt$box$1.class
+		CLASS METADATA
+			PROPERTY getA()LLocalClassUsedBeforeDeclarationKt$box$1$A;
+				Property: class.metadata.property.returnType
+					K1
+						.LocalClassUsedBeforeDeclarationKt$box$1.A
+					K2
+						.LocalClassUsedBeforeDeclarationKt$box$1$A

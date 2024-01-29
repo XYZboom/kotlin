@@ -6,7 +6,7 @@ MODULE main
 					K1
 						A.X.Inner.Inner2.Inner3
 					K2
-						.A.X.Inner.Inner2.Inner3
+						.A$X$Inner$Inner2$Inner3
 	CLASS A$X$Inner$Inner2$Inner3.class
 		METHOD getY()Ljava/lang/String;
 			Annotation: method.invisibleAnnotations

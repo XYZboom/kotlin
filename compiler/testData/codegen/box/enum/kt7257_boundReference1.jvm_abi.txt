@@ -6,7 +6,7 @@ MODULE main
 					K1
 						X.B.Inner
 					K2
-						.X.B.Inner
+						.X$B$Inner
 	CLASS X$B$Inner.class
 		METHOD foo()Ljava/lang/String;
 			Annotation: method.invisibleAnnotations
