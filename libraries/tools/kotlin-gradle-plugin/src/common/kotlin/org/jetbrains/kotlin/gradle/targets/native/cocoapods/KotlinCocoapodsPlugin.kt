@@ -404,6 +404,10 @@ open class KotlinCocoapodsPlugin : Plugin<Project> {
             task.frameworkName.convention(cocoapodsExtension.podFrameworkName)
             task.useStaticFramework.convention(cocoapodsExtension.podFrameworkIsStatic)
             task.outputFramework.convention(project.layout.cocoapodsBuildDirs.framework.map { it.dir(task.frameworkName.get() + ".framework") })
+
+            if (cocoapodsExtension.podFrameworkIsStatic.get().not()) {
+                task.outputDsym.convention(project.layout.cocoapodsBuildDirs.framework.map { it.dir(task.frameworkName.get() + ".framework.dSYM") })
+            }
         }
     }
 

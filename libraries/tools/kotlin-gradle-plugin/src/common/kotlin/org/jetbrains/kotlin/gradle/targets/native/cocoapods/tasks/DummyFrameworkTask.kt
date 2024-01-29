@@ -11,6 +11,7 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
@@ -41,6 +42,10 @@ abstract class DummyFrameworkTask : DefaultTask() {
 
     @get:OutputDirectory
     abstract val outputFramework: DirectoryProperty
+
+    @get:OutputDirectory
+    @get:Optional
+    abstract val outputDsym: DirectoryProperty
 
     @get:Internal
     @Deprecated("Use outputFramework", replaceWith = ReplaceWith("outputFramework.get().asFile"))
@@ -90,14 +95,9 @@ abstract class DummyFrameworkTask : DefaultTask() {
     )
 
     private fun createDummyDsym() {
-        if (useStaticFramework.get()) {
-            return
-        }
-
-        outputFramework.getFile().parentFile.resolve("${frameworkName.get()}.framework.dSYM").apply {
-            if (!exists()) {
-                createDirectory()
-            }
+        outputDsym.orNull?.asFile?.apply {
+            deleteRecursively()
+            mkdirs()
         }
     }
 
