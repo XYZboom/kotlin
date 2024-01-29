@@ -88,7 +88,6 @@ open class NodeJsRootPlugin : Plugin<Project> {
         }
 
         val npmInstall = project.registerTask<KotlinNpmInstallTask>(KotlinNpmInstallTask.NAME) { npmInstall ->
-            npmInstall.notCompatibleWithConfigurationCacheCompat("kotlinNpmInstall uses Task.project")
             npmInstall.dependsOn(setupTask)
             npmInstall.dependsOn(setupFileHasherTask)
             npmInstall.group = TASKS_GROUP_NAME

@@ -1,8 +1,9 @@
 import org.gradle.crypto.checksum.Checksum
 import org.gradle.plugins.ide.idea.model.IdeaModel
+import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
+import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.RootPackageJsonTask
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
-import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.utils.notCompatibleWithConfigurationCacheCompat
 
 buildscript {
     // a workaround for kotlin compiler classpath in kotlin project: sometimes gradle substitutes
@@ -1004,6 +1005,13 @@ tasks {
         doFirst {
             environment("JDK_1_8", getToolchainJdkHomeFor(JdkMajorVersion.JDK_1_8).get())
         }
+    }
+
+    withType<RootPackageJsonTask>().configureEach {
+        notCompatibleWithConfigurationCacheCompat("rootPackageJson uses Task.project in execution time")
+    }
+    withType<KotlinNpmInstallTask>().configureEach {
+        notCompatibleWithConfigurationCacheCompat("kotlinNpmInstall uses Task.project in execution time")
     }
 }
 
