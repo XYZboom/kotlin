@@ -15,7 +15,6 @@ import org.jetbrains.kotlin.bir.declarations.BirAttributeContainer
 import org.jetbrains.kotlin.bir.declarations.BirClass
 import org.jetbrains.kotlin.bir.declarations.BirExternalPackageFragment
 import org.jetbrains.kotlin.bir.declarations.BirModuleFragment
-import org.jetbrains.kotlin.bir.lazy.BirLazyElementBase
 import org.jetbrains.kotlin.bir.types.BirType
 import org.jetbrains.kotlin.bir.util.Bir2IrConverter
 import org.jetbrains.kotlin.bir.util.Ir2BirConverter
@@ -238,19 +237,20 @@ class BirCompilation() {
             val dynamicPropertyManager = BirDynamicPropertiesManager()
             val compressedSourceSpanManager = CompressedSourceSpanManager()
 
-            val externalModulesBir = BirDatabase()
+            val externalBir = BirDatabase()
+            externalBir.includeEntireSubtreeWhenAttachingElement = false
+
             val compiledBir = BirDatabase()
+            compiledBir.attachExternalReferencedElementTreeToOtherDatabase = {
+                if (it is BirExternalPackageFragment) externalBir
+                else null
+            }
 
             val mappedIr2BirElements = IdentityHashMap<BirElement, IrElement>()
             val ir2BirConverter = Ir2BirConverter(dynamicPropertyManager, compressedSourceSpanManager)
             ir2BirConverter.convertAncestorsForOrphanedElements = true
-            ir2BirConverter.appendElementAsDatabaseRoot = { old, new ->
+            ir2BirConverter.elementConverted = { old, new ->
                 mappedIr2BirElements[new] = old
-                when {
-                    old === input -> compiledBir
-                    new is BirModuleFragment || new is BirExternalPackageFragment || new is BirLazyElementBase -> externalModulesBir
-                    else -> null
-                }
             }
 
             val birContext: JvmBirBackendContext
@@ -260,7 +260,7 @@ class BirCompilation() {
                     context,
                     input.descriptor,
                     compiledBir,
-                    externalModulesBir,
+                    externalBir,
                     ir2BirConverter,
                     dynamicPropertyManager,
                     compressedSourceSpanManager,
@@ -269,6 +269,9 @@ class BirCompilation() {
 
                 birModule = ir2BirConverter.remapElement<BirModuleFragment>(input)
             }
+
+            compiledBir.activateNewRegisteredIndices()
+            externalBir.activateNewRegisteredIndices()
 
             ir2BirConverter.convertImplElementsIntoLazyWhenPossible = true
 
@@ -314,21 +317,15 @@ class BirCompilation() {
             val compiledBir = input.backendContext!!.compiledBir
             val externalBir = input.backendContext.externalModulesBir
 
-            invokePhaseMeasuringTime("BIR", "applyNewRegisteredIndices") {
-                compiledBir.activateNewRegisteredIndices()
-                externalBir.activateNewRegisteredIndices()
-            }
             repeat(1) {
                 invokePhaseMeasuringTime("BIR", "baseline tree traversal") {
                     input.birModule!!.countAllElementsInTree()
                 }
 
                 invokePhaseMeasuringTime("BIR", "index compiled BIR") {
-                    compiledBir.reindexAllElements()
+                    compiledBir.attachRootElement(input.birModule!!)
                 }
-                invokePhaseMeasuringTime("BIR", "index external BIR") {
-                    externalBir.reindexAllElements()
-                }
+                invokePhaseMeasuringTime("BIR", "index external BIR") {}
                 //Thread.sleep(100)
             }
 
