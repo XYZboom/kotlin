@@ -21,7 +21,7 @@ fun Project.objCExportHeaderGeneratorTest(
 ) {
     useJUnitPlatform()
     enableJunit5ExtensionsAutodetection()
-    systemProperty("is.ci", kotlinBuildProperties.isTeamcityBuild || project.providers.gradleProperty("ci").isPresent)
+    systemProperty("runAATests", project.providers.gradleProperty("runAATests").isPresent)
     if (testDisplayNameTag != null) {
         systemProperty("testDisplayName.tag", testDisplayNameTag)
     }
