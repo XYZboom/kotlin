@@ -81,8 +81,9 @@ sealed class KonanTarget(override val name: String, val family: Family, val arch
                 WATCHOS_SIMULATOR_ARM64, WATCHOS_DEVICE_ARM64,
                 TVOS_ARM64, TVOS_X64, TVOS_SIMULATOR_ARM64,
                 LINUX_X64,
+                MINGW_X64,
                 MACOS_X64, MACOS_ARM64,
-                LINUX_ARM64
+                LINUX_ARM64, LINUX_ARM32_HFP
             ).associateBy { it.name }
         }
 
