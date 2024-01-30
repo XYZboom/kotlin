@@ -78,7 +78,7 @@ public interface CompilationService {
     public fun getCustomKotlinScriptFilenameExtensions(classpath: List<File>): Collection<String>
 
     /**
-     * Returns the version of the Kotlin compiler used by the implementation.
+     * Returns the version of the Kotlin compiler used to run compilation.
      *
      * @return A string representing the version of the Kotlin compiler, for example `2.0.0-Beta4`.
      */
