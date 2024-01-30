@@ -237,7 +237,7 @@ abstract class AbstractKotlinNativeCompile<
                     outputKind == FRAMEWORK ->
                         it.asValidFrameworkName()
 
-                    outputKind in listOf(STATIC, DYNAMIC) || outputKind == PROGRAM && konanTarget == KonanTarget.WASM32 ->
+                    outputKind in listOf(STATIC, DYNAMIC) || outputKind == PROGRAM ->
                         it.replace('-', '_')
 
                     else -> it
