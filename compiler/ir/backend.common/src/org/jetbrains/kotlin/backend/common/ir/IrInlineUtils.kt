@@ -24,9 +24,7 @@ import org.jetbrains.kotlin.ir.expressions.impl.IrReturnableBlockImpl
 import org.jetbrains.kotlin.ir.symbols.IrFileSymbol
 import org.jetbrains.kotlin.ir.symbols.IrReturnTargetSymbol
 import org.jetbrains.kotlin.ir.symbols.impl.IrReturnableBlockSymbolImpl
-import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.getClass
-import org.jetbrains.kotlin.ir.types.isNullable
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.util.OperatorNameConventions
 
@@ -132,12 +130,6 @@ fun IrInlinable.inline(target: IrDeclarationParent, arguments: List<IrValueDecla
             }
         }
     }
-
-fun IrValueParameter.isInlineParameter(type: IrType = this.type) =
-    index >= 0 && !isNoinline && !type.isNullable() && (type.isFunction() || type.isSuspendFunction())
-
-fun IrExpression.isAdaptedFunctionReference() =
-    this is IrBlock && this.origin == IrStatementOrigin.ADAPTED_FUNCTION_REFERENCE
 
 // `getAdditionalStatementsFromInlinedBlock` == `getNonDefaultAdditionalStatementsFromInlinedBlock` + `getDefaultAdditionalStatementsFromInlinedBlock`
 fun IrInlinedFunctionBlock.getAdditionalStatementsFromInlinedBlock(): List<IrStatement> {
