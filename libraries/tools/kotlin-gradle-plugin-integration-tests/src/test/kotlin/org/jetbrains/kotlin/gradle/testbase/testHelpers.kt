@@ -192,3 +192,33 @@ internal fun TestProject.addArchivesBaseNameCompat(
         )
     }
 }
+
+/**
+ * Chooses compiler version used for JVM compilation in the build tools API mode.
+ *
+ * Ensure [BuildOptions.runViaBuildToolsApi] is set to true for the builds!
+ */
+internal fun TestProject.chooseCompilerVersion(
+    version: String,
+    additionalRepo: String? = null,
+) {
+    val setupString = buildString {
+        if (additionalRepo != null) {
+            append(
+                """
+                repositories {
+                    maven { setUrl("$additionalRepo") }
+                }
+                """.trimIndent()
+            )
+        }
+        append(
+            """
+            kotlin {
+                compilerVersion.set("$version")
+            }
+            """.trimIndent()
+        )
+    }
+    buildGradle.append(setupString)
+}
