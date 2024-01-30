@@ -25,6 +25,8 @@ import org.jetbrains.kotlin.gradle.utils.property
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import java.io.File
 
+private const val KONAN_DIRECTORY_NAME_TO_CHECK_EXISTENCE = "konan"
+
 /**
  * This is a nested provider for all native tasks
  */
@@ -58,8 +60,8 @@ internal class KotlinNativeProvider(project: Project, konanTarget: KonanTarget) 
     }
 
     private val kotlinNativeCompilerConfiguration: ConfigurableFileCollection = project.filesProvider {
-        // without enabled there is no configuration with this name, so we should return empty provider to support configuraiton cache
-        if (project.kotlinNativeToolchainEnabled) {
+        // without enabled there is no configuration with this name, so we should return empty provider to support configuration cache
+        if (project.kotlinNativeToolchainEnabled && !bundleDirectory.asFile.get().resolve(KONAN_DIRECTORY_NAME_TO_CHECK_EXISTENCE).exists()) {
             project.configurations.named(
                 KOTLIN_NATIVE_BUNDLE_CONFIGURATION_NAME
             )
@@ -79,7 +81,7 @@ internal class KotlinNativeProvider(project: Project, konanTarget: KonanTarget) 
             bundleDir.deleteRecursively()
         }
 
-        if (!bundleDir.resolve("bin").exists()) {
+        if (!bundleDir.resolve(KONAN_DIRECTORY_NAME_TO_CHECK_EXISTENCE).exists()) {
             val gradleCachesKotlinNativeDir =
                 kotlinNativeCompilerConfiguration
                     .singleOrNull()
