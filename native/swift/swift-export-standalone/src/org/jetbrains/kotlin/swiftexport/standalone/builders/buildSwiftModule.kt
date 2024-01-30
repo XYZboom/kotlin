@@ -27,7 +27,7 @@ internal fun buildSwiftModule(input: SwiftExportInput, shouldSortInputFiles: Boo
 
             addModule(
                 buildKtSourceModule {
-                    addSourceRoot(input.sourceRoot)
+                    addSourceRoots(input.sourceRoots)
                     platform = NativePlatforms.unspecifiedNativePlatform
                     moduleName = "main"
                 }
