@@ -19,11 +19,15 @@ import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.backend.*
 import org.jetbrains.kotlin.fir.backend.jvm.Fir2IrJvmSpecialAnnotationSymbolProvider
 import org.jetbrains.kotlin.fir.declarations.FirFile
+import org.jetbrains.kotlin.fir.lazy.Fir2IrLazyClass
 import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.declarations.IrProperty
+import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
 import org.jetbrains.kotlin.ir.overrides.buildForAll
+import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.IrTypeSystemContext
 import org.jetbrains.kotlin.ir.util.KotlinMangler
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
@@ -110,7 +114,37 @@ fun FirResult.convertToIrAndActualize(
         // actualization separately. This should go away, after useIrFakeOverrideBuilder becomes
         // always enabled
         irActualizer?.actualizeClassifiers()
-        components.fakeOverrideBuilder.buildForAll(allIrModules)
+        val temporaryResolver = SpecialFakeOverrideSymbolsResolver(emptyMap())
+        components.fakeOverrideBuilder.buildForAll(
+            allIrModules,
+            processLazyDeclaration = { lazyClass ->
+                require(lazyClass is Fir2IrLazyClass)
+                /*
+                 * Super-classes already have processed fake overrides at this moment.
+                 * Also, all Fir2IrLazyClass super-classes are always platform classes,
+                 * so it's valid to process it with empty expect-actual mapping.
+                 *
+                 * But this is still a hack, and should be removed within KT-64352
+                 */
+                @OptIn(UnsafeDuringIrConstructionAPI::class)
+                for (declaration in lazyClass.declarations) {
+                    when (declaration) {
+                        is IrSimpleFunction -> {
+                            declaration.overriddenSymbols = declaration.overriddenSymbols.map { temporaryResolver.getReferencedSimpleFunction(it) }
+                        }
+                        is IrProperty -> {
+                            declaration.overriddenSymbols = declaration.overriddenSymbols.map { temporaryResolver.getReferencedProperty(it) }
+                            declaration.getter?.let { getter ->
+                                getter.overriddenSymbols = getter.overriddenSymbols.map { temporaryResolver.getReferencedSimpleFunction(it) }
+                            }
+                            declaration.setter?.let { setter ->
+                                setter.overriddenSymbols = setter.overriddenSymbols.map { temporaryResolver.getReferencedSimpleFunction(it) }
+                            }
+                        }
+                    }
+                }
+            }
+        )
     }
     val expectActualMap = irActualizer?.actualizeCallablesAndMergeModules() ?: emptyMap()
     if (components.configuration.useIrFakeOverrideBuilder) {

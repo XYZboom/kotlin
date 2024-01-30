@@ -508,15 +508,25 @@ fun IrDeclaration.isOverridableMemberOrAccessor(): Boolean = when (this) {
     else -> false
 }
 
-fun IrFakeOverrideBuilder.buildForAll(modules: List<IrModuleFragment>) {
+/**
+ * Eventually, we should be able to process lazy classes with the same code.
+ *
+ * Now we can't do this, because overriding by Java function is not supported correctly in IR builder.
+ * In most cases, nothing need to be done for lazy classes. For other cases, it is
+ * caller responsibility to handle them.
+ */
+fun IrFakeOverrideBuilder.buildForAll(modules: List<IrModuleFragment>, processLazyDeclaration: (IrLazyDeclarationBase) -> Unit = {}) {
     val builtFakeOverridesClasses = mutableSetOf<IrClass>()
     fun buildFakeOverrides(clazz: IrClass) {
-        if (clazz is IrLazyDeclarationBase) return
         if (!builtFakeOverridesClasses.add(clazz)) return
         for (c in clazz.superTypes) {
             c.getClass()?.let { buildFakeOverrides(it) }
         }
-        buildFakeOverridesForClass(clazz, false)
+        if (clazz is IrLazyDeclarationBase) {
+            processLazyDeclaration(clazz)
+        } else {
+            buildFakeOverridesForClass(clazz, false)
+        }
     }
     class ClassVisitor : IrElementVisitorVoid {
         override fun visitElement(element: IrElement) {
