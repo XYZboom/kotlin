@@ -75,6 +75,8 @@ class CleanableSoftValueCache<K : Any, V : Any>(
      * If [key] is currently absent, attempts to add a value computed by [f] to the cache. [f] is invoked exactly once if [key] is present,
      * and otherwise never. Must be called in a read action.
      *
+     * [f] should not modify the cache during computation.
+     *
      * @return The already present or newly computed value associated with [key].
      */
     fun computeIfAbsent(key: K, f: (K) -> V): V {
@@ -90,6 +92,8 @@ class CleanableSoftValueCache<K : Any, V : Any>(
      * If the cache already contains a value `v` at [key], cleanup will be performed on it, *unless* the result of the computation is
      * referentially equal to `v`. This behavior enables computation functions to decide to retain an existing value, without triggering
      * cleanup.
+     *
+     * [f] should not modify the cache during computation.
      *
      * @return The computed value now associated with [key].
      */
