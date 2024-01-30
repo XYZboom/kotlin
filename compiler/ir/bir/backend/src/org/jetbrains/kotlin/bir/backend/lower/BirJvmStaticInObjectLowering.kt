@@ -5,14 +5,12 @@
 
 package org.jetbrains.kotlin.bir.backend.lower
 
+import org.jetbrains.kotlin.bir.BirElement
 import org.jetbrains.kotlin.bir.backend.BirLoweringPhase
 import org.jetbrains.kotlin.bir.backend.jvm.JvmBirBackendContext
 import org.jetbrains.kotlin.bir.backend.jvm.JvmCachedDeclarations
 import org.jetbrains.kotlin.bir.declarations.*
-import org.jetbrains.kotlin.bir.expressions.BirCall
-import org.jetbrains.kotlin.bir.expressions.BirExpression
-import org.jetbrains.kotlin.bir.expressions.BirGetValue
-import org.jetbrains.kotlin.bir.expressions.BirMemberAccessExpression
+import org.jetbrains.kotlin.bir.expressions.*
 import org.jetbrains.kotlin.bir.expressions.impl.BirBlockImpl
 import org.jetbrains.kotlin.bir.expressions.impl.BirGetFieldImpl
 import org.jetbrains.kotlin.bir.expressions.impl.BirTypeOperatorCallImpl
@@ -30,21 +28,19 @@ context(JvmBirBackendContext)
 class BirJvmStaticInObjectLowering : BirLoweringPhase() {
     private val JvmStaticAnnotation by lz { birBuiltIns.findClass(JVM_STATIC_ANNOTATION_FQ_NAME) }
 
-    private val staticDeclarations = registerIndexKey<BirDeclaration>(BirSimpleFunction or BirProperty, true) { declaration ->
-        JvmStaticAnnotation?.let { declaration.hasAnnotation(it) } == true
-    }
-    private val memberAccesses = registerBackReferencesKeyWithUntypedSymbolProperty(BirMemberAccessExpression, BirMemberAccessExpression<*>::symbol)
-    private val valueReads = registerBackReferencesKey(BirGetValue, BirGetValue::symbol)
+    private val staticDeclarations = registerIndexKey<BirDeclaration>(BirSimpleFunction or BirProperty, true)
 
     override fun lower(module: BirModuleFragment) {
         val effectivelyStaticDeclarations = buildSet {
-            getAllElementsWithIndex(staticDeclarations).forEach { declaration ->
-                add(declaration)
-                if (declaration is BirSimpleFunction) {
-                    addIfNotNull(declaration.correspondingPropertySymbol?.owner)
-                }
-                if (declaration is BirProperty) {
-                    addIfNotNull(declaration.getter?.owner)
+            getAllElementsOfClass(staticDeclarations).forEach { declaration ->
+                if (JvmStaticAnnotation?.let { declaration.hasAnnotation(it) } == true) {
+                    add(declaration)
+                    if (declaration is BirSimpleFunction) {
+                        addIfNotNull(declaration.correspondingPropertySymbol?.owner)
+                    }
+                    if (declaration is BirProperty) {
+                        addIfNotNull(declaration.getter?.owner)
+                    }
                 }
             }
         }
@@ -52,7 +48,7 @@ class BirJvmStaticInObjectLowering : BirLoweringPhase() {
         for (declaration in effectivelyStaticDeclarations) {
             val parent = declaration.parent
             if (parent is BirClass && parent.kind == ClassKind.OBJECT && !parent.isCompanion) {
-                declaration.getBackReferences(memberAccesses).forEach { call ->
+                declaration.getBackReferences(BirMemberAccessExpression.symbol).forEach { call ->
                     call.replaceWithStatic(replaceCallee = null)
                 }
 
@@ -90,12 +86,12 @@ class BirJvmStaticInObjectLowering : BirLoweringPhase() {
     private fun BirExpression.coerceToUnit() =
         BirTypeOperatorCallImpl(sourceSpan, birBuiltIns.unitType, IrTypeOperator.IMPLICIT_COERCION_TO_UNIT, this, birBuiltIns.unitType)
 
-    private fun replaceThisByStaticReference(
+    private fun BirElement.replaceThisByStaticReference(
         birClass: BirClass,
         oldThisReceiverParameter: BirValueParameter,
     ) {
         val field = JvmCachedDeclarations.getPrivateFieldForObjectInstance(birClass)
-        oldThisReceiverParameter.getBackReferences(valueReads).forEach { getValue ->
+        oldThisReceiverParameter.getBackReferences(BirGetValue.symbol).forEach { getValue ->
             val new = BirGetFieldImpl(getValue.sourceSpan, birClass.defaultType, field, null, null, null)
             getValue.replaceWith(new)
         }

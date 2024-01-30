@@ -18,17 +18,9 @@ import org.jetbrains.kotlin.bir.util.resolveFakeOverride
 
 context(JvmBirBackendContext)
 class BirJvmLateinitLowering : BirLoweringPhase() {
-    private val lateinitProperties = registerIndexKey(BirProperty, false) {
-        it.isLateinit && !it.isFakeOverride
-    }
-    private val lateinitVariables = registerIndexKey(BirVariable, false) {
-        it.isLateinit
-    }
-    private val lateinitIsInitializedFunctionKey = registerIndexKey(BirSimpleFunction, true) {
-        it == birBuiltIns.lateinitIsInitialized
-    }
-    private val variableReads = registerBackReferencesKey(BirGetValue, BirGetValue::symbol)
-    private val functionCalls = registerBackReferencesKey(BirCall, BirCall::symbol)
+    private val properties = registerIndexKey(BirProperty, false)
+    private val variables = registerIndexKey(BirVariable, false)
+    private val functions = registerIndexKey(BirSimpleFunction, false)
 
     override fun lower(module: BirModuleFragment) {
         transformLateinitProperties()
@@ -37,32 +29,37 @@ class BirJvmLateinitLowering : BirLoweringPhase() {
     }
 
     private fun transformLateinitProperties() {
-        getAllElementsWithIndex(lateinitProperties).forEach { property ->
-            property.backingField!!.let {
-                it.type = it.type.makeNullable()
+        getAllElementsOfClass(properties).forEach { property ->
+            if (property.isLateinit && !property.isFakeOverride) {
+                property.backingField!!.let {
+                    it.type = it.type.makeNullable()
+                }
+                transformLateinitPropertyGetter(property.getter!!, property.backingField!!)
             }
-            transformLateinitPropertyGetter(property.getter!!, property.backingField!!)
         }
     }
 
     private fun transformLateinitVariables() {
-        getAllElementsWithIndex(lateinitVariables).forEach { variable ->
-            variable.type = variable.type.makeNullable()
-            variable.isVar = true
-            variable.initializer = BirConst.constNull(variable.sourceSpan, birBuiltIns.nothingNType)
+        getAllElementsOfClass(variables).forEach { variable ->
+            if (variable.isLateinit) {
+                variable.type = variable.type.makeNullable()
+                variable.isVar = true
+                variable.initializer = BirConst.constNull(variable.sourceSpan, birBuiltIns.nothingNType)
 
-            // todo: also transform reads of backing field?
-            variable.getBackReferences(variableReads).forEach {
-                transformGetLateinitVariable(it, variable)
+                // todo: also transform reads of backing field?
+                variable.getBackReferences(BirGetValue.symbol).forEach {
+                    transformGetLateinitVariable(it, variable)
+                }
+
+                variable.isLateinit = false
             }
-
-            variable.isLateinit = false
         }
     }
 
     private fun transformIsLateinitInitialized() {
-        val lateinitIsInitializedFunction = getAllElementsWithIndex(lateinitIsInitializedFunctionKey).singleOrNull()
-        lateinitIsInitializedFunction?.getBackReferences(functionCalls)?.forEach { call ->
+        val lateinitIsInitializedFunction = getAllElementsOfClass(functions)
+            .singleOrNull { it == birBuiltIns.lateinitIsInitialized }
+        lateinitIsInitializedFunction?.getBackReferences(BirCall.symbol)?.forEach { call ->
             transformCallToLateinitIsInitializedPropertyGetter(call)
         }
     }

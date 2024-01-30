@@ -8,19 +8,16 @@ package org.jetbrains.kotlin.bir
 abstract class BirImplElementBase(elementClass: BirElementClass<*>) : BirElementBase(elementClass) {
     final override val parent: BirElementBase?
         get() {
-            recordPropertyRead()
             return super.parent
         }
 
     internal fun getParentRecordingRead(): BirElementParent? {
-        recordPropertyRead()
         return _parent
     }
 
-    internal fun setParentWithInvalidation(new: BirElementParent?) {
+    internal fun setParent(new: BirElementParent?) {
         if (_parent !== new) {
             _parent = new
-            invalidate()
         }
     }
 
@@ -33,7 +30,7 @@ abstract class BirImplElementBase(elementClass: BirElementClass<*>) : BirElement
         if (old != null) {
             old as BirImplElementBase
 
-            old.setParentWithInvalidation(null)
+            old.setParent(null)
             _containingDatabase?.elementDetached(old)
         }
 
@@ -62,7 +59,6 @@ abstract class BirImplElementBase(elementClass: BirElementClass<*>) : BirElement
         replacedWithInternal(new as BirImplElementBase?)
         if (parent is BirImplElementBase) {
             parent.childReplaced(this, new)
-            parent.invalidate()
         }
     }
 
@@ -94,20 +90,6 @@ abstract class BirImplElementBase(elementClass: BirElementClass<*>) : BirElement
         throw IllegalStateException("The child property $propertyName has been removed from this element $this")
     }
 
-
-    final override fun <T> getDynamicProperty(token: BirDynamicPropertyAccessToken<*, T>): T? {
-        recordPropertyRead()
-        return super.getDynamicProperty(token)
-    }
-
-    final override fun <T> setDynamicProperty(token: BirDynamicPropertyAccessToken<*, T>, value: T?): Boolean {
-        val changed = super.setDynamicProperty(token, value)
-        if (changed) {
-            invalidate()
-        }
-        return changed
-    }
-
     internal fun <T> getOrPutDynamicProperty(token: BirDynamicPropertyAccessToken<*, T>, compute: () -> T): T {
         token.requireValid()
 
@@ -115,7 +97,6 @@ abstract class BirImplElementBase(elementClass: BirElementClass<*>) : BirElement
         if (arrayMap == null) {
             val value = compute()
             initializeDynamicProperties(token, value)
-            invalidate()
             return value
         }
 
@@ -127,58 +108,18 @@ abstract class BirImplElementBase(elementClass: BirElementClass<*>) : BirElement
             val value = compute()
             val entryIndex = -(foundIndex + 1)
             addDynamicProperty(arrayMap, entryIndex, token.key, value)
-            invalidate()
             return value
         }
     }
 
     // todo: fine-grained control of which data to copy
     internal fun copyDynamicProperties(from: BirElementBase) {
-        invalidate()
         dynamicProperties = from.dynamicProperties?.copyOf()
     }
 
 
-    internal fun invalidate() {
-        _containingDatabase?.invalidateElement(this)
-    }
-
-    internal fun recordPropertyRead() {
-        val database = _containingDatabase ?: return
-        val classifiedElement = database.mutableElementCurrentlyBeingClassified ?: return
-        if (classifiedElement !== this) {
-            registerDependentElement(classifiedElement)
-        }
-    }
-
-    private fun registerDependentElement(dependentElement: BirImplElementBase) {
-        addRelatedElement(dependentElement, false)
-    }
-
-    internal fun indexInvalidatedDependentElements() {
-        val database = _containingDatabase ?: return
-
-        val array: Array<BirElementBase?>
-        var storageIsArray = false
-        when (val elementsOrSingle = relatedElements) {
-            null -> return
-            is BirElementBase -> array = arrayOf(elementsOrSingle)
-            else -> {
-                @Suppress("UNCHECKED_CAST")
-                array = elementsOrSingle as Array<BirElementBase?>
-                storageIsArray = true
-            }
-        }
-
-        for (i in array.indices) {
-            val element = array[i] ?: break
-
-            if (!element.hasFlag(FLAG_HAS_BEEN_REGISTERED_AS_DEPENDENT_ELEMENT)) {
-                // This element is certainly not a back reference, so is safe to delete.
-                removeRelatedElement(i)
-            }
-
-            database.indexElement(element, true)
-        }
+    companion object {
+        private const val PARENT_PROPERTY_ID = 0
+        private const val DYNAMIC_PROPERTY_ID = 15
     }
 }

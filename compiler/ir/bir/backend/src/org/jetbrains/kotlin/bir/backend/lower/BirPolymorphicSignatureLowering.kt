@@ -31,22 +31,21 @@ context(JvmBirBackendContext)
 class BirPolymorphicSignatureLowering : BirLoweringPhase() {
     private val PolymorphicSignatureAnnotation by lz { birBuiltIns.findClass(PolymorphicSignatureCallChecker.polymorphicSignatureFqName) }
 
-    private val polymorphicFunctions = registerIndexKey(BirSimpleFunction, true) { function ->
-        PolymorphicSignatureAnnotation?.let { function.hasAnnotation(it) } == true
-    }
-    private val functionCalls = registerBackReferencesKey(BirCall, BirCall::symbol)
+    private val simpleFunctions = registerIndexKey(BirSimpleFunction, true)
 
     override fun lower(module: BirModuleFragment) {
-        getAllElementsWithIndex(polymorphicFunctions).forEach { function ->
-            function.getBackReferences(functionCalls).forEach { call ->
-                val castReturnType = call.findCoercionType()
-                val newCall = transformPolymorphicCall(call, castReturnType)
+        getAllElementsOfClass(simpleFunctions).forEach { function ->
+            if (PolymorphicSignatureAnnotation?.let { function.hasAnnotation(it) } == true) {
+                function.getBackReferences(BirCall.symbol).forEach { call ->
+                    val castReturnType = call.findCoercionType()
+                    val newCall = transformPolymorphicCall(call, castReturnType)
 
-                val parent = call.parent
-                if (parent is BirTypeOperatorCall && parent.argument == newCall && parent.isCast()) {
-                    parent.replaceWith(newCall)
-                } else {
-                    call.replaceWith(newCall)
+                    val parent = call.parent
+                    if (parent is BirTypeOperatorCall && parent.argument == newCall && parent.isCast()) {
+                        parent.replaceWith(newCall)
+                    } else {
+                        call.replaceWith(newCall)
+                    }
                 }
             }
         }

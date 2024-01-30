@@ -25,13 +25,12 @@ abstract class BirElementBase(elementClass: BirElementClass<*>) : BirElementPare
     internal val elementClassId = elementClass.id.toUByte()
     private var flags: Byte = 0
 
-    internal var indexSlot: UByte = 0u
-    internal var lastReturnedInQueryOfIndexSlot: UByte = 0u
+    internal var lastReturnedInQueryIndex: UByte = 0u
 
     // Contains both back references and dependent elements
-    protected var relatedElements: Any? = null // null | BirElementBase | Array<BirElementBase?>
+    protected var backReferences: Any? = null // null | BirElementBase | Array<BirElementBase?>
         private set
-    private var relatedElementsFullness = SmallFixedPointFraction.ZERO
+    private var backReferencesArrayFullness = SmallFixedPointFraction.ZERO
 
     // Array of form [key, value, key, value, ...]
     internal var dynamicProperties: Array<Any?>? = null
@@ -85,17 +84,14 @@ abstract class BirElementBase(elementClass: BirElementClass<*>) : BirElementPare
             require(this is BirImplElementBase) { "Lazy BIR elements cannot be moved" }
 
             replacedWithInternal(null)
-            setParentWithInvalidation(newParent)
-            if (oldParent is BirImplElementBase) {
-                oldParent.invalidate()
-            }
+            setParent(newParent)
 
             newDatabase?.elementMoved(this, oldParent)
         } else {
             // Lazy elements have permanent parent, reflecting
             // the one in Fir2Ir class.
             if (this is BirImplElementBase) {
-                setParentWithInvalidation(newParent)
+                setParent(newParent)
             }
             newDatabase?.elementAttached(this)
         }
@@ -221,34 +217,38 @@ abstract class BirElementBase(elementClass: BirElementClass<*>) : BirElementPare
         }
     }
 
-
     protected fun BirDynamicPropertyAccessToken<*, *>.requireValid() {
         if (this is TemporaryBirDynamicProperty<*, *>) {
             require(isValid) { "The property token can only be used within the phase $validInPhase" }
         }
     }
 
-    protected fun addRelatedElement(relatedElement: BirElementBase, isBackReference: Boolean) {
-        val hasBeenRegisteredFlag =
-            if (isBackReference) FLAG_HAS_BEEN_REGISTERED_AS_BACK_REFERENCE
-            else FLAG_HAS_BEEN_REGISTERED_AS_DEPENDENT_ELEMENT
 
-        var elementsOrSingle = relatedElements
+    internal open fun getForwardReferences(recorder: ForwardReferenceRecorder) {}
+
+    protected fun forwardReferencePropertyChanged() {
+        _containingDatabase?.indexForwardReferencesOfElement(this)
+    }
+
+    internal fun registerBackReference(backReference: BirElementBase) {
+        val hasBeenRegisteredFlag = FLAG_HAS_BEEN_REGISTERED_AS_BACK_REFERENCE
+
+        var elementsOrSingle = backReferences
         when (elementsOrSingle) {
             null -> {
-                relatedElements = relatedElement
-                relatedElementsFullness = SmallFixedPointFraction.ZERO
+                backReferences = backReference
+                backReferencesArrayFullness = SmallFixedPointFraction.ZERO
             }
             is BirElementBase -> {
-                if (elementsOrSingle !== relatedElement) {
+                if (elementsOrSingle !== backReference) {
                     // 2 elements in array is a very common case.
                     val elements = arrayOfNulls<BirElementBase>(2)
                     elements[0] = elementsOrSingle
-                    elements[1] = relatedElement
-                    relatedElements = elements
+                    elements[1] = backReference
+                    backReferences = elements
 
                     val newSize = 2
-                    relatedElementsFullness = SmallFixedPointFraction(newSize, elements.size)
+                    backReferencesArrayFullness = SmallFixedPointFraction(newSize, elements.size)
                 }
             }
             else -> {
@@ -257,12 +257,12 @@ abstract class BirElementBase(elementClass: BirElementClass<*>) : BirElementPare
 
                 var alreadyRegistered = false
                 var currentCount = 0
-                if (relatedElement.hasFlag(FLAG_HAS_BEEN_REGISTERED_AS_BACK_REFERENCE or FLAG_HAS_BEEN_REGISTERED_AS_DEPENDENT_ELEMENT)) {
+                if (backReference.hasFlag(FLAG_HAS_BEEN_REGISTERED_AS_BACK_REFERENCE)) {
                     while (currentCount < elementsOrSingle.size) {
                         val element = elementsOrSingle[currentCount]
                         if (element == null) {
                             break
-                        } else if (element === relatedElement) {
+                        } else if (element === backReference) {
                             alreadyRegistered = true
                             break
                         }
@@ -270,7 +270,7 @@ abstract class BirElementBase(elementClass: BirElementClass<*>) : BirElementPare
                     }
                 } else {
                     // Optimization: this element certainly isn't in the array. Just find a free spot.
-                    currentCount = findRelatedElementsArrayCount(elementsOrSingle)
+                    currentCount = findBackReferencesArrayCount(elementsOrSingle)
                 }
 
                 if (!alreadyRegistered) {
@@ -279,25 +279,25 @@ abstract class BirElementBase(elementClass: BirElementClass<*>) : BirElementPare
                         val newArraySize = elementsOrSingle.size * 3 / 2
 
                         elementsOrSingle = elementsOrSingle.copyOf(newArraySize)
-                        relatedElements = elementsOrSingle
+                        backReferences = elementsOrSingle
                     }
-                    elementsOrSingle[currentCount] = relatedElement
+                    elementsOrSingle[currentCount] = backReference
 
                     currentCount++
-                    relatedElementsFullness = SmallFixedPointFraction(currentCount, elementsOrSingle.size)
+                    backReferencesArrayFullness = SmallFixedPointFraction(currentCount, elementsOrSingle.size)
                 }
             }
         }
 
-        relatedElement.setFlag(hasBeenRegisteredFlag, true)
+        backReference.setFlag(hasBeenRegisteredFlag, true)
     }
 
-    protected fun removeRelatedElement(index: Int) {
-        val relatedElements = relatedElements
+    protected fun removeBackReference(index: Int) {
+        val relatedElements = backReferences
         if (relatedElements is Array<*>) {
             @Suppress("UNCHECKED_CAST")
             val array = relatedElements as Array<BirElementBase?>
-            val count = findRelatedElementsArrayCount(array)
+            val count = findBackReferencesArrayCount(array)
             require(index < count)
 
             val lastIndex = count - 1
@@ -306,16 +306,16 @@ abstract class BirElementBase(elementClass: BirElementClass<*>) : BirElementPare
             }
             array[lastIndex] = null
 
-            relatedElementsFullness = SmallFixedPointFraction(lastIndex, array.size)
+            backReferencesArrayFullness = SmallFixedPointFraction(lastIndex, array.size)
         } else {
             require(index == 0)
             require(relatedElements != null)
-            this.relatedElements = null
+            this.backReferences = null
         }
     }
 
-    private fun findRelatedElementsArrayCount(array: Array<BirElementBase?>): Int {
-        val minSize = relatedElementsFullness * array.size
+    private fun findBackReferencesArrayCount(array: Array<BirElementBase?>): Int {
+        val minSize = backReferencesArrayFullness * array.size
         if (minSize == array.size) {
             return minSize
         }
@@ -328,15 +328,11 @@ abstract class BirElementBase(elementClass: BirElementClass<*>) : BirElementPare
         error("Should not reach here")
     }
 
-    internal fun registerBackReference(backReference: BirElementBase) {
-        addRelatedElement(backReference, true)
-    }
-
     internal fun <R : BirElement> getBackReferences(key: BirElementBackReferencesKey<*, R>): List<BirElementBase> {
-        _containingDatabase?.flushInvalidatedElementBuffer()
+        _containingDatabase?.realizeTreeMovements()
         require(_containingDatabase != null) { "Element must be attached to some BirDatabase" }
 
-        val array = when (val elementsOrSingle = relatedElements) {
+        val array = when (val elementsOrSingle = backReferences) {
             null -> return emptyList<BirElementBase>()
             is BirElementBase -> arrayOf(elementsOrSingle)
             else -> {
@@ -351,15 +347,9 @@ abstract class BirElementBase(elementClass: BirElementClass<*>) : BirElementPare
 
             var isValidBackRef = false
             if (backRef.hasFlag(FLAG_HAS_BEEN_REGISTERED_AS_BACK_REFERENCE)) {
-                val forwardReferenceRecorder = ForwardReferenceRecorder()
-                with(forwardReferenceRecorder) {
-                    key.recorder.recordBackReferences(backRef)
-                }
+                val forwardRef = key.getForwardReference(backRef)
 
-                val recordedRef = forwardReferenceRecorder.recordedRef
-                forwardReferenceRecorder.reset()
-
-                if (recordedRef === this) {
+                if (forwardRef === this) {
                     backRef._containingDatabase?.realizeTreeMovements()
                     if (backRef._containingDatabase != null) {
                         isValidBackRef = true
@@ -383,10 +373,10 @@ abstract class BirElementBase(elementClass: BirElementClass<*>) : BirElementPare
 
 
     companion object {
-        internal const val FLAG_INVALIDATED: Byte = (1 shl 0).toByte()
-        internal const val FLAG_IS_IN_MOVED_ELEMENTS_BUFFER: Byte = (1 shl 1).toByte()
-        internal const val FLAG_HAS_BEEN_REGISTERED_AS_BACK_REFERENCE: Byte = (1 shl 2).toByte()
-        internal const val FLAG_HAS_BEEN_REGISTERED_AS_DEPENDENT_ELEMENT: Byte = (1 shl 3).toByte()
+        internal const val FLAG_IS_IN_CLASS_INDEX: Byte = (1 shl 0).toByte()
+        internal const val FLAG_HAS_VALID_FORWARD_REFERENCES_INDEX: Byte = (1 shl 1).toByte()
+        internal const val FLAG_IS_IN_MOVED_ELEMENTS_BUFFER: Byte = (1 shl 2).toByte()
+        internal const val FLAG_HAS_BEEN_REGISTERED_AS_BACK_REFERENCE: Byte = (1 shl 3).toByte()
 
         private const val CONTAINING_LIST_ID_BITS = 3
     }

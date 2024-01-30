@@ -33,10 +33,7 @@ abstract class BirInventNamesForLocalClassesLowering(
     private val functionExpressions = registerIndexKey(BirFunctionExpression, false)
     private val functionReferences = registerIndexKey(BirFunctionReference, false)
     private val propertyReferences = registerIndexKey(BirPropertyReference, false)
-    private val functionsToName = registerIndexKey(BirSimpleFunction, false) { function ->
-        // Suspend functions have a continuation, which is essentially a local class
-        function.isSuspend && function.correspondingPropertySymbol == null && function.body != null && function.origin != IrDeclarationOrigin.LOCAL_FUNCTION_FOR_LAMBDA
-    }
+    private val functions = registerIndexKey(BirSimpleFunction, false)
 
     private val localNameScopeKey = acquireTemporaryProperty<_, LocalNameScope>(BirElement)
 
@@ -52,14 +49,14 @@ abstract class BirInventNamesForLocalClassesLowering(
     }
 
     override fun lower(module: BirModuleFragment) {
-        getAllElementsWithIndex(classes).forEach { clazz ->
+        getAllElementsOfClass(classes).forEach { clazz ->
             val nameScope = getLocalNameScopeIfApplicable(clazz) ?: return@forEach
             if (nameScope.isLocal) {
                 putLocalClassName(clazz, nameScope.enclosingName!!)
             }
         }
 
-        getAllElementsWithIndex(functionExpressions).forEach { expression ->
+        getAllElementsOfClass(functionExpressions).forEach { expression ->
             val internalName = (if (isLocalFunctionToBeNamed(expression.function!!))
                 getLocalNameScopeIfApplicable(expression.function)?.enclosingName
             else null)
@@ -68,7 +65,7 @@ abstract class BirInventNamesForLocalClassesLowering(
             putLocalClassName(expression, internalName)
         }
 
-        getAllElementsWithIndex(functionReferences).forEach { reference ->
+        getAllElementsOfClass(functionReferences).forEach { reference ->
             val localNameScope = getLocalNameScopeIfApplicable(reference) ?: return@forEach
             if (localNameScope.processingInlinedFunction && reference[GlobalBirDynamicProperties.OriginalBeforeInline] == null) {
                 // skip BirFunctionReference from `singleArgumentInlineFunction`
@@ -84,16 +81,19 @@ abstract class BirInventNamesForLocalClassesLowering(
             putLocalClassName(reference, internalName)
         }
 
-        getAllElementsWithIndex(propertyReferences).forEach { property ->
+        getAllElementsOfClass(propertyReferences).forEach { property ->
             val nameScope = getLocalNameScopeIfApplicable(property) ?: return@forEach
             val internalName = inventName(null, nameScope)
             putLocalClassName(property, internalName)
         }
 
-        getAllElementsWithIndex(functionsToName).forEach { function ->
-            val nameScope = getLocalNameScopeIfApplicable(function) ?: return@forEach
-            val internalName = inventName(function.name, nameScope)
-            putLocalClassName(function, internalName)
+        getAllElementsOfClass(functions).forEach { function ->
+            // Suspend functions have a continuation, which is essentially a local class
+            if (function.isSuspend && function.correspondingPropertySymbol == null && function.body != null && function.origin != IrDeclarationOrigin.LOCAL_FUNCTION_FOR_LAMBDA) {
+                val nameScope = getLocalNameScopeIfApplicable(function) ?: return@forEach
+                val internalName = inventName(function.name, nameScope)
+                putLocalClassName(function, internalName)
+            }
         }
     }
 

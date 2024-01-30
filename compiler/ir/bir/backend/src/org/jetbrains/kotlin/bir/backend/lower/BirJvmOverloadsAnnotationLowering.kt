@@ -6,18 +6,11 @@
 package org.jetbrains.kotlin.bir.backend.lower
 
 import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
-import org.jetbrains.kotlin.bir.CompressedSourceSpan
 import org.jetbrains.kotlin.bir.backend.BirLoweringPhase
 import org.jetbrains.kotlin.bir.backend.builders.*
 import org.jetbrains.kotlin.bir.backend.jvm.JvmBirBackendContext
 import org.jetbrains.kotlin.bir.declarations.*
-import org.jetbrains.kotlin.bir.expressions.BirCall
 import org.jetbrains.kotlin.bir.expressions.BirConstructorCall
-import org.jetbrains.kotlin.bir.expressions.BirExpression
-import org.jetbrains.kotlin.bir.expressions.impl.BirBlockBodyImpl
-import org.jetbrains.kotlin.bir.expressions.impl.BirDelegatingConstructorCallImpl
-import org.jetbrains.kotlin.bir.expressions.impl.BirExpressionBodyImpl
-import org.jetbrains.kotlin.bir.expressions.impl.BirGetValueImpl
 import org.jetbrains.kotlin.bir.types.utils.defaultType
 import org.jetbrains.kotlin.bir.util.*
 import org.jetbrains.kotlin.config.LanguageFeature
@@ -28,16 +21,16 @@ context(JvmBirBackendContext)
 class BirJvmOverloadsAnnotationLowering : BirLoweringPhase() {
     private val JvmOverloadsAnnotation by lz { birBuiltIns.findClass(JvmStandardClassIds.JVM_OVERLOADS_FQ_NAME) }
 
-    private val overloadsAnnotations = registerIndexKey(BirConstructorCall, false) {
-        it.constructedClass == JvmOverloadsAnnotation
-    }
+    private val constructorCalls = registerIndexKey(BirConstructorCall, false)
 
     override fun lower(module: BirModuleFragment) {
-        getAllElementsWithIndex(overloadsAnnotations).forEach { annotation ->
-            val function = annotation.parent as? BirFunction ?: return@forEach
-            val parentClass = function.parent as? BirClass ?: return@forEach
+        getAllElementsOfClass(constructorCalls).forEach { annotation ->
+            if(annotation.constructedClass == JvmOverloadsAnnotation) {
+                val function = annotation.parent as? BirFunction ?: return@forEach
+                val parentClass = function.parent as? BirClass ?: return@forEach
 
-            generateWrappers(function, parentClass)
+                generateWrappers(function, parentClass)
+            }
         }
     }
 
