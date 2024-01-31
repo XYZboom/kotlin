@@ -18,6 +18,7 @@ internal class SirSetterImpl(
     override val origin: SirOrigin,
     override val visibility: SirVisibility,
     override var body: SirFunctionBody?,
+    override val parameterName: String,
 ) : SirSetter() {
     override lateinit var parent: SirDeclarationParent
 

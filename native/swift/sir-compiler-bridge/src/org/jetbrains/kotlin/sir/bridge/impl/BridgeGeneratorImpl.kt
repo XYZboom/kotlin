@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.sir.SirType
 import org.jetbrains.kotlin.sir.bridge.*
 import org.jetbrains.kotlin.sir.util.SirSwiftModule
 import org.jetbrains.kotlin.sir.util.allParameters
+import org.jetbrains.kotlin.sir.util.name
 import org.jetbrains.kotlin.sir.util.returnType
 
 private const val exportAnnotationFqName = "kotlin.native.internal.ExportedBridge"
@@ -19,7 +20,7 @@ private const val stdintHeader = "stdint.h"
 internal class BridgeGeneratorImpl : BridgeGenerator {
     override fun generate(request: BridgeRequest): FunctionBridge {
         val (kotlinReturnType, cReturnType) = bridgeType(request.callable.returnType)
-        val parameterBridges = request.callable.allParameters.map { bridgeParameter(it) }
+        val parameterBridges = request.callable.allParameters.mapIndexed { index, value -> bridgeParameter(value, index) }
 
         val cDeclaration = createCDeclaration(request.bridgeName, cReturnType, parameterBridges.map { it.c })
         val kotlinBridge = createKotlinBridge(request.bridgeName, request.fqName, kotlinReturnType, parameterBridges.map { it.kotlin })
@@ -91,8 +92,8 @@ private fun bridgeType(type: SirType): Pair<KotlinType, CType> {
     }
 }
 
-private fun bridgeParameter(parameter: SirParameter): BridgeParameter {
-    val bridgeParameterName = parameter.argumentName?.let(::createBridgeParameterName) ?: ""
+private fun bridgeParameter(parameter: SirParameter, index: Int): BridgeParameter {
+    val bridgeParameterName = parameter.name?.let(::createBridgeParameterName) ?: "_$index"
     val (kotlinType, cType) = bridgeType(parameter.type)
     return BridgeParameter(
         KotlinBridgeParameter(bridgeParameterName, kotlinType),

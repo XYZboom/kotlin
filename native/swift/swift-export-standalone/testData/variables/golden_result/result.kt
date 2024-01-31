@@ -13,8 +13,8 @@ public fun namespace_main_bar_get(): Int {
 }
 
 @ExportedBridge("namespace_main_bar_set")
-public fun namespace_main_bar_set(: Int): Unit {
-    val result = namespace.main.bar()
+public fun namespace_main_bar_set(newValue: Int): Unit {
+    val result = namespace.main.bar(newValue)
     return result
 }
 

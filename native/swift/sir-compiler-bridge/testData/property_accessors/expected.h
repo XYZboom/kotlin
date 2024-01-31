@@ -2,4 +2,4 @@
 
 _Bool getter_bridge();
 
-void setter_bridge(_Bool );
+void setter_bridge(_Bool newValue);

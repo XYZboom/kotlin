@@ -19,6 +19,7 @@ abstract class SirSetter : SirAccessor() {
     abstract override val visibility: SirVisibility
     abstract override var parent: SirDeclarationParent
     abstract override var body: SirFunctionBody?
+    abstract val parameterName: String
 
     override fun <R, D> accept(visitor: SirVisitor<R, D>, data: D): R =
         visitor.visitSetter(this, data)

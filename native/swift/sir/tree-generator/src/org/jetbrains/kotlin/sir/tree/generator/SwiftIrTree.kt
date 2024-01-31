@@ -79,7 +79,7 @@ object SwiftIrTree : AbstractSwiftIrTreeBuilder() {
     }
 
     // Denotes "actual" callable node. (I.e. SirCallable & !SIRForeignDeclaration)
-    // TODO: remove along with foreign declaration; replace usages with just SIRCallable
+    // TODO: remove along with foreign declaration (KT-65335); replace usages with just SIRCallable
     val nativeCallable by sealedElement {
         parent(callable)
     }
@@ -118,6 +118,8 @@ object SwiftIrTree : AbstractSwiftIrTreeBuilder() {
 
     val setter by element {
         parent(accessor)
+
+        +field("parameterName", string, initializer = {  })
     }
 
     val variable by element {

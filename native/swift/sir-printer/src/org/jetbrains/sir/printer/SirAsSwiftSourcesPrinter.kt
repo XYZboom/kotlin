@@ -45,7 +45,7 @@ public class SirAsSwiftSourcesPrinter(private val printer: SmartPrinter) : SirVi
         println("}")
     }
 
-    override fun visitSetter(setter: SirSetter): Unit = with(printer){
+    override fun visitSetter(setter: SirSetter): Unit = with(printer) {
         print("set")
         setter.body?.let { body ->
             println(" {")
@@ -71,7 +71,11 @@ public class SirAsSwiftSourcesPrinter(private val printer: SmartPrinter) : SirVi
         function.documentation?.let { println(it) }
         print(
             function.visibility.takeIf { it != SirVisibility.INTERNAL }?.let { "${it.swift} " } ?: "",
-            if (function.isStatic) { "static " } else { "" },
+            if (function.isStatic) {
+                "static "
+            } else {
+                ""
+            },
             "func ",
             function.name.swiftIdentifier,
             "("

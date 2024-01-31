@@ -19,12 +19,14 @@ class SirSetterBuilder {
     var origin: SirOrigin = SirOrigin.Unknown
     var visibility: SirVisibility = SirVisibility.PUBLIC
     var body: SirFunctionBody? = null
+    var parameterName: String = "newValue"
 
     fun build(): SirSetter {
         return SirSetterImpl(
             origin,
             visibility,
             body,
+            parameterName,
         )
     }
 
@@ -47,5 +49,6 @@ inline fun buildSetterCopy(original: SirSetter, init: SirSetterBuilder.() -> Uni
     copyBuilder.origin = original.origin
     copyBuilder.visibility = original.visibility
     copyBuilder.body = original.body
+    copyBuilder.parameterName = original.parameterName
     return copyBuilder.apply(init).build()
 }

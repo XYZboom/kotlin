@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.swiftexport.standalone.builders
 
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.sir.SirElement
 import org.jetbrains.kotlin.sir.SirFunction
 import org.jetbrains.kotlin.sir.SirVariable
@@ -40,11 +41,8 @@ private object BridgeGenerationPass : SirPass<SirElement, Nothing?, List<BridgeR
         override fun visitFunction(function: SirFunction) {
             val fqName = (function.origin as? SirKotlinOrigin.Function)?.path
                 ?: return
-            val fqNameForBridge = if (fqName.count() == 1) {
-                listOf("__root__", fqName.first()) // todo: should be changed with correct mangling KT-64970
-            } else {
-                fqName
-            }
+            val fqNameForBridge = fqName.forBridge
+
             val bridgeRequest = BridgeRequest(
                 function,
                 fqNameForBridge.joinToString("_"),
@@ -55,13 +53,9 @@ private object BridgeGenerationPass : SirPass<SirElement, Nothing?, List<BridgeR
         }
 
         override fun visitVariable(variable: SirVariable) {
-            val fqName = (variable.origin as? SirKotlinOrigin.Variable)?.path
+            val fqName = (variable.origin as? SirKotlinOrigin.Variable)?.path?.forBridge
                 ?: return
-            val fqNameForBridge = if (fqName.count() == 1) {
-                listOf("__root__", fqName.first()) // todo: should be changed with correct mangling KT-64970
-            } else {
-                fqName
-            }
+            val fqNameForBridge = fqName.forBridge
 
             variable.accessors.forEach {
                 val suffix = it.bridgeSuffix
@@ -80,4 +74,10 @@ private object BridgeGenerationPass : SirPass<SirElement, Nothing?, List<BridgeR
 private val SirAccessor.bridgeSuffix: String get() = when(this) {
     is SirGetter -> "get"
     is SirSetter -> "set"
+}
+
+private val List<String>.forBridge: List<String> get() = if (this.count() == 1) {
+    listOf("__root__", this.first()) // todo: should be changed with correct mangling KT-64970
+} else {
+    this
 }

@@ -20,7 +20,7 @@ import java.lang.IllegalStateException
 /**
  * Translates `SirForeign*` nodes into their regular "native" counterparts.
  */
-public class ForeignIntoNativeTranslationPass : SirPass<SirElement, Nothing?, SirDeclaration> {
+public class ForeignTranslationPass : SirPass<SirElement, Nothing?, SirDeclaration> {
 
     private class Transformer : SirTransformerVoid() {
         override fun <E : SirElement> transformElement(element: E): E {
