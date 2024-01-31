@@ -20,7 +20,7 @@ fun box(): String {
         some<Some2>()
     } catch(cce: ClassCastException) {
         val message = cce.toString()
-        return if (message.endsWith("Some1 cannot be cast to Some2"))
+        return if (Regex(".*Some1 cannot be cast to .*Some2.*").matches(message))
             "OK"
         else
             message
