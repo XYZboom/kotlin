@@ -9,6 +9,7 @@ import java.lang.NullPointerException
 import java.nio.file.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipException
+import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.io.path.*
 import kotlin.jdk7.test.PathTreeWalkTest.Companion.createTestFiles
@@ -1025,9 +1026,22 @@ class PathRecursiveFunctionsTest : AbstractPathTest() {
         }
     }
 
+    private fun listZipContent(archivePath: Path) {
+        println("### $archivePath content:")
+        ZipInputStream(archivePath.inputStream()).use { zipIS ->
+            while (true) {
+                val entry = zipIS.nextEntry ?: break
+                println("'${entry}', isDirectory: ${entry.isDirectory}")
+            }
+        }
+    }
+
     private fun withZip(name: String, entries: List<String>, block: (parent: Path, zipRoot: Path) -> Unit) {
         val parent = createTempDirectory().cleanupRecursively()
         val archive = createZipFile(parent, name, entries)
+
+        listZipContent(archive)
+
         val zipFs: FileSystem
         try {
             val classLoader: ClassLoader? = null
@@ -1386,6 +1400,58 @@ class PathRecursiveFunctionsTest : AbstractPathTest() {
             testDeleteSucceeds(b)
             // The deleted "/a/../b" path actually deleted the "b" outside "a"
             assertNull(zipRoot.listDirectoryEntries().find { it.name == "b" })
+        }
+    }
+
+    @Test
+    fun windowsPathSeparators() {
+        // Entries are written with the exact given names.
+        // JDK11 doesn't treat the backslashes as path separators.
+        // JDK8 treats the backslashes as path separators, but can't find the files/directories to read attributes
+        //     java.nio.file.NoSuchFileException: /a
+        withZip("Archive1.zip", listOf("b\\", "b\\d", "a\\")) { _, zipRoot ->
+            println("zipRoot walk:")
+            zipRoot.walkIncludeDirectories().forEach {
+                println(it)
+            }
+            println("zipRoot.resolve(\"a\") walk:")
+            zipRoot.resolve("a").walkIncludeDirectories().forEach {
+                println(it)
+            }
+            println("zipRoot.resolve(\"b\") walk:")
+            zipRoot.resolve("b").walkIncludeDirectories().forEach {
+                println(it)
+            }
+        }
+
+        withZip("Archive2.zip", listOf("b", "b\\d", "a")) { _, zipRoot ->
+            println("zipRoot walk:")
+            zipRoot.walkIncludeDirectories().forEach {
+                println(it)
+            }
+            println("zipRoot.resolve(\"a\") walk:")
+            zipRoot.resolve("a").walkIncludeDirectories().forEach {
+                println(it)
+            }
+            println("zipRoot.resolve(\"b\") walk:")
+            zipRoot.resolve("b").walkIncludeDirectories().forEach {
+                println(it)
+            }
+        }
+
+        withZip("Archive3.zip", listOf("b\\", "b\\d", "a\\", "a\\..\\b\\c")) { _, zipRoot ->
+            println("zipRoot walk:")
+            zipRoot.walkIncludeDirectories().forEach {
+                println(it)
+            }
+            println("zipRoot.resolve(\"a\") walk:")
+            zipRoot.resolve("a").walkIncludeDirectories().forEach {
+                println(it)
+            }
+            println("zipRoot.resolve(\"b\") walk:")
+            zipRoot.resolve("b").walkIncludeDirectories().forEach {
+                println(it)
+            }
         }
     }
 
