@@ -28,8 +28,16 @@ import java.io.File
 /**
  * This is a nested provider for all native tasks
  */
-internal class KotlinNativeProvider(project: Project, konanTargets: Set<KonanTarget>) {
-    constructor(project: Project, konanTarget: KonanTarget) : this(project, setOf(konanTarget))
+internal class KotlinNativeProvider(
+    project: Project,
+    konanTargets: Set<KonanTarget>,
+    kotlinNativeBundleBuildService: Provider<KotlinNativeBundleBuildService>,
+) {
+    constructor(
+        project: Project,
+        konanTarget: KonanTarget,
+        kotlinNativeBundleBuildService: Provider<KotlinNativeBundleBuildService>,
+    ) : this(project, setOf(konanTarget), kotlinNativeBundleBuildService)
 
     @get:Internal
     val konanDataDir: Provider<String?> = project.provider { project.konanDataDir }
@@ -48,7 +56,9 @@ internal class KotlinNativeProvider(project: Project, konanTargets: Set<KonanTar
     internal val kotlinNativeBundleVersion: Provider<String> = bundleDirectory.zip(reinstallBundle) { bundleDir, reinstallFlag ->
         val kotlinNativeVersion = NativeCompilerDownloader.getDependencyNameWithOsAndVersion(project)
         if (project.kotlinNativeToolchainEnabled) {
-            project.prepareKotlinNativeBundle(
+            kotlinNativeBundleBuildService.get().prepareKotlinNativeBundle(
+                project,
+                kotlinNativeCompilerConfiguration,
                 kotlinNativeVersion,
                 bundleDir.asFile,
                 reinstallFlag,
@@ -66,47 +76,6 @@ internal class KotlinNativeProvider(project: Project, konanTargets: Set<KonanTar
             )
         } else {
             null
-        }
-    }
-
-    private fun Project.prepareKotlinNativeBundle(
-        kotlinNativeVersion: String,
-        bundleDir: File,
-        reinstallFlag: Boolean,
-        konanTargets: Set<KonanTarget>,
-    ) {
-
-        if (reinstallFlag) {
-            bundleDir.deleteRecursively()
-        }
-
-        if (!bundleDir.resolve("bin").exists()) {
-            val gradleCachesKotlinNativeDir =
-                kotlinNativeCompilerConfiguration
-                    .singleOrNull()
-                    ?.resolve(kotlinNativeVersion)
-                    ?: error(
-                        "Kotlin Native dependency has not been properly resolved. " +
-                                "Please, make sure that you've declared the repository, which contains $kotlinNativeVersion."
-                    )
-
-            logger.info("Moving Kotlin/Native bundle from tmp directory $gradleCachesKotlinNativeDir to ${bundleDir.absolutePath}")
-            copy {
-                it.from(gradleCachesKotlinNativeDir)
-                it.into(bundleDir)
-            }
-            logger.info("Moved Kotlin/Native bundle from $gradleCachesKotlinNativeDir to ${bundleDir.absolutePath}")
-        }
-
-        setupKotlinNativeDependencies(konanTargets)
-    }
-
-    private fun Project.setupKotlinNativeDependencies(konanTargets: Set<KonanTarget>) {
-        val distributionType = NativeDistributionTypeProvider(this).getDistributionType()
-        if (distributionType.mustGeneratePlatformLibs) {
-            konanTargets.forEach { konanTarget ->
-                PlatformLibrariesGenerator(project, konanTarget).generatePlatformLibsIfNeeded()
-            }
         }
     }
 

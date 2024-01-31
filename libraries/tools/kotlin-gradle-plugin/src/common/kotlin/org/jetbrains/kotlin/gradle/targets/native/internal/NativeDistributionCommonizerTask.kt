@@ -32,6 +32,7 @@ import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
 import org.jetbrains.kotlin.gradle.report.GradleBuildMetricsReporter
 import org.jetbrains.kotlin.gradle.report.UsesBuildMetricsService
 import org.jetbrains.kotlin.gradle.targets.native.toolchain.KotlinNativeProvider
+import org.jetbrains.kotlin.gradle.targets.native.toolchain.UsesKotlinNativeBundleBuildService
 import org.jetbrains.kotlin.gradle.utils.chainedFinalizeValueOnRead
 import org.jetbrains.kotlin.gradle.utils.directoryProperty
 import org.jetbrains.kotlin.gradle.utils.listProperty
@@ -48,7 +49,7 @@ internal abstract class NativeDistributionCommonizerTask
     private val objectFactory: ObjectFactory,
     private val execOperations: ExecOperations,
     private val projectLayout: ProjectLayout,
-) : DefaultTask(), UsesBuildMetricsService {
+) : DefaultTask(), UsesBuildMetricsService, UsesKotlinNativeBundleBuildService {
 
     private val konanHome = project.file(project.konanHome)
 
@@ -104,7 +105,7 @@ internal abstract class NativeDistributionCommonizerTask
 
     @get:Nested
     internal val kotlinNativeProvider: Provider<KotlinNativeProvider> = project.provider {
-        KotlinNativeProvider(project, commonizerTargets.flatMap { target -> target.konanTargets }.toSet())
+        KotlinNativeProvider(project, commonizerTargets.flatMap { target -> target.konanTargets }.toSet(), kotlinNativeBundleBuildService)
     }
 
     @TaskAction

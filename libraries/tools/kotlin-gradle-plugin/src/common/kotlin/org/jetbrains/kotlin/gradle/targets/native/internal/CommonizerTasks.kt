@@ -26,6 +26,7 @@ import org.jetbrains.kotlin.gradle.plugin.ide.Idea222Api
 import org.jetbrains.kotlin.gradle.plugin.ide.ideaImportDependsOn
 import org.jetbrains.kotlin.gradle.targets.native.toolchain.KotlinNativeBundleArtifactFormat
 import org.jetbrains.kotlin.gradle.targets.native.toolchain.KotlinNativeBundleArtifactFormat.addKotlinNativeBundleConfiguration
+import org.jetbrains.kotlin.gradle.targets.native.toolchain.KotlinNativeBundleBuildService
 import org.jetbrains.kotlin.gradle.utils.whenEvaluated
 import org.jetbrains.kotlin.gradle.tasks.dependsOn
 import org.jetbrains.kotlin.gradle.tasks.locateOrRegisterTask
@@ -136,6 +137,7 @@ internal val Project.commonizeNativeDistributionTask: TaskProvider<NativeDistrib
             KotlinNativeBundleArtifactFormat.setupAttributesMatchingStrategy(rootProject.dependencies.attributesSchema)
             KotlinNativeBundleArtifactFormat.setupTransform(rootProject)
             addKotlinNativeBundleConfiguration(rootProject)
+            KotlinNativeBundleBuildService.registerIfAbsent(rootProject)
         }
         return rootProject.locateOrRegisterTask(
             "commonizeNativeDistribution",
