@@ -487,8 +487,15 @@ private fun insecureEnterDirectory(path: Path, collector: ExceptionsCollector) {
  * See KT-63103 for more details on the issue.
  */
 internal fun Path.checkFileName() {
-    if (name == ".." || name == "../" ||
-        name == "." || name == "./") throw IllegalFileNameException(this)
+    val fileName = this.name
+    // Thesis:
+    //   In JDK8 backslashes are treated as separators, thus converted to slash when iterating
+    //   In JDK11 backslashes are usual symbols, thus should not pose thread of encountering cycle
+    //   Anyhow, it might be safer to just avoid them as well?
+    //   Or better just not check for this case as it is a grey zone?
+    // Check if the backslash check catches anything in Windows
+    if (fileName == ".." || fileName == "../" || fileName == "..\\" ||
+        fileName == "." || fileName == "./" || fileName == ".\\") throw IllegalFileNameException(this, null, fileName)
 }
 
 /**

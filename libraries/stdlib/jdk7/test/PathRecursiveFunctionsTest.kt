@@ -1404,6 +1404,26 @@ class PathRecursiveFunctionsTest : AbstractPathTest() {
     }
 
     @Test
+    fun windowsDotFileName() {
+        withZip("Archive1.zip", listOf("normal", ".\\")) { _, zipRoot ->
+            println("zipRoot walk:")
+            zipRoot.walkIncludeDirectories().forEach {
+                println(it)
+            }
+        }
+    }
+
+    @Test
+    fun windowsDoubleDotsFileName() {
+        withZip("Archive1.zip", listOf("normal", "..\\")) { _, zipRoot ->
+            println("zipRoot walk:")
+            zipRoot.walkIncludeDirectories().forEach {
+                println(it)
+            }
+        }
+    }
+
+    @Test
     fun windowsPathSeparators() {
         // Entries are written with the exact given names.
         // JDK11 doesn't treat the backslashes as path separators.
