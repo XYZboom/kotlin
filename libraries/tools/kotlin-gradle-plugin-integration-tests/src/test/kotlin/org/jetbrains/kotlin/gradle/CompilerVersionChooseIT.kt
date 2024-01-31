@@ -71,8 +71,7 @@ class CompilerVersionChooseIT : KGPBaseTest() {
 
     private fun BuildResult.assertCompilerVersion(version: String) {
         val nonMatchingVersionDependencies = extractClasspathFromLogs()
-            .filter { "/kotlin-" in it }
-            .filter { "kotlin-reflect" !in it }
+            .filter { "kotlin-compiler-embeddable" in it }
             .filter { !it.endsWith("$version.jar") }
             .toList()
         assert(nonMatchingVersionDependencies.isEmpty()) {
