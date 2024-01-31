@@ -70,7 +70,7 @@ public interface KtCompletionCandidateCheckerMixIn : KtAnalysisSessionMixIn {
      * Returns an extension applicability checker for the given context [nameExpression].
      * The function is meant to only be used for providing auto-completion for Kotlin in IntelliJ IDEA.
      *
-     * The returned checker does not check the results for individual callable candidates.
+     * The returned checker does not cache the results for individual callable candidates.
      *
      * @param originalFile The file being edited.
      * @param nameExpression The expression under the caret in an in-memory copy of [originalFile]
