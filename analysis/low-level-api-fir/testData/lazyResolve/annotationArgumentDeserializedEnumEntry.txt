@@ -1,0 +1,565 @@
+RAW_FIR:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] main.kt
+    public? final? [ResolvedTo(RAW_FIR)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
+
+IMPORTS:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(IMPORTS)] main.kt
+    public? final? [ResolvedTo(RAW_FIR)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
+
+COMPILER_REQUIRED_ANNOTATIONS:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(IMPORTS)] main.kt
+    public? final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
+
+COMPANION_GENERATION:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(IMPORTS)] main.kt
+    public? final? [ResolvedTo(COMPANION_GENERATION)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
+
+SUPER_TYPES:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(IMPORTS)] main.kt
+    public? final? [ResolvedTo(SUPER_TYPES)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
+
+TYPES:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(IMPORTS)] main.kt
+    public? final? [ResolvedTo(TYPES)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
+
+STATUS:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(IMPORTS)] main.kt
+    public final [ResolvedTo(STATUS)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
+
+EXPECT_ACTUAL_MATCHING:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(IMPORTS)] main.kt
+    public final [ResolvedTo(EXPECT_ACTUAL_MATCHING)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
+
+CONTRACTS:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(IMPORTS)] main.kt
+    public final [ResolvedTo(CONTRACTS)] fun foo(): R|kotlin/Unit| {
+        [ResolvedTo(RAW_FIR)] lval x: <implicit> = usage#
+    }
+
+IMPLICIT_TYPES_BODY_RESOLVE:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(IMPORTS)] main.kt
+    public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] fun foo(): R|kotlin/Unit| {
+        [ResolvedTo(RAW_FIR)] lval x: <implicit> = usage#
+    }
+
+ANNOTATION_ARGUMENTS:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(IMPORTS)] main.kt
+    public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun foo(): R|kotlin/Unit| {
+        [ResolvedTo(RAW_FIR)] lval x: <implicit> = usage#
+    }
+
+BODY_RESOLVE:
+FILE: [ResolvedTo(RAW_FIR)] Anno.class
+    @kotlin.annotation.Target[Unresolved]() public final [ResolvedTo(RAW_FIR)] annotation class Anno : kotlin.Annotation, R|kotlin/Annotation| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] enumEntry: EnumClass): R|Anno| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+        public final [ResolvedTo(RAW_FIR)] val enumEntry: EnumClass
+            public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): EnumClass
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] EnumClass.class
+    public final [ResolvedTo(RAW_FIR)] enum class EnumClass : kotlin.Enum<EnumClass>, R|kotlin/Enum<EnumClass>| {
+        private [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] constructor(): R|EnumClass| {
+            LAZY_super<R|kotlin/Enum<EnumClass>|>
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry First: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] enum entry Second: R|EnumClass|
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun values(): R|kotlin/Array<EnumClass>| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] fun valueOf([ResolvedTo(RAW_FIR)] value: R|kotlin/String|): R|EnumClass| {
+        }
+
+        public final static [ResolvedTo(RAW_FIR)] [ContainingClassKey=EnumClass] val entries: R|kotlin/enums/EnumEntries<EnumClass>|
+            public [ResolvedTo(RAW_FIR)] get(): R|kotlin/enums/EnumEntries<EnumClass>|
+
+    }
+
+FILE: [ResolvedTo(RAW_FIR)] UsageKt.class
+    public final? [ResolvedTo(RAW_FIR)] val usage: @Anno[Unresolved]() Usage
+        public [ResolvedTo(RAW_FIR)] get(): @Anno[Unresolved]() Usage
+
+FILE: [ResolvedTo(RAW_FIR)] Usage.class
+    public final [ResolvedTo(RAW_FIR)] class Usage : R|kotlin/Any| {
+        public [ResolvedTo(RAW_FIR)] [ContainingClassKey=Usage] constructor(): R|Usage| {
+            LAZY_super<R|kotlin/Any|>
+        }
+
+    }
+
+FILE: [ResolvedTo(IMPORTS)] main.kt
+    public final [ResolvedTo(BODY_RESOLVE)] fun foo(): R|kotlin/Unit| {
+        [ResolvedTo(BODY_RESOLVE)] lval x: R|@R|Anno|(enumEntry = )  Usage| = R|/usage|
+    }
+
+FILE RAW TO BODY:
+FILE: [ResolvedTo(BODY_RESOLVE)] main.kt
+    public final [ResolvedTo(BODY_RESOLVE)] fun foo(): R|kotlin/Unit| {
+        [ResolvedTo(BODY_RESOLVE)] lval x: R|@R|Anno|(enumEntry = )  Usage| = R|/usage|
+    }
