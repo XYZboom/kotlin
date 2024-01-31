@@ -184,7 +184,7 @@ private class KtFirCompletionExtensionCandidateChecker(
 private class LazyKtCompletionExtensionCandidateChecker(
     delegateFactory: () -> KtCompletionExtensionCandidateChecker
 ) : KtCompletionExtensionCandidateChecker {
-    val delegate by lazy(delegateFactory)
+    private val delegate: KtCompletionExtensionCandidateChecker by lazy(delegateFactory)
 
     context(KtAnalysisSession)
     override fun computeApplicability(candidate: KtCallableSymbol): KtExtensionApplicabilityResult {
