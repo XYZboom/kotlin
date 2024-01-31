@@ -66,6 +66,17 @@ public sealed class KtExtensionApplicabilityResult : KtLifetimeOwner {
 }
 
 public interface KtCompletionCandidateCheckerMixIn : KtAnalysisSessionMixIn {
+    /**
+     * Returns an extension applicability checker for the given context [nameExpression].
+     * The function is meant to only be used for providing auto-completion for Kotlin in IntelliJ IDEA.
+     *
+     * The returned checker does not check the results for individual callable candidates.
+     *
+     * @param originalFile The file being edited.
+     * @param nameExpression The expression under the caret in an in-memory copy of [originalFile]
+     *     with a dummy identifier inserted. Also see `CompletionUtilCore.DUMMY_IDENTIFIER` in IntelliJ IDEA.
+     * @param explicitReceiver A receiver expression, if available (also from the in-memory copy of [originalFile]).
+     */
     public fun createExtensionCandidateChecker(
         originalFile: KtFile,
         nameExpression: KtSimpleNameExpression,
