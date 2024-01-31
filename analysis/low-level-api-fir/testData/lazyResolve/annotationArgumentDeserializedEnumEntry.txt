@@ -555,11 +555,11 @@ FILE: [ResolvedTo(RAW_FIR)] Usage.class
 
 FILE: [ResolvedTo(IMPORTS)] main.kt
     public final [ResolvedTo(BODY_RESOLVE)] fun foo(): R|kotlin/Unit| {
-        [ResolvedTo(BODY_RESOLVE)] lval x: R|@R|Anno|(enumEntry = )  Usage| = R|/usage|
+        [ResolvedTo(BODY_RESOLVE)] lval x: R|@R|Anno|(enumEntry = /EnumClass.First)  Usage| = R|/usage|
     }
 
 FILE RAW TO BODY:
 FILE: [ResolvedTo(BODY_RESOLVE)] main.kt
     public final [ResolvedTo(BODY_RESOLVE)] fun foo(): R|kotlin/Unit| {
-        [ResolvedTo(BODY_RESOLVE)] lval x: R|@R|Anno|(enumEntry = )  Usage| = R|/usage|
+        [ResolvedTo(BODY_RESOLVE)] lval x: R|@R|Anno|(enumEntry = /EnumClass.First)  Usage| = R|/usage|
     }
