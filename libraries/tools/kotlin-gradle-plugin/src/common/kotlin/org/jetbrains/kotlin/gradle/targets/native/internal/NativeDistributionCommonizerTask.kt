@@ -51,8 +51,6 @@ internal abstract class NativeDistributionCommonizerTask
     private val projectLayout: ProjectLayout,
 ) : DefaultTask(), UsesBuildMetricsService, UsesKotlinNativeBundleBuildService {
 
-    private val konanHome = project.file(project.konanHome)
-
     private val commonizerTargets: Set<SharedCommonizerTarget> by lazy {
         project.collectAllSharedCommonizerTargetsFromBuild()
     }
@@ -94,7 +92,7 @@ internal abstract class NativeDistributionCommonizerTask
     private val commonizerCache
         get() = NativeDistributionCommonizerCache(
             outputDirectory = rootOutputDirectoryProperty.get().asFile,
-            konanHome = konanHome,
+            konanHome = kotlinNativeProvider.get().bundleDirectory.get().asFile,
             logger = logger,
             isCachingEnabled = isCachingEnabled
         )
@@ -129,7 +127,11 @@ internal abstract class NativeDistributionCommonizerTask
                 val commonizer = GradleCliCommonizer(commonizerRunner)
                 /* Invoke commonizer with only 'to do' targets */
                 commonizer.commonizeNativeDistribution(
-                    konanHome, rootOutputDirectory, todoOutputTargets, logLevel, additionalSettings
+                    kotlinNativeProvider.get().bundleDirectory.get().asFile,
+                    rootOutputDirectory,
+                    todoOutputTargets,
+                    logLevel,
+                    additionalSettings
                 )
             }
         }
