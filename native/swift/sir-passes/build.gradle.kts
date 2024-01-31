@@ -11,7 +11,8 @@ kotlin {
 dependencies {
     compileOnly(kotlinStdlib())
 
-    api(project(":native:swift:sir"))
+    implementation(project(":native:swift:sir"))
+    implementation(project(":native:swift:sir-analysis-api"))
 
     testImplementation(kotlin("test-junit5"))
     testImplementation(platform(libs.junit.bom))

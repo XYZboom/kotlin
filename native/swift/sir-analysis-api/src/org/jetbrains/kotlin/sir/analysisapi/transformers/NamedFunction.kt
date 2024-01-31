@@ -6,56 +6,70 @@
 package org.jetbrains.kotlin.sir.analysisapi.transformers
 
 import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.symbols.KtValueParameterSymbol
-import org.jetbrains.kotlin.kdoc.psi.api.KDoc
-import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.analysis.api.symbols.*
+import org.jetbrains.kotlin.analysis.api.types.KtType
+import org.jetbrains.kotlin.psi.KtDeclaration
+import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.sir.*
 import org.jetbrains.kotlin.sir.builder.buildForeignFunction
+import org.jetbrains.kotlin.sir.constants.*
+import org.jetbrains.kotlin.sir.util.SirSwiftModule
+import java.lang.IllegalStateException
 
-internal fun KtNamedFunction.toForeignFunction(): SirForeignFunction = buildForeignFunction {
-    origin = AAFunction(this@toForeignFunction)
+public fun KtNamedFunction.toForeignFunction(): SirForeignFunction = analyze(this) {
+    buildForeignFunction {
+        origin = AAKotlinSource(symbol = this@toForeignFunction.getFunctionLikeSymbol())
+    }
 }
 
-private fun KtValueParameterSymbol.toSirParam(): SirKotlinOrigin.Parameter = AAParameter(
-    name = name.toString(),
-    type = AAKotlinType(name = returnType.toString())
+public object KotlinSourceReaderFromAA: KotlinSourceReader {
+    override fun readParameters(from: SirOrigin.KotlinSources): List<SirParameter>? = from.readParameters()
+
+    override fun readReturnType(from: SirOrigin.KotlinSources): SirType? = from.readReturnType()
+
+    override fun readDocumentation(from: SirOrigin.KotlinSources): String? = from.readDocumentation()
+}
+
+private fun SirOrigin.KotlinSources.readParameters(): List<SirParameter>? = getFunctionLikeSymbol()?.valueParameters?.map { it.toSir() }
+
+private fun SirOrigin.KotlinSources.readReturnType(): SirType? = getCallableSymbol()?.returnType?.toSir()
+
+private fun SirOrigin.KotlinSources.readDocumentation(): String? = getCallableSymbol()?.psiSafe<KtDeclaration>()?.docComment?.text
+
+private data class AAKotlinSource(
+    val symbol: KtSymbol
+) : SirOrigin.KotlinSources {
+    override val path: List<String>
+        get() = getCallableSymbol()?.psiSafe<KtNamedDeclaration>()?.fqName?.pathSegments()?.map { it.asString() } ?: emptyList()
+}
+
+private fun SirOrigin.KotlinSources.getFunctionLikeSymbol(): KtFunctionLikeSymbol? {
+    if (this !is AAKotlinSource) return null
+    val functionSymbol = symbol as? KtFunctionLikeSymbol ?: return null
+    return functionSymbol
+}
+
+private fun SirOrigin.KotlinSources.getCallableSymbol(): KtCallableSymbol? {
+    if (this !is AAKotlinSource) return null
+    val functionSymbol = symbol as? KtCallableSymbol ?: return null
+    return functionSymbol
+}
+
+private fun KtValueParameterSymbol.toSir(): SirParameter = SirParameter(
+    argumentName = name.asString(),
+    type = returnType.toSir(),
 )
 
-private class AAFunction(
-    private val originalFunction: KtNamedFunction
-) : SirKotlinOrigin.Function {
-    override val fqName: FqName
-        get() = originalFunction.fqName ?: FqName.fromSegments(emptyList())
-
-    override val parameters: List<SirKotlinOrigin.Parameter>
-        get() = analyze(originalFunction) {
-            val function = originalFunction.getFunctionLikeSymbol()
-            function.valueParameters.map { it.toSirParam() }
-        }
-
-    override val returnType: SirKotlinOrigin.Type
-        get() = analyze(originalFunction) {
-            val function = originalFunction.getFunctionLikeSymbol()
-            AAKotlinType(name = function.returnType.toString())
-        }
-
-    override val documentation: SirKotlinOrigin.Documentation?
-        get() = originalFunction.docComment?.let { AADocumentation(it) }
-
-}
-private data class AAParameter(
-    override val name: String,
-    override val type: SirKotlinOrigin.Type
-) : SirKotlinOrigin.Parameter
-
-private data class AAKotlinType(
-    override val name: String
-) : SirKotlinOrigin.Type
-
-private data class AADocumentation(
-    private val kdoc: KDoc
-) : SirKotlinOrigin.Documentation {
-    override val content: String
-        get() = kdoc.text
-}
+private fun KtType.toSir(): SirType = SirNominalType(
+    type = when (toString()) {
+        BYTE -> SirSwiftModule.int8
+        SHORT -> SirSwiftModule.int16
+        INT -> SirSwiftModule.int32
+        LONG -> SirSwiftModule.int64
+        BOOLEAN -> SirSwiftModule.bool
+        DOUBLE -> SirSwiftModule.double
+        FLOAT -> SirSwiftModule.float
+        else -> throw IllegalStateException("unknown externally defined type")
+    }
+)

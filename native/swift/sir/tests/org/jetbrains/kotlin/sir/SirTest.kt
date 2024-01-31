@@ -6,10 +6,6 @@
 package org.jetbrains.kotlin.sir
 
 import org.jetbrains.kotlin.sir.builder.buildEnum
-import org.jetbrains.kotlin.sir.constants.BYTE
-import org.jetbrains.kotlin.sir.mock.MockFunction
-import org.jetbrains.kotlin.sir.mock.MockKotlinType
-import org.jetbrains.kotlin.sir.mock.MockParameter
 import kotlin.test.Test
 import kotlin.test.assertTrue
 

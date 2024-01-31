@@ -55,7 +55,7 @@ public class SirInflatePackagesPass : SirModulePass {
             for (declaration in module.declarations) {
                 if (declaration is SirForeignDeclaration) {
                     val origin = declaration.origin
-                    if (origin is SirOrigin.Foreign) {
+                    if (origin is SirOrigin.KotlinSources) {
                         // FIXME: for now we assume everything before the last dot is a package name.
                         //  This should change as we add type declarations into the mix
                         val path = origin.path.dropLast(1)

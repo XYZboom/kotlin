@@ -204,8 +204,10 @@ class SirPackageInflaterTests {
 private fun makeFunction(fqName: String) = buildForeignFunction {
     val path = fqName.split(".")
     assert(path.isNotEmpty())
-    origin = SirOrigin.Foreign.Unknown(path)
+    origin = MockKotlinSource(path)
 }
+
+data class MockKotlinSource(override val path: List<String>) : SirOrigin.KotlinSources
 
 private fun assertEqual(expected: SirModule, actual: SirModule) {
     assert(SirComparator(options = setOf(SirComparator.Options.COMPARE_ORIGINS)).areEqual(expected, actual)) {

@@ -9,8 +9,6 @@ description = "Swift Intermediate Representation"
 dependencies {
     compileOnly(kotlinStdlib())
 
-    api(project(":core:compiler.common"))
-
     if (kotlinBuildProperties.isInIdeaSync) {
         compileOnly(project("tree-generator")) // Provided, so that IDEA can recognize references to this module in KDoc.
     }
@@ -19,6 +17,8 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
+
+    testImplementation(project(":core:compiler.common"))
 }
 
 testsJar()

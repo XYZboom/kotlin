@@ -85,7 +85,7 @@ private class ForeignDeclarationValidator(private val errorHandler: ErrorHandler
 
     override fun visitForeignFunction(foreignFunction: SirForeignFunction, data: Nothing?) {
         super.visitForeignFunction(foreignFunction, data)
-        if (foreignFunction.origin !is SirOrigin.Foreign) {
+        if (foreignFunction.origin !is SirOrigin.KotlinSources) {
             errorHandler.handle(WrongForeignDeclarationOrigin(foreignFunction))
         }
     }

@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.swiftexport.standalone.transformation
 import org.jetbrains.kotlin.sir.SirDeclaration
 import org.jetbrains.kotlin.sir.SirElement
 import org.jetbrains.kotlin.sir.SirModule
+import org.jetbrains.kotlin.sir.analysisapi.transformers.KotlinSourceReaderFromAA
 import org.jetbrains.kotlin.sir.builder.buildModule
 import org.jetbrains.sir.passes.SirInflatePackagesPass
 import org.jetbrains.sir.passes.SirModulePass
@@ -24,7 +25,7 @@ internal fun SirModule.transformToSwift(): SirModule {
 private object SirPassesConfiguration {
     val passes: List<SirModulePass> = listOf(
         SirInflatePackagesPass(),
-        WholeModuleTranslationByElementPass(ForeignIntoSwiftFunctionTranslationPass()),
+        WholeModuleTranslationByElementPass(ForeignIntoSwiftFunctionTranslationPass(KotlinSourceReaderFromAA)),
     )
 
     class WholeModuleTranslationByElementPass(

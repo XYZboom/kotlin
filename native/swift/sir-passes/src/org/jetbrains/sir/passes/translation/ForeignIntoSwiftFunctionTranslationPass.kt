@@ -7,11 +7,8 @@ package org.jetbrains.sir.passes.translation
 
 import org.jetbrains.kotlin.sir.*
 import org.jetbrains.kotlin.sir.builder.buildFunction
-import org.jetbrains.kotlin.sir.util.SirSwiftModule
-import org.jetbrains.kotlin.sir.constants.*
 import org.jetbrains.kotlin.sir.visitors.SirTransformerVoid
 import org.jetbrains.sir.passes.SirPass
-import java.lang.IllegalStateException
 
 
 /**
@@ -21,51 +18,42 @@ import java.lang.IllegalStateException
  * or `element` does not contain origin of type `SirOrigin.KotlinEntity.Function`,
  * returns original element.
  */
-public class ForeignIntoSwiftFunctionTranslationPass : SirPass<SirElement, Nothing?, SirDeclaration> {
+public class ForeignIntoSwiftFunctionTranslationPass(private val reader: KotlinSourceReader) :
+    SirPass<SirElement, Nothing?, SirDeclaration> {
 
-    private class Transformer : SirTransformerVoid() {
+    private class Transformer(private val reader: KotlinSourceReader) : SirTransformerVoid() {
         override fun <E : SirElement> transformElement(element: E): E {
             element.transformChildren(this)
             return element
         }
 
         override fun transformForeignFunction(function: SirForeignFunction): SirDeclaration {
-            val kotlinOrigin = function.origin as? SirKotlinOrigin.Function
+            val source = function.origin as? SirOrigin.KotlinSources
                 ?: return function
+
+            val sirParameters = reader.readParameters(source)
+                ?: return function
+
+            val sirReturnType = reader.readReturnType(source)
+                ?: return function
+
+            val sirDocumentation = reader.readDocumentation(source)
+
             return buildFunction {
                 origin = function.origin
                 visibility = function.visibility
 
                 isStatic = function.parent is SirDeclaration
-                name = kotlinOrigin.path.last()
-                kotlinOrigin.parameters.mapTo(parameters) { it.toSir() }
+                name = source.path.last()
 
-                returnType = kotlinOrigin.returnType.toSir()
-
-                documentation = kotlinOrigin.documentation?.content
+                sirParameters.mapTo(parameters) { it }
+                returnType = sirReturnType
+                documentation = sirDocumentation
             }.apply {
                 parent = function.parent
             }
         }
     }
 
-    override fun run(element: SirElement, data: Nothing?): SirDeclaration = element.transform(Transformer())
+    override fun run(element: SirElement, data: Nothing?): SirDeclaration = element.transform(Transformer(reader))
 }
-
-private fun SirKotlinOrigin.Parameter.toSir(): SirParameter = SirParameter(
-    argumentName = name,
-    type = type.toSir(),
-)
-
-private fun SirKotlinOrigin.Type.toSir(): SirType = SirNominalType(
-    type = when (this.name) {
-        BYTE -> SirSwiftModule.int8
-        SHORT -> SirSwiftModule.int16
-        INT -> SirSwiftModule.int32
-        LONG -> SirSwiftModule.int64
-        BOOLEAN -> SirSwiftModule.bool
-        DOUBLE -> SirSwiftModule.double
-        FLOAT -> SirSwiftModule.float
-        else -> throw IllegalStateException("unknown externally defined type")
-    }
-)

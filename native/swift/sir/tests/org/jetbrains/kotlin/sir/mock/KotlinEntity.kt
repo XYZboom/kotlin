@@ -6,23 +6,35 @@
 package org.jetbrains.kotlin.sir.mock
 
 import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.sir.SirKotlinOrigin
+import org.jetbrains.kotlin.sir.KotlinSourceReader
 import org.jetbrains.kotlin.sir.SirOrigin
+import org.jetbrains.kotlin.sir.SirParameter
+import org.jetbrains.kotlin.sir.SirType
 
-data class MockFunction(
-    override val fqName: FqName,
-    override val parameters: List<SirKotlinOrigin.Parameter>,
-    override val returnType: SirKotlinOrigin.Type,
-    override val documentation: SirKotlinOrigin.Documentation? = null,
-) : SirKotlinOrigin.Function
+data class MockKotlinFunction(
+    val fqName: FqName,
+    val parameters: List<SirParameter>,
+    val returnType: SirType,
+    val documentation: String? = null,
+) : SirOrigin.KotlinSources {
+    override val path: List<String>
+        get() = fqName.pathSegments().map { it.asString() }
+}
 
-data class MockParameter(
-    override val name: String,
-    override val type: SirKotlinOrigin.Type,
-) : SirKotlinOrigin.Parameter
+object MockReader : KotlinSourceReader {
+    override fun readParameters(from: SirOrigin.KotlinSources): List<SirParameter>? {
+        from as MockKotlinFunction
+        return from.parameters
+    }
 
-data class MockKotlinType(
-    override val name: String
-) : SirKotlinOrigin.Type
+    override fun readReturnType(from: SirOrigin.KotlinSources): SirType? {
+        from as MockKotlinFunction
+        return from.returnType
+    }
 
-data class MockDocumentation(override val content: String) : SirKotlinOrigin.Documentation
+    override fun readDocumentation(from: SirOrigin.KotlinSources): String? {
+        from as MockKotlinFunction
+        return from.documentation
+    }
+
+}
