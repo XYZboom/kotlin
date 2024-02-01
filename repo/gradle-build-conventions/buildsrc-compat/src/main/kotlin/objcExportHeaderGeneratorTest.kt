@@ -21,7 +21,7 @@ fun Project.objCExportHeaderGeneratorTest(
 ) {
     useJUnitPlatform()
     enableJunit5ExtensionsAutodetection()
-    systemProperty("runAATests", project.providers.gradleProperty("runAATests").isPresent)
+    systemProperty("kif.local", project.providers.gradleProperty("kif.local").isPresent)
     if (testDisplayNameTag != null) {
         systemProperty("testDisplayName.tag", testDisplayNameTag)
     }

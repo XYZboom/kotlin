@@ -80,8 +80,8 @@ This annotation will
 
 Note:
 - If the annotation is still present, but the test is successful, then an error is emitted that reminds you about removing the annotation
-- To make the tests execute normally (for more convenient local development), Gradle property `runAATests` can be used:
+- To make the tests execute normally (for more convenient local development), Gradle property `kif.local` can be used:
 ```text
-./gradlew :native:objcexport-header-generator:check -PrunAATests
+./gradlew :native:objcexport-header-generator:check -Pkif.local
                                                   //  ^
 ```
