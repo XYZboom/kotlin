@@ -70,7 +70,7 @@ internal val DEFAULT_GROOVY_SETTINGS_FILE =
 
 internal fun getGroovyDependencyManagementBlock(
     gradleRepositoriesMode: RepositoriesMode,
-    additionalDependencyRepositories: List<String>,
+    additionalDependencyRepositories: Set<String>,
     localRepo: Path? = null,
 ): String =
     //language=Groovy
@@ -187,7 +187,7 @@ internal val DEFAULT_KOTLIN_SETTINGS_FILE =
 
 internal fun getKotlinDependencyManagementBlock(
     gradleRepositoriesMode: RepositoriesMode,
-    additionalDependencyRepositories: List<String>,
+    additionalDependencyRepositories: Set<String>,
     localRepo: Path? = null,
 ): String =
     //language=kotlin

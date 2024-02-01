@@ -91,7 +91,9 @@ open class Kapt3AndroidExternalIT : Kapt3BaseIT() {
             gradleVersion,
             buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion),
             buildJdk = jdkVersion.location,
-            additionalDependencyRepositories = listOf("https://jitpack.io")
+            dependencyManagement = DependencyManagement.DefaultDependencyManagement(
+                setOf("https://jitpack.io")
+            )
         ) {
             build("assembleDebug") {
                 assertKaptSuccessful()

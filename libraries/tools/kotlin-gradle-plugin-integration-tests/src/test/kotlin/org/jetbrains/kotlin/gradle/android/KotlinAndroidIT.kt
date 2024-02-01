@@ -96,7 +96,9 @@ class KotlinAndroidIT : KGPBaseTest() {
             gradleVersion,
             buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion),
             buildJdk = jdkVersion.location,
-            additionalDependencyRepositories = listOf("https://clojars.org/repo/")
+            dependencyManagement = DependencyManagement.DefaultDependencyManagement(
+                setOf("https://clojars.org/repo/")
+            )
         ) {
             build("assembleDebug")
         }
@@ -275,7 +277,8 @@ class KotlinAndroidIT : KGPBaseTest() {
 
             build(":Lib:assembleFlavor1Debug", ":Lib:publish") {
                 assertTasksExecuted(":Lib:compileFlavor1DebugKotlin", ":Lib:publishFlavorDebugPublicationToMavenRepository")
-                val pomLines = subProject("Lib").projectPath.resolve("build/repo/com/example/flavor1Debug/1.0/flavor1Debug-1.0.pom").readLines()
+                val pomLines =
+                    subProject("Lib").projectPath.resolve("build/repo/com/example/flavor1Debug/1.0/flavor1Debug-1.0.pom").readLines()
                 val stdlibVersionLineNumber = pomLines.indexOfFirst { "<artifactId>kotlin-stdlib</artifactId>" in it } + 1
                 val versionLine = pomLines[stdlibVersionLineNumber]
                 assertContains(versionLine, "<version>${buildOptions.kotlinVersion}</version>")

@@ -209,7 +209,7 @@ class BuildCacheRelocationIT : KGPBaseTest() {
     @DisplayName("with native project")
     @GradleTest
     fun testRelocationNative(gradleVersion: GradleVersion) {
-        val localRepoDir = workingDir.resolve(gradleVersion.version).resolve("repo")
+        val localRepoDir = defaultLocalRepo(gradleVersion)
         val buildOptionsBeforeCaching = defaultBuildOptions.copy(
             nativeOptions = super.defaultBuildOptions.nativeOptions.copy(
                 version = TestVersions.Kotlin.STABLE_RELEASE,

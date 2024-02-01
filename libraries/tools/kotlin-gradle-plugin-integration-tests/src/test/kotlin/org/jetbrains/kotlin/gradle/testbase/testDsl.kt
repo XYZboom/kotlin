@@ -44,7 +44,6 @@ fun KGPBaseTest.project(
     buildOptions: BuildOptions = defaultBuildOptions,
     forceOutput: Boolean = false,
     enableBuildScan: Boolean = false,
-    enableDefaultDependencyManagement: Boolean = true,
     addHeapDumpOptions: Boolean = true,
     enableGradleDebug: Boolean = false,
     enableKotlinDaemonMemoryLimitInMb: Int? = 1024,
@@ -52,7 +51,7 @@ fun KGPBaseTest.project(
     buildJdk: File? = null,
     localRepoDir: Path? = null,
     environmentVariables: EnvironmentalVariables = EnvironmentalVariables(),
-    additionalDependencyRepositories: List<String> = emptyList(),
+    dependencyManagement: DependencyManagement = DependencyManagement.DefaultDependencyManagement(),
     test: TestProject.() -> Unit = {},
 ): TestProject {
     val projectPath = setupProjectFromTestResources(
@@ -61,7 +60,7 @@ fun KGPBaseTest.project(
         workingDir,
         projectPathAdditionalSuffix,
     )
-    projectPath.addDefaultSettingsToSettingsGradle(enableDefaultDependencyManagement, additionalDependencyRepositories, localRepoDir)
+    projectPath.addDefaultSettingsToSettingsGradle(dependencyManagement, localRepoDir)
     projectPath.enableCacheRedirector()
     projectPath.enableAndroidSdk()
     if (buildOptions.languageVersion != null || buildOptions.languageApiVersion != null) {
@@ -116,7 +115,6 @@ fun KGPBaseTest.nativeProject(
     buildOptions: BuildOptions = defaultBuildOptions,
     forceOutput: Boolean = false,
     enableBuildScan: Boolean = false,
-    enableDefaultDependencyManagement: Boolean = true,
     addHeapDumpOptions: Boolean = true,
     enableGradleDebug: Boolean = false,
     enableKotlinDaemonMemoryLimitInMb: Int? = 1024,
@@ -125,7 +123,7 @@ fun KGPBaseTest.nativeProject(
     localRepoDir: Path? = null,
     environmentVariables: EnvironmentalVariables = EnvironmentalVariables(),
     configureSubProjects: Boolean = false,
-    additionalDependencyRepositories: List<String> = emptyList(),
+    dependencyManagement: DependencyManagement = DependencyManagement.DefaultDependencyManagement(),
     test: TestProject.() -> Unit = {},
 ): TestProject {
     val project = project(
@@ -134,7 +132,7 @@ fun KGPBaseTest.nativeProject(
         buildOptions = buildOptions,
         forceOutput = forceOutput,
         enableBuildScan = enableBuildScan,
-        enableDefaultDependencyManagement = enableDefaultDependencyManagement,
+        dependencyManagement = dependencyManagement,
         addHeapDumpOptions = addHeapDumpOptions,
         enableGradleDebug = enableGradleDebug,
         enableKotlinDaemonMemoryLimitInMb = enableKotlinDaemonMemoryLimitInMb,
@@ -142,7 +140,6 @@ fun KGPBaseTest.nativeProject(
         buildJdk = buildJdk,
         localRepoDir = localRepoDir,
         environmentVariables = environmentVariables,
-        additionalDependencyRepositories = additionalDependencyRepositories
     )
     project.configureSingleNativeTarget(configureSubProjects)
     project.test()
@@ -532,23 +529,28 @@ private fun setupProjectFromTestResources(
 private val String.testProjectPath: Path get() = Paths.get("src", "test", "resources", "testProject", this)
 
 internal fun Path.addDefaultSettingsToSettingsGradle(
-    enableDefaultDependencyManagement: Boolean = true,
-    additionalDependencyRepositories: List<String> = emptyList(),
+    dependencyManagement: DependencyManagement = DependencyManagement.DefaultDependencyManagement(),
     localRepo: Path? = null,
 ) {
     addPluginManagementToSettings()
-    if (enableDefaultDependencyManagement) addDependencyManagementToSettings(
-        additionalDependencyRepositories = additionalDependencyRepositories,
-        localRepo = localRepo
-    )
+    when (dependencyManagement) {
+        is DependencyManagement.DefaultDependencyManagement -> addDependencyManagementToSettings(
+            additionalDependencyRepositories = dependencyManagement.additionalRepos,
+            localRepo = localRepo
+        )
+        is DependencyManagement.DisabledDependencyManagement -> {}
+    }
 
     val buildSrc = resolve("buildSrc")
     if (Files.exists(buildSrc)) {
         buildSrc.addPluginManagementToSettings()
-        if (enableDefaultDependencyManagement) buildSrc.addDependencyManagementToSettings(
-            additionalDependencyRepositories = additionalDependencyRepositories,
-            localRepo = localRepo
-        )
+        when (dependencyManagement) {
+            is DependencyManagement.DefaultDependencyManagement -> buildSrc.addDependencyManagementToSettings(
+                additionalDependencyRepositories = dependencyManagement.additionalRepos,
+                localRepo = localRepo
+            )
+            is DependencyManagement.DisabledDependencyManagement -> {}
+        }
     }
 }
 
@@ -597,7 +599,7 @@ internal fun Path.addPluginManagementToSettings() {
 
 internal fun Path.addDependencyManagementToSettings(
     gradleRepositoriesMode: RepositoriesMode = RepositoriesMode.PREFER_SETTINGS,
-    additionalDependencyRepositories: List<String>,
+    additionalDependencyRepositories: Set<String>,
     localRepo: Path? = null,
 ) {
     val buildGradle = resolve("build.gradle")
@@ -663,7 +665,7 @@ internal fun Path.addDependencyManagementToSettings(
     }
 
     if (Files.exists(resolve("buildSrc"))) {
-        resolve("buildSrc").addDependencyManagementToSettings(gradleRepositoriesMode, additionalDependencyRepositories)
+        resolve("buildSrc").addDependencyManagementToSettings(gradleRepositoriesMode, additionalDependencyRepositories, localRepo)
     }
 }
 
@@ -867,3 +869,16 @@ internal fun TestProject.suppressDependencySourcesConfigurations() {
         """.trimIndent()
     }
 }
+
+/**
+ * Represents different types of dependency management provided to tests.
+ */
+sealed interface DependencyManagement {
+    class DefaultDependencyManagement(val additionalRepos: Set<String> = emptySet()) : DependencyManagement
+    data object DisabledDependencyManagement : DependencyManagement
+}
+
+/**
+ * Resolves the temporary local repository path for the test with specified Gradle version.
+ */
+fun KGPBaseTest.defaultLocalRepo(gradleVersion: GradleVersion) = workingDir.resolve(gradleVersion.version).resolve("repo")

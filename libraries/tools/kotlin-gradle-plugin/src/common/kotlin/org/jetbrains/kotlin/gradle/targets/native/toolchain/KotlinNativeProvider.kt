@@ -59,9 +59,12 @@ internal class KotlinNativeProvider(project: Project, konanTarget: KonanTarget) 
         kotlinNativeVersion
     }
 
+    // Gradle tries to evaluate this val during configuration cache,
+    // which lead to resolving configuration, even if k/n bundle is in konan home directory.
+    @Transient
     private val kotlinNativeCompilerConfiguration: ConfigurableFileCollection = project.filesProvider {
         // without enabled there is no configuration with this name, so we should return empty provider to support configuration cache
-        if (project.kotlinNativeToolchainEnabled && !bundleDirectory.asFile.get().resolve(KONAN_DIRECTORY_NAME_TO_CHECK_EXISTENCE).exists()) {
+        if (project.kotlinNativeToolchainEnabled) {
             project.configurations.named(
                 KOTLIN_NATIVE_BUNDLE_CONFIGURATION_NAME
             )

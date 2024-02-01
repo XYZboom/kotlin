@@ -35,7 +35,7 @@ class WasmConfigurationCacheIT : KGPBaseTest() {
         project(
             "wasm-d8-simple-project",
             gradleVersion,
-            enableDefaultDependencyManagement = false // :d8Download adds custom ivy repository during build
+            dependencyManagement = DependencyManagement.DisabledDependencyManagement // :d8Download adds custom ivy repository during build
         ) {
             build("wasmJsD8Run", buildOptions = buildOptions) {
                 assertTasksExecuted(":wasmJsD8Run")

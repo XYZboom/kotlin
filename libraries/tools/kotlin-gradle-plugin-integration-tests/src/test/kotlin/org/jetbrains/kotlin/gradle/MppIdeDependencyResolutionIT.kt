@@ -93,7 +93,7 @@ class MppIdeDependencyResolutionIT : KGPBaseTest() {
         project(
             projectName = "cinteropImport",
             gradleVersion = gradleVersion,
-            localRepoDir = workingDir.resolve(gradleVersion.version).resolve("repo")
+            localRepoDir = defaultLocalRepo(gradleVersion)
         ) {
             build(":dep-with-cinterop:publishAllPublicationsToBuildRepository")
 
@@ -335,7 +335,7 @@ class MppIdeDependencyResolutionIT : KGPBaseTest() {
         project(
             "kt-60053-dependencyOn-testFixtures",
             gradleVersion,
-            localRepoDir = workingDir.resolve(gradleVersion.version).resolve("repo")
+            localRepoDir = defaultLocalRepo(gradleVersion)
         ) {
             build("publish")
 

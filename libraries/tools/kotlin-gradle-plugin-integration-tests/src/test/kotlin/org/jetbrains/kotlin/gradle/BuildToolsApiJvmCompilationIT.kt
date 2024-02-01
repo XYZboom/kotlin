@@ -29,7 +29,9 @@ class BuildToolsApiJvmCompilationIT : KGPBaseTest() {
                 runViaBuildToolsApi = false,
                 incremental = false,
             ),
-            additionalDependencyRepositories = listOf("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
+            dependencyManagement = DependencyManagement.DefaultDependencyManagement(
+                setOf("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
+            )
         ) {
             build("assemble") {
                 assertNoDiagnostic(KotlinToolingDiagnostics.BuildToolsApiVersionInconsistency)
@@ -50,7 +52,9 @@ class BuildToolsApiJvmCompilationIT : KGPBaseTest() {
             "simpleProject", gradleVersion, buildOptions = defaultBuildOptions.copy(
                 incremental = false,
             ),
-            additionalDependencyRepositories = listOf("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
+            dependencyManagement = DependencyManagement.DefaultDependencyManagement(
+                setOf("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
+            )
         ) {
             enableOtherVersionBuildToolsImpl()
             build("assemble") {

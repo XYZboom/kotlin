@@ -538,7 +538,7 @@ open class CommonizerIT : KGPBaseTest() {
         project(
             "commonize-kt-56729-consume-library-with-two-roots",
             gradleVersion,
-            localRepoDir = workingDir.resolve(gradleVersion.version).resolve("repo")
+            localRepoDir = defaultLocalRepo(gradleVersion)
         ) {
             build("publish")
 

@@ -25,7 +25,7 @@ class NativeWithConfigurationCacheIT : KGPBaseTest() {
         nativeProject(
             "native-with-configuration-cache",
             gradleVersion,
-            enableDefaultDependencyManagement = false,
+            dependencyManagement = DependencyManagement.DisabledDependencyManagement,
             buildOptions = defaultBuildOptions.copy(
                 // We need to download compiler on the first build, that is why we are setting custom konan home dir without any compiler inside
                 konanDataDir = workingDir.resolve(".konan"),

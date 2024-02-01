@@ -1074,7 +1074,7 @@ open class HierarchicalMppIT : KGPBaseTest() {
         project(
             "kt-52216",
             gradleVersion = gradleVersion,
-            localRepoDir = workingDir.resolve(gradleVersion.version).resolve("repo")
+            localRepoDir = defaultLocalRepo(gradleVersion)
         ) {
             build(":lib:publish")
             testDependencyTransformations("p1") { reports ->
@@ -1148,7 +1148,7 @@ open class HierarchicalMppIT : KGPBaseTest() {
         project(
             "kt-55071-compileSharedNative-withDefaultParameters",
             gradleVersion = gradleVersion,
-            localRepoDir = workingDir.resolve(gradleVersion.version).resolve("repo")
+            localRepoDir = defaultLocalRepo(gradleVersion)
         ) {
             build(":producer:publish") {
                 assertTasksExecuted(":producer:compileCommonMainKotlinMetadata")

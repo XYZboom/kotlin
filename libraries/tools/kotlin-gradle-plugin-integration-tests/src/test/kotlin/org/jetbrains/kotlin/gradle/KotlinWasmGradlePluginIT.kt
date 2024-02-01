@@ -22,7 +22,7 @@ class KotlinWasmGradlePluginIT : KGPBaseTest() {
         project(
             "new-mpp-wasm-wasi-test",
             gradleVersion,
-            enableDefaultDependencyManagement = false // requires custom d8 repository during build
+            dependencyManagement = DependencyManagement.DisabledDependencyManagement // requires custom d8 repository during build
         ) {
             buildGradleKts.modify(::transformBuildScriptWithPluginsDsl)
 
@@ -60,7 +60,7 @@ class KotlinWasmGradlePluginIT : KGPBaseTest() {
         project(
             "new-mpp-wasm-test",
             gradleVersion,
-            enableDefaultDependencyManagement = false // requires custom repository for :kotlinNodeJsSetup during build
+            dependencyManagement = DependencyManagement.DisabledDependencyManagement // requires custom repository for :kotlinNodeJsSetup during build
         ) {
             buildGradleKts.modify {
                 transformBuildScriptWithPluginsDsl(it)
@@ -103,7 +103,7 @@ class KotlinWasmGradlePluginIT : KGPBaseTest() {
     fun wasiRun(gradleVersion: GradleVersion) {
         project(
             "new-mpp-wasm-wasi-test", gradleVersion,
-            enableDefaultDependencyManagement = false // requires d8 custom repository during build
+            dependencyManagement = DependencyManagement.DisabledDependencyManagement // requires d8 custom repository during build
         ) {
             buildGradleKts.modify(::transformBuildScriptWithPluginsDsl)
 

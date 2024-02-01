@@ -410,7 +410,7 @@ class GeneralNativeIT : KGPBaseTest() {
         project(
             "native-binaries/export-published-lib",
             gradleVersion,
-            localRepoDir = workingDir.resolve(gradleVersion.version).resolve("repo")
+            localRepoDir = defaultLocalRepo(gradleVersion)
         ) {
             val headerPath = "shared/build/bin/linuxX64/debugStatic/libshared_api.h"
 
@@ -809,7 +809,7 @@ class GeneralNativeIT : KGPBaseTest() {
         nativeProject(
             "native-cinterop",
             gradleVersion, configureSubProjects = true,
-            localRepoDir = workingDir.resolve(gradleVersion.version).resolve("repo")
+            localRepoDir = defaultLocalRepo(gradleVersion)
         ) {
             fun libraryFiles(projectName: String, cinteropName: String) = listOf(
                 projectPath.resolve("$projectName/build/classes/kotlin/host/main/cinterop/${projectName}-cinterop-$cinteropName.klib"),
@@ -980,7 +980,7 @@ class GeneralNativeIT : KGPBaseTest() {
         nativeProject(
             "native-cinterop",
             gradleVersion, configureSubProjects = true,
-            localRepoDir = workingDir.resolve(gradleVersion.version).resolve("repo")
+            localRepoDir = defaultLocalRepo(gradleVersion)
         ) {
             build(":publishedLibrary:publish")
 
@@ -1012,7 +1012,7 @@ class GeneralNativeIT : KGPBaseTest() {
     fun shouldAllowToOverrideDownloadUrl(gradleVersion: GradleVersion, @TempDir customKonanDir: Path) {
         nativeProject(
             "native-parallel", gradleVersion,
-            enableDefaultDependencyManagement = false
+            dependencyManagement = DependencyManagement.DisabledDependencyManagement
         ) {
             gradleProperties.appendText(
                 """
