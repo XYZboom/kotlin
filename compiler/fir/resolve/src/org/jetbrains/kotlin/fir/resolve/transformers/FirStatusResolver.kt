@@ -357,27 +357,25 @@ class FirStatusResolver(
     private fun contradictsWith(type: ConeKotlinType, requiredVariance: Variance): Boolean {
         when (type) {
             is ConeLookupTagBasedType -> {
-                when (type) {
-                    is ConeTypeParameterType -> {
-                        return!type.lookupTag.typeParameterSymbol.fir.variance.allowsPosition(requiredVariance)
-                    }
-                    is ConeClassLikeType -> {
-                        val classLike = type.lookupTag.toSymbol(session)?.fir
-                        for ((index, argument) in type.typeArguments.withIndex()) {
-                            val typeParameterRef = classLike?.typeParameters?.getOrNull(index)
-                            if (typeParameterRef !is FirTypeParameter) continue
-                            val requiredVarianceForArgument = when (
-                                EnrichedProjectionKind.getEffectiveProjectionKind(typeParameterRef.variance, argument.variance)
-                            ) {
-                                EnrichedProjectionKind.OUT -> requiredVariance
-                                EnrichedProjectionKind.IN -> requiredVariance.opposite()
-                                EnrichedProjectionKind.INV -> Variance.INVARIANT
-                                EnrichedProjectionKind.STAR -> continue // CONFLICTING_PROJECTION error was reported
-                            }
-                            val argType = argument.type ?: continue
-                            if (contradictsWith(argType, requiredVarianceForArgument)) {
-                                return true
-                            }
+                if (type is ConeTypeParameterType) {
+                    return !type.lookupTag.typeParameterSymbol.fir.variance.allowsPosition(requiredVariance)
+                }
+                if (type is ConeClassLikeType) {
+                    val classLike = type.lookupTag.toSymbol(session)?.fir
+                    for ((index, argument) in type.typeArguments.withIndex()) {
+                        val typeParameterRef = classLike?.typeParameters?.getOrNull(index)
+                        if (typeParameterRef !is FirTypeParameter) continue
+                        val requiredVarianceForArgument = when (
+                            EnrichedProjectionKind.getEffectiveProjectionKind(typeParameterRef.variance, argument.variance)
+                        ) {
+                            EnrichedProjectionKind.OUT -> requiredVariance
+                            EnrichedProjectionKind.IN -> requiredVariance.opposite()
+                            EnrichedProjectionKind.INV -> Variance.INVARIANT
+                            EnrichedProjectionKind.STAR -> continue // CONFLICTING_PROJECTION error was reported
+                        }
+                        val argType = argument.type ?: continue
+                        if (contradictsWith(argType, requiredVarianceForArgument)) {
+                            return true
                         }
                     }
                 }
