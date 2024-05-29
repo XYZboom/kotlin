@@ -65,6 +65,73 @@ import java.util.*
 @JvmField
 internal val JAVA_LANG_DEPRECATED = Type.getType(Deprecated::class.java).descriptor
 
+private fun generateInstanceOfForTypes(
+    v: InstructionAdapter,
+    types: List<Type>,
+    onFail: InstructionAdapter.() -> Unit,
+    onOk: InstructionAdapter.() -> Unit = {},
+) {
+    with(v) {
+        val fail = Label()
+        val ok = Label()
+        val end = Label()
+        for ((index, type) in types.withIndex()) {
+            dup()
+            v.instanceOf(type)
+            if (index != types.size - 1) {
+                ifeq(fail)
+            } else {
+                ifne(ok)
+            }
+        }
+        mark(fail)
+        onFail()
+        goTo(end)
+        mark(ok)
+        onOk()
+        mark(end)
+    }
+}
+
+fun generateIsCheckForIntersection(
+    v: InstructionAdapter,
+    kotlinType: KotlinType,
+    typeMapper: KotlinTypeMapper,
+) {
+    val supertypes = kotlinType.constructor.supertypes.map { it.asmType(typeMapper) }
+    if (TypeUtils.isNullableType(kotlinType)) {
+        val nope = Label()
+        val end = Label()
+        with(v) {
+            dup()
+            ifnull(nope)
+            generateInstanceOfForTypes(
+                v, supertypes,
+                onFail = {
+                    iconst(0)
+                },
+                onOk = {
+                    iconst(1)
+                }
+            )
+            goTo(end)
+            mark(nope)
+            pop()
+            iconst(1)
+            mark(end)
+        }
+    } else {
+        generateInstanceOfForTypes(
+            v, supertypes,
+            onFail = {
+                iconst(0)
+            }, onOk = {
+                iconst(1)
+            }
+        )
+    }
+}
+
 fun generateIsCheck(
     v: InstructionAdapter,
     kotlinType: KotlinType,
@@ -91,6 +158,32 @@ fun generateIsCheck(
         }
     } else {
         TypeIntrinsics.instanceOf(v, kotlinType, asmType)
+    }
+}
+
+fun generateAsCastForIntersection(
+    v: InstructionAdapter,
+    kotlinType: KotlinType,
+    safe: Boolean,
+    typeMapper: KotlinTypeMapper,
+    unifiedNullChecks: Boolean,
+) {
+    val supertypes = kotlinType.constructor.supertypes.map { it.asmType(typeMapper) }
+    if (!safe) {
+        if (!TypeUtils.isNullableType(kotlinType)) {
+            generateNullCheckForNonSafeAs(v, kotlinType, unifiedNullChecks)
+        }
+    } else {
+        generateInstanceOfForTypes(
+            v, supertypes,
+            onFail = {
+                pop()
+                aconst(null)
+            }
+        )
+    }
+    for (type in supertypes) {
+        v.checkcast(type)
     }
 }
 

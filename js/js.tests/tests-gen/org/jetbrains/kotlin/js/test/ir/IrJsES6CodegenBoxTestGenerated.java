@@ -37982,6 +37982,18 @@ public class IrJsES6CodegenBoxTestGenerated extends AbstractIrJsES6CodegenBoxTes
     }
 
     @Test
+    @TestMetadata("kt54343_1.kt")
+    public void testKt54343_1() {
+      runTest("compiler/testData/codegen/box/reified/kt54343_1.kt");
+    }
+
+    @Test
+    @TestMetadata("kt54343_2.kt")
+    public void testKt54343_2() {
+      runTest("compiler/testData/codegen/box/reified/kt54343_2.kt");
+    }
+
+    @Test
     @TestMetadata("newArrayInt.kt")
     public void testNewArrayInt() {
       runTest("compiler/testData/codegen/box/reified/newArrayInt.kt");

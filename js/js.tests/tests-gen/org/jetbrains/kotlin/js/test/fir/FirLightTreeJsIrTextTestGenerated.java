@@ -3379,6 +3379,12 @@ public class FirLightTreeJsIrTextTestGenerated extends AbstractFirLightTreeJsIrT
     }
 
     @Test
+    @TestMetadata("kt54343.kt")
+    public void testKt54343() {
+      runTest("compiler/testData/ir/irText/types/kt54343.kt");
+    }
+
+    @Test
     @TestMetadata("localVariableOfIntersectionType.kt")
     public void testLocalVariableOfIntersectionType() {
       runTest("compiler/testData/ir/irText/types/localVariableOfIntersectionType.kt");

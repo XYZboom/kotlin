@@ -53186,6 +53186,18 @@ public class IrBlackBoxCodegenWithIrInlinerTestGenerated extends AbstractIrBlack
     }
 
     @Test
+    @TestMetadata("kt54343_1.kt")
+    public void testKt54343_1() {
+      runTest("compiler/testData/codegen/box/reified/kt54343_1.kt");
+    }
+
+    @Test
+    @TestMetadata("kt54343_2.kt")
+    public void testKt54343_2() {
+      runTest("compiler/testData/codegen/box/reified/kt54343_2.kt");
+    }
+
+    @Test
     @TestMetadata("nestedReified.kt")
     public void testNestedReified() {
       runTest("compiler/testData/codegen/box/reified/nestedReified.kt");

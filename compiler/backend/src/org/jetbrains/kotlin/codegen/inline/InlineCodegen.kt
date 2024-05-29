@@ -82,7 +82,7 @@ abstract class InlineCodegen<out T : BaseExpressionCodegen>(
                 val lambda = DefaultLambda(info, sourceCompiler, node.name.substringBeforeLast("\$default"))
                 parameters.getParameterByDeclarationSlot(info.offset).functionalArgument = lambda
                 if (info.needReification) {
-                    lambda.reifiedTypeParametersUsages.mergeAll(reifiedTypeInliner.reifyInstructions(lambda.node.node))
+                    lambda.reifiedTypeParametersUsages.mergeAll(reifiedTypeInliner.reifyInstructions(lambda.node.node, state.typeMapper))
                 }
                 for (captured in lambda.capturedVars) {
                     val param = invocationParamBuilder.addCapturedParam(captured, captured.fieldName, false)
@@ -92,7 +92,7 @@ abstract class InlineCodegen<out T : BaseExpressionCodegen>(
             }
         }
 
-        val reificationResult = reifiedTypeInliner.reifyInstructions(node)
+        val reificationResult = reifiedTypeInliner.reifyInstructions(node, state.typeMapper)
 
         val parameters = invocationParamBuilder.buildParameters()
 

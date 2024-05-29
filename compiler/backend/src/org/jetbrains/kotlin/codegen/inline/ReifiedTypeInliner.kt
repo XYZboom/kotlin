@@ -8,16 +8,21 @@ package org.jetbrains.kotlin.codegen.inline
 import org.jetbrains.kotlin.codegen.extractReificationArgument
 import org.jetbrains.kotlin.codegen.extractUsedReifiedParameters
 import org.jetbrains.kotlin.codegen.generateAsCast
+import org.jetbrains.kotlin.codegen.generateAsCastForIntersection
+import org.jetbrains.kotlin.codegen.generateIsCheckForIntersection
 import org.jetbrains.kotlin.codegen.generateIsCheck
 import org.jetbrains.kotlin.codegen.intrinsics.IntrinsicMethods
 import org.jetbrains.kotlin.codegen.optimization.common.intConstant
 import org.jetbrains.kotlin.codegen.signature.BothSignatureWriter
 import org.jetbrains.kotlin.codegen.state.JvmBackendConfig
+import org.jetbrains.kotlin.codegen.state.KotlinTypeMapper
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.jvm.AsmTypes
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.TypeSystemCommonBackendContext
+import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext.isIntersection
+import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext.typeConstructor
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 import org.jetbrains.kotlin.types.model.TypeParameterMarker
 import org.jetbrains.org.objectweb.asm.MethodVisitor
@@ -144,7 +149,7 @@ class ReifiedTypeInliner<KT : KotlinTypeMarker>(
      * e.g. when we're generating inline function containing reified T
      * and another function containing reifiable parts is inlined into that function
      */
-    fun reifyInstructions(node: MethodNode): ReifiedTypeParametersUsages {
+    fun reifyInstructions(node: MethodNode, typeMapper: KotlinTypeMapper): ReifiedTypeParametersUsages {
         if (!hasReifiedParameters) return ReifiedTypeParametersUsages()
 
         val instructions = node.instructions
@@ -152,7 +157,7 @@ class ReifiedTypeInliner<KT : KotlinTypeMarker>(
         val result = ReifiedTypeParametersUsages()
         for (insn in instructions.toArray()) {
             if (isOperationReifiedMarker(insn)) {
-                val newNames = processReifyMarker(insn as MethodInsnNode, instructions)
+                val newNames = processReifyMarker(insn as MethodInsnNode, instructions, typeMapper)
                 if (newNames != null) {
                     result.mergeAll(newNames)
                 }
@@ -163,7 +168,11 @@ class ReifiedTypeInliner<KT : KotlinTypeMarker>(
         return result
     }
 
-    private fun processReifyMarker(insn: MethodInsnNode, instructions: InsnList): ReifiedTypeParametersUsages? {
+    private fun processReifyMarker(
+        insn: MethodInsnNode,
+        instructions: InsnList,
+        typeMapper: KotlinTypeMapper
+    ): ReifiedTypeParametersUsages? {
         val operationKind = insn.operationKind ?: return null
         val reificationArgument = insn.reificationArgument ?: return null
         val mapping = parametersMapping?.get(reificationArgument.parameterName) ?: return null
@@ -185,9 +194,9 @@ class ReifiedTypeInliner<KT : KotlinTypeMarker>(
                 //   will lead to an exception at runtime. What to do instead? Possible that the bytecode has been removed by
                 //   dead code elimination (e.g. result of `T::class.java` was unused) and now we only need to erase the marker.
                 OperationKind.NEW_ARRAY -> processNewArray(insn, asmType)
-                OperationKind.AS -> processAs(insn, instructions, type, asmType, safe = false)
-                OperationKind.SAFE_AS -> processAs(insn, instructions, type, asmType, safe = true)
-                OperationKind.IS -> processIs(insn, instructions, type, asmType)
+                OperationKind.AS -> processAs(insn, instructions, type, asmType, typeMapper, safe = false)
+                OperationKind.SAFE_AS -> processAs(insn, instructions, type, asmType, typeMapper, safe = true)
+                OperationKind.IS -> processIs(insn, instructions, type, asmType, typeMapper)
                 OperationKind.JAVA_CLASS -> processJavaClass(insn, asmType)
                 OperationKind.ENUM_REIFIED -> processSpecialEnumFunction(insn, instructions, type, asmType)
                 OperationKind.TYPE_OF -> processTypeOf(insn, instructions, type)
@@ -234,12 +243,26 @@ class ReifiedTypeInliner<KT : KotlinTypeMarker>(
         instructions: InsnList,
         type: KT,
         asmType: Type,
+        typeMapper: KotlinTypeMapper,
         safe: Boolean
     ) = rewriteNextTypeInsn(insn, Opcodes.CHECKCAST) { stubCheckcast: AbstractInsnNode ->
         if (stubCheckcast !is TypeInsnNode) return false
 
         val newMethodNode = MethodNode(Opcodes.API_VERSION)
-        generateAsCast(InstructionAdapter(newMethodNode), intrinsicsSupport.toKotlinType(type), asmType, safe, unifiedNullChecks)
+        val kotlinType = intrinsicsSupport.toKotlinType(type)
+        val typeConstructor = kotlinType.typeConstructor()
+        val notIntersection = !typeConstructor.isIntersection()
+        if (notIntersection) {
+            generateAsCast(InstructionAdapter(newMethodNode), kotlinType, asmType, safe, unifiedNullChecks)
+        } else {
+            generateAsCastForIntersection(
+                InstructionAdapter(newMethodNode),
+                kotlinType,
+                safe,
+                typeMapper,
+                unifiedNullChecks
+            )
+        }
 
         instructions.insert(insn, newMethodNode.instructions)
         // Keep stubCheckcast to avoid VerifyErrors on 1.8+ bytecode,
@@ -258,12 +281,20 @@ class ReifiedTypeInliner<KT : KotlinTypeMarker>(
         insn: MethodInsnNode,
         instructions: InsnList,
         type: KT,
-        asmType: Type
+        asmType: Type,
+        typeMapper: KotlinTypeMapper
     ) = rewriteNextTypeInsn(insn, Opcodes.INSTANCEOF) { stubInstanceOf: AbstractInsnNode ->
         if (stubInstanceOf !is TypeInsnNode) return false
 
         val newMethodNode = MethodNode(Opcodes.API_VERSION)
-        generateIsCheck(InstructionAdapter(newMethodNode), intrinsicsSupport.toKotlinType(type), asmType)
+        val kotlinType = intrinsicsSupport.toKotlinType(type)
+        val typeConstructor = kotlinType.typeConstructor()
+        val notIntersection = !typeConstructor.isIntersection()
+        if (notIntersection) {
+            generateIsCheck(InstructionAdapter(newMethodNode), kotlinType, asmType)
+        } else {
+            generateIsCheckForIntersection(InstructionAdapter(newMethodNode), kotlinType, typeMapper)
+        }
 
         instructions.insert(insn, newMethodNode.instructions)
         instructions.remove(stubInstanceOf)

@@ -327,7 +327,7 @@ class AnonymousObjectTransformer(
 
         val reifiedTypeParametersUsages =
             if (inliningContext.shouldReifyTypeParametersInObjects) {
-                inliningContext.root.inlineMethodReifier.reifyInstructions(sourceNode)
+                inliningContext.root.inlineMethodReifier.reifyInstructions(sourceNode, state.typeMapper)
             } else {
                 null
             }
