@@ -1,10 +1,28 @@
+import java.util.Properties
+
 plugins {
     kotlin("jvm")
     id("jps-compatible")
     id("compiler-tests-convention")
 }
 
+repositories {
+    maven("https://jitpack.io/")
+    mavenLocal()
+}
+
+configurations {
+    all {
+        exclude("org.slf4j", "log4j-over-slf4j")
+    }
+}
+
 dependencies {
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.18.+")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.18.+")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.+")
+    testImplementation("com.github.XYZboom:CodeSmith:1.0-SNAPSHOT")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     testApi(project(":compiler:fir:entrypoint"))
     testApi(project(":compiler:fir:fir-serialization"))
     testApi(project(":compiler:fir:fir2ir:jvm-backend"))
@@ -96,3 +114,20 @@ projectTest(
 }
 
 testsJar()
+
+tasks.test {
+    systemProperties["codesmith.logger.console"] = System.getProperty("codesmith.logger.console") ?: "info"
+    systemProperties["codesmith.logger.traceFile"] = System.getProperty("codesmith.logger.traceFile") ?: "off"
+    systemProperties["codesmith.logger.traceFile.ImmediateFlush"] =
+        System.getProperty("codesmith.logger.traceFile.ImmediateFlush") ?: "false"
+    val jacocoAgentPath = System.getProperty("jacoco.agent.path")
+    if (jacocoAgentPath != null) {
+        jvmArgs("-javaagent:${jacocoAgentPath}=output=none")
+    }
+    val tmpPath = System.getProperty("java.io.tmpdir")
+    if (tmpPath != null) {
+        systemProperties["java.io.tmpdir"] = tmpPath
+    }
+    systemProperties["codesmith.logger.outdir"] = System.getProperty("codesmith.logger.outdir")
+//    jvmArgs("-Xmx64g")
+}
