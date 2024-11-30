@@ -4,7 +4,13 @@ plugins {
     id("compiler-tests-convention")
 }
 
+repositories {
+    maven("https://jitpack.io/")
+    mavenLocal()
+}
+
 dependencies {
+    testImplementation("com.github.XYZboom:CodeSmith:1.0-SNAPSHOT")
     testApi(project(":compiler:fir:entrypoint"))
     testApi(project(":compiler:fir:fir-serialization"))
     testApi(project(":compiler:fir:fir2ir:jvm-backend"))
