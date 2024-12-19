@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     kotlin("jvm")
     id("jps-compatible")
@@ -82,7 +84,8 @@ projectTest(
     useJUnitPlatform()
 
     inputs.dir(layout.projectDirectory.dir("../testData")).withPathSensitivity(PathSensitivity.RELATIVE)
-    inputs.file(File(rootDir, "compiler/cli/cli-common/resources/META-INF/extensions/compiler.xml")).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file(File(rootDir, "compiler/cli/cli-common/resources/META-INF/extensions/compiler.xml"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(File(rootDir, "compiler/testData/mockJDK/jre/lib/rt.jar")).withNormalizer(ClasspathNormalizer::class)
     inputs.dir(File(rootDir, "third-party/annotations")).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir(File(rootDir, "third-party/java8-annotations")).withPathSensitivity(PathSensitivity.RELATIVE)
@@ -95,3 +98,14 @@ projectTest(
 }
 
 testsJar()
+
+tasks.test {
+    systemProperties["codesmith.logger.console"] = System.getProperty("codesmith.logger.console") ?: "info"
+    systemProperties["codesmith.logger.traceFile"] = System.getProperty("codesmith.logger.traceFile") ?: "off"
+    systemProperties["codesmith.logger.traceFile.ImmediateFlush"] =
+        System.getProperty("codesmith.logger.traceFile.ImmediateFlush") ?: "false"
+    val jacocoAgentPath = System.getProperty("jacoco.agent.path")
+    if (jacocoAgentPath != null) {
+        jvmArgs("-javaagent:${jacocoAgentPath}=output=none")
+    }
+}
