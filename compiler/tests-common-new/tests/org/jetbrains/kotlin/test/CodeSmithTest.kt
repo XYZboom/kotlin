@@ -6,7 +6,7 @@
 package org.jetbrains.kotlin.test
 
 import com.github.xyzboom.codesmith.generator.GeneratorConfig
-import com.github.xyzboom.codesmith.generator.impl.IrGeneratorImpl
+import com.github.xyzboom.codesmith.generator.impl.IrDeclGeneratorImpl
 import com.github.xyzboom.codesmith.mutator.impl.IrMutatorImpl
 import com.github.xyzboom.codesmith.mutator.MutatorConfig
 import com.github.xyzboom.codesmith.printer.IrProgramPrinter
@@ -22,29 +22,32 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDateTime
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.writeText
 import kotlin.jvm.Throws
 import kotlin.random.Random
+import kotlin.time.Duration
 import kotlin.time.measureTime
+import kotlinx.coroutines.*
 
 @OptIn(ExperimentalStdlibApi::class)
 class CodeSmithTest : AbstractIrBlackBoxCodegenTest() {
     companion object {
-        val logFile = File("/root/autodl-tmp/kotlin-log")
+        val logFile = File(System.getProperty("codesmith.logger.outdir"))
     }
 
-    fun doOneRound(throwException: Boolean) {
+    fun doOneRound(throwException: Boolean): Pair<String, Duration> {
         val printer = IrProgramPrinter()
-        val prog = IrGeneratorImpl(
-            GeneratorConfig(
-                classNumRange = 5..9
-            )
+        val prog = IrDeclGeneratorImpl(
+            GeneratorConfig()
         ).genProgram()
         val fileContent = printer.printToSingle(prog)
         val tempFile = File.createTempFile("code-smith", ".kt")
         tempFile.writeText(fileContent)
-        try {
-            runTest(tempFile.absolutePath)
+        val dur: Duration = try {
+            measureTime {
+                runTest(tempFile.absolutePath)
+            }
         } catch (e: Throwable) {
             e.printStackTrace()
             val dir = File(logFile, System.currentTimeMillis().toHexString())
@@ -59,7 +62,9 @@ class CodeSmithTest : AbstractIrBlackBoxCodegenTest() {
             if (throwException) {
                 throw e
             }
+            Duration.ZERO
         }
+        return fileContent to dur
         /*val jacocoRuntimeData = CoverageRunner.getJacocoRuntimeData()
         val coverage = CoverageRunner.getBundleCoverage(
             jacocoRuntimeData,
@@ -71,11 +76,30 @@ class CodeSmithTest : AbstractIrBlackBoxCodegenTest() {
 
     @Test
     fun test() {
-        System.setProperty("java.io.tmpdir", "/root/autodl-tmp/tmp")
-        var i = 1
-        while (true) {
-            val dur = measureTime { doOneRound(true) }
-            println("${i++}:${dur}\t\t")
+        val i = AtomicInteger(1)
+        val throwException = false
+        doOneRound(throwException)
+        runBlocking(Dispatchers.IO.limitedParallelism(32)) {
+            val jobs = mutableListOf<Job>()
+            repeat(32) {
+                val job = launch {
+                    while (true) {
+                        val (fileContent, dur) = doOneRound(throwException)
+                        println("${Thread.currentThread().name} ${i.incrementAndGet()}:${dur}\t\t")
+                        /*if (dur > Duration.parse("2s")) {
+                            val dir = File(logFile, System.currentTimeMillis().toHexString())
+                            if (!dir.exists()) {
+                                dir.mkdirs()
+                            }
+                            File(dir, "timeout").writeText("timeout: $dur")
+                            File(dir, "main.kt").writeText(fileContent)
+                            File("codesmith-trace.log").copyTo(File(dir, "codesmith-trace.log"))
+                        }*/
+                    }
+                }
+                jobs.add(job)
+            }
+            jobs.joinAll()
         }
     }
 }

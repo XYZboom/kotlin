@@ -13,6 +13,7 @@ repositories {
 
 dependencies {
     testImplementation("com.github.XYZboom:CodeSmith:1.0-SNAPSHOT")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     testApi(project(":compiler:fir:entrypoint"))
     testApi(project(":compiler:fir:fir-serialization"))
     testApi(project(":compiler:fir:fir2ir:jvm-backend"))
@@ -108,4 +109,9 @@ tasks.test {
     if (jacocoAgentPath != null) {
         jvmArgs("-javaagent:${jacocoAgentPath}=output=none")
     }
+    val tmpPath = System.getProperty("java.io.tmpdir")
+    if (tmpPath != null) {
+        systemProperties["java.io.tmpdir"] = tmpPath
+    }
+    systemProperties["codesmith.logger.outdir"] = System.getProperty("codesmith.logger.outdir")
 }
