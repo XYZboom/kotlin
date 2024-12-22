@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // LANGUAGE: +JavaTypeParameterDefaultRepresentationWithDNN
 // ISSUE: KT-57014
 // FULL_JDK
@@ -13,7 +14,7 @@ public interface StringSupplier {
     String get();
 }
 
-// FILE: JavaTestValueProvider.java
+// FILE: TestValueProvider.java
 import org.jetbrains.annotations.Nullable;
 
 public class TestValueProvider {

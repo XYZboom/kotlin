@@ -21,6 +21,7 @@ import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.util.constructors
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstance
+import org.jetbrains.kotlin.ir.util.defaultValueForType
 
 class WasmSharedVariablesManager(val context: WasmBackendContext) : SharedVariablesManager {
     override fun declareSharedVariable(originalDeclaration: IrVariable): IrVariable {
@@ -40,8 +41,7 @@ class WasmSharedVariablesManager(val context: WasmBackendContext) : SharedVariab
                 type = boxClass.defaultType,
                 symbol = constructorSymbol,
                 typeArgumentsCount = boxClass.owner.typeParameters.size,
-                constructorTypeArgumentsCount = constructorSymbol.owner.typeParameters.size,
-                valueArgumentsCount = constructorSymbol.owner.valueParameters.size
+                constructorTypeArgumentsCount = constructorSymbol.owner.typeParameters.size
             ).apply {
                 putValueArgument(0, initializer)
             }
@@ -77,7 +77,6 @@ class WasmSharedVariablesManager(val context: WasmBackendContext) : SharedVariab
             type = propertyGetter.returnType,
             symbol = propertyGetter.symbol,
             typeArgumentsCount = 0,
-            valueArgumentsCount = 0,
             origin = originalGet.origin
         ).also {
             it.dispatchReceiver = IrGetValueImpl(
@@ -112,7 +111,6 @@ class WasmSharedVariablesManager(val context: WasmBackendContext) : SharedVariab
             type = propertySetter.returnType,
             symbol = propertySetter.symbol,
             typeArgumentsCount = 0,
-            valueArgumentsCount = 1,
             origin = originalSet.origin
         ).also {
             it.dispatchReceiver = IrGetValueImpl(

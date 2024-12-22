@@ -1,4 +1,4 @@
-
+// RUN_PIPELINE_TILL: FRONTEND
 package a
 
 interface Closeable {
@@ -12,9 +12,9 @@ public inline fun <T: Closeable, R> use(t: T, block: T.(T)-> R) : R {
 }
 
 fun test() {
-    <!CANNOT_INFER_PARAMETER_TYPE!>use<!>(C()) <!CANNOT_INFER_PARAMETER_TYPE!>{
+    <!CANNOT_INFER_PARAMETER_TYPE!>use<!>(C()) {
         this.close()
         it.close()
         <!UNRESOLVED_REFERENCE!>xx<!>
-    }<!>
+    }
 }

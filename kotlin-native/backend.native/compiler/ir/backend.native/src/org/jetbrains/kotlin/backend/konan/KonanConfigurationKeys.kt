@@ -60,8 +60,6 @@ class KonanConfigKeys {
                 = CompilerConfigurationKey.create("overridden compiler distribution path")
         val LIBRARY_FILES: CompilerConfigurationKey<List<String>> 
                 = CompilerConfigurationKey.create("library file paths")
-        val LIBRARY_VERSION: CompilerConfigurationKey<String?>
-                = CompilerConfigurationKey.create("library version")
         val LIGHT_DEBUG: CompilerConfigurationKey<Boolean?>
                 = CompilerConfigurationKey.create("add light debug information")
         val GENERATE_DEBUG_TRAMPOLINE: CompilerConfigurationKey<Boolean?>
@@ -108,9 +106,7 @@ class KonanConfigKeys {
                 = CompilerConfigurationKey.create("compiler output kind")
         val PURGE_USER_LIBS: CompilerConfigurationKey<Boolean>
                 = CompilerConfigurationKey.create("purge user-specified libs too")
-        val REPOSITORIES: CompilerConfigurationKey<List<String>>
-                = CompilerConfigurationKey.create("library search path repositories")
-        val RUNTIME_FILE: CompilerConfigurationKey<String?> 
+        val RUNTIME_FILE: CompilerConfigurationKey<String?>
                 = CompilerConfigurationKey.create("override default runtime file path")
         val INCLUDED_LIBRARIES: CompilerConfigurationKey<List<String>>
                 = CompilerConfigurationKey("klibs processed in the same manner as source files")
@@ -126,10 +122,10 @@ class KonanConfigKeys {
                 = CompilerConfigurationKey.create("save LLVM IR")
         val VERIFY_BITCODE: CompilerConfigurationKey<Boolean>
                 = CompilerConfigurationKey.create("verify bitcode")
-        val VERIFY_IR: CompilerConfigurationKey<IrVerificationMode>
-                = CompilerConfigurationKey.create("IR verification mode")
         val VERIFY_COMPILER: CompilerConfigurationKey<Boolean>
                 = CompilerConfigurationKey.create("verify compiler")
+        val WRITE_DEPENDENCIES_OF_PRODUCED_KLIB_TO: CompilerConfigurationKey<String?>
+                = CompilerConfigurationKey.create("write dependencies of the klib being produced to the given path")
         val DEBUG_INFO_VERSION: CompilerConfigurationKey<Int>
                 = CompilerConfigurationKey.create("debug info format version")
         val OBJC_GENERICS: CompilerConfigurationKey<Boolean>
@@ -140,11 +136,8 @@ class KonanConfigKeys {
                 = CompilerConfigurationKey.create("perform compiler caches pre-link")
         val OVERRIDE_KONAN_PROPERTIES: CompilerConfigurationKey<Map<String, String>>
                 = CompilerConfigurationKey.create("override konan.properties values")
-        val DESTROY_RUNTIME_MODE: CompilerConfigurationKey<DestroyRuntimeMode>
-                = CompilerConfigurationKey.create("when to destroy runtime")
         val PROPERTY_LAZY_INITIALIZATION: CompilerConfigurationKey<Boolean>
                 = CompilerConfigurationKey.create("lazy top level properties initialization")
-        val WORKER_EXCEPTION_HANDLING: CompilerConfigurationKey<WorkerExceptionHandling> = CompilerConfigurationKey.create("unhandled exception processing in Worker.executeAfter")
         val EXTERNAL_DEPENDENCIES: CompilerConfigurationKey<String?> =
                 CompilerConfigurationKey.create("use external dependencies to enhance IR linker error messages")
         val LLVM_VARIANT: CompilerConfigurationKey<LlvmVariant?> = CompilerConfigurationKey.create("llvm variant")
@@ -158,5 +151,7 @@ class KonanConfigKeys {
         val SAVE_LLVM_IR_DIRECTORY: CompilerConfigurationKey<String?> = CompilerConfigurationKey.create("directory to store LLVM IR from phases")
         val KONAN_DATA_DIR: CompilerConfigurationKey<String?> = CompilerConfigurationKey.create("directory for storing konan dependencies, cache and prebuilds")
         val MANIFEST_NATIVE_TARGETS: CompilerConfigurationKey<Collection<KonanTarget>?> = CompilerConfigurationKey.create("value of native_targets property to write in manifest")
+        val LLVM_MODULE_PASSES: CompilerConfigurationKey<String?> = CompilerConfigurationKey.create("llvm passes to run instead of module optimization pipeline")
+        val LLVM_LTO_PASSES: CompilerConfigurationKey<String?> = CompilerConfigurationKey.create("llvm passes to run instead of LTO optimization pipeline")
     }
 }

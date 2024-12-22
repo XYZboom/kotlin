@@ -5,9 +5,8 @@
 
 package org.jetbrains.kotlin.sir.providers.impl
 
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
-import org.jetbrains.kotlin.analysis.api.scopes.KtScope
-import org.jetbrains.kotlin.analysis.api.symbols.markers.KtSymbolWithVisibility
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.scopes.KaScope
 import org.jetbrains.kotlin.sir.SirDeclaration
 import org.jetbrains.kotlin.sir.SirVisibility
 import org.jetbrains.kotlin.sir.providers.SirChildrenProvider
@@ -15,11 +14,16 @@ import org.jetbrains.kotlin.sir.providers.SirSession
 
 public class SirDeclarationChildrenProviderImpl(private val sirSession: SirSession) : SirChildrenProvider {
 
-    override fun KtScope.extractDeclarations(ktAnalysisSession: KtAnalysisSession): Sequence<SirDeclaration> =
-        getAllSymbols()
+    override fun KaScope.extractDeclarations(ktAnalysisSession: KaSession): Sequence<SirDeclaration> =
+        declarations
             .filter {
-                with(sirSession) { (it as? KtSymbolWithVisibility)?.sirVisibility(ktAnalysisSession) == SirVisibility.PUBLIC }
+                with(sirSession) {
+                    when (it.sirVisibility(ktAnalysisSession)) {
+                        null, SirVisibility.PRIVATE, SirVisibility.FILEPRIVATE, SirVisibility.INTERNAL -> false
+                        SirVisibility.PUBLIC, SirVisibility.PACKAGE -> true
+                    }
+                }
             }
-            .map { with(sirSession) { it.sirDeclaration() } }
-
+            .flatMap { with(sirSession) { it.sirDeclarations() } }
+            .flatMap { with(sirSession) { listOf(it) + it.trampolineDeclarations() } }
 }

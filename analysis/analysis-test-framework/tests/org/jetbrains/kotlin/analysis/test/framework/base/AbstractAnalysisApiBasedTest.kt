@@ -8,14 +8,14 @@ package org.jetbrains.kotlin.analysis.test.framework.base
 import com.intellij.openapi.util.Disposer
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.TestDataFile
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
+import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.analyzeCopy
-import org.jetbrains.kotlin.analysis.project.structure.DanglingFileResolutionMode
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
 import org.jetbrains.kotlin.analysis.test.framework.AnalysisApiTestDirectives
 import org.jetbrains.kotlin.analysis.test.framework.TestWithDisposable
-import org.jetbrains.kotlin.analysis.test.framework.project.structure.KtTestModule
-import org.jetbrains.kotlin.analysis.test.framework.project.structure.ktTestModuleStructure
+import org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModule
+import org.jetbrains.kotlin.analysis.test.framework.projectStructure.ktTestModuleStructure
 import org.jetbrains.kotlin.analysis.test.framework.services.ExpressionMarkerProvider
 import org.jetbrains.kotlin.analysis.test.framework.services.ExpressionMarkersSourceFilePreprocessor
 import org.jetbrains.kotlin.analysis.test.framework.services.expressionMarkerProvider
@@ -24,7 +24,6 @@ import org.jetbrains.kotlin.analysis.test.framework.test.configurators.AnalysisA
 import org.jetbrains.kotlin.analysis.test.framework.test.configurators.FrontendKind
 import org.jetbrains.kotlin.analysis.test.framework.utils.SkipTestException
 import org.jetbrains.kotlin.analysis.test.framework.utils.singleOrZeroValue
-import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.test.TestConfiguration
@@ -32,6 +31,9 @@ import org.jetbrains.kotlin.test.TestInfrastructureInternals
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
 import org.jetbrains.kotlin.test.builders.testConfiguration
 import org.jetbrains.kotlin.test.directives.JvmEnvironmentConfigurationDirectives
+import org.jetbrains.kotlin.test.directives.model.Directive
+import org.jetbrains.kotlin.test.directives.model.RegisteredDirectives
+import org.jetbrains.kotlin.test.directives.model.StringDirective
 import org.jetbrains.kotlin.test.directives.model.singleOrZeroValue
 import org.jetbrains.kotlin.test.model.DependencyKind
 import org.jetbrains.kotlin.test.model.FrontendKinds
@@ -40,6 +42,7 @@ import org.jetbrains.kotlin.test.model.TestModule
 import org.jetbrains.kotlin.test.runners.AbstractKotlinCompilerTest
 import org.jetbrains.kotlin.test.services.*
 import org.jetbrains.kotlin.test.services.impl.TemporaryDirectoryManagerImpl
+import org.jetbrains.kotlin.types.AbstractTypeChecker
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInfo
@@ -131,14 +134,14 @@ abstract class AbstractAnalysisApiBasedTest : TestWithDisposable() {
 
     /**
      * Consider implementing this method if your test logic needs the whole
-     * [KtTestModuleStructure][org.jetbrains.kotlin.analysis.test.framework.project.structure.KtTestModuleStructure].
+     * [KtTestModuleStructure][org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModuleStructure].
      *
      * Examples of use cases:
      *
      * - Find all files in all modules
      * - Find two declarations from different files and different modules and compare them
      *
-     * The [KtTestModuleStructure][org.jetbrains.kotlin.analysis.test.framework.project.structure.KtTestModuleStructure] can be accessed via
+     * The [KtTestModuleStructure][org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModuleStructure] can be accessed via
      * [ktTestModuleStructure] on [testServices].
      *
      * Use only if [doTestByMainModuleAndOptionalMainFile] is not suitable for your use case.
@@ -178,16 +181,13 @@ abstract class AbstractAnalysisApiBasedTest : TestWithDisposable() {
     }
 
     private fun findMainFileByMarkers(testServices: TestServices): ModuleWithMainFile? {
-        return testServices.ktTestModuleStructure.mainModules.singleOrZeroValue(
-            transformer = { module ->
-                // We don't want to accept one-file modules without additional checks as it can be some intermediate
-                // module that is not intended to be the main
-                findMainFile(module, testServices, acceptSingleFileWithoutAdditionalChecks = false)?.let { mainFile ->
-                    ModuleWithMainFile(mainFile, module)
-                }
-            },
-            ambiguityValueRenderer = { "'${it.module.testModule.name}' with '${it.mainFile?.name}'" },
-        )
+        return testServices.ktTestModuleStructure.mainModules.mapNotNull { module ->
+            // We don't want to accept one-file modules without additional checks as it can be some intermediate
+            // module that is not intended to be the main
+            findMainFile(module, testServices, acceptSingleFileWithoutAdditionalChecks = false)?.let { mainFile ->
+                ModuleWithMainFile(mainFile, module)
+            }
+        }.singleOrNull()
     }
 
     protected fun findMainModule(testServices: TestServices): KtTestModule? {
@@ -233,37 +233,82 @@ abstract class AbstractAnalysisApiBasedTest : TestWithDisposable() {
                 file.virtualFile.nameWithoutExtension == ktTestModule.testModule.mainFileName
     }
 
+    /**
+     * Checks whether the [actual] string matches the content of the test output file.
+     *
+     * Check the [assertEqualsToTestDataFileSibling] overload accepting a prefix list for more information.
+     */
     protected fun AssertionsService.assertEqualsToTestDataFileSibling(
         actual: String,
         extension: String = ".txt",
         testPrefix: String? = configurator.testPrefix,
     ) {
-        val expectedFile = getTestDataFileSiblingPath(extension, testPrefix = testPrefix)
-        assertEqualsToFile(expectedFile, actual)
+        assertEqualsToTestDataFileSibling(actual, extension, listOfNotNull(testPrefix))
+    }
 
-        if (testPrefix != null) {
-            val expectedFileWithoutPrefix = getTestDataFileSiblingPath(extension, testPrefix = null)
-            if (expectedFile != expectedFileWithoutPrefix) {
-                if (!doesEqualToFile(expectedFileWithoutPrefix.toFile(), actual)) {
-                    return
-                }
+    /**
+     * Checks whether the [actual] string matches the content of the test output file.
+     *
+     * If a non-empty list of [testPrefixes] is specified, the function will firstly check whether test output file with any of the
+     * specified prefixes exist. If so, it will check the [actual] content against that file (the first prefix has the highest priority).
+     * Also, if files with latter prefixes, or if the non-prefixed file contains the same output, an assertion error is raised.
+     *
+     * If no prefixes are specified, or if no prefixed files exist, the function compares [actual] against the non-prefixed (default)
+     * test output file.
+     *
+     * If none of the test output files exist, the function creates an output file, writes the content of [actual] to it, and throws
+     * an exception.
+     */
+    protected fun AssertionsService.assertEqualsToTestDataFileSibling(
+        actual: String,
+        extension: String = ".txt",
+        testPrefixes: List<String>,
+    ) {
+        val expectedFiles = buildList {
+            testPrefixes.mapNotNullTo(this) { findPrefixedTestDataSibling(extension, it) }
+            add(getDefaultTestDataSibling(extension))
+        }
 
-                throw AssertionError("\"$expectedFile\" has the same content as \"$expectedFileWithoutPrefix\". Delete the prefixed file.")
+        val mainExpectedFile = expectedFiles.first()
+        val otherExpectedFiles = expectedFiles.drop(1)
+
+        assertEqualsToFile(mainExpectedFile, actual)
+
+        for (otherExpectedFile in otherExpectedFiles) {
+            if (doesEqualToFile(otherExpectedFile.toFile(), actual)) {
+                throw AssertionError("\"$mainExpectedFile\" has the same content as \"$otherExpectedFile\". Delete the prefixed file.")
             }
         }
     }
 
-    protected fun getTestDataFileSiblingPath(extension: String, testPrefix: String?): Path {
+    /**
+     * Returns the test output file with a [testPrefix] if it exists, of the non-prefixed (default) test output file.
+     */
+    protected fun getTestDataSibling(extension: String = "txt", testPrefix: String? = configurator.testPrefix): Path {
+        if (testPrefix != null) {
+            findPrefixedTestDataSibling(extension, testPrefix)?.let { return it }
+        }
+
+        return getDefaultTestDataSibling(extension)
+    }
+
+    /**
+     * Returns the test output file with a [testPrefix] if it exists, or `null` otherwise.
+     */
+    private fun findPrefixedTestDataSibling(extension: String = "txt", testPrefix: String): Path? {
         val extensionWithDot = "." + extension.removePrefix(".")
         val baseName = testDataPath.nameWithoutExtension
 
-        if (testPrefix != null) {
-            val prefixedFile = testDataPath.resolveSibling("$baseName.$testPrefix$extensionWithDot")
-            if (prefixedFile.exists()) {
-                return prefixedFile
-            }
-        }
+        val prefixedFile = testDataPath.resolveSibling("$baseName.$testPrefix$extensionWithDot")
+        return prefixedFile.takeIf { it.exists() }
+    }
 
+    /**
+     * Returns the non-prefixed the test output file, even if it does not exist.
+     */
+    private fun getDefaultTestDataSibling(extension: String = "txt"): Path {
+        val extensionWithDot = "." + extension.removePrefix(".")
+        val baseName = testDataPath.nameWithoutExtension
         return testDataPath.resolveSibling(baseName + extensionWithDot)
     }
 
@@ -271,7 +316,7 @@ abstract class AbstractAnalysisApiBasedTest : TestWithDisposable() {
     private val configure: TestConfigurationBuilder.() -> Unit = {
         globalDefaults {
             frontend = FrontendKinds.FIR
-            targetPlatform = JvmPlatforms.defaultJvmPlatform
+            targetPlatform = configurator.defaultTargetPlatform
             dependencyKind = DependencyKind.Source
         }
 
@@ -292,6 +337,8 @@ abstract class AbstractAnalysisApiBasedTest : TestWithDisposable() {
 
         startingArtifactFactory = { ResultingArtifact.Source() }
         this.testInfo = this@AbstractAnalysisApiBasedTest.testInfo
+
+        AbstractTypeChecker.RUN_SLOW_ASSERTIONS = true
     }
 
     protected fun runTest(@TestDataFile path: String) {
@@ -365,12 +412,20 @@ abstract class AbstractAnalysisApiBasedTest : TestWithDisposable() {
     private fun isFirDisabledForTheTest(): Boolean =
         AnalysisApiTestDirectives.IGNORE_FIR in testServices.moduleStructure.allDirectives
 
-    protected fun <R> analyseForTest(contextElement: KtElement, action: KtAnalysisSession.(KtElement) -> R): R {
+    protected fun <T : Directive> RegisteredDirectives.findSpecificDirective(
+        commonDirective: T,
+        k1Directive: T,
+        k2Directive: T,
+    ): T? = commonDirective.takeIf { it in this }
+        ?: k1Directive.takeIf { configurator.frontendKind == FrontendKind.Fe10 && it in this }
+        ?: k2Directive.takeIf { configurator.frontendKind == FrontendKind.Fir && it in this }
+
+    protected fun <R> analyseForTest(contextElement: KtElement, action: KaSession.(KtElement) -> R): R {
         return if (configurator.analyseInDependentSession) {
             val originalContainingFile = contextElement.containingKtFile
             val fileCopy = originalContainingFile.copy() as KtFile
 
-            analyzeCopy(fileCopy, DanglingFileResolutionMode.IGNORE_SELF) {
+            analyzeCopy(fileCopy, KaDanglingFileResolutionMode.IGNORE_SELF) {
                 action(PsiTreeUtil.findSameElementInCopy<KtElement>(contextElement, fileCopy))
             }
         } else {
@@ -385,5 +440,25 @@ abstract class AbstractAnalysisApiBasedTest : TestWithDisposable() {
             methodName = testInfo.testMethod.orElseGet(null)?.name ?: "_testUndefined_",
             tags = testInfo.tags
         )
+    }
+
+    fun RegisteredDirectives.suppressIf(suppressionDirective: StringDirective, filter: (Throwable) -> Boolean, action: () -> Unit) {
+        val hasSuppressionDirective = suppressionDirective in this
+        var exception: Throwable? = null
+        try {
+            action()
+        } catch (e: Throwable) {
+            exception = e
+        }
+
+        if (exception != null) {
+            if (!filter(exception) || !hasSuppressionDirective) {
+                throw exception
+            }
+
+            return
+        } else if (hasSuppressionDirective) {
+            throw AssertionError("'${suppressionDirective.name}' directive present but no exception thrown. Please remove directive")
+        }
     }
 }

@@ -1,7 +1,8 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // LANGUAGE: -ProperFieldAccessGenerationForFieldAccessShadowedByKotlinProperty
 // ISSUE: KT-56386
 
-// FILE: BaseJava.java
+// FILE: base/BaseJava.java
 package base;
 
 public class BaseJava {
@@ -14,7 +15,7 @@ package derived
 import base.BaseJava
 
 open class Intermediate : BaseJava() {
-    private val a = "FAIL"
+    private val <!PROPERTY_HIDES_JAVA_FIELD!>a<!> = "FAIL"
 }
 
 class Derived : Intermediate() {

@@ -1,5 +1,5 @@
-// FIR_IDENTICAL
-// LANGUAGE: -EnumEntries
+// RUN_PIPELINE_TILL: BACKEND
+// LANGUAGE: -EnumEntries, -PrioritizedEnumEntries
 // WITH_STDLIB
 
 enum class E {

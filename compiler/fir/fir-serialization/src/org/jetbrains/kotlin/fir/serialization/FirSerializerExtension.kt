@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.fir.serialization.constant.ConstValueProvider
 import org.jetbrains.kotlin.fir.serialization.constant.ConstValueProviderInternals
 import org.jetbrains.kotlin.fir.types.ConeErrorType
 import org.jetbrains.kotlin.fir.types.ConeFlexibleType
+import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.metadata.ProtoBuf
 import org.jetbrains.kotlin.metadata.deserialization.BinaryVersion
 import org.jetbrains.kotlin.metadata.serialization.MutableVersionRequirementTable
@@ -31,7 +32,7 @@ abstract class FirSerializerExtension {
     }
 
     abstract val constValueProvider: ConstValueProvider?
-    protected abstract val additionalMetadataProvider: FirAdditionalMetadataProvider?
+    abstract val additionalMetadataProvider: FirAdditionalMetadataProvider?
 
     @OptIn(ConstValueProviderInternals::class)
     internal inline fun <T> processFile(firFile: FirFile, crossinline action: () -> T): T {
@@ -47,7 +48,12 @@ abstract class FirSerializerExtension {
     open fun shouldUseTypeTable(): Boolean = false
     open fun shouldUseNormalizedVisibility(): Boolean = false
 
-    open fun serializePackage(packageFqName: FqName, proto: ProtoBuf.Package.Builder) {
+    open fun serializePackage(
+        packageFqName: FqName,
+        proto: ProtoBuf.Package.Builder,
+        versionRequirementTable: MutableVersionRequirementTable?,
+        childSerializer: FirElementSerializer
+    ) {
     }
 
     open fun serializeClass(
@@ -108,6 +114,10 @@ abstract class FirSerializerExtension {
         for (annotation in typeAlias.nonSourceAnnotations(session)) {
             proto.addAnnotation(annotationSerializer.serializeAnnotation(annotation))
         }
+    }
+
+    open fun getClassSupertypes(klass: FirClass): List<FirTypeRef> {
+        return klass.superTypeRefs
     }
 
     fun hasAdditionalAnnotations(declaration: FirDeclaration): Boolean {

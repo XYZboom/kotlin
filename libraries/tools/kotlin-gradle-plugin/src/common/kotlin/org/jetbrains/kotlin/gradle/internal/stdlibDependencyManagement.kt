@@ -22,10 +22,8 @@ import org.jetbrains.kotlin.gradle.plugin.sources.KotlinDependencyScope
 import org.jetbrains.kotlin.gradle.plugin.sources.android.AndroidBaseSourceSetName
 import org.jetbrains.kotlin.gradle.plugin.sources.android.AndroidVariantType
 import org.jetbrains.kotlin.gradle.plugin.sources.android.androidSourceSetInfoOrNull
-import org.jetbrains.kotlin.gradle.plugin.sources.internal
 import org.jetbrains.kotlin.gradle.plugin.sources.sourceSetDependencyConfigurationByScope
-import org.jetbrains.kotlin.gradle.targets.js.KotlinWasmTargetType
-import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
+import org.jetbrains.kotlin.gradle.plugin.statistics.KotlinStdlibConfigurationMetrics
 import org.jetbrains.kotlin.gradle.targets.js.npm.SemVer
 import org.jetbrains.kotlin.gradle.utils.forAllTargets
 import org.jetbrains.kotlin.gradle.utils.withType
@@ -35,6 +33,8 @@ internal const val KOTLIN_STDLIB_MODULE_NAME = "kotlin-stdlib"
 internal const val KOTLIN_STDLIB_JDK7_MODULE_NAME = "kotlin-stdlib-jdk7"
 internal const val KOTLIN_STDLIB_JDK8_MODULE_NAME = "kotlin-stdlib-jdk8"
 internal const val KOTLIN_STDLIB_JS_MODULE_NAME = "kotlin-stdlib-js"
+internal const val KOTLIN_STDLIB_WASM_JS_MODULE_NAME = "kotlin-stdlib-wasm-js"
+internal const val KOTLIN_STDLIB_WASM_WASI_MODULE_NAME = "kotlin-stdlib-wasm-wasi"
 internal const val KOTLIN_ANDROID_JVM_STDLIB_MODULE_NAME = KOTLIN_STDLIB_MODULE_NAME
 
 internal fun Project.configureStdlibDefaultDependency(
@@ -135,6 +135,8 @@ private fun KotlinTarget.addStdlibDependency(
 
                 val stdlibModule = compilation.platformType.stdlibPlatformType(this, kotlinSourceSet, stdlibVersion >= kotlin1920Version)
                     ?: return@withDependencies
+
+                KotlinStdlibConfigurationMetrics.collectMetrics(project, requestedStdlibVersion)
 
                 dependencySet.addLater(
                     coreLibrariesVersion.map {

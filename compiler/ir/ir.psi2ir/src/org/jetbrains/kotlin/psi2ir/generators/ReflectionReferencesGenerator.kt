@@ -18,6 +18,7 @@ package org.jetbrains.kotlin.psi2ir.generators
 
 import org.jetbrains.kotlin.builtins.*
 import org.jetbrains.kotlin.descriptors.*
+import org.jetbrains.kotlin.descriptors.SyntheticPropertyDescriptor
 import org.jetbrains.kotlin.descriptors.synthetic.FunctionInterfaceConstructorDescriptor
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.*
@@ -90,11 +91,30 @@ internal class ReflectionReferencesGenerator(statementGenerator: StatementGenera
             isAdaptedCallableReference(resolvedCall, resolvedDescriptor, callableReferenceType) ->
                 generateAdaptedCallableReference(ktCallableReference, callBuilder, callableReferenceType)
 
-            else ->
+            else -> {
+                // The K1 frontend generates synthetic properties for Java getX/setX-like methods as if they have _extension_ receiver.
+                //
+                // However, in IR we have to assume the following invariant:
+                // the shape of an IrPropertyReference must match the shape of IrPropertyReference#getter.
+                //
+                // In the case of synthetic Java properties, IrPropertyReference#getter is the Java getX method,
+                // which has a _dispatch_ receiver, not extension receiver.
+                //
+                // For this reason, we have to do this hack.
+                val dispatchReceiverValue = if (resolvedDescriptor is SyntheticPropertyDescriptor) {
+                    resolvedCall.extensionReceiver
+                } else {
+                    resolvedCall.dispatchReceiver
+                }
+                val extensionReceiverValue = if (resolvedDescriptor is SyntheticPropertyDescriptor) {
+                    null
+                } else {
+                    resolvedCall.extensionReceiver
+                }
                 statementGenerator.generateCallReceiver(
                     ktCallableReference,
                     resolvedDescriptor,
-                    resolvedCall.dispatchReceiver, resolvedCall.extensionReceiver, resolvedCall.contextReceivers,
+                    dispatchReceiverValue, extensionReceiverValue, resolvedCall.contextReceivers,
                     isSafe = false
                 ).call { dispatchReceiverValue, extensionReceiverValue, _ ->
                     generateCallableReference(
@@ -107,6 +127,7 @@ internal class ReflectionReferencesGenerator(statementGenerator: StatementGenera
                         irCallableReference.extensionReceiver = extensionReceiverValue?.loadIfExists()
                     }
                 }
+            }
         }
     }
 
@@ -140,7 +161,6 @@ internal class ReflectionReferencesGenerator(statementGenerator: StatementGenera
             type = irReferenceType,
             symbol = irAdapterFun.symbol,
             typeArgumentsCount = irAdapterFun.typeParameters.size,
-            valueArgumentsCount = irAdapterFun.valueParameters.size,
             reflectionTarget = irAdapterFun.symbol,
             origin = IrStatementOrigin.FUN_INTERFACE_CONSTRUCTOR_REFERENCE
         )
@@ -190,7 +210,7 @@ internal class ReflectionReferencesGenerator(statementGenerator: StatementGenera
 
                 val fnType = functionParameter.type
 
-                val irFnParameter = createAdapterParameter(startOffset, endOffset, functionParameter.name, 0, fnType)
+                val irFnParameter = createAdapterParameter(startOffset, endOffset, functionParameter.name, fnType)
                 val irFnType = irFnParameter.type
 
                 val checkNotNull = context.irBuiltIns.checkNotNullSymbol.descriptor
@@ -215,7 +235,7 @@ internal class ReflectionReferencesGenerator(statementGenerator: StatementGenera
                                     this@ReflectionReferencesGenerator.context.callToSubstitutedDescriptorMap[irCall] =
                                         checkNotNullSubstituted
                                     irCall.type = irFnType
-                                    irCall.putTypeArgument(0, irFnType)
+                                    irCall.typeArguments[0] = irFnType
                                     irCall.putValueArgument(0, irGet(irFnParameter))
                                 },
                                 irSamType
@@ -293,7 +313,7 @@ internal class ReflectionReferencesGenerator(statementGenerator: StatementGenera
             val receiver = irDispatchReceiver ?: irExtensionReceiver
             val irAdapterRef = IrFunctionReferenceImpl(
                 startOffset, endOffset, irFunctionalType, irAdapterFun.symbol, irAdapterFun.typeParameters.size,
-                irAdapterFun.valueParameters.size, adapteeSymbol, IrStatementOrigin.ADAPTED_FUNCTION_REFERENCE
+                adapteeSymbol, IrStatementOrigin.ADAPTED_FUNCTION_REFERENCE
             )
             IrBlockImpl(startOffset, endOffset, irFunctionalType, IrStatementOrigin.ADAPTED_FUNCTION_REFERENCE).apply {
                 statements.add(irAdapterFun)
@@ -468,13 +488,13 @@ internal class ReflectionReferencesGenerator(statementGenerator: StatementGenera
                 val boundReceiverType = callBuilder.original.getBoundReceiverType()
                 if (boundReceiverType != null) {
                     irAdapterFun.extensionReceiverParameter =
-                        createAdapterParameter(startOffset, endOffset, Name.identifier("receiver"), -1, boundReceiverType)
+                        createAdapterParameter(startOffset, endOffset, Name.identifier("receiver"), boundReceiverType)
                 } else {
                     irAdapterFun.extensionReceiverParameter = null
                 }
 
                 irAdapterFun.valueParameters += ktExpectedParameterTypes.mapIndexed { index, ktExpectedParameterType ->
-                    createAdapterParameter(startOffset, endOffset, Name.identifier("p$index"), index, ktExpectedParameterType)
+                    createAdapterParameter(startOffset, endOffset, Name.identifier("p$index"), ktExpectedParameterType)
                 }
             }
         }
@@ -495,7 +515,7 @@ internal class ReflectionReferencesGenerator(statementGenerator: StatementGenera
         }
     }
 
-    private fun createAdapterParameter(startOffset: Int, endOffset: Int, name: Name, index: Int, type: KotlinType): IrValueParameter =
+    private fun createAdapterParameter(startOffset: Int, endOffset: Int, name: Name, type: KotlinType): IrValueParameter =
         context.irFactory.createValueParameter(
             startOffset = startOffset,
             endOffset = endOffset,
@@ -504,7 +524,6 @@ internal class ReflectionReferencesGenerator(statementGenerator: StatementGenera
             type = type.toIrType(),
             isAssignable = false,
             symbol = IrValueParameterSymbolImpl(),
-            index = index,
             varargElementType = null,
             isCrossinline = false,
             isNoinline = false,
@@ -619,9 +638,30 @@ internal class ReflectionReferencesGenerator(statementGenerator: StatementGenera
         val originalProperty = propertyDescriptor.original
         val symbols = resolvePropertySymbol(originalProperty, mutable)
 
-        return IrPropertyReferenceImpl(
+        // The K1 frontend generates synthetic properties for Java getX/setX-like methods as if they have _extension_ receiver.
+        //
+        // However, in IR we have to assume the following invariant:
+        // the shape of an IrPropertyReference must match the shape of IrPropertyReference#getter.
+        //
+        // In the case of synthetic Java properties, IrPropertyReference#getter is the Java getX method,
+        // which has a _dispatch_ receiver, not extension receiver.
+        //
+        // For this reason, we have to do this hack.
+        val dispatchReceiver = if (propertyDescriptor is SyntheticPropertyDescriptor)
+            propertyDescriptor.getMethod.dispatchReceiverParameter
+        else
+            propertyDescriptor.dispatchReceiverParameter
+
+        val extensionReceiver = if (propertyDescriptor is SyntheticPropertyDescriptor)
+            propertyDescriptor.getMethod.extensionReceiverParameter
+        else
+            propertyDescriptor.extensionReceiverParameter
+
+        return IrPropertyReferenceImplWithShape(
             startOffset, endOffset, type.toIrType(),
             symbols.propertySymbol,
+            dispatchReceiver != null,
+            extensionReceiver != null,
             if (typeArguments != null) propertyDescriptor.typeParametersCount else 0,
             getFieldForPropertyReference(originalProperty),
             symbols.getterSymbol,
@@ -653,7 +693,6 @@ internal class ReflectionReferencesGenerator(statementGenerator: StatementGenera
         IrFunctionReferenceImpl.fromSymbolDescriptor(
             startOffset, endOffset, type.toIrType(),
             symbol,
-            typeArgumentsCount = descriptor.typeParametersCount,
             reflectionTarget = symbol,
             origin = origin
         ).apply {

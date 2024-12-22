@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // DIAGNOSTICS: -UNUSED_PARAMETER
 
 fun fooInt(p: Int) = p
@@ -12,4 +13,4 @@ fun test() {
     fooShort(<!ARGUMENT_TYPE_MISMATCH!>1 % 1<!>)
 }
 
-public operator fun Int.rem(other: Int): Int = 0
+public operator fun Int.<!EXTENSION_SHADOWED_BY_MEMBER!>rem<!>(other: Int): Int = 0

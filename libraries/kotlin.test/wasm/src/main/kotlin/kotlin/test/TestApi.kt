@@ -7,7 +7,6 @@ package kotlin.test
 
 import kotlin.wasm.WasmExport
 
-
 internal expect fun adapter(): FrameworkAdapter
 
 /**
@@ -31,6 +30,7 @@ internal fun test(name: String, ignored: Boolean, testFn: () -> Any?) {
 }
 
 // This is called from the js-launcher alongside wasm start function
+// TODO: Remove after bootstrap
 @WasmExport
 internal fun startUnitTests() {
     // This will be filled with the corresponding code during lowering

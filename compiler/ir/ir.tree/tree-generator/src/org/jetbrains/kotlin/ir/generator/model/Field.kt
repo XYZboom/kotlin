@@ -6,28 +6,14 @@
 package org.jetbrains.kotlin.ir.generator.model
 
 import org.jetbrains.kotlin.generators.tree.*
+import org.jetbrains.kotlin.ir.generator.model.symbol.Symbol
 import org.jetbrains.kotlin.generators.tree.ListField as AbstractListField
 
 sealed class Field(
     override val name: String,
     override var isMutable: Boolean,
 ) : AbstractField<Field>() {
-    sealed class UseFieldAsParameterInIrFactoryStrategy {
-
-        data object No : UseFieldAsParameterInIrFactoryStrategy()
-
-        data class Yes(val customType: TypeRef?, val defaultValue: String?) : UseFieldAsParameterInIrFactoryStrategy()
-    }
-
-    var customUseInIrFactoryStrategy: UseFieldAsParameterInIrFactoryStrategy? = null
-
-    val useInIrFactoryStrategy: UseFieldAsParameterInIrFactoryStrategy
-        get() = customUseInIrFactoryStrategy
-            ?: if (isChild && containsElement) {
-                UseFieldAsParameterInIrFactoryStrategy.No
-            } else {
-                UseFieldAsParameterInIrFactoryStrategy.Yes(null, null)
-            }
+    abstract val symbolClass: Symbol?
 
     override var defaultValueInBuilder: String?
         get() = null
@@ -35,53 +21,78 @@ sealed class Field(
 
     override var customSetter: String? = null
 
-    override val origin: Field
-        get() = this
-
     override fun toString() = "$name: $typeRef"
 
     override var isFinal: Boolean = false
 
-    override fun copy() = internalCopy().also(::updateFieldsInCopy)
+    /**
+     * Indicates whether the field is always excluded from constructor arguments when generating `DeepCopyIrTreeWithSymbols`.
+     */
+    var deepCopyExcludeFromConstructor: Boolean = false
+
+    /**
+     * Indicates whether the field is always excluded from apply operations when generating `DeepCopyIrTreeWithSymbols`.
+     */
+    var deepCopyExcludeFromApply: Boolean = false
 
     override fun updateFieldsInCopy(copy: Field) {
         super.updateFieldsInCopy(copy)
-        copy.customUseInIrFactoryStrategy = customUseInIrFactoryStrategy
         copy.customSetter = customSetter
         copy.symbolFieldRole = symbolFieldRole
+        copy.deepCopyExcludeFromConstructor = deepCopyExcludeFromConstructor
+        copy.deepCopyExcludeFromApply = deepCopyExcludeFromApply
     }
-
-    protected abstract fun internalCopy(): Field
 }
 
-class SingleField(
+class SimpleField(
     name: String,
     override var typeRef: TypeRefWithNullability,
     mutable: Boolean,
     override val isChild: Boolean,
 ) : Field(name, mutable) {
 
-    override fun replaceType(newType: TypeRefWithNullability) =
-        SingleField(name, newType, isMutable, isChild).also(::updateFieldsInCopy)
+    override val symbolClass: Symbol?
+        get() = (typeRef as? ElementOrRef<*>)?.element as? Symbol
 
-    override fun internalCopy() = SingleField(name, typeRef, isMutable, isChild)
+    override val containsElement: Boolean
+        get() = (typeRef as? ElementOrRef<*>)?.element is Element
+
+    override fun substituteType(map: TypeParameterSubstitutionMap) {
+        typeRef = typeRef.substitute(map) as TypeRefWithNullability
+    }
+
+    override fun internalCopy() = SimpleField(name, typeRef, isMutable, isChild)
 }
 
 class ListField(
     name: String,
     override var baseType: TypeRef,
     private val isNullable: Boolean,
-    override val listType: ClassRef<PositionTypeParameterRef>,
-    mutable: Boolean,
+    val mutability: Mutability,
     override val isChild: Boolean,
-) : Field(name, mutable), AbstractListField {
+) : Field(name, mutability == Mutability.Var), AbstractListField {
+
+    override val listType: ClassRef<PositionTypeParameterRef> = when (mutability) {
+        Mutability.MutableList -> StandardTypes.mutableList
+        Mutability.Array -> StandardTypes.array
+        Mutability.Var -> StandardTypes.list
+    }
 
     override val typeRef: ClassRef<PositionTypeParameterRef>
         get() = listType.withArgs(baseType).copy(isNullable)
 
-    override fun replaceType(newType: TypeRefWithNullability) = copy()
+    override val symbolClass: Symbol?
+        get() = (baseType as? ElementOrRef<*>)?.element as? Symbol
 
-    override fun internalCopy() = ListField(name, baseType, isNullable, listType, isMutable, isChild)
+    override val containsElement: Boolean
+        get() = (baseType as? ElementOrRef<*>)?.element is Element
+
+    override fun substituteType(map: TypeParameterSubstitutionMap) {
+        baseType = baseType.substitute(map)
+    }
+
+    override fun internalCopy() =
+        ListField(name, baseType, isNullable, mutability, isChild)
 
     enum class Mutability {
         Var,

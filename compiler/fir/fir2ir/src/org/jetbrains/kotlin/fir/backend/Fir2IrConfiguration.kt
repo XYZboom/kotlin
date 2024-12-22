@@ -16,9 +16,10 @@
 
 package org.jetbrains.kotlin.fir.backend
 
+import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.constant.EvaluatedConstTracker
-import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
+import org.jetbrains.kotlin.diagnostics.impl.BaseDiagnosticsCollector
 import org.jetbrains.kotlin.incremental.components.ExpectActualTracker
 import org.jetbrains.kotlin.incremental.components.InlineConstTracker
 
@@ -28,28 +29,28 @@ import org.jetbrains.kotlin.incremental.components.InlineConstTracker
  *  It means asking for an IR element of a non-cached declaration is a sign of inconsistent state.
  *  Code generation in the IDE is trickier, though, as declarations from any module can be potentially referenced.
  *  For such a scenario, there is a flag that relaxes consistency checks.
- *
- * @param useFirBasedFakeOverrideGenerator
- *  Generate all fake overrides via FIR2IR instead of IR, i.e. revert to behavior before
- *  [KT-61514](https://youtrack.jetbrains.com/issue/KT-61514) was resolved.
  */
 class Fir2IrConfiguration private constructor(
     val languageVersionSettings: LanguageVersionSettings,
-    val diagnosticReporter: DiagnosticReporter,
+    val diagnosticReporter: BaseDiagnosticsCollector,
+    val messageCollector: MessageCollector,
     val evaluatedConstTracker: EvaluatedConstTracker,
     val inlineConstTracker: InlineConstTracker?,
     val expectActualTracker: ExpectActualTracker?,
     val allowNonCachedDeclarations: Boolean,
-    val useFirBasedFakeOverrideGenerator: Boolean,
+    val skipBodies: Boolean,
+    val validateIrAfterPlugins: Boolean,
+    val carefulApproximationOfContravariantProjectionForSam: Boolean,
 ) {
     companion object {
         fun forJvmCompilation(
             compilerConfiguration: CompilerConfiguration,
-            diagnosticReporter: DiagnosticReporter,
+            diagnosticReporter: BaseDiagnosticsCollector,
         ): Fir2IrConfiguration =
             Fir2IrConfiguration(
                 languageVersionSettings = compilerConfiguration.languageVersionSettings,
                 diagnosticReporter = diagnosticReporter,
+                messageCollector = compilerConfiguration.messageCollector,
                 evaluatedConstTracker = compilerConfiguration.putIfAbsent(
                     CommonConfigurationKeys.EVALUATED_CONST_TRACKER,
                     EvaluatedConstTracker.create(),
@@ -57,16 +58,19 @@ class Fir2IrConfiguration private constructor(
                 inlineConstTracker = compilerConfiguration[CommonConfigurationKeys.INLINE_CONST_TRACKER],
                 expectActualTracker = compilerConfiguration[CommonConfigurationKeys.EXPECT_ACTUAL_TRACKER],
                 allowNonCachedDeclarations = false,
-                useFirBasedFakeOverrideGenerator = compilerConfiguration.getBoolean(CommonConfigurationKeys.USE_FIR_BASED_FAKE_OVERRIDE_GENERATOR),
+                skipBodies = compilerConfiguration.getBoolean(JVMConfigurationKeys.SKIP_BODIES),
+                validateIrAfterPlugins = false,
+                carefulApproximationOfContravariantProjectionForSam = compilerConfiguration.get(JVMConfigurationKeys.SAM_CONVERSIONS) != JvmClosureGenerationScheme.CLASS
             )
 
         fun forKlibCompilation(
             compilerConfiguration: CompilerConfiguration,
-            diagnosticReporter: DiagnosticReporter,
+            diagnosticReporter: BaseDiagnosticsCollector,
         ): Fir2IrConfiguration =
             Fir2IrConfiguration(
                 languageVersionSettings = compilerConfiguration.languageVersionSettings,
                 diagnosticReporter = diagnosticReporter,
+                messageCollector = compilerConfiguration.messageCollector,
                 evaluatedConstTracker = compilerConfiguration.putIfAbsent(
                     CommonConfigurationKeys.EVALUATED_CONST_TRACKER,
                     EvaluatedConstTracker.create(),
@@ -74,17 +78,20 @@ class Fir2IrConfiguration private constructor(
                 inlineConstTracker = null,
                 expectActualTracker = compilerConfiguration[CommonConfigurationKeys.EXPECT_ACTUAL_TRACKER],
                 allowNonCachedDeclarations = false,
-                useFirBasedFakeOverrideGenerator = false,
+                skipBodies = false,
+                validateIrAfterPlugins = true,
+                carefulApproximationOfContravariantProjectionForSam = false,
             )
 
         fun forAnalysisApi(
             compilerConfiguration: CompilerConfiguration,
             languageVersionSettings: LanguageVersionSettings,
-            diagnosticReporter: DiagnosticReporter,
+            diagnosticReporter: BaseDiagnosticsCollector,
         ): Fir2IrConfiguration =
             Fir2IrConfiguration(
                 languageVersionSettings = languageVersionSettings,
                 diagnosticReporter = diagnosticReporter,
+                messageCollector = compilerConfiguration.messageCollector,
                 evaluatedConstTracker = compilerConfiguration.putIfAbsent(
                     CommonConfigurationKeys.EVALUATED_CONST_TRACKER,
                     EvaluatedConstTracker.create(),
@@ -92,7 +99,9 @@ class Fir2IrConfiguration private constructor(
                 inlineConstTracker = compilerConfiguration[CommonConfigurationKeys.INLINE_CONST_TRACKER],
                 expectActualTracker = compilerConfiguration[CommonConfigurationKeys.EXPECT_ACTUAL_TRACKER],
                 allowNonCachedDeclarations = true,
-                useFirBasedFakeOverrideGenerator = compilerConfiguration.getBoolean(CommonConfigurationKeys.USE_FIR_BASED_FAKE_OVERRIDE_GENERATOR),
+                skipBodies = false,
+                validateIrAfterPlugins = false,
+                carefulApproximationOfContravariantProjectionForSam = compilerConfiguration.get(JVMConfigurationKeys.SAM_CONVERSIONS) != JvmClosureGenerationScheme.CLASS,
             )
     }
 }

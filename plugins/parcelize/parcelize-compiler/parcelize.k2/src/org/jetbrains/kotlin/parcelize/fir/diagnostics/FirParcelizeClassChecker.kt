@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.*
 import org.jetbrains.kotlin.fir.resolve.isSubclassOf
 import org.jetbrains.kotlin.fir.resolve.lookupSuperTypes
+import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.impl.ConeClassLikeTypeImpl
@@ -81,7 +82,7 @@ class FirParcelizeClassChecker(private val parcelizeAnnotations: List<ClassId>) 
             val parcelableType = ConeClassLikeTypeImpl(
                 PARCELABLE_ID.toLookupTag(),
                 ConeTypeProjection.EMPTY_ARRAY,
-                isNullable = false
+                isMarkedNullable = false
             )
             if (superType.isSubtypeOf(parcelableType, context.session)) {
                 reporter.reportOn(superTypeRef.source, KtErrorsParcelize.PARCELABLE_DELEGATE_IS_NOT_ALLOWED, context)
@@ -133,7 +134,7 @@ inline fun checkParcelizeClassSymbols(
 ): Boolean {
     if (predicate(symbol)) return true
     return symbol.resolvedSuperTypeRefs.any { superTypeRef ->
-        val superTypeSymbol = superTypeRef.type.toRegularClassSymbol(session)
+        val superTypeSymbol = superTypeRef.coneType.toRegularClassSymbol(session)
             ?.takeIf { it.rawStatus.modality == Modality.SEALED }
             ?: return@any false
         predicate(superTypeSymbol)

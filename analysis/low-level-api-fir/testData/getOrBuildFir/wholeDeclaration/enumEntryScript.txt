@@ -7,11 +7,11 @@ public final static [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=X] enum entry
 
 FIR FILE:
 FILE: [ResolvedTo(IMPORTS)] enumEntryScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-enumEntryScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] enum class X : R|kotlin/Enum<X>| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol <script-enumEntryScript.kts>] enum class X : R|kotlin/Enum<X>| {
             private [ResolvedTo(STATUS)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Enum<X>|>
             }

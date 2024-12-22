@@ -15,7 +15,7 @@ internal fun File.ensureExistsAndIsEmptyDirectory(): File {
     return this
 }
 
-internal fun getAbsoluteFile(localPath: String): File = File(getHomeDirectory()).resolve(localPath)
+fun getAbsoluteFile(localPath: String): File = File(getHomeDirectory()).resolve(localPath)
 
 internal fun computeGeneratedSourcesDir(testDataBaseDir: File, testDataFile: File, generatedSourcesBaseDir: File): File {
     assertTrue(testDataFile.startsWith(testDataBaseDir)) {
@@ -32,7 +32,7 @@ internal fun computeGeneratedSourcesDir(testDataBaseDir: File, testDataFile: Fil
         .resolve(testDataFile.nameWithoutExtension)
 }
 
-internal fun generateBoxFunctionLauncher(entryPointFunctionFQN: String, expectedResult: String = "OK"): String =
+fun generateBoxFunctionLauncher(entryPointFunctionFQN: String, expectedResult: String = "OK"): String =
     """
         @kotlin.contracts.ExperimentalContracts  // for tests in compiler/testData/codegen/box/contracts/
         @kotlinx.cinterop.ExperimentalForeignApi // for tests in native/native.tests/testData/codegen/cinterop/

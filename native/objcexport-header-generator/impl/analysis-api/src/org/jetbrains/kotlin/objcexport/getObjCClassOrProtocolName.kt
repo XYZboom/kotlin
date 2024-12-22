@@ -1,11 +1,11 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.objcexport
 
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.symbols.*
 import org.jetbrains.kotlin.backend.konan.objcexport.ObjCExportClassOrProtocolName
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.capitalizeAsciiOnly
@@ -28,84 +28,111 @@ import org.jetbrains.kotlin.util.capitalizeDecapitalize.capitalizeAsciiOnly
  * ```
  * will use `ObjCFoo` instead of the class name `Foo`
  *
+ * @param bareName if `true`, the symbol name will not be prefixed with module/framework/parent name
+ *
  */
-context(KtAnalysisSession, KtObjCExportSession)
-fun KtClassLikeSymbol.getObjCClassOrProtocolName(): ObjCExportClassOrProtocolName {
-    val resolvedObjCNameAnnotation = resolveObjCNameAnnotation()
+fun ObjCExportContext.getObjCClassOrProtocolName(
+    classSymbol: KaClassLikeSymbol,
+    bareName: Boolean = false,
+): ObjCExportClassOrProtocolName {
+    val resolvedObjCNameAnnotation = classSymbol.resolveObjCNameAnnotation()
 
     return ObjCExportClassOrProtocolName(
-        objCName = getObjCName(resolvedObjCNameAnnotation),
-        swiftName = getSwiftName(resolvedObjCNameAnnotation)
+        objCName = getObjCName(classSymbol, resolvedObjCNameAnnotation, bareName),
+        swiftName = getSwiftName(classSymbol, resolvedObjCNameAnnotation, bareName)
     )
 }
 
-context(KtAnalysisSession, KtObjCExportSession)
-private fun KtClassLikeSymbol.getObjCName(
-    resolvedObjCNameAnnotation: KtResolvedObjCNameAnnotation? = resolveObjCNameAnnotation(),
-): String {
-    val objCName = (resolvedObjCNameAnnotation?.objCName ?: nameOrAnonymous.asString()).toValidObjCSwiftIdentifier()
+fun ObjCExportContext.getObjCClassOrProtocolNameOld(
+    classSymbol: KaClassLikeSymbol,
+    bareName: Boolean = false,
+): ObjCExportClassOrProtocolName {//KtObjCExportSession
+    val resolvedObjCNameAnnotation = classSymbol.resolveObjCNameAnnotation()
 
-    if (resolvedObjCNameAnnotation != null && resolvedObjCNameAnnotation.isExact) {
+    return ObjCExportClassOrProtocolName(
+        objCName = getObjCName(classSymbol, resolvedObjCNameAnnotation, bareName),
+        swiftName = getSwiftName(classSymbol, resolvedObjCNameAnnotation, bareName)
+    )
+}
+
+private fun ObjCExportContext.getObjCName(
+    symbol: KaClassLikeSymbol,
+    resolvedObjCNameAnnotation: KtResolvedObjCNameAnnotation? = symbol.resolveObjCNameAnnotation(),
+    bareName: Boolean = false,
+): String {
+    val objCName =
+        (resolvedObjCNameAnnotation?.objCName ?: exportSession.exportSessionSymbolNameOrAnonymous(symbol)).toValidObjCSwiftIdentifier()
+
+    if (bareName || resolvedObjCNameAnnotation != null && resolvedObjCNameAnnotation.isExact) {
         return objCName
+            .handleSpecialNames("get")
     }
 
-    getContainingSymbol()?.let { it as? KtClassLikeSymbol }?.let { containingClass ->
-        return containingClass.getObjCName() + objCName.capitalizeAsciiOnly()
+    with(analysisSession) {
+        symbol.containingDeclaration?.let { it as? KaClassLikeSymbol }?.let { containingClass ->
+            return getObjCName(containingClass) + objCName.capitalizeAsciiOnly()
+        }
     }
 
     return buildString {
-        configuration.frameworkName?.let(::append)
-        getObjCModuleNamePrefix()?.let(::append)
+        exportSession.configuration.frameworkName?.let(::append)
+        getObjCModuleNamePrefix(symbol)?.let(::append)
         append(objCName)
     }
 }
 
-context(KtAnalysisSession, KtObjCExportSession)
-private fun KtClassLikeSymbol.getSwiftName(
-    resolvedObjCNameAnnotation: KtResolvedObjCNameAnnotation? = resolveObjCNameAnnotation(),
+private fun ObjCExportContext.getSwiftName(
+    classSymbol: KaClassLikeSymbol,
+    resolvedObjCNameAnnotation: KtResolvedObjCNameAnnotation? = classSymbol.resolveObjCNameAnnotation(),
+    bareName: Boolean = false,
 ): String {
-    val swiftName = (resolvedObjCNameAnnotation?.swiftName ?: nameOrAnonymous.asString()).toValidObjCSwiftIdentifier()
-    if (resolvedObjCNameAnnotation != null && resolvedObjCNameAnnotation.isExact) {
+
+
+    val swiftName = (resolvedObjCNameAnnotation?.swiftName
+        ?: exportSession.exportSessionSymbolNameOrAnonymous(classSymbol)).toValidObjCSwiftIdentifier()
+    if (bareName || resolvedObjCNameAnnotation != null && resolvedObjCNameAnnotation.isExact) {
         return swiftName
     }
 
-    getContainingSymbol()?.let { it as? KtClassLikeSymbol }?.let { containingClass ->
-        val containingClassSwiftName = containingClass.getSwiftName()
-        return buildString {
-            if (canBeInnerSwift()) {
-                append(containingClassSwiftName)
-                if ("." !in this && containingClass.canBeOuterSwift()) {
-                    // AB -> AB.C
-                    append(".")
-                    append(mangleSwiftNestedClassName(swiftName))
+    with(analysisSession) {
+        classSymbol.containingDeclaration?.let { it as? KaClassLikeSymbol }?.let { containingClass ->
+            val containingClassSwiftName = getSwiftName(containingClass)
+            return buildString {
+                if (canBeInnerSwift(classSymbol)) {
+                    append(containingClassSwiftName)
+                    if ("." !in this && canBeOuterSwift(containingClass)) {
+                        // AB -> AB.C
+                        append(".")
+                        append(mangleSwiftNestedClassName(swiftName))
+                    } else {
+                        // AB -> ABC
+                        // A.B -> A.BC
+                        append(swiftName.capitalizeAsciiOnly())
+                    }
                 } else {
-                    // AB -> ABC
-                    // A.B -> A.BC
+                    append(containingClassSwiftName.replaceFirst(".", ""))
                     append(swiftName.capitalizeAsciiOnly())
                 }
-            } else {
-                append(containingClassSwiftName.replaceFirst(".", ""))
-                append(swiftName.capitalizeAsciiOnly())
             }
         }
     }
 
     return buildString {
-        getObjCModuleNamePrefix()?.let(::append)
+        getObjCModuleNamePrefix(classSymbol)?.let(::append)
         append(swiftName)
     }
 }
 
-context(KtAnalysisSession, KtObjCExportSession)
-private fun KtClassLikeSymbol.canBeInnerSwift(): Boolean {
-    if (configuration.objcGenerics && this.typeParameters.isNotEmpty()) {
+private fun ObjCExportContext.canBeInnerSwift(symbol: KaClassLikeSymbol): Boolean {
+    @OptIn(KaExperimentalApi::class)
+    if (exportSession.configuration.objcGenerics && symbol.typeParameters.isNotEmpty()) {
         // Swift compiler doesn't seem to handle this case properly.
         // See https://bugs.swift.org/browse/SR-14607.
         // This behaviour of Kotlin is reported as https://youtrack.jetbrains.com/issue/KT-46518.
         return false
     }
 
-    if (this is KtClassOrObjectSymbol && this.classKind == KtClassKind.INTERFACE) {
+    if (symbol is KaClassSymbol && symbol.classKind == KaClassKind.INTERFACE) {
         // Swift doesn't support nested protocols.
         return false
     }
@@ -113,14 +140,14 @@ private fun KtClassLikeSymbol.canBeInnerSwift(): Boolean {
     return true
 }
 
-context(KtAnalysisSession, KtObjCExportSession)
-private fun KtClassLikeSymbol.canBeOuterSwift(): Boolean {
-    if (configuration.objcGenerics && this.typeParameters.isNotEmpty()) {
+private fun ObjCExportContext.canBeOuterSwift(symbol: KaClassLikeSymbol): Boolean {
+    @OptIn(KaExperimentalApi::class)
+    if (exportSession.configuration.objcGenerics && symbol.typeParameters.isNotEmpty()) {
         // Swift nested classes are static but capture outer's generics.
         return false
     }
 
-    if (this is KtClassOrObjectSymbol && this.classKind == KtClassKind.INTERFACE) {
+    if (symbol is KaClassSymbol && symbol.classKind == KaClassKind.INTERFACE) {
         // Swift doesn't support outer protocols.
         return false
     }
@@ -133,12 +160,12 @@ private fun mangleSwiftNestedClassName(name: String): String = when (name) {
     else -> name
 }
 
-context(KtAnalysisSession, KtObjCExportSession)
-private fun KtSymbol.getObjCModuleNamePrefix(): String? {
-    val module = getContainingModule()
-    val moduleName = module.getObjCKotlinModuleName() ?: return null
+private fun ObjCExportContext.getObjCModuleNamePrefix(symbol: KaSymbol): String? {
+    val module = with(analysisSession) { symbol.containingModule }
+    val moduleName = getObjCKotlinModuleName(module) ?: return null
+    val isExported = with(exportSession) { isExported(module) }
     if (moduleName == "stdlib" || moduleName == "kotlin-stdlib-common") return "Kotlin"
-    if (isExported(module)) return null
+    if (isExported) return null
     return abbreviateModuleName(moduleName)
 }
 

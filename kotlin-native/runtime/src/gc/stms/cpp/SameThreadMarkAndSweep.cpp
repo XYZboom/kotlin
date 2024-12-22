@@ -5,6 +5,8 @@
 
 #include "SameThreadMarkAndSweep.hpp"
 
+#include <string_view>
+
 #include "GCStatistics.hpp"
 #include "Logging.hpp"
 #include "MarkAndSweepUtils.hpp"
@@ -22,7 +24,7 @@ gc::SameThreadMarkAndSweep::SameThreadMarkAndSweep(alloc::Allocator& allocator, 
         GCHandle::getByEpoch(epoch).finalizersDone();
         state_.finalized(epoch);
     }) {
-    gcThread_ = ScopedThread(ScopedThread::attributes().name("GC thread"), [this] {
+    gcThread_ = UtilityThread(std::string_view("GC thread"), [this] {
         while (true) {
             auto epoch = state_.waitScheduled();
             if (epoch.has_value()) {
@@ -55,6 +57,8 @@ bool gc::SameThreadMarkAndSweep::FinalizersThreadIsRunning() noexcept {
 }
 
 void gc::SameThreadMarkAndSweep::PerformFullGC(int64_t epoch) noexcept {
+    auto mainGCLock = mm::GlobalData::Instance().gc().gcLock();
+
     auto gcHandle = GCHandle::create(epoch);
 
     stopTheWorld(gcHandle, "GC stop the world");

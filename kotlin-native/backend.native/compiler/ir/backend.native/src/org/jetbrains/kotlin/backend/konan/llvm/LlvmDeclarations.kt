@@ -9,6 +9,9 @@ import kotlinx.cinterop.toCValues
 import llvm.*
 import org.jetbrains.kotlin.backend.konan.*
 import org.jetbrains.kotlin.backend.konan.ir.*
+import org.jetbrains.kotlin.backend.konan.llvm.objcexport.WritableTypeInfoPointer
+import org.jetbrains.kotlin.backend.konan.llvm.objcexport.generateWritableTypeInfoForClass
+import org.jetbrains.kotlin.backend.konan.serialization.isFromCInteropLibrary
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.objcinterop.*
@@ -35,12 +38,12 @@ enum class UniqueKind(val llvmName: String) {
 }
 
 internal class LlvmDeclarations(private val unique: Map<UniqueKind, UniqueLlvmDeclarations>) {
-    fun forFunction(function: IrFunction): LlvmCallable =
+    fun forFunction(function: IrSimpleFunction): LlvmCallable =
             forFunctionOrNull(function) ?: with(function) {
                 error("$name in $file/${parent.fqNameForIrSerialization}")
             }
 
-    fun forFunctionOrNull(function: IrFunction): LlvmCallable? =
+    fun forFunctionOrNull(function: IrSimpleFunction): LlvmCallable? =
             (function.metadata as? KonanMetadata.Function)?.llvm
 
     fun forClass(irClass: IrClass) =
@@ -56,10 +59,14 @@ internal class LlvmDeclarations(private val unique: Map<UniqueKind, UniqueLlvmDe
 
 }
 
+internal class ObjectBodyType(val llvmBodyType: LLVMTypeRef, objectFieldIndices: List<Int>) {
+    val sortedIndicesOfObjectFields = objectFieldIndices.sorted()
+}
+
 internal class ClassLlvmDeclarations(
-        val bodyType: LLVMTypeRef,
+        val bodyType: ObjectBodyType,
         val typeInfoGlobal: StaticData.Global,
-        val writableTypeInfoGlobal: StaticData.Global?,
+        val writableTypeInfoGlobal: WritableTypeInfoPointer?,
         val typeInfo: ConstPointer,
         val objCDeclarations: KotlinObjCClassLlvmDeclarations?,
         val alignment: Int,
@@ -252,6 +259,14 @@ private class DeclarationsGeneratorVisitor(override val generationState: NativeG
                 context.getLayoutBuilder(declaration).getFields(llvm)
         val (bodyType, alignment, fieldIndices) = createClassBody("kclassbody:$internalName", fields)
 
+        val objectFieldIndices = fields.mapNotNull {
+            if (it.type.binaryTypeIsReference()) {
+                fieldIndices.getValue(it.irFieldSymbol)
+            } else {
+                null
+            }
+        }
+
         require(alignment == runtime.objectAlignment) {
             "Over-aligned objects are not supported yet: expected alignment for ${declaration.fqNameWhenAvailable} is $alignment"
         }
@@ -321,21 +336,17 @@ private class DeclarationsGeneratorVisitor(override val generationState: NativeG
             null
         }
 
-        val writableTypeInfoType = runtime.writableTypeInfoType
-        val writableTypeInfoGlobal = if (writableTypeInfoType == null) {
-            null
-        } else if (declaration.isExported()) {
-            val name = declaration.writableTypeInfoSymbolName
-            staticData.createGlobal(writableTypeInfoType, name, isExported = true).also {
-                it.setLinkage(LLVMLinkage.LLVMCommonLinkage) // Allows to be replaced by other bitcode module.
-            }
-        } else {
-            staticData.createGlobal(writableTypeInfoType, "")
-        }.also {
-            it.setZeroInitializer()
-        }
+        val writableTypeInfoGlobal = generateWritableTypeInfoForClass(declaration)
 
-        return ClassLlvmDeclarations(bodyType, typeInfoGlobal, writableTypeInfoGlobal, typeInfoPtr, objCDeclarations, alignment, fieldIndices)
+        return ClassLlvmDeclarations(
+                ObjectBodyType(bodyType, objectFieldIndices),
+                typeInfoGlobal,
+                writableTypeInfoGlobal,
+                typeInfoPtr,
+                objCDeclarations,
+                alignment,
+                fieldIndices
+        )
     }
 
     private fun createUniqueDeclarations(
@@ -392,20 +403,21 @@ private class DeclarationsGeneratorVisitor(override val generationState: NativeG
             val classDeclarations = (containingClass.metadata as? KonanMetadata.Class)?.llvm
                     ?: error(containingClass.render())
             val index = classDeclarations.fieldIndices[declaration.symbol]!!
+            val bodyType = classDeclarations.bodyType.llvmBodyType
             declaration.metadata = KonanMetadata.InstanceField(
                     declaration,
                     FieldLlvmDeclarations(
                             index,
-                            classDeclarations.bodyType,
-                            gcd(LLVMOffsetOfElement(llvm.runtime.targetData, classDeclarations.bodyType, index), llvm.runtime.objectAlignment.toLong()).toInt()
+                            bodyType,
+                            gcd(LLVMOffsetOfElement(llvm.runtime.targetData, bodyType, index), llvm.runtime.objectAlignment.toLong()).toInt()
                     )
             )
         } else {
             // Fields are module-private, so we use internal name:
             val name = "kvar:" + qualifyInternalName(declaration)
             val alignmnet = declaration.requiredAlignment(llvm)
-            val storage = if (declaration.storageKind(context) == FieldStorageKind.THREAD_LOCAL) {
-                addKotlinThreadLocal(name, declaration.type.toLLVMType(llvm), alignmnet)
+            val storage = if (declaration.storageKind == FieldStorageKind.THREAD_LOCAL) {
+                addKotlinThreadLocal(name, declaration.type.toLLVMType(llvm), alignmnet, declaration.type.binaryTypeIsReference())
             } else {
                 addKotlinGlobal(name, declaration.type.toLLVMType(llvm), alignmnet, isExported = false)
             }
@@ -414,8 +426,8 @@ private class DeclarationsGeneratorVisitor(override val generationState: NativeG
         }
     }
 
-    override fun visitFunction(declaration: IrFunction) {
-        super.visitFunction(declaration)
+    override fun visitSimpleFunction(declaration: IrSimpleFunction) {
+        super.visitSimpleFunction(declaration)
 
         if (!declaration.isReal) return
 
@@ -423,7 +435,7 @@ private class DeclarationsGeneratorVisitor(override val generationState: NativeG
             if (declaration.isTypedIntrinsic || declaration.isObjCBridgeBased()
                     // All call-sites to external accessors to interop properties
                     // are lowered by InteropLowering.
-                    || (declaration.isAccessor && declaration.isFromInteropLibrary())
+                    || (declaration.isAccessor && declaration.isFromCInteropLibrary())
                     || declaration.annotations.hasAnnotation(RuntimeNames.cCall)) return
 
             val proto = LlvmFunctionProto(declaration, declaration.computeSymbolName(), this, LLVMLinkage.LLVMExternalLinkage)
@@ -468,7 +480,7 @@ internal sealed class KonanMetadata(override val name: Name?, val konanLibrary: 
 
     class Class(irClass: IrClass, val llvm: ClassLlvmDeclarations, val layoutBuilder: ClassLayoutBuilder) : Declaration<IrClass>(irClass)
 
-    class Function(irFunction: IrFunction, val llvm: LlvmCallable) : Declaration<IrFunction>(irFunction)
+    class Function(irFunction: IrSimpleFunction, val llvm: LlvmCallable) : Declaration<IrSimpleFunction>(irFunction)
 
     class InstanceField(irField: IrField, val llvm: FieldLlvmDeclarations) : Declaration<IrField>(irField)
 

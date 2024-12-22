@@ -1,27 +1,28 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.fir.java.declarations
 
 import org.jetbrains.kotlin.KtSourceElement
-import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.fir.FirImplementationDetail
 import org.jetbrains.kotlin.fir.FirModuleData
 import org.jetbrains.kotlin.fir.builder.FirBuilderDsl
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.builder.FirFieldBuilder
+import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.expressions.FirExpression
+import org.jetbrains.kotlin.fir.java.enhancement.FirEmptyJavaAnnotationList
+import org.jetbrains.kotlin.fir.java.enhancement.FirJavaAnnotationList
 import org.jetbrains.kotlin.fir.references.FirControlFlowGraphReference
+import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirFieldSymbol
 import org.jetbrains.kotlin.fir.types.ConeSimpleKotlinType
 import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.visitors.FirTransformer
 import org.jetbrains.kotlin.fir.visitors.FirVisitor
-import org.jetbrains.kotlin.fir.visitors.transformInplace
 import org.jetbrains.kotlin.fir.visitors.transformSingle
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedContainerSource
@@ -36,16 +37,15 @@ class FirJavaField @FirImplementationDetail constructor(
     override val origin: FirDeclarationOrigin.Java,
     override val symbol: FirFieldSymbol,
     override val name: Name,
-    resolvePhase: FirResolvePhase,
     override var returnTypeRef: FirTypeRef,
-    override var status: FirDeclarationStatus,
+    private val originalStatus: FirResolvedDeclarationStatusImpl,
     override val isVar: Boolean,
-    annotationBuilder: () -> List<FirAnnotation>,
-    override val typeParameters: MutableList<FirTypeParameterRef>,
+    private val annotationList: FirJavaAnnotationList,
     lazyInitializer: Lazy<FirExpression?>,
     lazyHasConstantInitializer: Lazy<Boolean>,
     override val dispatchReceiverType: ConeSimpleKotlinType?,
     override val attributes: FirDeclarationAttributes,
+    private val containingClassSymbol: FirClassSymbol<*>,
 ) : FirField() {
     internal var lazyInitializer: Lazy<FirExpression?> = lazyInitializer
         private set
@@ -58,7 +58,7 @@ class FirJavaField @FirImplementationDetail constructor(
         symbol.bind(this)
 
         @OptIn(ResolveStateAccess::class)
-        this.resolveState = resolvePhase.asResolveState()
+        this.resolveState = FirResolvePhase.ANALYZED_DEPENDENCIES.asResolveState()
     }
 
     override val receiverParameter: FirReceiverParameter? get() = null
@@ -68,7 +68,7 @@ class FirJavaField @FirImplementationDetail constructor(
     override val backingField: FirBackingField? = null
     override val controlFlowGraphReference: FirControlFlowGraphReference? get() = null
 
-    override val annotations: List<FirAnnotation> by lazy { annotationBuilder() }
+    override val annotations: List<FirAnnotation> get() = annotationList
 
     override val initializer: FirExpression?
         get() = lazyInitializer.value
@@ -80,7 +80,17 @@ class FirJavaField @FirImplementationDetail constructor(
         annotations.getDeprecationsProviderFromAnnotations(moduleData.session, fromJava = true)
     }
 
-    override val contextReceivers: List<FirContextReceiver>
+    // TODO: the lazy deprecationsProvider is a workaround for KT-55387, some non-lazy solution should probably be used instead
+    override val status: FirDeclarationStatus by lazy {
+        applyStatusTransformerExtensions(this, originalStatus) {
+            transformStatus(it, this@FirJavaField, containingClassSymbol, isLocal = false)
+        }
+    }
+
+    override val typeParameters: List<FirTypeParameterRef>
+        get() = emptyList()
+
+    override val contextParameters: List<FirValueParameter>
         get() = emptyList()
 
     override fun <D> transformReturnTypeRef(transformer: FirTransformer<D>, data: D): FirField {
@@ -101,12 +111,15 @@ class FirJavaField @FirImplementationDetail constructor(
     }
 
     override fun <D> transformOtherChildren(transformer: FirTransformer<D>, data: D): FirField {
-        transformAnnotations(transformer, data)
-        replaceInitializer(initializer?.transformSingle(transformer, data))
+        transformInitializer(transformer, data)
         return this
     }
 
     override fun <D> transformReceiverParameter(transformer: FirTransformer<D>, data: D): FirField {
+        return this
+    }
+
+    override fun <D> transformContextParameters(transformer: FirTransformer<D>, data: D): FirField {
         return this
     }
 
@@ -125,7 +138,6 @@ class FirJavaField @FirImplementationDetail constructor(
     }
 
     override fun <D> transformStatus(transformer: FirTransformer<D>, data: D): FirJavaField {
-        status = status.transformSingle(transformer, data)
         return this
     }
 
@@ -134,7 +146,7 @@ class FirJavaField @FirImplementationDetail constructor(
     }
 
     override fun replaceAnnotations(newAnnotations: List<FirAnnotation>) {
-        throw AssertionError("Mutating annotations for FirJava* is not supported")
+        shouldNotBeCalled(::replaceAnnotations, ::annotations)
     }
 
     override fun <D> transformAnnotations(transformer: FirTransformer<D>, data: D): FirJavaField {
@@ -146,7 +158,6 @@ class FirJavaField @FirImplementationDetail constructor(
     }
 
     override fun <D> transformTypeParameters(transformer: FirTransformer<D>, data: D): FirField {
-        typeParameters.transformInplace(transformer, data)
         return this
     }
 
@@ -157,6 +168,7 @@ class FirJavaField @FirImplementationDetail constructor(
     override var containerSource: DeserializedContainerSource? = null
 
     override fun <D> transformInitializer(transformer: FirTransformer<D>, data: D): FirField {
+        replaceInitializer(initializer?.transformSingle(transformer, data))
         return this
     }
 
@@ -173,25 +185,22 @@ class FirJavaField @FirImplementationDetail constructor(
 
     override fun replaceControlFlowGraphReference(newControlFlowGraphReference: FirControlFlowGraphReference?) {}
 
-    override fun replaceContextReceivers(newContextReceivers: List<FirContextReceiver>) {
+    override fun replaceContextParameters(newContextParameters: List<FirValueParameter>) {
         error("Body cannot be replaced for FirJavaField")
     }
 
     override fun replaceStatus(newStatus: FirDeclarationStatus) {
-        status = newStatus
+        shouldNotBeCalled(::replaceStatus, ::status)
     }
 }
 
 @FirBuilderDsl
 internal class FirJavaFieldBuilder : FirFieldBuilder() {
-    var modality: Modality? = null
-    lateinit var visibility: Visibility
     var isFromSource: Boolean by Delegates.notNull()
-    lateinit var annotationBuilder: () -> List<FirAnnotation>
+    var annotationList: FirJavaAnnotationList = FirEmptyJavaAnnotationList
     var lazyInitializer: Lazy<FirExpression?>? = null
     lateinit var lazyHasConstantInitializer: Lazy<Boolean>
-
-    override var resolvePhase: FirResolvePhase = FirResolvePhase.ANALYZED_DEPENDENCIES
+    lateinit var containingClassSymbol: FirClassSymbol<*>
 
     @OptIn(FirImplementationDetail::class)
     override fun build(): FirJavaField {
@@ -201,16 +210,15 @@ internal class FirJavaFieldBuilder : FirFieldBuilder() {
             origin = javaOrigin(isFromSource),
             symbol,
             name,
-            resolvePhase,
             returnTypeRef,
-            status,
+            status as FirResolvedDeclarationStatusImpl,
             isVar,
-            annotationBuilder,
-            typeParameters,
+            annotationList,
             lazyInitializer ?: lazyOf(initializer),
             lazyHasConstantInitializer,
             dispatchReceiverType,
             attributes,
+            containingClassSymbol,
         )
     }
 

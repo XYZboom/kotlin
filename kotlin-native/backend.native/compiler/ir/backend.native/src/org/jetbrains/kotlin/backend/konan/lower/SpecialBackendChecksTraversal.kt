@@ -1,25 +1,27 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license
- * that can be found in the LICENSE file.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.backend.konan.lower
 
-import org.jetbrains.kotlin.backend.common.FileLoweringPass
+import org.jetbrains.kotlin.backend.common.*
 import org.jetbrains.kotlin.backend.common.ir.Symbols
 import org.jetbrains.kotlin.backend.common.lower.Closure
 import org.jetbrains.kotlin.backend.common.lower.ClosureAnnotator
-import org.jetbrains.kotlin.backend.common.peek
-import org.jetbrains.kotlin.backend.common.pop
-import org.jetbrains.kotlin.backend.common.push
 import org.jetbrains.kotlin.backend.konan.*
 import org.jetbrains.kotlin.backend.konan.cgen.*
+import org.jetbrains.kotlin.backend.konan.checkers.EscapeAnalysisChecker
 import org.jetbrains.kotlin.backend.konan.driver.PhaseContext
-import org.jetbrains.kotlin.backend.konan.ir.*
+import org.jetbrains.kotlin.backend.konan.ir.KonanSymbols
+import org.jetbrains.kotlin.backend.konan.ir.allOverriddenFunctions
 import org.jetbrains.kotlin.backend.konan.ir.getSuperClassNotAny
 import org.jetbrains.kotlin.backend.konan.llvm.IntrinsicType
 import org.jetbrains.kotlin.backend.konan.llvm.tryGetIntrinsicType
-import org.jetbrains.kotlin.descriptors.*
+import org.jetbrains.kotlin.backend.konan.reportCompilationError
+import org.jetbrains.kotlin.descriptors.ClassKind
+import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
+import org.jetbrains.kotlin.descriptors.isClass
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
@@ -30,6 +32,7 @@ import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrTypeParameterSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.isNullable
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.name.FqName
@@ -47,7 +50,11 @@ internal class SpecialBackendChecksTraversal(
         private val symbols: KonanSymbols,
         private val irBuiltIns: IrBuiltIns,
 ) : FileLoweringPass {
-    override fun lower(irFile: IrFile) = irFile.acceptChildrenVoid(BackendChecker(context, symbols, irBuiltIns, irFile))
+    override fun lower(irFile: IrFile) {
+        irFile.acceptChildrenVoid(BackendChecker(context, symbols, irBuiltIns, irFile))
+        // EscapeAnalysisChecker only makes sense when compiling stdlib.
+        irFile.acceptChildrenVoid(EscapeAnalysisChecker(context, symbols, irFile))
+    }
 }
 
 private class BackendChecker(
@@ -146,7 +153,7 @@ private class BackendChecker(
     private fun IrConstructor.overridesConstructor(other: IrConstructor) =
             this.valueParameters.size == other.valueParameters.size &&
                     this.valueParameters.all {
-                        val otherParameter = other.valueParameters[it.index]
+                        val otherParameter = other.valueParameters[it.indexInOldValueParameters]
                         it.name == otherParameter.name && it.type == otherParameter.type
                     }
 
@@ -309,7 +316,7 @@ private class BackendChecker(
                 checkCanGenerateObjCCall(
                         method = initMethod,
                         call = expression,
-                        arguments = initMethod.valueParameters.map { expression.getValueArgument(it.index) }
+                        arguments = initMethod.valueParameters.map { expression.getValueArgument(it.indexInOldValueParameters) }
                 )
             }
         }
@@ -321,7 +328,7 @@ private class BackendChecker(
         val callee = expression.symbol.owner
         val initMethod = callee.getObjCInitMethod()
         if (initMethod != null) {
-            val arguments = callee.valueParameters.map { expression.getValueArgument(it.index) }
+            val arguments = callee.valueParameters.map { expression.getValueArgument(it.indexInOldValueParameters) }
 
             checkCanGenerateObjCCall(
                     method = initMethod,
@@ -386,7 +393,7 @@ private class BackendChecker(
                     outerFunction!!.annotations.hasAnnotation(FqName("kotlin.native.internal.ExportForCppRuntime"))
 
             if (!useKotlinDispatch) {
-                val arguments = callee.valueParameters.map { expression.getValueArgument(it.index) }
+                val arguments = callee.valueParameters.map { expression.getValueArgument(it.indexInOldValueParameters) }
 
                 if (expression.superQualifierSymbol?.owner?.isObjCMetaClass() == true)
                     reportError(expression, "Super calls to Objective-C meta classes are not supported yet")
@@ -415,13 +422,13 @@ private class BackendChecker(
                 val signatureTypes = target.allParameters.map { it.type } + target.returnType
 
                 callee.typeParameters.indices.forEach { index ->
-                    val typeArgument = expression.getTypeArgument(index)!!
+                    val typeArgument = expression.typeArguments[index]!!
                     val signatureType = signatureTypes[index]
                     if (typeArgument.classifierOrNull != signatureType.classifierOrNull ||
                             typeArgument.isMarkedNullable() != signatureType.isMarkedNullable()
                     ) {
                         reportError(expression, "C function signature element mismatch: " +
-                                "expected '${signatureTypes[index].classFqName}', got '${expression.getTypeArgument(index)!!.classFqName}'")
+                                "expected '${signatureTypes[index].classFqName}', got '${expression.typeArguments[index]!!.classFqName}'")
                     }
                 }
 
@@ -460,7 +467,7 @@ private class BackendChecker(
             }
             IntrinsicType.INTEROP_CONVERT -> {
                 val integerClasses = symbols.allIntegerClasses
-                val typeOperand = expression.getTypeArgument(0)!!
+                val typeOperand = expression.typeArguments[0]!!
                 val receiverType = expression.symbol.owner.extensionReceiverParameter!!.type
 
                 if (typeOperand !is IrSimpleType || typeOperand.classifier !in integerClasses || typeOperand.isNullable())
@@ -484,7 +491,7 @@ private class BackendChecker(
                     if (elements.any { it is IrSpreadElement })
                         reportError(args, "no spread elements allowed here")
                     elements.forEach {
-                        if (it !is IrConst<*>)
+                        if (it !is IrConst)
                             reportError(args, "all elements of binary blob must be constants")
                         val value = it.value as Short
                         if (value < 0 || value > 0xff)
@@ -492,7 +499,7 @@ private class BackendChecker(
                     }
                 }
                 Symbols.isTypeOfIntrinsic(callee.symbol) ->
-                    checkIrKType(expression, expression.getTypeArgument(0)!!)
+                    checkIrKType(expression, expression.typeArguments[0]!!)
             }
         }
     }
@@ -563,7 +570,7 @@ private class BackendChecker(
 
     private fun IrCall.getSingleTypeArgument(): IrType {
         val typeParameter = symbol.owner.typeParameters.single()
-        return getTypeArgument(typeParameter.index)!!
+        return typeArguments[typeParameter.index]!!
     }
 
     private fun checkIrKType(
@@ -610,14 +617,14 @@ private fun BackendChecker.checkCanGenerateCCall(expression: IrCall, isInvoke: B
     if (isInvoke) {
         (0 until expression.valueArgumentsCount).forEach {
             checkCanMapCalleeFunctionParameter(
-                    type = expression.getTypeArgument(it)!!,
-                    isObjCMethod = false,
-                    variadic = false,
-                    parameter = null,
-                    argument = expression.getValueArgument(it)!!)
+                type = expression.typeArguments[it]!!,
+                isObjCMethod = false,
+                variadic = false,
+                parameter = null,
+                argument = expression.getValueArgument(it)!!)
         }
 
-        val returnType = expression.getTypeArgument(expression.typeArgumentsCount - 1)!!
+        val returnType = expression.typeArguments.last()!!
         checkCanMapReturnType(returnType, TypeLocation.FunctionCallResult(expression))
     } else {
         val arguments = (0 until expression.valueArgumentsCount).map(expression::getValueArgument)
@@ -691,9 +698,9 @@ private fun BackendChecker.checkCanGenerateObjCCall(
 private fun BackendChecker.checkParameter(it: IrValueParameter, functionParameter: IrValueParameter,
                                           isObjCMethod: Boolean, location: IrElement) {
     val typeLocation = if (isObjCMethod)
-        TypeLocation.ObjCMethodParameter(it.index, functionParameter)
+        TypeLocation.ObjCMethodParameter(it.indexInOldValueParameters, functionParameter)
     else
-        TypeLocation.FunctionPointerParameter(it.index, location)
+        TypeLocation.FunctionPointerParameter(it.indexInOldValueParameters, location)
 
     if (functionParameter.isVararg)
         reportError(typeLocation.element, if (isObjCMethod) {
@@ -716,7 +723,7 @@ private fun BackendChecker.checkCanGenerateCFunction(
     }
 
     signature.valueParameters.forEach {
-        checkParameter(it, function.valueParameters[it.index], isObjCMethod, location)
+        checkParameter(it, function.valueParameters[it.indexInOldValueParameters], isObjCMethod, location)
     }
 }
 

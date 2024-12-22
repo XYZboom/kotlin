@@ -57,6 +57,12 @@ internal fun TestGroupSuite.generateSymbolLightClassesTests() {
                 model("lightElements", pattern = TestGeneratorUtil.KT)
             }
         }
+
+        run {
+            testClass<AbstractSymbolLightClassesNestedClassesConsistencyForLibraryTest> {
+                model("libraryNestedClassesConsistency", pattern = TestGeneratorUtil.KT)
+            }
+        }
     }
 }
 
@@ -81,7 +87,10 @@ private fun lightClassesByPsiTestsInit(isLibrary: Boolean = false): TestGroup.Te
 
 private fun TestGroup.lightClassesByPsiTests() {
     testClass<AbstractSymbolLightClassesByPsiForSourceTest>(init = lightClassesByPsiTestsInit())
+    testClass<AbstractJsSymbolLightClassesByPsiForSourceTest>(init = lightClassesByPsiTestsInit())
+
     testClass<AbstractSymbolLightClassesByPsiForLibraryTest>(init = lightClassesByPsiTestsInit(isLibrary = true))
+    testClass<AbstractJsSymbolLightClassesByPsiForLibraryTest>(init = lightClassesByPsiTestsInit(isLibrary = true))
 
     testClass<AbstractSymbolLightClassesParentingByPsiForSourceTest>(init = lightClassesByPsiTestsInit())
     testClass<AbstractSymbolLightClassesParentingByPsiForLibraryTest>(init = lightClassesByPsiTestsInit(isLibrary = true))
@@ -107,7 +116,10 @@ private fun TestGroup.lightClassesByFqNameTests() {
     }
 
     testClass<AbstractSymbolLightClassesByFqNameForSourceTest>(init = sourceModelInit)
+    testClass<AbstractJsSymbolLightClassesByFqNameForSourceTest>(init = sourceModelInit)
+
     testClass<AbstractSymbolLightClassesByFqNameForLibraryTest>(init = libraryModelInit)
+    testClass<AbstractJsSymbolLightClassesByFqNameForLibraryTest>(init = libraryModelInit)
 
     testClass<AbstractSymbolLightClassesParentingByFqNameForSourceTest>(init = sourceModelInit)
     testClass<AbstractSymbolLightClassesParentingByFqNameForLibraryTest>(init = libraryModelInit)

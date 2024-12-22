@@ -12,7 +12,6 @@ import org.jetbrains.kotlin.test.backend.BlackBoxCodegenSuppressor
 import org.jetbrains.kotlin.test.backend.handlers.BytecodeListingHandler
 import org.jetbrains.kotlin.test.backend.handlers.IrTextDumpHandler
 import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
-import org.jetbrains.kotlin.test.backend.ir.JvmIrBackendFacade
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
 import org.jetbrains.kotlin.test.builders.configureIrHandlersStep
 import org.jetbrains.kotlin.test.builders.configureJvmArtifactsHandlersStep
@@ -21,7 +20,7 @@ import org.jetbrains.kotlin.test.directives.configureFirParser
 import org.jetbrains.kotlin.test.frontend.classic.ClassicFrontend2IrConverter
 import org.jetbrains.kotlin.test.frontend.classic.ClassicFrontendFacade
 import org.jetbrains.kotlin.test.frontend.classic.ClassicFrontendOutputArtifact
-import org.jetbrains.kotlin.test.frontend.fir.Fir2IrJvmResultsConverter
+import org.jetbrains.kotlin.test.frontend.fir.Fir2IrResultsConverter
 import org.jetbrains.kotlin.test.frontend.fir.FirFrontendFacade
 import org.jetbrains.kotlin.test.frontend.fir.FirOutputArtifact
 import org.jetbrains.kotlin.test.model.*
@@ -38,7 +37,7 @@ abstract class AbstractBytecodeListingTestBase<R : ResultingArtifact.FrontendOut
             +CodegenTestDirectives.CHECK_BYTECODE_LISTING
         }
 
-        commonConfigurationForTest(targetFrontend, frontendFacade, frontendToBackendConverter, ::JvmIrBackendFacade)
+        commonConfigurationForTest(targetFrontend, frontendFacade, frontendToBackendConverter)
         commonHandlersForCodegenTest()
 
         configureIrHandlersStep {
@@ -67,7 +66,7 @@ abstract class AbstractFirBytecodeListingTestBase(val parser: FirParser) :
         get() = ::FirFrontendFacade
 
     override val frontendToBackendConverter: Constructor<Frontend2BackendConverter<FirOutputArtifact, IrBackendInput>>
-        get() = ::Fir2IrJvmResultsConverter
+        get() = ::Fir2IrResultsConverter
 
     override fun configure(builder: TestConfigurationBuilder) {
         super.configure(builder)

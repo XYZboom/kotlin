@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.gradle.targets.js.KotlinWasmTargetType
 import org.jetbrains.kotlin.gradle.targets.js.RequiredKotlinJsDependency
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrCompilation
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsExtension
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsRootExtension
 import org.jetbrains.kotlin.gradle.targets.js.npm.RequiresNpmDependencies
 import org.jetbrains.kotlin.gradle.targets.js.npm.npmProject
 import org.jetbrains.kotlin.gradle.tasks.registerTask
@@ -31,7 +31,7 @@ constructor(
 ) : AbstractExecTask<NodeJsExec>(NodeJsExec::class.java), RequiresNpmDependencies {
     @Transient
     @get:Internal
-    lateinit var nodeJs: NodeJsRootExtension
+    lateinit var nodeJsRoot: NodeJsRootExtension
 
     @Internal
     val npmProject = compilation.npmProject
@@ -60,7 +60,7 @@ constructor(
     override val requiredNpmDependencies: Set<RequiredKotlinJsDependency> by lazy {
         mutableSetOf<RequiredKotlinJsDependency>().also {
             if (sourceMapStackTraces) {
-                it.add(nodeJs.versions.sourceMapSupport)
+                it.add(nodeJsRoot.versions.sourceMapSupport)
             }
         }
     }
@@ -89,32 +89,34 @@ constructor(
     }
 
     companion object {
-        fun create(
+        fun register(
             compilation: KotlinJsIrCompilation,
             name: String,
             configuration: NodeJsExec.() -> Unit = {},
         ): TaskProvider<NodeJsExec> {
             val target = compilation.target
             val project = target.project
-            NodeJsRootPlugin.apply(project.rootProject)
-            val nodeJs = project.rootProject.kotlinNodeJsExtension
-            val nodeJsTaskProviders = project.rootProject.kotlinNodeJsExtension
+            val nodeJsRoot = NodeJsRootPlugin.apply(project.rootProject)
+            val nodeJs = NodeJsPlugin.apply(project)
+            val nodeJsTaskProviders = project.rootProject.kotlinNodeJsRootExtension
             val npmProject = compilation.npmProject
 
             return project.registerTask(
                 name,
                 listOf(compilation)
             ) {
-                it.nodeJs = nodeJs
-                it.executable = nodeJs.requireConfigured().executable
+                it.nodeJsRoot = nodeJsRoot
+                it.executable = nodeJs.executable.get()
                 if ((compilation.target as? KotlinJsIrTarget)?.wasmTargetType != KotlinWasmTargetType.WASI) {
                     it.workingDir(npmProject.dir)
                     it.dependsOn(
                         nodeJsTaskProviders.npmInstallTaskProvider,
                     )
-                    it.dependsOn(nodeJs.packageManagerExtension.map { it.postInstallTasks })
+                    it.dependsOn(nodeJsRoot.packageManagerExtension.map { it.postInstallTasks })
                 }
-                it.dependsOn(nodeJsTaskProviders.nodeJsSetupTaskProvider)
+                with(nodeJs) {
+                    it.dependsOn(project.nodeJsSetupTaskProvider)
+                }
                 it.dependsOn(compilation.compileTaskProvider)
                 it.configuration()
             }
@@ -130,10 +132,20 @@ constructor(
             name: String,
             configuration: NodeJsExec.() -> Unit = {},
         ): TaskProvider<NodeJsExec> =
-            create(
+            register(
                 compilation as KotlinJsIrCompilation,
                 name,
                 configuration
             )
+
+        @Deprecated(
+            "Use register instead",
+            ReplaceWith("register(compilation, name, configuration)")
+        )
+        fun create(
+            compilation: KotlinJsIrCompilation,
+            name: String,
+            configuration: NodeJsExec.() -> Unit = {},
+        ): TaskProvider<NodeJsExec> = register(compilation, name, configuration)
     }
 }

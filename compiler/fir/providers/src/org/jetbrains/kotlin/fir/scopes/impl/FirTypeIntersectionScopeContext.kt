@@ -14,6 +14,8 @@ import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.isExpect
 import org.jetbrains.kotlin.fir.declarations.utils.modality
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
+import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
+import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.resolve.transformers.ReturnTypeCalculatorForFullBodyResolve
 import org.jetbrains.kotlin.fir.scopes.*
 import org.jetbrains.kotlin.fir.scopes.impl.FirTypeIntersectionScopeContext.ResultOfIntersection
@@ -44,16 +46,14 @@ class FirTypeIntersectionScopeContext(
 
     sealed class ResultOfIntersection<D : FirCallableSymbol<*>>(
         val overriddenMembers: List<MemberWithBaseScope<D>>,
-        // This member is for debug-purposes only
-        private val containingScope: FirTypeScope?
     ) {
         abstract val chosenSymbol: D
 
         class SingleMember<D : FirCallableSymbol<*>>(
             override val chosenSymbol: D,
             overriddenMembers: List<MemberWithBaseScope<D>>,
-            containingScope: FirTypeScope?
-        ) : ResultOfIntersection<D>(overriddenMembers, containingScope) {
+            val scopeOfChosenSymbol: FirTypeScope,
+        ) : ResultOfIntersection<D>(overriddenMembers) {
             constructor(
                 chosenSymbol: D,
                 overriddenMember: MemberWithBaseScope<D>
@@ -64,9 +64,8 @@ class FirTypeIntersectionScopeContext(
             val context: FirTypeIntersectionScopeContext,
             val mostSpecific: List<MemberWithBaseScope<D>>,
             overriddenMembers: List<MemberWithBaseScope<D>>,
-            containingScope: FirTypeScope?,
             val containsMultipleNonSubsumed: Boolean,
-        ) : ResultOfIntersection<D>(overriddenMembers, containingScope) {
+        ) : ResultOfIntersection<D>(overriddenMembers) {
             override val chosenSymbol: D by lazy {
                 @Suppress("UNCHECKED_CAST")
                 context.intersectionOverrides.getValue(keySymbol, this).member as D
@@ -178,7 +177,6 @@ class FirTypeIntersectionScopeContext(
                 result += ResultOfIntersection.NonTrivial(
                     this, mostSpecific,
                     overriddenMembers = group,
-                    containingScope = null,
                     containsMultipleNonSubsumed = when {
                         forClassUseSiteScope -> group.getNonSubsumedNonPhantomOverriddenSymbols().size > 1
                         else -> mostSpecific.getNonSubsumedNonPhantomOverriddenSymbols().size > 1
@@ -361,6 +359,7 @@ class FirTypeIntersectionScopeContext(
             deferredReturnTypeCalculation = deferredReturnTypeCalculation,
             newReturnType = if (!forClassUseSiteScope && deferredReturnTypeCalculation == null) intersectReturnTypes(mostSpecific) else null,
             newSource = dispatchReceiverType.toSymbol(session)?.source,
+            markAsOverride = true
         ).apply {
             originalForIntersectionOverrideAttr = keyFir
         }
@@ -456,6 +455,8 @@ class FirTypeIntersectionScopeContext(
             }
         createCopy(newSymbol, keyFir, deferredReturnTypeCalculation, newReturnType).apply {
             originalForIntersectionOverrideAttr = keyFir
+            getter?.originalForIntersectionOverrideAttr = keyFir.getter
+            setter?.originalForIntersectionOverrideAttr = keyFir.setter
         }
         return newSymbol
     }

@@ -1102,6 +1102,12 @@ public class FirStandaloneNormalAnalysisSourceModuleIsUsedAsExpressionTestGenera
   }
 
   @Test
+  @TestMetadata("kt72315.kt")
+  public void testKt72315() {
+    runTest("analysis/analysis-api/testData/components/expressionInfoProvider/isUsedAsExpression/kt72315.kt");
+  }
+
+  @Test
   @TestMetadata("labelledReturn.kt")
   public void testLabelledReturn() {
     runTest("analysis/analysis-api/testData/components/expressionInfoProvider/isUsedAsExpression/labelledReturn.kt");
@@ -1381,6 +1387,12 @@ public class FirStandaloneNormalAnalysisSourceModuleIsUsedAsExpressionTestGenera
   @TestMetadata("propertyDecl.kt")
   public void testPropertyDecl() {
     runTest("analysis/analysis-api/testData/components/expressionInfoProvider/isUsedAsExpression/propertyDecl.kt");
+  }
+
+  @Test
+  @TestMetadata("propertyDelegate.kt")
+  public void testPropertyDelegate() {
+    runTest("analysis/analysis-api/testData/components/expressionInfoProvider/isUsedAsExpression/propertyDelegate.kt");
   }
 
   @Test

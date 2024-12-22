@@ -17,6 +17,7 @@ class YarnWorkspaces : YarnBasics() {
         return listOf(
             nodeJs
                 .rootPackageDir
+                .getFile()
                 .resolve(NpmProject.PACKAGE_JSON)
         )
     }
@@ -61,10 +62,9 @@ class YarnWorkspaces : YarnBasics() {
         logger: Logger,
         nodeJs: NodeJsEnvironment,
         packageManagerEnvironment: YarnEnvironment,
-        npmProjects: Collection<PreparedKotlinCompilationNpmResolution>,
         cliArgs: List<String>
     ) {
-        val nodeJsWorldDir = nodeJs.rootPackageDir
+        val nodeJsWorldDir = nodeJs.rootPackageDir.getFile()
 
         yarnExec(
             services,

@@ -116,7 +116,7 @@ internal class BuiltInFictitiousFunctionIrClassFactory(
             if (field != null)
                 error("Module has already been set")
             field = value
-            value.files += filesMap.values
+            filesMap.values.forEach(value::addFile)
 //            builtClasses.forEach { it.addFakeOverrides() }
         }
 
@@ -165,8 +165,6 @@ internal class BuiltInFictitiousFunctionIrClassFactory(
     private val filesMap = mutableMapOf<PackageFragmentDescriptor, IrFile>()
 
     private val builtClassesMap = mutableMapOf<FunctionClassDescriptor, IrClass>()
-
-    val builtClasses get() = builtClassesMap.values
 
     val builtFunctionNClasses get() = builtClassesMap.entries.mapNotNull { (descriptor, irClass) ->
         with(descriptor) {
@@ -250,7 +248,7 @@ internal class BuiltInFictitiousFunctionIrClassFactory(
                         IrSimpleTypeImpl(superTypeSymbol, superType.isMarkedNullable, arguments, emptyList())
                     }
 
-                    createParameterDeclarations()
+                    createThisReceiverParameter()
 
                     val invokeFunctionDescriptor = descriptor.unsubstitutedMemberScope.getContributedFunctions(
                             OperatorNameConventions.INVOKE, NoLookupLocation.FROM_BACKEND).single()
@@ -262,24 +260,8 @@ internal class BuiltInFictitiousFunctionIrClassFactory(
                                 isFakeOverride
                         ).apply {
                             parent = functionClass
-                            valueParameters += invokeFunctionDescriptor.valueParameters.map {
-                                symbolTable.irFactory.createValueParameter(
-                                        startOffset = SYNTHETIC_OFFSET,
-                                        endOffset = SYNTHETIC_OFFSET,
-                                        origin = DECLARATION_ORIGIN_FUNCTION_CLASS,
-                                        name = it.name,
-                                        type = functionClass.typeParameters[it.index].defaultType,
-                                        isAssignable = false,
-                                        symbol = IrValueParameterSymbolImpl(it),
-                                        index = it.index,
-                                        varargElementType = null,
-                                        isCrossinline = it.isCrossinline,
-                                        isNoinline = it.isNoinline,
-                                        isHidden = false,
-                                ).also { it.parent = this }
-                            }
                             if (!isFakeOverride)
-                                createDispatchReceiverParameter(DECLARATION_ORIGIN_FUNCTION_CLASS)
+                                parameters += createDispatchReceiverParameterWithClassParent(DECLARATION_ORIGIN_FUNCTION_CLASS)
                             else {
                                 val overriddenFunction = superTypes
                                         .mapNotNull { it.classOrNull?.owner }
@@ -287,7 +269,25 @@ internal class BuiltInFictitiousFunctionIrClassFactory(
                                         .simpleFunctions()
                                         .single { it.name == OperatorNameConventions.INVOKE }
                                 overriddenSymbols += overriddenFunction.symbol
-                                dispatchReceiverParameter = overriddenFunction.dispatchReceiverParameter?.copyTo(this)
+                                val dispatchReceiver = overriddenFunction.dispatchReceiverParameter?.copyTo(this)
+                                if (dispatchReceiver != null) parameters += dispatchReceiver
+                            }
+
+                            parameters += invokeFunctionDescriptor.valueParameters.map {
+                                symbolTable.irFactory.createValueParameter(
+                                        startOffset = SYNTHETIC_OFFSET,
+                                        endOffset = SYNTHETIC_OFFSET,
+                                        origin = DECLARATION_ORIGIN_FUNCTION_CLASS,
+                                        name = it.name,
+                                        kind = IrParameterKind.Regular,
+                                        type = functionClass.typeParameters[it.index].defaultType,
+                                        isAssignable = false,
+                                        symbol = IrValueParameterSymbolImpl(it),
+                                        varargElementType = null,
+                                        isCrossinline = it.isCrossinline,
+                                        isNoinline = it.isNoinline,
+                                        isHidden = false,
+                                ).also { it.parent = this }
                             }
                         }
                     }
@@ -299,7 +299,7 @@ internal class BuiltInFictitiousFunctionIrClassFactory(
                     val packageFragmentDescriptor = descriptor.findPackage()
                     val file = filesMap.getOrPut(packageFragmentDescriptor) {
                         IrFileImpl(NaiveSourceBasedFileEntryImpl("[K][Suspend]Functions"), packageFragmentDescriptor).also {
-                            this@BuiltInFictitiousFunctionIrClassFactory.module?.files?.add(it)
+                            this@BuiltInFictitiousFunctionIrClassFactory.module?.addFile(it)
                         }
                     }
                     parent = file
@@ -330,7 +330,6 @@ internal class BuiltInFictitiousFunctionIrClassFactory(
                 type = toIrType(descriptor.type),
                 isAssignable = false,
                 symbol = IrValueParameterSymbolImpl(descriptor),
-                index = descriptor.indexOrMinusOne,
                 varargElementType = varargType?.let { toIrType(it) },
                 isCrossinline = descriptor.isCrossinline,
                 isNoinline = descriptor.isNoinline,

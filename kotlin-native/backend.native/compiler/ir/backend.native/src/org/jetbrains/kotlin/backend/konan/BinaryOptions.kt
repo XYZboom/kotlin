@@ -39,11 +39,15 @@ object BinaryOptions : BinaryOptionRegistry() {
 
     val objcExportErrorOnNameCollisions by booleanOption()
 
+    val objcExportEntryPointsPath by stringOption()
+
     val gc by option<GC>(shortcut = { it.shortcut })
 
     val gcSchedulerType by option<GCSchedulerType>(hideValue = { it.deprecatedWithReplacement != null })
 
     val gcMarkSingleThreaded by booleanOption()
+
+    val fixedBlockPageSize by uintOption()
 
     val concurrentWeakSweep by booleanOption()
 
@@ -53,7 +57,7 @@ object BinaryOptions : BinaryOptionRegistry() {
 
     val auxGCThreads by uintOption()
 
-    val linkRuntime by option<RuntimeLinkageStrategyBinaryOption>()
+    val linkRuntime by option<RuntimeLinkageStrategy>()
 
     val bundleId by stringOption()
     val bundleShortVersionString by stringOption()
@@ -75,8 +79,6 @@ object BinaryOptions : BinaryOptionRegistry() {
 
     val disableMmap by booleanOption()
 
-    val disableAllocatorOverheadEstimate by booleanOption()
-
     val enableSafepointSignposts by booleanOption()
 
     val packFields by booleanOption()
@@ -84,6 +86,18 @@ object BinaryOptions : BinaryOptionRegistry() {
     val cInterfaceMode by option<CInterfaceGenerationMode>()
 
     val globalDataLazyInit by booleanOption()
+
+    val swiftExport by booleanOption()
+
+    val genericSafeCasts by booleanOption()
+
+    val smallBinary by booleanOption()
+
+    val preCodegenInlineThreshold by uintOption()
+
+    val enableDebugTransparentStepping by booleanOption()
+
+    val debugCompilationDir by stringOption()
 }
 
 open class BinaryOption<T : Any>(

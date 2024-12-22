@@ -5,15 +5,21 @@
 
 package org.jetbrains.kotlin.fir.tree.generator
 
-import org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.declaration
+import org.jetbrains.kotlin.fir.tree.generator.FirTree.declaration
 import org.jetbrains.kotlin.fir.tree.generator.context.AbstractFirTreeImplementationConfigurator
 import org.jetbrains.kotlin.fir.tree.generator.model.Element
+import org.jetbrains.kotlin.fir.tree.generator.model.Field
+import org.jetbrains.kotlin.fir.tree.generator.model.Implementation
 import org.jetbrains.kotlin.generators.tree.ImplementationKind.Object
 import org.jetbrains.kotlin.generators.tree.ImplementationKind.OpenClass
+import org.jetbrains.kotlin.generators.tree.config.AbstractImplementationConfigurator
 
 object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() {
 
-    override fun configure(model: Model) = with(FirTreeBuilder) {
+    override fun configure(model: Model) = with(FirTree) {
+
+        impl(receiverParameter)
+
         impl(constructor) {
             defaultFalse("isPrimary", withGetter = true)
         }
@@ -113,7 +119,14 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
                 value = "!isThis"
                 withGetter = true
             }
-            additionalImports(explicitThisReferenceType, explicitSuperReferenceType)
+            default("coneTypeOrNull") {
+                value = "ConeClassLikeTypeImpl(StandardClassIds.Unit.toLookupTag(), typeArguments = emptyArray(), isMarkedNullable = false)"
+                isMutable = false
+            }
+            additionalImports(
+                explicitThisReferenceType, explicitSuperReferenceType, coneClassLikeTypeImplType,
+                standardClassIdsType, toSymbolUtilityFunction
+            )
         }
 
         impl(multiDelegatedConstructorCall) {
@@ -129,8 +142,8 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
                 value = "delegatedConstructorCalls.last().argumentList"
                 withGetter = true
             }
-            default("contextReceiverArguments") {
-                value = "delegatedConstructorCalls.last().contextReceiverArguments"
+            default("contextArguments") {
+                value = "delegatedConstructorCalls.last().contextArguments"
                 withGetter = true
             }
             default("constructedTypeRef") {
@@ -153,6 +166,10 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
                 value = "!isThis"
                 withGetter = true
             }
+            default("coneTypeOrNull") {
+                value = "delegatedConstructorCalls.last().coneTypeOrNull"
+                withGetter = true
+            }
             publicImplementation()
         }
 
@@ -170,7 +187,7 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
                 value = error
                 withGetter = true
             }
-            default("contextReceiverArguments") {
+            default("contextArguments") {
                 value = error
                 withGetter = true
             }
@@ -303,13 +320,18 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
             }
             publicImplementation()
 
-            defaultNull("receiverParameter", "delegate", "getter", "setter", withGetter = true)
+            defaultNull("receiverParameter", "delegate", "getter", "setter", "containerSource", "backingField", withGetter = true)
+            defaultEmptyList("contextParameters", "typeParameters", withGetter = true)
         }
 
         impl(enumEntry) {
             defaultTrue("isVal", withGetter = true)
             defaultFalse("isVar", withGetter = true)
-            defaultNull("receiverParameter", "delegate", "getter", "setter", withGetter = true)
+            defaultNull(
+                "receiverParameter", "delegate", "getter", "setter", "containerSource", "dispatchReceiverType", "backingField",
+                withGetter = true
+            )
+            defaultEmptyList("contextParameters", "typeParameters", withGetter = true)
         }
 
         impl(namedArgumentExpression) {
@@ -376,7 +398,8 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
         }
 
         impl(thisReceiverExpression) {
-            defaultNoReceivers()
+            defaultNull("explicitReceiver", "dispatchReceiver", "extensionReceiver", withGetter = true)
+            defaultEmptyList("contextArguments", withGetter = true)
         }
 
         impl(expression, "FirUnitExpression") {
@@ -392,15 +415,14 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
         }
 
         impl(anonymousFunction) {
+            defaultNull("containerSource", withGetter = true)
         }
 
         noImpl(anonymousFunctionExpression)
 
         impl(propertyAccessor) {
-            default("receiverParameter") {
-                value = "null"
-                withGetter = true
-            }
+            defaultNull("receiverParameter", "containerSource", withGetter = true)
+            defaultEmptyList("contextParameters", "typeParameters", withGetter = true)
             default("isSetter") {
                 value = "!isGetter"
                 withGetter = true
@@ -411,6 +433,15 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
 
         impl(backingField) {
             kind = OpenClass
+            defaultNull(
+                "receiverParameter", "delegate", "getter", "setter", "backingField", "dispatchReceiverType", "containerSource",
+                withGetter = true
+            )
+
+            defaultEmptyList(
+                "contextParameters", "typeParameters",
+                withGetter = true
+            )
         }
 
         impl(whenSubjectExpression) {
@@ -424,6 +455,10 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
 
         impl(desugaredAssignmentValueReferenceExpression) {
             additionalImports(expression)
+            default("coneTypeOrNull") {
+                value = "expressionRef.value.coneTypeOrNull"
+                withGetter = true
+            }
         }
 
         impl(wrappedDelegateExpression) {
@@ -435,7 +470,7 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
         impl(enumEntryDeserializedAccessExpression) {
             noSource()
             default("coneTypeOrNull") {
-                value = "enumClassId.toLookupTag().constructClassType(emptyArray(), false)"
+                value = "enumClassId.toLookupTag().constructClassType()"
                 additionalImports(toLookupTagImport, constructClassTypeImport)
             }
         }
@@ -551,14 +586,26 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
             additionalImports(implicitNothingTypeRefType)
         }
 
-        impl(valueParameter) {
+        fun AbstractImplementationConfigurator<Implementation, Element, Field>.ImplementationContext.configureCommonValueParameter() {
             defaultTrue("isVal", withGetter = true)
             defaultFalse("isVar", withGetter = true)
-            defaultNull("getter", "setter", "initializer", "delegate", "receiverParameter", withGetter = true)
+            defaultNull(
+                "getter", "setter", "initializer", "delegate", "receiverParameter", "dispatchReceiverType", "backingField", "containerSource",
+                withGetter = true
+            )
+            defaultEmptyList("contextParameters", withGetter = true)
+        }
+
+        impl(valueParameter) {
+            configureCommonValueParameter()
         }
 
         impl(valueParameter, "FirDefaultSetterValueParameter") {
+            configureCommonValueParameter()
             default("name", "Name.identifier(\"value\")")
+            defaultNull("defaultValue", "initializer", "delegate", withGetter = true)
+            defaultFalse("isCrossinline", "isNoinline", "isVararg", "isVar", withGetter = true)
+            default("valueParameterKind", "FirValueParameterKind.Regular", withGetter = true)
         }
 
         impl(simpleFunction)
@@ -650,7 +697,6 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
             "FirCheckedSafeCallSubjectImpl",
             "FirArrayLiteralImpl",
             "FirIntegerLiteralOperatorCallImpl",
-            "FirContextReceiverImpl",
             "FirReceiverParameterImpl",
             "FirClassReferenceExpressionImpl",
             "FirGetClassCallImpl",

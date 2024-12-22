@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.fir.analysis.checkers.getContainingClassSymbol
 import org.jetbrains.kotlin.fir.analysis.checkers.modality
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.*
+import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.*
@@ -37,13 +38,19 @@ private inline fun isInsideSpecificClass(
             context.containingDeclarations.asReversed().any { it is FirRegularClass && predicate.invoke(it) }
 }
 
-internal fun FirMemberDeclaration.isEffectivelyFinal(context: CheckerContext): Boolean =
-    this.symbol.isEffectivelyFinal(context.session)
+/**
+ * The containing symbol is resolved using the declaration-site session.
+ */
+internal fun FirMemberDeclaration.isEffectivelyFinal(): Boolean =
+    this.symbol.isEffectivelyFinal()
 
-internal fun FirBasedSymbol<*>.isEffectivelyFinal(session: FirSession): Boolean {
+/**
+ * The containing symbol is resolved using the declaration-site session.
+ */
+internal fun FirBasedSymbol<*>.isEffectivelyFinal(): Boolean {
     if (this.isFinal()) return true
 
-    val containingClass = this.getContainingClassSymbol(session) as? FirClassSymbol<*> ?: return true
+    val containingClass = this.getContainingClassSymbol() as? FirClassSymbol<*> ?: return true
 
     if (containingClass.isEnumClass) {
         // Enum class has enum entries and hence is not considered final
@@ -118,7 +125,7 @@ fun FirClassSymbol<*>.primaryConstructorSymbol(session: FirSession): FirConstruc
 fun FirTypeRef.needsMultiFieldValueClassFlattening(session: FirSession): Boolean = coneType.needsMultiFieldValueClassFlattening(session)
 
 fun ConeKotlinType.needsMultiFieldValueClassFlattening(session: FirSession) = with(session.typeContext) {
-    typeConstructor().isMultiFieldValueClass() && !isNullable
+    typeConstructor().isMultiFieldValueClass() && !fullyExpandedType(session).isMarkedNullable
 }
 
 val FirCallableSymbol<*>.hasExplicitReturnType: Boolean
@@ -126,3 +133,16 @@ val FirCallableSymbol<*>.hasExplicitReturnType: Boolean
         val returnTypeRef = resolvedReturnTypeRef
         return returnTypeRef.delegatedTypeRef != null || returnTypeRef is FirImplicitUnitTypeRef
     }
+
+fun FirNamedFunctionSymbol.checkValueParameterNamesWith(
+    otherFunctionSymbol: FirNamedFunctionSymbol,
+    reportAction: (currentParameter: FirValueParameterSymbol, conflictingParameter: FirValueParameterSymbol, parameterIndex: Int) -> Unit
+) {
+    val valueParameterPairs = valueParameterSymbols.zip(otherFunctionSymbol.valueParameterSymbols)
+    for ((index, valueParameterPair) in valueParameterPairs.withIndex()) {
+        val (currentValueParameter, otherValueParameter) = valueParameterPair
+        if (currentValueParameter.name != otherValueParameter.name) {
+            reportAction(currentValueParameter, otherValueParameter, index)
+        }
+    }
+}

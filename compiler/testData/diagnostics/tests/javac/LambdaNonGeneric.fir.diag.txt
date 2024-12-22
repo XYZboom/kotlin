@@ -1,23 +1,41 @@
-/m3.kt:(73,74): warning: Class 'Some' of the parameter '_' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+/m3.kt:(69,72): warning: Cannot access class 'Some' in the expression type. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
 
-/m3.kt:(93,97): warning: Class 'Some' of the parameter 'some' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+/m3.kt:(75,76): warning: Class 'Some' of the parameter '_' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
 
-/m3.kt:(118,122): warning: Class 'Some' of the parameter 'some' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+/m3.kt:(89,92): warning: Cannot access class 'Some' in the expression type. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
 
-/m3.kt:(129,133): error: Cannot access class 'Some'. Check your module classpath for missing or conflicting dependencies.
+/m3.kt:(95,99): warning: Class 'Some' of the parameter 'some' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
 
-/m3.kt:(163,167): error: Unresolved reference 'Some'.
+/m3.kt:(114,117): warning: Cannot access class 'Some' in the expression type. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
 
-/m3.kt:(185,188): warning: Class 'Some' of the parameter 'it' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+/m3.kt:(120,124): warning: Class 'Some' of the parameter 'some' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
 
-/m3.kt:(199,200): warning: Class 'Some' of the parameter '_' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+/m3.kt:(131,135): error: Cannot access class 'Some'. Check your module classpath for missing or conflicting dependencies.
 
-/m3.kt:(216,218): warning: Class 'Some' of the parameter 'it' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+/m3.kt:(153,156): warning: Cannot access class 'Some' in the expression type. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
 
-/m3.kt:(232,249): warning: Class 'Some' of the parameter 'it' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+/m3.kt:(165,169): error: Unresolved reference 'Some'.
 
-/m3.kt:(234,236): error: Cannot access class 'Some'. Check your module classpath for missing or conflicting dependencies.
+/m3.kt:(183,186): warning: Cannot access class 'Some' in the expression type. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
 
-/m3.kt:(260,264): warning: Class 'Some' of the parameter 'some' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+/m3.kt:(187,190): warning: Class 'Some' of the parameter 'it' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
 
-/m3.kt:(268,272): error: Cannot access class 'Some'. Check your module classpath for missing or conflicting dependencies.
+/m3.kt:(195,198): warning: Cannot access class 'Some' in the expression type. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+
+/m3.kt:(201,202): warning: Class 'Some' of the parameter '_' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+
+/m3.kt:(212,215): warning: Cannot access class 'Some' in the expression type. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+
+/m3.kt:(218,220): warning: Class 'Some' of the parameter 'it' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+
+/m3.kt:(230,233): warning: Cannot access class 'Some' in the expression type. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+
+/m3.kt:(234,251): warning: Class 'Some' of the parameter 'it' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+
+/m3.kt:(236,238): error: Cannot access class 'Some'. Check your module classpath for missing or conflicting dependencies.
+
+/m3.kt:(256,259): warning: Cannot access class 'Some' in the expression type. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+
+/m3.kt:(262,266): warning: Class 'Some' of the parameter 'some' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.
+
+/m3.kt:(270,274): error: Cannot access class 'Some'. Check your module classpath for missing or conflicting dependencies.

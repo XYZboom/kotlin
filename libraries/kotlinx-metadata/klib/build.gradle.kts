@@ -1,5 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 description = "Kotlin Library (KLIB) metadata manipulation library"
 
 plugins {
@@ -14,6 +12,7 @@ version = deployVersion ?: "0.0.1-SNAPSHOT"
 
 sourceSets {
     "main" { projectDefault() }
+    "test" { projectDefault() }
 }
 
 val embedded by configurations
@@ -25,7 +24,6 @@ dependencies {
     api(kotlinStdlib())
     embedded(project(":kotlin-metadata"))
     embedded(project(":core:compiler.common"))
-    embedded(project(":core:metadata"))
     embedded(project(":core:deserialization"))
     embedded(project(":core:deserialization.common"))
     embedded(project(":compiler:serialization"))
@@ -33,6 +31,8 @@ dependencies {
     embedded(project(":kotlin-util-klib"))
     embedded(project(":kotlin-util-io"))
     embedded(protobufLite())
+    testImplementation(kotlinTest("junit"))
+    testImplementation(libs.junit4)
 }
 
 if (deployVersion != null) {

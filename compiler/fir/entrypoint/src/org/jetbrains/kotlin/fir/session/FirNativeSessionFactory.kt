@@ -21,13 +21,16 @@ import org.jetbrains.kotlin.fir.scopes.FirDefaultImportProviderHolder
 import org.jetbrains.kotlin.fir.scopes.FirKotlinScopeProvider
 import org.jetbrains.kotlin.fir.scopes.FirOverrideChecker
 import org.jetbrains.kotlin.fir.scopes.FirPlatformClassMapper
-import org.jetbrains.kotlin.fir.session.FirSessionFactoryHelper.registerDefaultComponents
 import org.jetbrains.kotlin.library.metadata.impl.KlibResolvedModuleDescriptorsFactoryImpl.Companion.FORWARD_DECLARATIONS_MODULE_NAME
 import org.jetbrains.kotlin.library.metadata.resolver.KotlinResolvedLibrary
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.konan.platform.NativePlatformAnalyzerServices
 
-object FirNativeSessionFactory : FirAbstractSessionFactory() {
+@OptIn(SessionConfiguration::class)
+object FirNativeSessionFactory : FirAbstractSessionFactory<Nothing?, Nothing?>() {
+
+    // ==================================== Library session ====================================
+
     fun createLibrarySession(
         mainModuleName: Name,
         resolvedLibraries: List<KotlinResolvedLibrary>,
@@ -35,20 +38,14 @@ object FirNativeSessionFactory : FirAbstractSessionFactory() {
         moduleDataProvider: ModuleDataProvider,
         extensionRegistrars: List<FirExtensionRegistrar>,
         languageVersionSettings: LanguageVersionSettings,
-        registerExtraComponents: ((FirSession) -> Unit) = {},
     ): FirSession {
         return createLibrarySession(
             mainModuleName,
+            context = null,
             sessionProvider,
             moduleDataProvider,
             languageVersionSettings,
             extensionRegistrars,
-            registerExtraComponents = { session ->
-                session.registerDefaultComponents()
-                session.registerNativeComponents()
-                registerExtraComponents(session)
-            },
-            createKotlinScopeProvider = { FirKotlinScopeProvider() },
             createProviders = { session, builtinsModuleData, kotlinScopeProvider, syntheticFunctionInterfaceProvider ->
                 val forwardDeclarationsModuleData = BinaryModuleData.createDependencyModuleData(
                     FORWARD_DECLARATIONS_MODULE_NAME,
@@ -66,30 +63,33 @@ object FirNativeSessionFactory : FirAbstractSessionFactory() {
             })
     }
 
+    override fun createKotlinScopeProviderForLibrarySession(): FirKotlinScopeProvider {
+        return FirKotlinScopeProvider()
+    }
+
+    override fun FirSession.registerLibrarySessionComponents(c: Nothing?) {
+        registerComponents()
+    }
+
+    // ==================================== Platform session ====================================
+
     fun createModuleBasedSession(
         moduleData: FirModuleData,
         sessionProvider: FirProjectSessionProvider,
         extensionRegistrars: List<FirExtensionRegistrar>,
         languageVersionSettings: LanguageVersionSettings,
         init: FirSessionConfigurator.() -> Unit,
-        registerExtraComponents: ((FirSession) -> Unit) = {},
     ): FirSession {
         return createModuleBasedSession(
             moduleData,
+            context = null,
             sessionProvider,
             extensionRegistrars,
             languageVersionSettings,
-            null,
-            null,
-            null,
+            lookupTracker = null,
+            enumWhenTracker = null,
+            importTracker = null,
             init,
-            registerExtraComponents = {
-                it.registerDefaultComponents()
-                it.registerNativeComponents()
-                registerExtraComponents(it)
-            },
-            registerExtraCheckers = { it.registerNativeCheckers() },
-            createKotlinScopeProvider = { FirKotlinScopeProvider() },
             createProviders = { _, _, symbolProvider, generatedSymbolsProvider, dependencies ->
                 listOfNotNull(
                     symbolProvider,
@@ -100,7 +100,30 @@ object FirNativeSessionFactory : FirAbstractSessionFactory() {
         )
     }
 
-    @OptIn(SessionConfiguration::class)
+    override fun createKotlinScopeProviderForSourceSession(
+        moduleData: FirModuleData,
+        languageVersionSettings: LanguageVersionSettings,
+    ): FirKotlinScopeProvider {
+        return FirKotlinScopeProvider()
+    }
+
+    override fun FirSessionConfigurator.registerPlatformCheckers(c: Nothing?) {
+        registerNativeCheckers()
+    }
+
+    override fun FirSession.registerSourceSessionComponents(c: Nothing?) {
+        registerComponents()
+    }
+
+    // ==================================== Common parts ====================================
+
+    private fun FirSession.registerComponents() {
+        registerDefaultComponents()
+        registerNativeComponents()
+    }
+
+    // ==================================== Utilities ====================================
+
     fun FirSession.registerNativeComponents() {
         register(FirPlatformClassMapper::class, FirNativeClassMapper())
         register(FirPlatformSpecificCastChecker::class, FirNativeCastChecker)

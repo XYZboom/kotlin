@@ -13,7 +13,8 @@ import org.jetbrains.kotlin.test.services.JUnit5Assertions.fail
 internal enum class ProcessLevelProperty(shortName: String) {
     KOTLIN_NATIVE_HOME("nativeHome"),
     COMPILER_CLASSPATH("compilerClasspath"),
-    TEAMCITY("teamcity");
+    TEAMCITY("teamcity"),
+    LATEST_RELEASED_COMPILER_PATH("latestReleasedCompilerPath");
 
     private val propertyName = fullPropertyName(shortName)
 
@@ -24,7 +25,7 @@ internal enum class ProcessLevelProperty(shortName: String) {
 
 @Repeatable
 @Target(AnnotationTarget.CLASS)
-internal annotation class EnforcedProperty(val property: ClassLevelProperty, val propertyValue: String)
+annotation class EnforcedProperty(val property: ClassLevelProperty, val propertyValue: String)
 
 @Target(AnnotationTarget.CLASS)
 internal annotation class EnforcedHostTarget
@@ -32,7 +33,7 @@ internal annotation class EnforcedHostTarget
 @Target(AnnotationTarget.CLASS)
 internal annotation class AcceptablePropertyValues(val property: ClassLevelProperty, val acceptableValues: Array<String>)
 
-internal class EnforcedProperties(testClass: Class<*>) {
+class EnforcedProperties(testClass: Class<*>) {
     private val enforcedAnnotations: Map<ClassLevelProperty, String> = buildMap {
         testClass.getAnnotationsByType(EnforcedProperty::class.java).forEach {
             this[it.property] = it.propertyValue
@@ -54,7 +55,7 @@ internal class EnforcedProperties(testClass: Class<*>) {
         acceptableAnnotations[propertyType]?.contains(value) ?: true
 }
 
-internal enum class ClassLevelProperty(val shortName: String) {
+enum class ClassLevelProperty(val shortName: String) {
     TEST_TARGET("target"),
     TEST_MODE("mode"),
     COMPILER_PLUGINS("compilerPlugins"),
@@ -74,6 +75,7 @@ internal enum class ClassLevelProperty(val shortName: String) {
     SHARED_TEST_EXECUTION("sharedTestExecution"),
     BINARY_LIBRARY_KIND("binaryLibraryKind"),
     C_INTERFACE_MODE("cInterfaceMode"),
+    XCTEST_FRAMEWORK("xctest"),
     ;
 
     internal val propertyName = fullPropertyName(shortName)

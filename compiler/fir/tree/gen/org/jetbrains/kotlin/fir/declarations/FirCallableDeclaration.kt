@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.fir.visitors.FirVisitor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedContainerSource
 
 /**
- * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.callableDeclaration]
+ * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTree.callableDeclaration]
  */
 sealed class FirCallableDeclaration : FirMemberDeclaration() {
     abstract override val source: KtSourceElement?
@@ -36,7 +36,7 @@ sealed class FirCallableDeclaration : FirMemberDeclaration() {
     abstract override val symbol: FirCallableSymbol<FirCallableDeclaration>
     abstract val containerSource: DeserializedContainerSource?
     abstract val dispatchReceiverType: ConeSimpleKotlinType?
-    abstract val contextReceivers: List<FirContextReceiver>
+    abstract val contextParameters: List<FirValueParameter>
 
     override fun <R, D> accept(visitor: FirVisitor<R, D>, data: D): R =
         visitor.visitCallableDeclaration(this, data)
@@ -55,7 +55,7 @@ sealed class FirCallableDeclaration : FirMemberDeclaration() {
 
     abstract fun replaceDeprecationsProvider(newDeprecationsProvider: DeprecationsProvider)
 
-    abstract fun replaceContextReceivers(newContextReceivers: List<FirContextReceiver>)
+    abstract fun replaceContextParameters(newContextParameters: List<FirValueParameter>)
 
     abstract override fun <D> transformAnnotations(transformer: FirTransformer<D>, data: D): FirCallableDeclaration
 
@@ -66,4 +66,6 @@ sealed class FirCallableDeclaration : FirMemberDeclaration() {
     abstract fun <D> transformReturnTypeRef(transformer: FirTransformer<D>, data: D): FirCallableDeclaration
 
     abstract fun <D> transformReceiverParameter(transformer: FirTransformer<D>, data: D): FirCallableDeclaration
+
+    abstract fun <D> transformContextParameters(transformer: FirTransformer<D>, data: D): FirCallableDeclaration
 }

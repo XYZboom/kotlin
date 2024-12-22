@@ -24,7 +24,9 @@ import org.jetbrains.kotlin.fir.references.FirThisReference
 import org.jetbrains.kotlin.fir.resolve.dfa.cfg.*
 import org.jetbrains.kotlin.fir.resolve.isFunctionOrSuspendFunctionInvoke
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirReceiverParameterSymbol
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.isSomeFunctionType
 import org.jetbrains.kotlin.fir.util.SetMultimap
@@ -66,14 +68,22 @@ object FirCallsEffectAnalyzer : FirControlFlowChecker(MppCheckerKind.Common) {
         for ((symbol, firEffect) in argumentsCalledInPlace) {
             val requiredRange = (firEffect.effect as ConeCallsEffectDeclaration).kind
             val foundRange = invocationData.getValue(graph.exitNode)[NormalPath]?.get(symbol)?.withoutMarker ?: EventOccurrencesRange.ZERO
+            val coercedFoundRange = foundRange.coerceToInvocationKind()
             if (foundRange !in requiredRange) {
-                reporter.reportOn(firEffect.source, FirErrors.WRONG_INVOCATION_KIND, symbol, requiredRange, foundRange, context)
+                reporter.reportOn(firEffect.source, FirErrors.WRONG_INVOCATION_KIND, symbol, requiredRange, coercedFoundRange, context)
             }
         }
     }
 
-    private fun ControlFlowGraph.findNonInPlaceUsesOf(lambdaSymbols: Set<FirBasedSymbol<*>>): SetMultimap<FirBasedSymbol<*>, FirExpression> {
-        val result = setMultimapOf<FirBasedSymbol<*>, FirExpression>()
+    // This maps `EventOccurrencesRange` to `InvocationKind`, as the latter has fewer and different kinds.
+    private fun EventOccurrencesRange.coerceToInvocationKind(): EventOccurrencesRange = when (this) {
+        EventOccurrencesRange.ZERO -> EventOccurrencesRange.AT_MOST_ONCE
+        EventOccurrencesRange.MORE_THAN_ONCE -> EventOccurrencesRange.AT_LEAST_ONCE
+        else -> this
+    }
+
+    private fun ControlFlowGraph.findNonInPlaceUsesOf(lambdaSymbols: Set<FirCallableSymbol<*>>): SetMultimap<FirCallableSymbol<*>, FirExpression> {
+        val result = setMultimapOf<FirCallableSymbol<*>, FirExpression>()
 
         fun FirExpression.mark() {
             val symbol = qualifiedAccessSymbol() ?: return
@@ -94,7 +104,7 @@ object FirCallsEffectAnalyzer : FirControlFlowChecker(MppCheckerKind.Common) {
                     is VariableAssignmentNode -> {
                         node.fir.rValue.mark()
                     }
-                    is FunctionCallNode -> {
+                    is FunctionCallExitNode -> {
                         node.fir.forEachArgument { arg, range ->
                             if (!isValidScope || range == null) {
                                 arg.mark()
@@ -115,10 +125,10 @@ object FirCallsEffectAnalyzer : FirControlFlowChecker(MppCheckerKind.Common) {
     }
 
     private class InvocationDataCollector(
-        val lambdaSymbols: Set<FirBasedSymbol<*>>
+        val lambdaSymbols: Set<FirCallableSymbol<*>>
     ) : EventCollectingControlFlowGraphVisitor<LambdaInvocationEvent>() {
-        override fun visitFunctionCallNode(
-            node: FunctionCallNode,
+        override fun visitFunctionCallExitNode(
+            node: FunctionCallExitNode,
             data: PathAwareLambdaInvocationInfo
         ): PathAwareLambdaInvocationInfo {
             var dataForNode = visitNode(node, data)
@@ -150,10 +160,10 @@ object FirCallsEffectAnalyzer : FirControlFlowChecker(MppCheckerKind.Common) {
         }
     }
 
-    private fun FirExpression.qualifiedAccessSymbol(): FirBasedSymbol<*>? =
+    private fun FirExpression.qualifiedAccessSymbol(): FirCallableSymbol<*>? =
         when (val callee = (unwrapArgument() as? FirQualifiedAccessExpression)?.calleeReference) {
-            is FirResolvedNamedReference -> callee.resolvedSymbol
-            is FirThisReference -> callee.boundSymbol
+            is FirResolvedNamedReference -> callee.resolvedSymbol as? FirCallableSymbol
+            is FirThisReference -> (callee.boundSymbol as? FirReceiverParameterSymbol)?.containingDeclarationSymbol as? FirCallableSymbol
             else -> null
         }
 }

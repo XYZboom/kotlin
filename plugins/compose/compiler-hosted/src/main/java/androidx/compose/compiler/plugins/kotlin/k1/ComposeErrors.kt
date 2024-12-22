@@ -20,13 +20,8 @@ import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
-import org.jetbrains.kotlin.diagnostics.DiagnosticFactory0
-import org.jetbrains.kotlin.diagnostics.DiagnosticFactory1
-import org.jetbrains.kotlin.diagnostics.DiagnosticFactory2
-import org.jetbrains.kotlin.diagnostics.DiagnosticFactory3
-import org.jetbrains.kotlin.diagnostics.Errors
+import org.jetbrains.kotlin.diagnostics.*
 import org.jetbrains.kotlin.diagnostics.PositioningStrategies.DECLARATION_SIGNATURE_OR_DEFAULT
-import org.jetbrains.kotlin.diagnostics.Severity
 import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.types.KotlinType
@@ -90,19 +85,13 @@ object ComposeErrors {
         )
 
     @JvmField
-    val CALLED_IN_INCORRECT_CONTEXT =
-        DiagnosticFactory1.create<PsiElement, String>(
-            Severity.ERROR
-        )
-
-    @JvmField
     val MISSING_DISALLOW_COMPOSABLE_CALLS_ANNOTATION =
         DiagnosticFactory3.create<
-            PsiElement,
-            ValueParameterDescriptor, // unmarked
-            ValueParameterDescriptor, // marked
-            CallableDescriptor
-            >(
+                PsiElement,
+                ValueParameterDescriptor, // unmarked
+                ValueParameterDescriptor, // marked
+                CallableDescriptor
+                >(
             Severity.ERROR
         )
 

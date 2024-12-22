@@ -1,21 +1,23 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // DIAGNOSTICS: -UNUSED_PARAMETER
 // MODULE: m1-common
 // FILE: common.kt
 
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect open class Container {
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> open class Container {
     fun publicFun()
 
     internal fun internalFun1()
     internal fun internalFun2()
-    <!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>internal fun internalFun3()<!>
+    internal fun <!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>internalFun3<!>()
 
     protected fun protectedFun1()
     protected fun protectedFun2()
-    <!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>protected fun protectedFun3()<!>
+    protected fun <!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>protectedFun3<!>()
 
-    <!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>open internal fun openInternalFun()<!>
-    <!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>open fun openPublicFun()<!>
-}<!>
+    open internal fun <!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>openInternalFun<!>()
+    open fun <!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>openPublicFun<!>()
+}
 
 // MODULE: m2-jvm()()(m1-common)
 

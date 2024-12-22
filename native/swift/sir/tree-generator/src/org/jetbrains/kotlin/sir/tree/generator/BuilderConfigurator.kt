@@ -8,7 +8,7 @@ package org.jetbrains.kotlin.sir.tree.generator
 import org.jetbrains.kotlin.sir.tree.generator.config.AbstractSwiftIrTreeBuilderConfigurator
 import org.jetbrains.kotlin.sir.tree.generator.model.Element
 
-class BuilderConfigurator(elements: List<Element>) : AbstractSwiftIrTreeBuilderConfigurator(elements) {
+class BuilderConfigurator(model: Model) : AbstractSwiftIrTreeBuilderConfigurator(model) {
 
     override fun configureBuilders() = with(SwiftIrTree) {
         configureAllLeafBuilders {
@@ -21,6 +21,30 @@ class BuilderConfigurator(elements: List<Element>) : AbstractSwiftIrTreeBuilderC
 
         configureFieldInAllLeafBuilders("visibility") {
             default(it, "SirVisibility.PUBLIC")
+        }
+
+        configureFieldInAllLeafBuilders("isOverride") {
+            default(it, "false")
+        }
+
+        configureFieldInAllLeafBuilders("isInstance") {
+            default(it, "true")
+        }
+
+        configureFieldInAllLeafBuilders("modality") {
+            default(it, "SirModality.UNSPECIFIED")
+        }
+
+        configureFieldInAllLeafBuilders("isConvenience") {
+            default(it, "false")
+        }
+
+        configureFieldInAllLeafBuilders("isRequired") {
+            default(it, "false")
+        }
+
+        configureFieldInAllLeafBuilders("errorType") {
+            default(it, "SirType.never")
         }
 
         builder(setter) {

@@ -3,27 +3,34 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
+@file:OptIn(KaExperimentalApi::class)
+
 package org.jetbrains.kotlin.swiftexport.standalone
 
 import org.intellij.lang.annotations.Language
-import org.jetbrains.kotlin.analysis.api.KtAnalysisApiInternals
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.lifetime.KtLifetimeTokenProvider
-import org.jetbrains.kotlin.analysis.api.standalone.KtAlwaysAccessibleLifetimeTokenProvider
 import org.jetbrains.kotlin.analysis.api.standalone.buildStandaloneAnalysisAPISession
-import org.jetbrains.kotlin.analysis.api.symbols.KtFunctionSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.markers.KtNamedSymbol
-import org.jetbrains.kotlin.analysis.project.structure.KtLibraryModule
+import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.markers.KaNamedSymbol
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaLibraryModule
 import org.jetbrains.kotlin.analysis.project.structure.builder.buildKtLibraryModule
+import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.konan.test.blackbox.AbstractNativeSimpleTest
+import org.jetbrains.kotlin.konan.test.blackbox.support.compilation.callCompilerWithoutOutputInterceptor
 import org.jetbrains.kotlin.konan.test.blackbox.support.settings.KotlinNativeClassLoader
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.native.analysis.api.getAllLibraryModules
 import org.jetbrains.kotlin.platform.konan.NativePlatforms
 import org.jetbrains.kotlin.swiftexport.standalone.klib.KlibScope
+import org.jetbrains.kotlin.test.util.KtTestUtil
 import org.junit.jupiter.api.Test
+import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.extension
 import kotlin.io.path.writeText
+import kotlin.streams.asSequence
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -37,8 +44,8 @@ class KlibScopeTests : AbstractNativeSimpleTest() {
                 fun foo() {}
             """.trimIndent()
         ) {
-            val symbol = getAllSymbols().single()
-            assertTrue(symbol is KtFunctionSymbol)
+            val symbol = declarations.single()
+            assertTrue(symbol is KaNamedFunctionSymbol)
             assertEquals("foo", symbol.name.asString())
         }
     }
@@ -46,7 +53,7 @@ class KlibScopeTests : AbstractNativeSimpleTest() {
     @Test
     fun `smoke empty file`() {
         withKlibScope(source = "") {
-            val symbols = getAllSymbols()
+            val symbols = declarations
             val classifiersNames = getPossibleClassifierNames()
             val callableNames = getPossibleCallableNames()
             assertTrue(symbols.toList().isEmpty())
@@ -68,8 +75,8 @@ class KlibScopeTests : AbstractNativeSimpleTest() {
     @Test
     fun `callable name filter`() {
         withKlibScope(source = simpleContentWithCollisions) {
-            val symbol = getCallableSymbols { it.asString() == "foo" }.single()
-            assertTrue(symbol is KtFunctionSymbol)
+            val symbol = callables { it.asString() == "foo" }.single()
+            assertTrue(symbol is KaNamedFunctionSymbol)
             assertEquals("foo", symbol.name.asString())
         }
     }
@@ -77,8 +84,8 @@ class KlibScopeTests : AbstractNativeSimpleTest() {
     @Test
     fun `classifier name filter`() {
         withKlibScope(source = simpleContentWithCollisions) {
-            val symbol = getClassifierSymbols { it.asString() == "foo" }.single()
-            assertTrue(symbol is KtNamedSymbol)
+            val symbol = classifiers { it.asString() == "foo" }.single()
+            assertTrue(symbol is KaNamedSymbol)
             assertEquals("foo", symbol.name.asString())
         }
     }
@@ -106,12 +113,10 @@ class KlibScopeTests : AbstractNativeSimpleTest() {
         return withKlibScope(srcFile, block)
     }
 
-    @OptIn(KtAnalysisApiInternals::class)
     private fun <T> withKlibScope(sources: Path, block: KlibScope.() -> T): T {
         val klib = compileToNativeKLib(sources)
-        lateinit var module: KtLibraryModule
+        lateinit var module: KaLibraryModule
         val session = buildStandaloneAnalysisAPISession {
-            registerProjectService(KtLifetimeTokenProvider::class.java, KtAlwaysAccessibleLifetimeTokenProvider())
             val nativePlatform = NativePlatforms.unspecifiedNativePlatform
             buildKtModuleProvider {
                 platform = nativePlatform
@@ -124,7 +129,28 @@ class KlibScopeTests : AbstractNativeSimpleTest() {
         }
 
         return analyze(session.getAllLibraryModules().single()) {
-            KlibScope(module, this.analysisSession).block()
+            KlibScope(module, useSiteSession).block()
         }
     }
+}
+
+internal fun AbstractNativeSimpleTest.compileToNativeKLib(kLibSourcesRoot: Path): Path {
+    val ktFiles = Files.walk(kLibSourcesRoot).asSequence().filter { it.extension == "kt" }.toList()
+    val testKlib = KtTestUtil.tmpDir("testLibrary").resolve("library.klib").toPath()
+
+    val arguments = buildList {
+        ktFiles.mapTo(this) { it.absolutePathString() }
+        addAll(listOf("-produce", "library"))
+        addAll(listOf("-output", testKlib.absolutePathString()))
+    }
+
+    // Avoid creating excessive number of classloaders
+    val classLoader = testRunSettings.get<KotlinNativeClassLoader>().classLoader
+    val compileResult = callCompilerWithoutOutputInterceptor(arguments.toTypedArray(), classLoader)
+
+    check(compileResult.exitCode == ExitCode.OK) {
+        "Compilation error: $compileResult"
+    }
+
+    return testKlib
 }

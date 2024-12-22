@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -16,10 +16,10 @@ import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.symbols.*
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.types.impl.IrSimpleTypeImpl
-import org.jetbrains.kotlin.ir.types.impl.IrTypeBase
-import org.jetbrains.kotlin.ir.types.impl.IrTypeProjectionImpl
 import org.jetbrains.kotlin.ir.types.impl.makeTypeProjection
 import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.isNullable
+import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.mpp.*
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
@@ -27,6 +27,7 @@ import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.calls.mpp.ExpectActualCollectionArgumentsCompatibilityCheckStrategy
 import org.jetbrains.kotlin.resolve.calls.mpp.ExpectActualMatchingContext
 import org.jetbrains.kotlin.resolve.calls.mpp.ExpectActualMatchingContext.AnnotationCallInfo
+import org.jetbrains.kotlin.resolve.calls.mpp.ExpectActualMatchingContext.Companion.abstractMutableListModCountCallableId
 import org.jetbrains.kotlin.resolve.checkers.OptInNames
 import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualMatchingCompatibility
 import org.jetbrains.kotlin.types.AbstractTypeChecker
@@ -39,11 +40,11 @@ import org.jetbrains.kotlin.utils.addToStdlib.shouldNotBeCalled
 
 internal abstract class IrExpectActualMatchingContext(
     val typeContext: IrTypeSystemContext,
-    val expectToActualClassMap: Map<ClassId, IrClassSymbol>
+    val expectToActualClassMap: ClassActualizationInfo.ActualClassMapping
 ) : ExpectActualMatchingContext<IrSymbol>, TypeSystemContext by typeContext {
-    // This incompatibility is often suppressed in the source code (e.g. in kotlin-stdlib).
-    // The backend must be able to do expect-actual matching to emit bytecode
-    // That's why we disable the checker here. Probably, this checker can be enabled once KT-60426 is fixed
+    // Default params are not checked on backend because backend ignores expect classes in fake override builder.
+    // See https://github.com/JetBrains/kotlin/commit/8d725753f8f8d430101a17bc1049463a6319359b
+    // Default params can't be accurately checked without information about overriddenSymbols of expect classes members
     override val shouldCheckDefaultParams: Boolean
         get() = false
 
@@ -118,9 +119,7 @@ internal abstract class IrExpectActualMatchingContext(
         get() = asIr().isCompanion
     override val RegularClassSymbolMarker.isInner: Boolean
         get() = asIr().isInner
-    override val RegularClassSymbolMarker.isInline: Boolean
-        get() = asIr().isValue
-    override val RegularClassSymbolMarker.isValue: Boolean
+    override val RegularClassSymbolMarker.isInlineOrValue: Boolean
         get() = asIr().isValue
 
     override val RegularClassSymbolMarker.isFun: Boolean
@@ -138,11 +137,18 @@ internal abstract class IrExpectActualMatchingContext(
     override val ClassLikeSymbolMarker.modality: Modality
         get() = processIr(
             onClass = {
-                // For some reason kotlin annotations in IR have open modality and java annotations have final modality
-                // But since it's legal to actualize kotlin annotation class with java annotation class
-                //  and effectively all annotation classes have the same modality, it's ok to always return one
-                //  modality for all annotation classes (doesn't matter final or open)
-                if (it.isAnnotationClass) Modality.OPEN else it.modality
+                when {
+                    // Modality for enum classes is not trivial in IR.
+                    // That's why we need to "normalize" modality for the expect-actual checker
+                    // See FirRegularClass.enumClassModality & 940567b8bd72f69b3eb7d54ff780f98a17e6b9fc
+                    it.isEnumClass -> Modality.FINAL
+                    // For some reason kotlin annotations in IR have open modality and java annotations have final modality
+                    // But since it's legal to actualize kotlin annotation class with java annotation class
+                    //  and effectively all annotation classes have the same modality, it's ok to always return one
+                    //  modality for all annotation classes (doesn't matter final or open)
+                    it.isAnnotationClass -> Modality.OPEN
+                    else -> it.modality
+                }
             },
             onTypeAlias = { Modality.FINAL }
         )
@@ -151,7 +157,8 @@ internal abstract class IrExpectActualMatchingContext(
 
     override val CallableSymbolMarker.modality: Modality?
         get() = when (this) {
-            is IrConstructorSymbol -> Modality.FINAL
+            // owner.modality is null for IrEnumEntrySymbol
+            is IrEnumEntrySymbol, is IrConstructorSymbol -> Modality.FINAL
             is IrSymbol -> (owner as? IrOverridableMember)?.modality
             else -> shouldNotBeCalled()
         }
@@ -246,11 +253,15 @@ internal abstract class IrExpectActualMatchingContext(
      *   has no sense in IR context
      */
     override fun RegularClassSymbolMarker.collectAllMembers(isActualDeclaration: Boolean): List<DeclarationSymbolMarker> {
-        return asIr().declarations.filterNot { it is IrAnonymousInitializer }.map { it.symbol }
+        return asIr().declarations.filter { it !is IrAnonymousInitializer && !it.isStaticFun() }.map { it.symbol }
     }
 
-    override fun RegularClassSymbolMarker.getMembersForExpectClass(name: Name): List<DeclarationSymbolMarker> {
-        return asIr().declarations.filter { it.getNameWithAssert() == name }.map { it.symbol }
+    override fun RegularClassSymbolMarker.collectAllStaticCallables(isActualDeclaration: Boolean): List<CallableSymbolMarker> {
+        return asIr().declarations.filter { it.isStaticFun() }.mapNotNull { it.symbol as? CallableSymbolMarker }
+    }
+
+    override fun RegularClassSymbolMarker.getCallablesForExpectClass(name: Name): List<CallableSymbolMarker> {
+        return asIr().declarations.filter { it.getNameWithAssert() == name }.mapNotNull { it.symbol as? CallableSymbolMarker }
     }
 
     override fun RegularClassSymbolMarker.collectEnumEntryNames(): List<Name> {
@@ -266,8 +277,8 @@ internal abstract class IrExpectActualMatchingContext(
 
     override val CallableSymbolMarker.extensionReceiverType: IrType?
         get() = when (this) {
-            is IrFunctionSymbol -> owner.extensionReceiverParameter?.type
-            is IrPropertySymbol -> owner.getter?.extensionReceiverParameter?.type
+            is IrFunctionSymbol -> owner.parameters.firstOrNull { it.kind == IrParameterKind.ExtensionReceiver }?.type
+            is IrPropertySymbol -> owner.getter?.parameters?.firstOrNull { it.kind == IrParameterKind.ExtensionReceiver }?.type
             else -> null
         }
 
@@ -304,12 +315,12 @@ internal abstract class IrExpectActualMatchingContext(
                 // the returned descriptors are compared by `equals`. And `equals` for fake-overrides is weird.
                 // I didn't manage to invent a test that would check this condition
                 .filter { !it.asIr().isFakeOverride }
-            else -> error("Unknown IR node: $node")
         }
 
     override val FunctionSymbolMarker.valueParameters: List<ValueParameterSymbolMarker>
-        get() = asIr().valueParameters.map { it.symbol }
-
+        get() = asIr().parameters
+            .filter { it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context }
+            .map { it.symbol }
     override val ValueParameterSymbolMarker.isVararg: Boolean
         get() = asIr().isVararg
     override val ValueParameterSymbolMarker.isNoinline: Boolean
@@ -441,27 +452,17 @@ internal abstract class IrExpectActualMatchingContext(
         private fun substituteArgumentOrNull(argument: IrTypeArgument): IrTypeArgument? {
             return when (argument) {
                 is IrStarProjection -> null
-                is IrTypeProjection -> when (argument) {
-                    is IrTypeProjectionImpl -> {
-                        val newType = substituteOrNull(argument.type) ?: return null
-                        makeTypeProjection(newType, argument.variance)
-                    }
-                    is IrTypeBase -> substituteOrNull(argument) as IrTypeBase?
-                    else -> shouldNotBeCalled()
+                is IrType -> substituteOrNull(argument)
+                is IrTypeProjection -> {
+                    val newType = substituteOrNull(argument.type) ?: return null
+                    makeTypeProjection(newType, argument.variance)
                 }
             }
         }
     }
 
-    override fun RegularClassSymbolMarker.isNotSamInterface(): Boolean {
-        /*
-         * This is incorrect for java classes (because all java interfaces are considered as fun interfaces),
-         *   but it's fine to not to check if some java interfaces is really SAM or not, because if one
-         *   tries to actualize `expect fun interface` with typealias to non-SAM java interface, frontend
-         *   will report an error and IR matching won't be invoked
-         */
-        return !asIr().isFun
-    }
+    override fun RegularClassSymbolMarker.isSamInterface(): Boolean =
+        this.asIr().functions.singleOrNull { it.modality == Modality.ABSTRACT } != null
 
     override fun CallableSymbolMarker.isFakeOverride(containingExpectClass: RegularClassSymbolMarker?): Boolean {
         return asIr().isFakeOverride
@@ -487,7 +488,10 @@ internal abstract class IrExpectActualMatchingContext(
         }
 
     override val CallableSymbolMarker.isJavaField: Boolean
-        get() = this is IrFieldSymbol && owner.isFromJava()
+        get() = this is IrPropertySymbol && owner.isPropertyForJavaField()
+
+    override val CallableSymbolMarker.canBeActualizedByJavaField: Boolean
+        get() = this is IrPropertySymbol && callableId == abstractMutableListModCountCallableId
 
     override fun onMatchedMembers(
         expectSymbol: DeclarationSymbolMarker,
@@ -504,14 +508,13 @@ internal abstract class IrExpectActualMatchingContext(
                     is IrTypeAliasSymbol -> actualSymbol.owner.expandedType.getClass()!!.symbol
                     else -> actualSymbol.unexpectedSymbolKind<IrClassifierSymbol>()
                 }
-                onMatchedClasses(expectSymbol, actualClassSymbol)
+                onMatchedDeclarations(expectSymbol, actualClassSymbol)
             }
-            else -> onMatchedCallables(expectSymbol, actualSymbol)
+            else -> onMatchedDeclarations(expectSymbol, actualSymbol)
         }
     }
 
-    abstract fun onMatchedClasses(expectClassSymbol: IrClassSymbol, actualClassSymbol: IrClassSymbol)
-    abstract fun onMatchedCallables(expectSymbol: IrSymbol, actualSymbol: IrSymbol)
+    abstract fun onMatchedDeclarations(expectSymbol: IrSymbol, actualSymbol: IrSymbol)
 
     override val DeclarationSymbolMarker.annotations: List<AnnotationCallInfo>
         get() = asIr().annotations.map(::AnnotationCallInfoImpl)
@@ -611,3 +614,5 @@ internal abstract class IrExpectActualMatchingContext(
         }
     }
 }
+
+private fun IrDeclaration.isStaticFun(): Boolean = this is IrSimpleFunction && isStatic

@@ -10,11 +10,12 @@ scopes:
   PackageMemberScope, index = 1
     packages: 0
     classifiers: 3
-      KtNamedClassOrObjectSymbol:
-        annotationsList: []
-        classIdIfNonLocal: test/BaseInterface
+      KaNamedClassSymbol:
+        annotations: []
+        classId: test/BaseInterface
         classKind: INTERFACE
         companionObject: null
+        compilerVisibility: Public
         contextReceivers: []
         isActual: false
         isData: false
@@ -23,23 +24,24 @@ scopes:
         isFun: false
         isInline: false
         isInner: false
+        location: TOP_LEVEL
         modality: ABSTRACT
         name: BaseInterface
         origin: SOURCE
         superTypes: [
-          KtUsualClassType:
-            annotationsList: []
-            ownTypeArguments: []
+          KaUsualClassType:
+            annotations: []
+            typeArguments: []
             type: kotlin/Any
         ]
-        symbolKind: TOP_LEVEL
         typeParameters: []
-        visibility: Public
-      KtNamedClassOrObjectSymbol:
-        annotationsList: []
-        classIdIfNonLocal: test/Base
+        visibility: PUBLIC
+      KaNamedClassSymbol:
+        annotations: []
+        classId: test/Base
         classKind: CLASS
         companionObject: null
+        compilerVisibility: Public
         contextReceivers: []
         isActual: false
         isData: false
@@ -48,25 +50,38 @@ scopes:
         isFun: false
         isInline: false
         isInner: false
+        location: TOP_LEVEL
         modality: OPEN
         name: Base
         origin: SOURCE
         superTypes: [
-          KtUsualClassType:
-            annotationsList: []
-            ownTypeArguments: []
+          KaUsualClassType:
+            annotations: []
+            typeArguments: []
             type: test/BaseInterface
         ]
-        symbolKind: TOP_LEVEL
         typeParameters: [
-          KtTypeParameterSymbol(T)
+          KaTypeParameterSymbol:
+            annotations: []
+            compilerVisibility: Local
+            isActual: false
+            isExpect: false
+            isReified: false
+            location: CLASS
+            modality: FINAL
+            name: T
+            origin: SOURCE
+            upperBounds: []
+            variance: INVARIANT
+            visibility: LOCAL
         ]
-        visibility: Public
-      KtNamedClassOrObjectSymbol:
-        annotationsList: []
-        classIdIfNonLocal: test/Child
+        visibility: PUBLIC
+      KaNamedClassSymbol:
+        annotations: []
+        classId: test/Child
         classKind: CLASS
         companionObject: null
+        compilerVisibility: Public
         contextReceivers: []
         isActual: false
         isData: false
@@ -75,23 +90,23 @@ scopes:
         isFun: false
         isInline: false
         isInner: false
+        location: TOP_LEVEL
         modality: FINAL
         name: Child
         origin: SOURCE
         superTypes: [
-          KtUsualClassType:
-            annotationsList: []
-            ownTypeArguments: [
-              KtUsualClassType:
-                annotationsList: []
-                ownTypeArguments: []
+          KaUsualClassType:
+            annotations: []
+            typeArguments: [
+              KaUsualClassType:
+                annotations: []
+                typeArguments: []
                 type: test/Base.NestedFromClass
             ]
             type: test/Base<test/Base.NestedFromClass>
         ]
-        symbolKind: TOP_LEVEL
         typeParameters: []
-        visibility: Public
+        visibility: PUBLIC
     callables: 0
     constructors: 0
 

@@ -1,7 +1,7 @@
 package org.jetbrains.kotlin.backend.konan
 
-import org.jetbrains.kotlin.KtSourceFile
 import org.jetbrains.kotlin.backend.common.serialization.CompatibilityMode
+import org.jetbrains.kotlin.backend.common.serialization.IrSerializationSettings
 import org.jetbrains.kotlin.backend.common.serialization.serializeModuleIntoKlib
 import org.jetbrains.kotlin.backend.konan.driver.PhaseContext
 import org.jetbrains.kotlin.backend.konan.driver.phases.Fir2IrOutput
@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.backend.konan.driver.phases.SerializerOutput
 import org.jetbrains.kotlin.backend.konan.serialization.KonanIrModuleSerializer
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.common.fir.reportToMessageCollector
+import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporterFactory
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.pipeline.Fir2KlibMetadataSerializer
@@ -40,10 +41,12 @@ internal fun PhaseContext.firSerializerBase(
     }
 
     val irModuleFragment = fir2IrOutput?.fir2irActualizedResult?.irModuleFragment
-    val diagnosticReporter = DiagnosticReporterFactory.createPendingReporter()
+    val messageCollector = configuration.getNotNull(CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY)
+    val diagnosticReporter = DiagnosticReporterFactory.createPendingReporter(messageCollector)
     val serializerOutput = serializeModuleIntoKlib(
             moduleName = irModuleFragment?.name?.asString() ?: firResult.outputs.last().session.moduleData.name.asString(),
             irModuleFragment = irModuleFragment,
+            irBuiltins = fir2IrOutput?.fir2irActualizedResult?.irBuiltIns,
             configuration = configuration,
             diagnosticReporter = diagnosticReporter,
             metadataSerializer = Fir2KlibMetadataSerializer(
@@ -64,8 +67,7 @@ internal fun PhaseContext.firSerializerBase(
                                        languageVersionSettings,
                                        shouldCheckSignaturesOnUniqueness ->
                 KonanIrModuleSerializer(
-                        diagnosticReporter = irDiagnosticReporter,
-                        irBuiltIns = irBuiltIns,
+                    settings = IrSerializationSettings(
                         compatibilityMode = compatibilityMode,
                         normalizeAbsolutePaths = normalizeAbsolutePaths,
                         sourceBaseDirs = sourceBaseDirs,
@@ -73,6 +75,9 @@ internal fun PhaseContext.firSerializerBase(
                         bodiesOnlyForInlines = produceHeaderKlib,
                         publicAbiOnly = produceHeaderKlib,
                         shouldCheckSignaturesOnUniqueness = shouldCheckSignaturesOnUniqueness,
+                    ),
+                    diagnosticReporter = irDiagnosticReporter,
+                    irBuiltIns = irBuiltIns,
                 )
             },
     )

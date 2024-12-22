@@ -9,6 +9,7 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.logging.LogLevel
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.Kapt3BaseIT
+import org.jetbrains.kotlin.gradle.forceK1Kapt
 import org.jetbrains.kotlin.gradle.testbase.*
 import org.junit.jupiter.api.DisplayName
 import java.io.File
@@ -17,6 +18,9 @@ import kotlin.io.path.appendText
 @DisplayName("android with kapt3 external dependencies tests")
 @AndroidGradlePluginTests
 open class Kapt3AndroidExternalIT : Kapt3BaseIT() {
+    override fun TestProject.customizeProject() {
+        forceK1Kapt()
+    }
 
     // Deprecated and doesn't work with Gradle 8 + AGP 8, so keeping max Gradle version as 7.6
     // For example: https://github.com/JakeWharton/butterknife/issues/1686
@@ -114,10 +118,10 @@ open class Kapt3AndroidExternalIT : Kapt3BaseIT() {
         agpVersion: String,
         jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        val realmVersion = if (gradleVersion >= GradleVersion.version(TestVersions.Gradle.G_7_5)) {
+        val realmVersion = if (agpVersion != TestVersions.AGP.AGP_73) {
             "10.13.0-transformer-api"
         } else {
-            "10.13.0"
+            "10.11.0"
         }
         project(
             "android-realm".withPrefix,
@@ -125,6 +129,14 @@ open class Kapt3AndroidExternalIT : Kapt3BaseIT() {
             buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion, freeArgs = listOf("-Prealm_version=$realmVersion")),
             buildJdk = jdkVersion.location,
         ) {
+            if (gradleVersion <= GradleVersion.version(TestVersions.Gradle.G_7_6)) {
+                // The Transform API uses incremental APIs deprecated since Gradle 7.5
+                gradleProperties.appendText(
+                    """
+                    android.experimental.legacyTransform.forceNonIncremental=true
+                    """.trimIndent()
+                )
+            }
             build("assembleDebug") {
                 assertKaptSuccessful()
                 assertFileInProjectExists("build/generated/source/kapt/debug/io/realm/io_realm_examples_kotlin_model_CatRealmProxy.java")
@@ -190,7 +202,7 @@ open class Kapt3AndroidExternalIT : Kapt3BaseIT() {
             buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion),
             buildJdk = jdkVersion.location
         ) {
-            val safeArgsVersion = if (gradleVersion >= GradleVersion.version(TestVersions.Gradle.G_7_0)) "2.5.3" else "2.3.5"
+            val safeArgsVersion = "2.5.3"
             build("assembleDebug", "-Psafe_args_version=$safeArgsVersion") {
                 assertFileInProjectExists("build/generated/source/navigation-args/debug/test/androidx/navigation/StartFragmentDirections.java")
                 assertFileInProjectExists("build/tmp/kotlin-classes/debug/test/androidx/navigation/StartFragmentKt.class")

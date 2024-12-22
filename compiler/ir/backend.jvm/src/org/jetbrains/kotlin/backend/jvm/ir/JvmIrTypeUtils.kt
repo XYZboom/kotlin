@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
+import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolOwner
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrClassifierSymbol
 import org.jetbrains.kotlin.ir.symbols.IrScriptSymbol
@@ -20,9 +21,8 @@ import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.types.impl.IrSimpleTypeImpl
 import org.jetbrains.kotlin.ir.types.impl.IrStarProjectionImpl
 import org.jetbrains.kotlin.ir.types.impl.makeTypeProjection
-import org.jetbrains.kotlin.ir.util.isLocal
-import org.jetbrains.kotlin.ir.util.render
-import org.jetbrains.kotlin.ir.util.unexpectedSymbolKind
+import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.isNullable
 
 /**
  * Perform as much type erasure as is significant for JVM signature generation.
@@ -95,7 +95,7 @@ val IrType.erasedUpperBound: IrClass
         is IrSimpleType -> when (val classifier = classifier.owner) {
             is IrClass -> classifier
             is IrTypeParameter -> classifier.erasedUpperBound
-            is IrScript -> classifier.targetClass!!.owner
+            is IrScript -> classifier.targetClass?.owner ?: error(render())
             else -> error(render())
         }
         is IrErrorType -> symbol.owner
@@ -121,19 +121,26 @@ fun IrType.defaultValue(startOffset: Int, endOffset: Int, context: JvmBackendCon
     val underlyingType = unboxInlineClass()
     val defaultValueForUnderlyingType = IrConstImpl.defaultValueForType(startOffset, endOffset, underlyingType)
     return IrCallImpl.fromSymbolOwner(startOffset, endOffset, this, context.ir.symbols.unsafeCoerceIntrinsic).also {
-        it.putTypeArgument(0, underlyingType) // from
-        it.putTypeArgument(1, this) // to
-        it.putValueArgument(0, defaultValueForUnderlyingType)
+        it.typeArguments[0] = underlyingType
+        it.typeArguments[1] = this
+        it.arguments[0] = defaultValueForUnderlyingType
     }
 }
 
-fun IrType.isInlineClassType(): Boolean = erasedUpperBound.isSingleFieldValueClass
+fun IrType.isInlineClassType(): Boolean {
+    // Workaround for KT-69856
+    return if (this is IrSimpleType && classifier.owner is IrScript) {
+        false
+    } else {
+        erasedUpperBound.isSingleFieldValueClass
+    }
+}
 
 fun IrType.isMultiFieldValueClassType(): Boolean = erasedUpperBound.isMultiFieldValueClass
 
 fun IrType.isValueClassType(): Boolean = erasedUpperBound.isValue
 
-val IrType.upperBound: IrType
+val IrType.upperBound: IrSimpleType
     get() = erasedUpperBound.symbol.starProjectedType
 
 fun IrType.eraseToScope(scopeOwner: IrTypeParametersContainer): IrType =

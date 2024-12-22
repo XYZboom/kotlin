@@ -1,10 +1,10 @@
 RAW_FIR:
 FILE: [ResolvedTo(RAW_FIR)] scriptClassLevel.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-scriptClassLevel.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -14,12 +14,12 @@ FILE: [ResolvedTo(RAW_FIR)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -40,7 +40,7 @@ FILE: [ResolvedTo(RAW_FIR)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -55,11 +55,11 @@ FILE: [ResolvedTo(RAW_FIR)] scriptClassLevel.kts
 
 IMPORTS:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-scriptClassLevel.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -69,12 +69,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -95,7 +95,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -110,11 +110,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 COMPILER_REQUIRED_ANNOTATIONS:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-scriptClassLevel.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -124,12 +124,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -150,7 +150,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -165,11 +165,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 COMPANION_GENERATION:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-scriptClassLevel.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -179,12 +179,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -205,7 +205,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -220,11 +220,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 SUPER_TYPES:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-scriptClassLevel.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -234,12 +234,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -260,7 +260,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -275,11 +275,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 TYPES:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-scriptClassLevel.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -289,12 +289,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -315,7 +315,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -330,11 +330,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 STATUS:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-scriptClassLevel.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -344,12 +344,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -370,7 +370,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -385,11 +385,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 EXPECT_ACTUAL_MATCHING:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-scriptClassLevel.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -399,12 +399,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -425,7 +425,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -440,11 +440,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 CONTRACTS:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-scriptClassLevel.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -454,12 +454,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -480,7 +480,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -495,11 +495,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 IMPLICIT_TYPES_BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-scriptClassLevel.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -509,12 +509,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -535,7 +535,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -550,11 +550,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 CONSTANT_EVALUATION:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-scriptClassLevel.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -564,12 +564,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -590,7 +590,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -605,11 +605,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 ANNOTATION_ARGUMENTS:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-scriptClassLevel.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -619,12 +619,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -645,7 +645,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -660,11 +660,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-scriptClassLevel.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Anno.position] position: String): R|util/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -674,12 +674,12 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
         }
 
-        public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final? data [ResolvedTo(RAW_FIR)] class Pair : R|kotlin/Any| {
+            public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Pair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.a] a: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=util/Foo.Pair.b] b: Int): R|util/Foo.Pair| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -700,7 +700,7 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final? [ResolvedTo(RAW_FIR)] object <no name provided> : R|kotlin/Any| {
+            public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(RAW_FIR)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     LAZY_super<R|kotlin/Any|>
                 }
@@ -715,11 +715,11 @@ FILE: [ResolvedTo(IMPORTS)] scriptClassLevel.kts
 
 FILE RAW TO BODY:
 FILE: [ResolvedTo(BODY_RESOLVE)] scriptClassLevel.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(BODY_RESOLVE)] <script-scriptClassLevel.kts>
+        [ResolvedTo(BODY_RESOLVE)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(BODY_RESOLVE)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(BODY_RESOLVE)] annotation class Anno : R|kotlin/Annotation| {
+        public final [ResolvedTo(BODY_RESOLVE)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] annotation class Anno : R|kotlin/Annotation| {
             public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Anno] constructor([ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=util/Anno.position] position: R|kotlin/String|): R|util/Anno| {
                 super<R|kotlin/Any|>()
             }
@@ -729,12 +729,12 @@ FILE: [ResolvedTo(BODY_RESOLVE)] scriptClassLevel.kts
 
         }
 
-        public final [ResolvedTo(BODY_RESOLVE)] class Foo : R|kotlin/Any| {
+        public final [ResolvedTo(BODY_RESOLVE)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Foo : R|kotlin/Any| {
             public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Foo] constructor(): R|util/Foo| {
                 super<R|kotlin/Any|>()
             }
 
-            public final data [ResolvedTo(BODY_RESOLVE)] class Pair : R|kotlin/Any| {
+            public final data [ResolvedTo(BODY_RESOLVE)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] class Pair : R|kotlin/Any| {
                 public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Pair] constructor([ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=util/Foo.Pair.a] a: R|kotlin/Int|, [ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=util/Foo.Pair.b] b: R|kotlin/Int|): R|util/Foo.Pair| {
                     super<R|kotlin/Any|>()
                 }
@@ -755,7 +755,7 @@ FILE: [ResolvedTo(BODY_RESOLVE)] scriptClassLevel.kts
 
             <ERROR PROPERTY: Destructuring declarations are only allowed for local variables/values>
 
-            public final [ResolvedTo(BODY_RESOLVE)] object <no name provided> : R|kotlin/Any| {
+            public final [ResolvedTo(BODY_RESOLVE)] [ContainingScriptKey=FirScriptSymbol util.<script-scriptClassLevel.kts>] object <no name provided> : R|kotlin/Any| {
                 private [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=<no name provided>] constructor(): R|util/Foo.<no name provided>| {
                     super<R|kotlin/Any|>()
                 }

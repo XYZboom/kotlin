@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: BACKEND
 // ISSUE: KT-54443
 // WITH_STDLIB
 
@@ -26,4 +27,16 @@ fun test3(a:A?){
     val t = (a?.b != null)
     require(t)
     a.b.inc()
+}
+
+fun test4(a:A?){
+    require(a!!.b != null)
+    a.b.inc()
+}
+
+fun test5(a:A?){
+    require(a!!.e!!.d != null)
+    var k: C = a.e
+    var k2: Int = a.e.d
+    var k3: Int? = a.b
 }

@@ -5,14 +5,8 @@
 
 package org.jetbrains.kotlin.backend.konan
 
-import kotlinx.cinterop.toCValues
 import llvm.*
 import org.jetbrains.kotlin.backend.konan.llvm.*
-
-private fun LLVMValueRef.isFunctionCall() = LLVMIsACallInst(this) != null || LLVMIsAInvokeInst(this) != null
-
-private fun LLVMValueRef.isExternalFunction() = LLVMGetFirstBasicBlock(this) == null
-
 
 private fun LLVMValueRef.isLLVMBuiltin(): Boolean {
     val name = this.name ?: return false
@@ -22,7 +16,6 @@ private fun LLVMValueRef.isLLVMBuiltin(): Boolean {
 
 private class CallsChecker(generationState: NativeGenerationState, goodFunctions: List<String>) {
     private val llvm = generationState.llvm
-    private val context = generationState.context
     private val goodFunctionsExact = goodFunctions.filterNot { it.endsWith("*") }.toSet()
     private val goodFunctionsByPrefix = goodFunctions.filter { it.endsWith("*") }.map { it.substring(0, it.length - 1) }.sorted()
 
@@ -39,25 +32,25 @@ private class CallsChecker(generationState: NativeGenerationState, goodFunctions
 
     val getMethodImpl = llvm.externalNativeRuntimeFunction(
             "class_getMethodImplementation",
-            LlvmRetType(pointerType(functionType(llvm.voidType, false))),
+            LlvmRetType(pointerType(functionType(llvm.voidType, false)), isObjectType = false),
             listOf(LlvmParamType(llvm.int8PtrType), LlvmParamType(llvm.int8PtrType))
     )
 
     val getClass = llvm.externalNativeRuntimeFunction(
             "object_getClass",
-            LlvmRetType(llvm.int8PtrType),
+            LlvmRetType(llvm.int8PtrType, isObjectType = false),
             listOf(LlvmParamType(llvm.int8PtrType))
     )
 
     val getSuperClass = llvm.externalNativeRuntimeFunction(
             "class_getSuperclass",
-            LlvmRetType(llvm.int8PtrType),
+            LlvmRetType(llvm.int8PtrType, isObjectType = false),
             listOf(LlvmParamType(llvm.int8PtrType))
     )
 
     val checkerFunction = llvm.externalNativeRuntimeFunction(
             "Kotlin_mm_checkStateAtExternalFunctionCall",
-            LlvmRetType(llvm.voidType),
+            LlvmRetType(llvm.voidType, isObjectType = false),
             listOf(LlvmParamType(llvm.int8PtrType), LlvmParamType(llvm.int8PtrType), LlvmParamType(llvm.int8PtrType))
     )
 
@@ -181,7 +174,12 @@ internal fun checkLlvmModuleExternalCalls(generationState: NativeGenerationState
 
     val goodFunctions = staticData.getGlobal("Kotlin_callsCheckerGoodFunctionNames")?.getInitializer()?.run {
         getOperands(this).map {
-            LLVMGetInitializer(LLVMGetOperand(it, 0))!!.getAsCString()
+            val global = if (generationState.config.useLlvmOpaquePointers) {
+                it
+            } else {
+                LLVMGetOperand(it, 0)
+            }
+            LLVMGetInitializer(global)!!.getAsCString()
         }.toList()
     } ?: emptyList()
 

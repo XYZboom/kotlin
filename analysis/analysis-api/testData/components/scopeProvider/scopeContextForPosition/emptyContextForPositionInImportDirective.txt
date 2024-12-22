@@ -9,23 +9,29 @@ scopes:
 
   PackageMemberScope, index = 1
     packages: 6
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: META-INF
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: java
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: javax
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: kotlin
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: org
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: sun
+        location: TOP_LEVEL
         origin: SOURCE
     classifiers: 0
     callables: 0

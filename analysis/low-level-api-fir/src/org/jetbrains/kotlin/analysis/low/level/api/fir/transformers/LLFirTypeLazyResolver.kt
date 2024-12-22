@@ -6,10 +6,7 @@
 package org.jetbrains.kotlin.analysis.low.level.api.fir.transformers
 
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.targets.LLFirResolveTarget
-import org.jetbrains.kotlin.analysis.low.level.api.fir.lazy.resolve.FirLazyBodiesCalculator
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.checkAnnotationTypeIsResolved
-import org.jetbrains.kotlin.analysis.low.level.api.fir.util.checkContextReceiverTypeRefIsResolved
-import org.jetbrains.kotlin.analysis.low.level.api.fir.util.checkReceiverTypeRefIsResolved
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.checkReturnTypeRefIsResolved
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.checkTypeRefIsResolved
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.errorWithFirSpecificEntries
@@ -18,8 +15,6 @@ import org.jetbrains.kotlin.fir.FirElementWithResolveState
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.resolve.transformers.FirTypeResolveTransformer
 import org.jetbrains.kotlin.fir.symbols.lazyResolveToPhase
-import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
-import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.utils.exceptions.withFirEntry
 import org.jetbrains.kotlin.fir.visitors.transformSingle
 import org.jetbrains.kotlin.util.PrivateForInline
@@ -40,20 +35,13 @@ internal object LLFirTypeLazyResolver : LLFirLazyResolver(FirResolvePhase.TYPES)
         }
 
         when (target) {
-            is FirCallableDeclaration -> {
-                checkReturnTypeRefIsResolved(target, acceptImplicitTypeRef = true)
-                checkReceiverTypeRefIsResolved(target)
-                checkContextReceiverTypeRefIsResolved(target)
-            }
-
+            is FirCallableDeclaration -> checkReturnTypeRefIsResolved(target, acceptImplicitTypeRef = true)
+            is FirReceiverParameter -> checkTypeRefIsResolved(target.typeRef, "receiver type reference", target)
             is FirTypeParameter -> {
                 for (bound in target.bounds) {
                     checkTypeRefIsResolved(bound, "type parameter bound", target)
                 }
             }
-
-            is FirRegularClass -> checkContextReceiverTypeRefIsResolved(target)
-            is FirScript -> checkContextReceiverTypeRefIsResolved(target)
         }
     }
 }
@@ -71,12 +59,7 @@ internal object LLFirTypeLazyResolver : LLFirLazyResolver(FirResolvePhase.TYPES)
  * @see FirResolvePhase.TYPES
  */
 private class LLFirTypeTargetResolver(target: LLFirResolveTarget) : LLFirTargetResolver(target, FirResolvePhase.TYPES) {
-    private val transformer = object : FirTypeResolveTransformer(resolveTargetSession, resolveTargetScopeSession) {
-        override fun transformTypeRef(typeRef: FirTypeRef, data: Any?): FirResolvedTypeRef {
-            FirLazyBodiesCalculator.calculateAnnotations(typeRef, session)
-            return super.transformTypeRef(typeRef, data)
-        }
-    }
+    private val transformer = FirTypeResolveTransformer(resolveTargetSession, resolveTargetScopeSession)
 
     @Deprecated("Should never be called directly, only for override purposes, please use withFile", level = DeprecationLevel.ERROR)
     override fun withContainingFile(firFile: FirFile, action: () -> Unit) {
@@ -109,7 +92,7 @@ private class LLFirTypeTargetResolver(target: LLFirResolveTarget) : LLFirTargetR
             is FirScript,
             is FirRegularClass,
             is FirAnonymousInitializer,
-            -> rawResolve(target)
+                -> rawResolve(target)
 
             is FirCodeFragment -> {}
             else -> errorWithAttachment("Unknown declaration ${target::class.simpleName}") {
@@ -130,14 +113,15 @@ private class LLFirTypeTargetResolver(target: LLFirResolveTarget) : LLFirTargetR
                 // ConstructedTypeRef should be resolved only with type parameters, but not with nested classes and classes from supertypes
                 resolveOutsideClassBody(target, transformer::transformDelegatedConstructorCall)
             }
+
             is FirScript -> resolveScriptTypes(target)
+            is FirField if (target.origin == FirDeclarationOrigin.Synthetic.DelegateField) -> {
+                // delegated field should be resolved in the same context as super types
+                resolveOutsideClassBody(target, transformer::transformDelegateField)
+            }
+
             is FirDanglingModifierList, is FirCallableDeclaration, is FirTypeAlias, is FirAnonymousInitializer -> {
-                if (target is FirField && target.origin == FirDeclarationOrigin.Synthetic.DelegateField) {
-                    // delegated field should be resolved in the same context as super types
-                    resolveOutsideClassBody(target, transformer::transformDelegateField)
-                } else {
-                    target.accept(transformer, null)
-                }
+                target.accept(transformer, null)
             }
 
             is FirFile -> transformer.withFileScope(target) { target.transformAnnotations(transformer, null) }
@@ -176,7 +160,7 @@ private class LLFirTypeTargetResolver(target: LLFirResolveTarget) : LLFirTargetR
 
     private fun resolveScriptTypes(firScript: FirScript) {
         firScript.transformAnnotations(transformer, null)
-        firScript.transformContextReceivers(transformer, null)
+        firScript.transformReceivers(transformer, null)
     }
 
     private fun resolveClassTypes(firClass: FirRegularClass) {
@@ -186,7 +170,7 @@ private class LLFirTypeTargetResolver(target: LLFirResolveTarget) : LLFirTargetR
         }
 
         transformer.withClassScopes(firClass) {
-            for (contextReceiver in firClass.contextReceivers) {
+            for (contextReceiver in firClass.contextParameters) {
                 contextReceiver.transformSingle(transformer, null)
             }
         }
@@ -194,19 +178,19 @@ private class LLFirTypeTargetResolver(target: LLFirResolveTarget) : LLFirTargetR
 }
 
 private object TypeStateKeepers {
-    val FUNCTION: StateKeeper<FirFunction, Unit> = stateKeeper { function, context ->
-        add(CALLABLE_DECLARATION, context)
-        entityList(function.valueParameters, CALLABLE_DECLARATION, context)
+    val FUNCTION: StateKeeper<FirFunction, Unit> = stateKeeper { builder, function, context ->
+        builder.add(CALLABLE_DECLARATION, context)
+        builder.entityList(function.valueParameters, CALLABLE_DECLARATION, context)
     }
 
-    val PROPERTY: StateKeeper<FirProperty, Unit> = stateKeeper { property, context ->
-        add(CALLABLE_DECLARATION, context)
-        entity(property.getter, FUNCTION, context)
-        entity(property.setter, FUNCTION, context)
-        entity(property.backingField, CALLABLE_DECLARATION, context)
+    val PROPERTY: StateKeeper<FirProperty, Unit> = stateKeeper { builder, property, context ->
+        builder.add(CALLABLE_DECLARATION, context)
+        builder.entity(property.getter, FUNCTION, context)
+        builder.entity(property.setter, FUNCTION, context)
+        builder.entity(property.backingField, CALLABLE_DECLARATION, context)
     }
 
-    private val CALLABLE_DECLARATION: StateKeeper<FirCallableDeclaration, Unit> = stateKeeper { _, _ ->
-        add(FirCallableDeclaration::returnTypeRef, FirCallableDeclaration::replaceReturnTypeRef)
+    private val CALLABLE_DECLARATION: StateKeeper<FirCallableDeclaration, Unit> = stateKeeper { builder, _, _ ->
+        builder.add(FirCallableDeclaration::returnTypeRef, FirCallableDeclaration::replaceReturnTypeRef)
     }
 }

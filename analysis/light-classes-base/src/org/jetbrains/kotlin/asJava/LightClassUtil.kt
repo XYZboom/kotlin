@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.asJava
 
+import com.intellij.openapi.util.IntellijInternalApi
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiField
@@ -16,17 +17,20 @@ import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.asJava.classes.KtLightClass
 import org.jetbrains.kotlin.asJava.elements.KtLightElement
-import org.jetbrains.kotlin.asJava.elements.KtLightField
 import org.jetbrains.kotlin.asJava.elements.KtLightMethod
 import org.jetbrains.kotlin.asJava.elements.isSetter
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationUseSiteTarget
 import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.name.JvmStandardClassIds
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.containingClass
 import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject
 import org.jetbrains.kotlin.resolve.DataClassResolver
+import org.jetbrains.kotlin.utils.SmartList
+import org.jetbrains.kotlin.utils.addIfNotNull
 import org.jetbrains.kotlin.utils.checkWithAttachment
 
+@OptIn(IntellijInternalApi::class)
 object LightClassUtil {
 
     fun findClass(stub: StubElement<*>, predicate: (PsiClassStub<*>) -> Boolean): PsiClass? {
@@ -69,7 +73,8 @@ object LightClassUtil {
         return wrappers.toList()
     }
 
-    private fun isMangled(wrapperName: @NlsSafe String, prefix: String): Boolean {
+    @IntellijInternalApi
+    fun isMangled(wrapperName: @NlsSafe String, prefix: String): Boolean {
         //see KT-54803 for other mangling strategies
         // A memory optimization for `wrapperName.startsWith("$prefix$")`, see KT-63486
         return wrapperName.length > prefix.length
@@ -101,9 +106,6 @@ object LightClassUtil {
 
     fun getLightClassBackingField(declaration: KtDeclaration): PsiField? {
         var psiClass: PsiClass = getWrappingClass(declaration) ?: return null
-        var fieldFinder: (PsiField) -> Boolean = { psiField ->
-            psiField is KtLightElement<*, *> && psiField.kotlinOrigin === declaration
-        }
 
         if (psiClass is KtLightClass) {
             val origin = psiClass.kotlinOrigin
@@ -115,23 +117,12 @@ object LightClassUtil {
                         psiClass = containingLightClass
                     }
                 }
-            } else {
-                // Decompiled version of [KtLightClass] may not have [kotlinOrigin]
-                val containingDeclaration = declaration.containingClassOrObject
-                if (containingDeclaration is KtObjectDeclaration &&
-                    containingDeclaration.isCompanion()
-                ) {
-                    psiClass.containingClass?.let { containingClass ->
-                        psiClass = containingClass
-                        fieldFinder = { psiField ->
-                            psiField.name == declaration.name
-                        }
-                    }
-                }
             }
         }
 
-        return psiClass.fields.find(fieldFinder)
+        return psiClass.fields.find { psiField: PsiField ->
+            psiField is KtLightElement<*, *> && psiField.kotlinOrigin === declaration
+        }
     }
 
     fun getLightClassPropertyMethods(parameter: KtParameter): PropertyAccessorsPsiMethods {
@@ -169,7 +160,15 @@ object LightClassUtil {
         getWrappingClasses(declaration).flatMap { it.methods.asSequence() }
             .filterIsInstance<KtLightMethod>()
             .filter(nameFilter)
-            .filter { it.kotlinOrigin === declaration || it.navigationElement === declaration }
+            .filter { it -> it.kotlinOrigin === declaration || it.navigationElement === declaration || declaration.isConstrictorOf(it) }
+
+    private fun KtDeclaration.isConstrictorOf(lightMethod: KtLightMethod): Boolean {
+        if (this is KtPrimaryConstructor && lightMethod.isConstructor) {
+            val containingClass = containingClass()
+            return lightMethod.kotlinOrigin === containingClass || lightMethod.navigationElement === containingClass
+        }
+        return false
+    }
 
     private fun getWrappingClass(declaration: KtDeclaration): PsiClass? {
         if (declaration is KtParameter) {
@@ -290,17 +289,17 @@ object LightClassUtil {
         val backingField: PsiField?,
         additionalAccessors: List<PsiMethod>
     ) : Iterable<PsiMethod> {
-        private val allMethods: List<PsiMethod>
-        val allDeclarations: List<PsiNamedElement>
+        private val allMethods: List<PsiMethod> = SmartList<PsiMethod>().apply {
+            addIfNotNull(getter)
+            addIfNotNull(setter)
+            addAll(additionalAccessors)
+        }
 
-        init {
-            allMethods = arrayListOf()
-            arrayOf(getter, setter).filterNotNullTo(allMethods)
-            additionalAccessors.filterIsInstanceTo<PsiMethod, MutableList<PsiMethod>>(allMethods)
-
-            allDeclarations = arrayListOf()
-            arrayOf<PsiNamedElement?>(getter, setter, backingField).filterNotNullTo(allDeclarations)
-            allDeclarations.addAll(additionalAccessors)
+        val allDeclarations: List<PsiNamedElement> = SmartList<PsiNamedElement>().apply {
+            addIfNotNull(getter)
+            addIfNotNull(setter)
+            addIfNotNull(backingField)
+            addAll(additionalAccessors)
         }
 
         override fun iterator(): Iterator<PsiMethod> = allMethods.iterator()

@@ -11,7 +11,6 @@ import org.jetbrains.kotlin.test.backend.BlackBoxCodegenSuppressor
 import org.jetbrains.kotlin.test.backend.BlackBoxInlinerCodegenSuppressor
 import org.jetbrains.kotlin.test.backend.handlers.SteppingDebugRunner
 import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
-import org.jetbrains.kotlin.test.backend.ir.JvmIrBackendFacade
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
 import org.jetbrains.kotlin.test.builders.configureJvmArtifactsHandlersStep
 import org.jetbrains.kotlin.test.directives.CodegenTestDirectives.REQUIRES_SEPARATE_PROCESS
@@ -21,6 +20,7 @@ import org.jetbrains.kotlin.test.model.FrontendFacade
 import org.jetbrains.kotlin.test.model.FrontendKind
 import org.jetbrains.kotlin.test.model.ResultingArtifact
 import org.jetbrains.kotlin.test.runners.AbstractKotlinCompilerWithTargetBackendTest
+import org.jetbrains.kotlin.test.services.sourceProviders.MainFunctionForDebugTestsSourceProvider
 
 abstract class AbstractSteppingTestBase<R : ResultingArtifact.FrontendOutput<R>>(
     val targetFrontend: FrontendKind<R>,
@@ -29,9 +29,7 @@ abstract class AbstractSteppingTestBase<R : ResultingArtifact.FrontendOutput<R>>
     abstract val frontendToBackendConverter: Constructor<Frontend2BackendConverter<R, IrBackendInput>>
 
     override fun TestConfigurationBuilder.configuration() {
-        commonConfigurationForTest(targetFrontend, frontendFacade, frontendToBackendConverter, ::JvmIrBackendFacade) {
-            commonServicesConfigurationForDebugTest(it)
-        }
+        commonConfigurationForTest(targetFrontend, frontendFacade, frontendToBackendConverter, ::MainFunctionForDebugTestsSourceProvider)
 
         commonHandlersForCodegenTest()
         configureJvmArtifactsHandlersStep {

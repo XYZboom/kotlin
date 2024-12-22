@@ -8,10 +8,11 @@ package org.jetbrains.kotlin.gradle.plugin.diagnostics.checkers
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinGradleProjectChecker
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinGradleProjectCheckerContext
-import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics.KotlinTargetAlreadyDeclared
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnosticsCollector
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTargetPreset
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinMetadataTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.internal
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTargetPreset
 
 internal object KotlinTargetAlreadyDeclaredChecker : KotlinGradleProjectChecker {
@@ -20,8 +21,7 @@ internal object KotlinTargetAlreadyDeclaredChecker : KotlinGradleProjectChecker 
         val duplicatedTargets = targets
             .filter { it !is KotlinMetadataTarget }
             .groupBy {
-                @Suppress("DEPRECATION")
-                it.preset?.name
+                it.internal._preset?.name
             }
             .filterValues { it.size > 1 }
 
@@ -31,7 +31,22 @@ internal object KotlinTargetAlreadyDeclaredChecker : KotlinGradleProjectChecker 
                 // skip targets without known dsl function such as external targets
                 ?: continue
 
-            collector.report(project, KotlinTargetAlreadyDeclared(targetDslFunctionName))
+            when (targetsGroup.first().internal._preset) {
+                // For JS targets fire WARNING for now
+                // FIXME: https://youtrack.jetbrains.com/issue/KT-59316/Deprecate-multiple-same-targets#focus=Comments-27-9992405.0-0
+                is KotlinJsIrTargetPreset -> collector.report(
+                    project,
+                    KotlinToolingDiagnostics.KotlinTargetAlreadyDeclaredWarning(
+                        targetDslFunctionName
+                    )
+                )
+                else -> collector.report(
+                    project,
+                    KotlinToolingDiagnostics.KotlinTargetAlreadyDeclaredError(
+                        targetDslFunctionName
+                    )
+                )
+            }
         }
     }
 
@@ -40,10 +55,10 @@ internal object KotlinTargetAlreadyDeclaredChecker : KotlinGradleProjectChecker 
      */
     @Suppress("DEPRECATION")
     private val KotlinTarget.targetDslFunctionName
-        get() = when (preset) {
+        get() = when (internal._preset) {
             is KotlinJsIrTargetPreset -> "js"
             is org.jetbrains.kotlin.gradle.plugin.mpp.KotlinJsTargetPreset -> "js"
             is KotlinAndroidTargetPreset -> "androidTarget"
-            else -> preset?.name
+            else -> internal._preset?.name
         }
 }

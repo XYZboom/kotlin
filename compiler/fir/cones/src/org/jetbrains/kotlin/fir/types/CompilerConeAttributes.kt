@@ -29,7 +29,7 @@ object CompilerConeAttributes {
     }
 
     object NoInfer : ConeAttribute<NoInfer>() {
-        val ANNOTATION_CLASS_ID: ClassId = ClassId(FqName("kotlin.internal"), Name.identifier("NoInfer"))
+        val ANNOTATION_CLASS_ID: ClassId = StandardClassIds.Annotations.NoInfer
 
         override fun union(other: NoInfer?): NoInfer? = null
         override fun intersect(other: NoInfer?): NoInfer? = null
@@ -84,7 +84,7 @@ object CompilerConeAttributes {
         override fun toString(): String = "Raw type"
     }
 
-    class ContextFunctionTypeParams(val contextReceiverNumber: Int) : ConeAttribute<ContextFunctionTypeParams>() {
+    class ContextFunctionTypeParams(val contextParameterNumber: Int) : ConeAttribute<ContextFunctionTypeParams>() {
         override fun union(other: ContextFunctionTypeParams?): ContextFunctionTypeParams? = other
         override fun intersect(other: ContextFunctionTypeParams?): ContextFunctionTypeParams = this
         override fun add(other: ContextFunctionTypeParams?): ContextFunctionTypeParams = this
@@ -147,10 +147,13 @@ val ConeKotlinType.hasEnhancedNullability: Boolean
 val ConeKotlinType.isExtensionFunctionType: Boolean
     get() = attributes.extensionFunctionType != null
 
-val ConeKotlinType.hasContextReceivers: Boolean
-    get() = attributes.contextReceiversNumberForFunctionType > 0
+val ConeKotlinType.hasNoInfer: Boolean
+    get() = attributes.noInfer != null
 
-val ConeKotlinType.contextReceiversNumberForFunctionType: Int
-    get() = attributes.contextReceiversNumberForFunctionType
+val ConeKotlinType.hasContextParameters: Boolean
+    get() = attributes.contextParameterNumberForFunctionType > 0
 
-val ConeAttributes.contextReceiversNumberForFunctionType: Int get() = contextFunctionTypeParams?.contextReceiverNumber ?: 0
+val ConeKotlinType.contextParameterNumberForFunctionType: Int
+    get() = attributes.contextParameterNumberForFunctionType
+
+val ConeAttributes.contextParameterNumberForFunctionType: Int get() = contextFunctionTypeParams?.contextParameterNumber ?: 0

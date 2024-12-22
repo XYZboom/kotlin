@@ -1,12 +1,14 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // LANGUAGE: +MultiPlatformProjects
 
 // MODULE: common
 // TARGET_PLATFORM: Common
 
 // FILE: StringValue.kt
-<!NO_ACTUAL_FOR_EXPECT{JS}!>expect class StringValue<!>
+<!NO_ACTUAL_FOR_EXPECT{JS}!>expect<!> class StringValue
 
-<!NO_ACTUAL_FOR_EXPECT{JS}!>expect fun StringValue.plus(other: String): StringValue<!>
+<!NO_ACTUAL_FOR_EXPECT{JS}!>expect<!> fun StringValue.plus(other: String): StringValue
 
 // MODULE: commonJS()()(common)
 // TARGET_PLATFORM: JS
@@ -26,7 +28,7 @@ interface KotlinXStringDemoInterface {
     val value: String
 }
 
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JS}!>expect fun StringDemoInterface.plusK(): String<!>
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JS}!>expect<!> fun StringDemoInterface.plusK(): String
 
 // MODULE: js()()(common, intermediate)
 // TARGET_PLATFORM: JS
@@ -34,7 +36,7 @@ interface KotlinXStringDemoInterface {
 // FILE: StringDemoInterfaceJs.kt
 actual typealias StringDemoInterface = KotlinXStringDemoInterface
 
-actual fun StringDemoInterface.<!ACTUAL_WITHOUT_EXPECT("actual fun StringDemoInterface.plusK(): <ERROR TYPE REF: Unresolved name: value>; The following declaration is incompatible because return type is different:    expect fun StringDemoInterface.plusK(): String")!>plusK<!>() = <!EXPECT_CLASS_AS_FUNCTION!>StringValue<!>(value).plus("K").<!UNRESOLVED_REFERENCE!>value<!>
+actual fun StringDemoInterface.<!ACTUAL_WITHOUT_EXPECT("actual fun KotlinXStringDemoInterface.plusK(): <ERROR TYPE REF: Unresolved name: value>; The following declaration is incompatible because return type is different:    expect fun StringDemoInterface.plusK(): String")!>plusK<!>() = <!EXPECT_CLASS_AS_FUNCTION!>StringValue<!>(value).plus("K").<!UNRESOLVED_REFERENCE!>value<!>
 
 // FILE: main.kt
 class StringDemo(override val value: String) : StringDemoInterface

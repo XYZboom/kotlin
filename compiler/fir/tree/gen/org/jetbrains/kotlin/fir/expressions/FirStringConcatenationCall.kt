@@ -15,7 +15,7 @@ import org.jetbrains.kotlin.fir.visitors.FirTransformer
 import org.jetbrains.kotlin.fir.visitors.FirVisitor
 
 /**
- * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.stringConcatenationCall]
+ * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTree.stringConcatenationCall]
  */
 abstract class FirStringConcatenationCall : FirExpression(), FirCall {
     abstract override val source: KtSourceElement?
@@ -23,6 +23,7 @@ abstract class FirStringConcatenationCall : FirExpression(), FirCall {
     abstract override val argumentList: FirArgumentList
     @UnresolvedExpressionTypeAccess
     abstract override val coneTypeOrNull: ConeKotlinType?
+    abstract val interpolationPrefix: String
 
     override fun <R, D> accept(visitor: FirVisitor<R, D>, data: D): R =
         visitor.visitStringConcatenationCall(this, data)

@@ -23,12 +23,13 @@ import org.jetbrains.kotlin.metadata.ProtoBuf
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.protobuf.GeneratedMessageLite
 import org.jetbrains.kotlin.types.AbstractTypeApproximator
+import org.jetbrains.kotlin.types.model.RigidTypeMarker
 import org.jetbrains.kotlin.types.model.SimpleTypeMarker
 
 class TypeApproximatorForMetadataSerializer(session: FirSession) :
     AbstractTypeApproximator(session.typeContext, session.languageVersionSettings) {
 
-    override fun createErrorType(debugName: String, delegatedType: SimpleTypeMarker?): SimpleTypeMarker {
+    override fun createErrorType(debugName: String, delegatedType: RigidTypeMarker?): SimpleTypeMarker {
         return ConeErrorType(ConeIntermediateDiagnostic(debugName))
     }
 }
@@ -38,7 +39,7 @@ fun ConeKotlinType.suspendFunctionTypeToFunctionTypeWithContinuation(session: Fi
     val kind =
         if (isReflectFunctionType(session)) FunctionTypeKind.KFunction
         else FunctionTypeKind.Function
-    val fullyExpandedType = type.fullyExpandedType(session)
+    val fullyExpandedType = fullyExpandedType(session)
     val typeArguments = fullyExpandedType.typeArguments
     val functionTypeId = ClassId(kind.packageFqName, kind.numberedClassName(typeArguments.size))
     val lastTypeArgument = typeArguments.last()
@@ -46,9 +47,8 @@ fun ConeKotlinType.suspendFunctionTypeToFunctionTypeWithContinuation(session: Fi
         functionTypeId.toLookupTag(),
         typeArguments = (typeArguments.dropLast(1) + continuationClassId.toLookupTag().constructClassType(
             arrayOf(lastTypeArgument),
-            isNullable = false
-        ) + session.builtinTypes.nullableAnyType.type).toTypedArray(),
-        isNullable = fullyExpandedType.isNullable,
+        ) + session.builtinTypes.nullableAnyType.coneType).toTypedArray(),
+        isMarkedNullable = fullyExpandedType.isMarkedNullable,
         attributes = fullyExpandedType.attributes
     )
 }

@@ -8,13 +8,20 @@ package org.jetbrains.kotlin.gradle.plugin.mpp
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.dsl.metadataTarget
+import org.jetbrains.kotlin.gradle.dsl.awaitMetadataTarget
+import org.jetbrains.kotlin.gradle.dsl.multiplatformExtension
 import org.jetbrains.kotlin.gradle.dsl.multiplatformExtensionOrNull
 import org.jetbrains.kotlin.gradle.plugin.KotlinPluginLifecycle.Stage.AfterEvaluateBuildscript
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.await
+import org.jetbrains.kotlin.gradle.plugin.internal.KotlinShareableDataAsSecondaryVariant
+import org.jetbrains.kotlin.gradle.plugin.internal.kotlinSecondaryVariantsDataSharing
+import org.jetbrains.kotlin.gradle.plugin.launch
 import org.jetbrains.kotlin.gradle.plugin.mpp.MetadataDependencyResolution.ChooseVisibleSourceSets.MetadataProvider.ProjectMetadataProvider
+import org.jetbrains.kotlin.gradle.plugin.mpp.publishing.consumeRootModuleCoordinates
+import org.jetbrains.kotlin.gradle.plugin.sources.internal
 import org.jetbrains.kotlin.gradle.targets.metadata.awaitMetadataCompilationsCreated
+import java.io.File
 
 private typealias SourceSetName = String
 
@@ -58,14 +65,32 @@ internal suspend fun Project.collectSourceSetMetadataOutputs(): Map<SourceSetNam
     val sourceSetMetadata = multiplatformExtension.sourceSetsMetadataOutputs()
 
     return sourceSetMetadata.mapValues { (_, metadata) ->
-        SourceSetMetadataOutputs(metadata = metadata,)
+        SourceSetMetadataOutputs(metadata = metadata)
     }.mapKeys { it.key.name }
 }
 
+internal fun GenerateProjectStructureMetadata.addMetadataSourceSetsToOutput(project: Project) {
+    val generateTask = this
+    project.launch {
+        val kotlinProjectDataSharingService = project.kotlinSecondaryVariantsDataSharing
+        val dependencies = project.multiplatformExtension
+            .kotlinMetadataCompilations()
+            .associate {
+                it.defaultSourceSet.name to kotlinProjectDataSharingService
+                    .consumeRootModuleCoordinates(it.defaultSourceSet.internal)
+            }
+        generateTask.coordinatesOfProjectDependencies.set(dependencies)
+    }
+}
+
+internal data class SourceSetToClassDirMap(val map: Map<String, File>) : KotlinShareableDataAsSecondaryVariant
+
+internal suspend fun KotlinMultiplatformExtension.kotlinMetadataCompilations() = awaitMetadataTarget()
+    .awaitMetadataCompilationsCreated()
+    // TODO: KT-62332/Stop-Creating-legacy-metadata-compilation-with-name-main
+    .filter { if (it is KotlinCommonCompilation) it.isKlibCompilation else true }
+
+
 private suspend fun KotlinMultiplatformExtension.sourceSetsMetadataOutputs(): Map<KotlinSourceSet, FileCollection?> {
-    return metadataTarget
-        .awaitMetadataCompilationsCreated()
-        // TODO: KT-62332/Stop-Creating-legacy-metadata-compilation-with-name-main
-        .filter { if (it is KotlinCommonCompilation) it.isKlibCompilation else true }
-        .associate { it.defaultSourceSet to it.output.classesDirs }
+    return kotlinMetadataCompilations().associate { it.defaultSourceSet to it.output.classesDirs }
 }

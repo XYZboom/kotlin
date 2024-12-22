@@ -1,68 +1,88 @@
 element: df.column
 implicit receivers:
-  type: KtUsualClassType:
-    annotationsList: []
-    ownTypeArguments: []
+  type: KaUsualClassType:
+    annotations: []
+    typeArguments: []
     type: <local>/Scope1
-  owner symbol: KtFirLocalVariableSymbol
+  owner symbol: KaFirLocalVariableSymbol
 
 scopes:
   TypeScope, index = 0
     packages: 0
     classifiers: 0
     callables: 4
-      KtKotlinPropertySymbol:
-        annotationsList: []
-        backingFieldSymbol: KtBackingFieldSymbol:
-          annotationsList: []
-          callableIdIfNonLocal: null
+      KaKotlinPropertySymbol:
+        annotations: []
+        backingFieldSymbol: KaBackingFieldSymbol:
+          annotations: []
+          callableId: null
+          compilerVisibility: Private
           contextReceivers: []
+          isActual: false
+          isExpect: false
           isExtension: false
+          isVal: true
+          location: PROPERTY
+          modality: FINAL
           name: field
           origin: PROPERTY_BACKING_FIELD
-          owningProperty: KtKotlinPropertySymbol(<local>/column)
+          owningProperty: KaKotlinPropertySymbol(<local>/column)
           receiverParameter: null
-          returnType: KtUsualClassType:
-            annotationsList: []
-            ownTypeArguments: []
+          returnType: KaUsualClassType:
+            annotations: []
+            typeArguments: []
             type: kotlin/Int
-          symbolKind: LOCAL
-          typeParameters: []
-        callableIdIfNonLocal: null
+          visibility: PRIVATE
+        callableId: null
+        compilerVisibility: Local
         contextReceivers: []
-        getter: KtPropertyGetterSymbol:
-          annotationsList: []
-          callableIdIfNonLocal: null
+        getter: KaPropertyGetterSymbol:
+          annotations: []
+          callableId: null
+          compilerVisibility: Local
           contextReceivers: []
           hasBody: false
           hasStableParameterNames: true
+          isActual: false
           isDefault: true
+          isExpect: false
           isExtension: false
           isInline: false
           isOverride: false
+          location: PROPERTY
           modality: FINAL
           origin: PLUGIN
-          receiverParameter: KtReceiverParameterSymbol:
-            annotationsList: []
+          receiverParameter: KaReceiverParameterSymbol:
+            annotations: []
+            callableId: null
+            compilerVisibility: Public
+            contextReceivers: []
+            isActual: false
+            isExpect: false
+            isExtension: false
+            isVal: true
+            location: LOCAL
+            modality: FINAL
+            name: <receiver>
             origin: PLUGIN
-            owningCallableSymbol: KtKotlinPropertySymbol(<local>/column)
-            type: KtUsualClassType:
-              annotationsList: []
-              ownTypeArguments: [
-                KtUsualClassType:
-                  annotationsList: []
-                  ownTypeArguments: []
+            owningCallableSymbol: KaKotlinPropertySymbol(<local>/column)
+            receiverParameter: null
+            returnType: KaUsualClassType:
+              annotations: []
+              typeArguments: [
+                KaUsualClassType:
+                  annotations: []
+                  typeArguments: []
                   type: <local>/Schema1
               ]
               type: DataFrame<<local>/Schema1>
-          returnType: KtUsualClassType:
-            annotationsList: []
-            ownTypeArguments: []
+            visibility: PUBLIC
+          returnType: KaUsualClassType:
+            annotations: []
+            typeArguments: []
             type: kotlin/Int
-          symbolKind: ACCESSOR
-          typeParameters: []
           valueParameters: []
-          visibility: Local
+          visibility: LOCAL
         hasBackingField: true
         hasGetter: true
         hasSetter: false
@@ -72,38 +92,52 @@ scopes:
         isDelegatedProperty: false
         isExpect: false
         isExtension: true
+        isExternal: false
         isFromPrimaryConstructor: false
         isLateInit: false
         isOverride: false
         isStatic: false
         isVal: true
+        location: CLASS
         modality: FINAL
         name: column
         origin: PLUGIN
-        receiverParameter: KtReceiverParameterSymbol:
-          annotationsList: []
+        receiverParameter: KaReceiverParameterSymbol:
+          annotations: []
+          callableId: null
+          compilerVisibility: Public
+          contextReceivers: []
+          isActual: false
+          isExpect: false
+          isExtension: false
+          isVal: true
+          location: LOCAL
+          modality: FINAL
+          name: <receiver>
           origin: PLUGIN
-          owningCallableSymbol: KtKotlinPropertySymbol(<local>/column)
-          type: KtUsualClassType:
-            annotationsList: []
-            ownTypeArguments: [
-              KtUsualClassType:
-                annotationsList: []
-                ownTypeArguments: []
+          owningCallableSymbol: KaKotlinPropertySymbol(<local>/column)
+          receiverParameter: null
+          returnType: KaUsualClassType:
+            annotations: []
+            typeArguments: [
+              KaUsualClassType:
+                annotations: []
+                typeArguments: []
                 type: <local>/Schema1
             ]
             type: DataFrame<<local>/Schema1>
-        returnType: KtUsualClassType:
-          annotationsList: []
-          ownTypeArguments: []
+          visibility: PUBLIC
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
           type: kotlin/Int
         setter: null
-        symbolKind: CLASS_MEMBER
         typeParameters: []
-        visibility: Local
-      KtFunctionSymbol:
-        annotationsList: []
-        callableIdIfNonLocal: kotlin/Any.equals
+        visibility: LOCAL
+      KaNamedFunctionSymbol:
+        annotations: []
+        callableId: kotlin/Any.equals
+        compilerVisibility: Public
         contextReceivers: []
         contractEffects: []
         hasStableParameterNames: true
@@ -119,42 +153,48 @@ scopes:
         isStatic: false
         isSuspend: false
         isTailRec: false
+        location: CLASS
         modality: OPEN
         name: equals
         origin: LIBRARY
         receiverParameter: null
-        returnType: KtUsualClassType:
-          annotationsList: []
-          ownTypeArguments: []
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
           type: kotlin/Boolean
-        symbolKind: CLASS_MEMBER
         typeParameters: []
         valueParameters: [
-          KtValueParameterSymbol:
-            annotationsList: []
-            callableIdIfNonLocal: null
+          KaValueParameterSymbol:
+            annotations: []
+            callableId: null
+            compilerVisibility: Public
             contextReceivers: []
             generatedPrimaryConstructorProperty: null
             hasDefaultValue: false
+            isActual: false
             isCrossinline: false
+            isExpect: false
             isExtension: false
             isImplicitLambdaParameter: false
             isNoinline: false
+            isVal: true
             isVararg: false
+            location: LOCAL
+            modality: FINAL
             name: other
             origin: LIBRARY
             receiverParameter: null
-            returnType: KtUsualClassType:
-              annotationsList: []
-              ownTypeArguments: []
+            returnType: KaUsualClassType:
+              annotations: []
+              typeArguments: []
               type: kotlin/Any?
-            symbolKind: LOCAL
-            typeParameters: []
+            visibility: PUBLIC
         ]
-        visibility: Public
-      KtFunctionSymbol:
-        annotationsList: []
-        callableIdIfNonLocal: kotlin/Any.hashCode
+        visibility: PUBLIC
+      KaNamedFunctionSymbol:
+        annotations: []
+        callableId: kotlin/Any.hashCode
+        compilerVisibility: Public
         contextReceivers: []
         contractEffects: []
         hasStableParameterNames: true
@@ -170,21 +210,22 @@ scopes:
         isStatic: false
         isSuspend: false
         isTailRec: false
+        location: CLASS
         modality: OPEN
         name: hashCode
         origin: LIBRARY
         receiverParameter: null
-        returnType: KtUsualClassType:
-          annotationsList: []
-          ownTypeArguments: []
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
           type: kotlin/Int
-        symbolKind: CLASS_MEMBER
         typeParameters: []
         valueParameters: []
-        visibility: Public
-      KtFunctionSymbol:
-        annotationsList: []
-        callableIdIfNonLocal: kotlin/Any.toString
+        visibility: PUBLIC
+      KaNamedFunctionSymbol:
+        annotations: []
+        callableId: kotlin/Any.toString
+        compilerVisibility: Public
         contextReceivers: []
         contractEffects: []
         hasStableParameterNames: true
@@ -200,92 +241,103 @@ scopes:
         isStatic: false
         isSuspend: false
         isTailRec: false
+        location: CLASS
         modality: OPEN
         name: toString
         origin: LIBRARY
         receiverParameter: null
-        returnType: KtUsualClassType:
-          annotationsList: []
-          ownTypeArguments: []
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
           type: kotlin/String
-        symbolKind: CLASS_MEMBER
         typeParameters: []
         valueParameters: []
-        visibility: Public
+        visibility: PUBLIC
     constructors: 1
-      KtConstructorSymbol:
-        annotationsList: []
-        callableIdIfNonLocal: null
-        containingClassIdIfNonLocal: null
+      KaConstructorSymbol:
+        annotations: []
+        callableId: null
+        compilerVisibility: Local
+        containingClassId: null
         contextReceivers: []
         hasStableParameterNames: true
         isActual: false
         isExpect: false
         isExtension: false
         isPrimary: true
+        location: CLASS
+        modality: FINAL
         origin: PLUGIN
         receiverParameter: null
-        returnType: KtUsualClassType:
-          annotationsList: []
-          ownTypeArguments: []
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
           type: <local>/Scope1
-        symbolKind: CLASS_MEMBER
         typeParameters: []
         valueParameters: []
-        visibility: Local
+        visibility: LOCAL
 
   LocalScope, index = 1
     packages: 0
     classifiers: 0
     callables: 1
-      KtLocalVariableSymbol:
-        annotationsList: []
-        callableIdIfNonLocal: null
+      KaLocalVariableSymbol:
+        annotations: []
+        callableId: null
+        compilerVisibility: Local
         contextReceivers: []
+        isActual: false
+        isExpect: false
         isExtension: false
         isVal: true
+        location: LOCAL
+        modality: FINAL
         name: df
         origin: SOURCE
         receiverParameter: null
-        returnType: KtUsualClassType:
-          annotationsList: []
-          ownTypeArguments: [
-            KtUsualClassType:
-              annotationsList: []
-              ownTypeArguments: []
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: [
+            KaUsualClassType:
+              annotations: []
+              typeArguments: []
               type: <local>/DataFrameType
           ]
           type: DataFrame<<local>/DataFrameType>
-        symbolKind: LOCAL
-        typeParameters: []
+        visibility: LOCAL
     constructors: 0
 
   LocalScope, index = 2
     packages: 0
     classifiers: 0
     callables: 1
-      KtValueParameterSymbol:
-        annotationsList: []
-        callableIdIfNonLocal: null
+      KaValueParameterSymbol:
+        annotations: []
+        callableId: null
+        compilerVisibility: Public
         contextReceivers: []
         generatedPrimaryConstructorProperty: null
         hasDefaultValue: false
+        isActual: false
         isCrossinline: false
+        isExpect: false
         isExtension: false
         isImplicitLambdaParameter: false
         isNoinline: false
+        isVal: true
         isVararg: false
+        location: LOCAL
+        modality: FINAL
         name: df
         origin: SOURCE
         receiverParameter: null
-        returnType: KtUsualClassType:
-          annotationsList: []
-          ownTypeArguments: [
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: [
             *
           ]
           type: DataFrame<*>
-        symbolKind: LOCAL
-        typeParameters: []
+        visibility: PUBLIC
     constructors: 0
 
   ExplicitSimpleImportingScope, index = 3
@@ -296,30 +348,37 @@ scopes:
 
   PackageMemberScope, index = 4
     packages: 6
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: META-INF
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: java
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: javax
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: kotlin
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: org
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: sun
+        location: TOP_LEVEL
         origin: SOURCE
     classifiers: 2
-      KtNamedClassOrObjectSymbol:
-        annotationsList: []
-        classIdIfNonLocal: DataFrame
+      KaNamedClassSymbol:
+        annotations: []
+        classId: DataFrame
         classKind: INTERFACE
         companionObject: null
+        compilerVisibility: Public
         contextReceivers: []
         isActual: false
         isData: false
@@ -328,25 +387,38 @@ scopes:
         isFun: false
         isInline: false
         isInner: false
+        location: TOP_LEVEL
         modality: ABSTRACT
         name: DataFrame
         origin: SOURCE
         superTypes: [
-          KtUsualClassType:
-            annotationsList: []
-            ownTypeArguments: []
+          KaUsualClassType:
+            annotations: []
+            typeArguments: []
             type: kotlin/Any
         ]
-        symbolKind: TOP_LEVEL
         typeParameters: [
-          KtTypeParameterSymbol(T)
+          KaTypeParameterSymbol:
+            annotations: []
+            compilerVisibility: Local
+            isActual: false
+            isExpect: false
+            isReified: false
+            location: CLASS
+            modality: FINAL
+            name: T
+            origin: SOURCE
+            upperBounds: []
+            variance: OUT_VARIANCE
+            visibility: LOCAL
         ]
-        visibility: Public
-      KtNamedClassOrObjectSymbol:
-        annotationsList: []
-        classIdIfNonLocal: Refine
+        visibility: PUBLIC
+      KaNamedClassSymbol:
+        annotations: []
+        classId: Refine
         classKind: ANNOTATION_CLASS
         companionObject: null
+        compilerVisibility: Public
         contextReceivers: []
         isActual: false
         isData: false
@@ -355,25 +427,26 @@ scopes:
         isFun: false
         isInline: false
         isInner: false
+        location: TOP_LEVEL
         modality: FINAL
         name: Refine
         origin: SOURCE
         superTypes: [
-          KtUsualClassType:
-            annotationsList: []
-            ownTypeArguments: []
+          KaUsualClassType:
+            annotations: []
+            typeArguments: []
             type: kotlin/Annotation
         ]
-        symbolKind: TOP_LEVEL
         typeParameters: []
-        visibility: Public
+        visibility: PUBLIC
     callables: 2
-      KtFunctionSymbol:
-        annotationsList: [
+      KaNamedFunctionSymbol:
+        annotations: [
           Refine()
             psi: KtAnnotationEntry
         ]
-        callableIdIfNonLocal: /add
+        callableId: /add
+        compilerVisibility: Public
         contextReceivers: []
         contractEffects: []
         hasStableParameterNames: true
@@ -389,85 +462,132 @@ scopes:
         isStatic: false
         isSuspend: false
         isTailRec: false
+        location: TOP_LEVEL
         modality: FINAL
         name: add
         origin: SOURCE
-        receiverParameter: KtReceiverParameterSymbol:
-          annotationsList: []
+        receiverParameter: KaReceiverParameterSymbol:
+          annotations: []
+          callableId: null
+          compilerVisibility: Public
+          contextReceivers: []
+          isActual: false
+          isExpect: false
+          isExtension: false
+          isVal: true
+          location: LOCAL
+          modality: FINAL
+          name: <receiver>
           origin: SOURCE
-          owningCallableSymbol: KtFunctionSymbol(/add)
-          type: KtUsualClassType:
-            annotationsList: []
-            ownTypeArguments: [
-              KtTypeParameterType:
-                annotationsList: []
+          owningCallableSymbol: KaNamedFunctionSymbol(/add)
+          receiverParameter: null
+          returnType: KaUsualClassType:
+            annotations: []
+            typeArguments: [
+              KaTypeParameterType:
+                annotations: []
                 type: T
             ]
             type: DataFrame<T>
-        returnType: KtUsualClassType:
-          annotationsList: []
-          ownTypeArguments: [
-            KtUsualClassType:
-              annotationsList: []
-              ownTypeArguments: []
+          visibility: PUBLIC
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: [
+            KaUsualClassType:
+              annotations: []
+              typeArguments: []
               type: kotlin/Any?
           ]
           type: DataFrame<kotlin/Any?>
-        symbolKind: TOP_LEVEL
         typeParameters: [
-          KtTypeParameterSymbol(T)
-          KtTypeParameterSymbol(R)
+          KaTypeParameterSymbol:
+            annotations: []
+            compilerVisibility: Local
+            isActual: false
+            isExpect: false
+            isReified: false
+            location: LOCAL
+            modality: FINAL
+            name: T
+            origin: SOURCE
+            upperBounds: []
+            variance: INVARIANT
+            visibility: LOCAL
+          KaTypeParameterSymbol:
+            annotations: []
+            compilerVisibility: Local
+            isActual: false
+            isExpect: false
+            isReified: false
+            location: LOCAL
+            modality: FINAL
+            name: R
+            origin: SOURCE
+            upperBounds: []
+            variance: INVARIANT
+            visibility: LOCAL
         ]
         valueParameters: [
-          KtValueParameterSymbol:
-            annotationsList: []
-            callableIdIfNonLocal: null
+          KaValueParameterSymbol:
+            annotations: []
+            callableId: null
+            compilerVisibility: Public
             contextReceivers: []
             generatedPrimaryConstructorProperty: null
             hasDefaultValue: false
+            isActual: false
             isCrossinline: false
+            isExpect: false
             isExtension: false
             isImplicitLambdaParameter: false
             isNoinline: false
+            isVal: true
             isVararg: false
+            location: LOCAL
+            modality: FINAL
             name: columnName
             origin: SOURCE
             receiverParameter: null
-            returnType: KtUsualClassType:
-              annotationsList: []
-              ownTypeArguments: []
+            returnType: KaUsualClassType:
+              annotations: []
+              typeArguments: []
               type: kotlin/String
-            symbolKind: LOCAL
-            typeParameters: []
-          KtValueParameterSymbol:
-            annotationsList: []
-            callableIdIfNonLocal: null
+            visibility: PUBLIC
+          KaValueParameterSymbol:
+            annotations: []
+            callableId: null
+            compilerVisibility: Public
             contextReceivers: []
             generatedPrimaryConstructorProperty: null
             hasDefaultValue: false
+            isActual: false
             isCrossinline: false
+            isExpect: false
             isExtension: false
             isImplicitLambdaParameter: false
             isNoinline: false
+            isVal: true
             isVararg: false
+            location: LOCAL
+            modality: FINAL
             name: expression
             origin: SOURCE
             receiverParameter: null
-            returnType: KtFunctionalType:
-              annotationsList: []
-              ownTypeArguments: [
-                KtTypeParameterType:
-                  annotationsList: []
+            returnType: KaFunctionType:
+              annotations: []
+              typeArguments: [
+                KaTypeParameterType:
+                  annotations: []
                   type: R
               ]
               type: kotlin/Function0<R>
-            symbolKind: LOCAL
-            typeParameters: []
+            visibility: PUBLIC
         ]
-        visibility: Public
-      KtFunctionSymbol:
-        annotationsList: []
-        callableIdIfNonLocal: /test_1
+        visibility: PUBLIC
+      KaNamedFunctionSymbol:
+        annotations: []
+        callableId: /test_1
+        compilerVisibility: Public
         contextReceivers: []
         contractEffects: []
         hasStableParameterNames: true
@@ -483,41 +603,46 @@ scopes:
         isStatic: false
         isSuspend: false
         isTailRec: false
+        location: TOP_LEVEL
         modality: FINAL
         name: test_1
         origin: SOURCE
         receiverParameter: null
-        returnType: KtUsualClassType:
-          annotationsList: []
-          ownTypeArguments: []
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
           type: kotlin/Unit
-        symbolKind: TOP_LEVEL
         typeParameters: []
         valueParameters: [
-          KtValueParameterSymbol:
-            annotationsList: []
-            callableIdIfNonLocal: null
+          KaValueParameterSymbol:
+            annotations: []
+            callableId: null
+            compilerVisibility: Public
             contextReceivers: []
             generatedPrimaryConstructorProperty: null
             hasDefaultValue: false
+            isActual: false
             isCrossinline: false
+            isExpect: false
             isExtension: false
             isImplicitLambdaParameter: false
             isNoinline: false
+            isVal: true
             isVararg: false
+            location: LOCAL
+            modality: FINAL
             name: df
             origin: SOURCE
             receiverParameter: null
-            returnType: KtUsualClassType:
-              annotationsList: []
-              ownTypeArguments: [
+            returnType: KaUsualClassType:
+              annotations: []
+              typeArguments: [
                 *
               ]
               type: DataFrame<*>
-            symbolKind: LOCAL
-            typeParameters: []
+            visibility: PUBLIC
         ]
-        visibility: Public
+        visibility: PUBLIC
     constructors: 0
 
   DefaultSimpleImportingScope, index = 5

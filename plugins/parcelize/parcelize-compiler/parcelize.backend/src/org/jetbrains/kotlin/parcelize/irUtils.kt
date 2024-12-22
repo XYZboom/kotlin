@@ -6,17 +6,17 @@
 package org.jetbrains.kotlin.parcelize
 
 import org.jetbrains.kotlin.backend.jvm.ir.erasedUpperBound
+import org.jetbrains.kotlin.backend.jvm.ir.representativeUpperBound
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.*
 import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.expressions.IrCall
-import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
-import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrClassReferenceImpl
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
+import org.jetbrains.kotlin.ir.symbols.IrTypeParameterSymbol
 import org.jetbrains.kotlin.ir.symbols.impl.IrFieldSymbolImpl
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
@@ -57,17 +57,17 @@ fun IrBuilderWithScope.parcelerWrite(
     flags: IrValueDeclaration,
     value: IrExpression,
 ) = irCall(parceler.parcelerSymbolByName("write")!!).apply {
-    dispatchReceiver = irGetObject(parceler.symbol)
-    extensionReceiver = value
-    putValueArgument(0, irGet(parcel))
-    putValueArgument(1, irGet(flags))
+    arguments[0] = irGetObject(parceler.symbol)
+    arguments[1] = value
+    arguments[2] = irGet(parcel)
+    arguments[3] = irGet(flags)
 }
 
 // object P : Parceler<T> { fun create(parcel: Parcel): T }
 fun IrBuilderWithScope.parcelerCreate(parceler: IrClass, parcel: IrValueDeclaration): IrExpression =
     irCall(parceler.parcelerSymbolByName("create")!!).apply {
-        dispatchReceiver = irGetObject(parceler.symbol)
-        putValueArgument(0, irGet(parcel))
+        arguments[0] = irGetObject(parceler.symbol)
+        arguments[1] = irGet(parcel)
     }
 
 // object P: Parceler<T> { fun newArray(size: Int): Array<T> }
@@ -78,8 +78,8 @@ fun IrBuilderWithScope.parcelerNewArray(parceler: IrClass?, size: IrValueDeclara
         !it.owner.isFakeOverride || it.owner.resolveFakeOverride()?.parentClassOrNull?.fqNameWhenAvailable != PARCELER_FQN
     }?.let { newArraySymbol ->
         irCall(newArraySymbol).apply {
-            dispatchReceiver = irGetObject(parceler.symbol)
-            putValueArgument(0, irGet(size))
+            arguments[0] = irGetObject(parceler.symbol)
+            arguments[1] = irGet(size)
         }
     }
 
@@ -95,9 +95,9 @@ fun IrBuilderWithScope.parcelableWriteToParcel(
     }
 
     return irCall(writeToParcel).apply {
-        dispatchReceiver = parcelable
-        putValueArgument(0, parcel)
-        putValueArgument(1, flags)
+        arguments[0] = parcelable
+        arguments[1] = parcel
+        arguments[2] = flags
     }
 }
 
@@ -108,15 +108,13 @@ fun IrBuilderWithScope.parcelableCreatorCreateFromParcel(creator: IrExpression, 
     }
 
     return irCall(createFromParcel).apply {
-        dispatchReceiver = creator
-        putValueArgument(0, parcel)
+        arguments[0] = creator
+        arguments[1] = parcel
     }
 }
 
 fun IrSimpleFunction.isParcelableCreatorIntrinsic(): Boolean =
-    dispatchReceiverParameter == null
-            && extensionReceiverParameter == null
-            && valueParameters.isEmpty()
+    parameters.isEmpty()
             && isInline
             && isTopLevelInPackage("parcelableCreator", FqName("kotlinx.parcelize"))
             && typeParameters.singleOrNull()?.let {
@@ -178,7 +176,7 @@ private fun IrBuilderWithScope.kClassReference(classType: IrType): IrClassRefere
 
 private fun AndroidIrBuilder.kClassToJavaClass(kClassReference: IrExpression): IrCall =
     irGet(androidSymbols.javaLangClass.starProjectedType, null, androidSymbols.kotlinKClassJava.owner.getter!!.symbol).apply {
-        extensionReceiver = kClassReference
+        arguments[0] = kClassReference
     }
 
 // Produce a static reference to the java class of the given type.
@@ -201,16 +199,23 @@ inline fun IrBlockBuilder.forUntil(upperBound: IrExpression, loopBody: IrBlockBu
     }
 }
 
-fun IrTypeArgument.upperBound(builtIns: IrBuiltIns): IrType =
+fun IrTypeArgument.upperBoundOrNull(): IrType? =
     when (this) {
-        is IrStarProjection -> builtIns.anyNType
-        is IrTypeProjection -> {
-            if (variance == Variance.OUT_VARIANCE || variance == Variance.INVARIANT)
-                type
-            else
-                builtIns.anyNType
-        }
+        is IrStarProjection -> null
+        is IrTypeProjection -> type.takeIf { variance == Variance.OUT_VARIANCE || variance == Variance.INVARIANT }
     }
+
+fun IrTypeArgument.upperBound(builtIns: IrBuiltIns): IrType =
+    upperBoundOrNull() ?: builtIns.anyNType
+
+fun IrClass.typeParameterMapping(instantiation: IrType): Map<IrTypeParameterSymbol, IrType> = buildMap {
+    (instantiation as? IrSimpleType)?.arguments?.zip(typeParameters) { arg, parameter ->
+        put(parameter.symbol, arg.upperBoundOrNull() ?: parameter.representativeUpperBound)
+    }
+}
+
+val IrField.isFromPrimaryConstructor: Boolean
+    get() = (initializer?.expression as? IrGetValue)?.origin == IrStatementOrigin.INITIALIZE_PROPERTY_FROM_PARAMETER
 
 private fun IrClass.getSimpleFunction(name: String): IrSimpleFunctionSymbol? =
     findDeclaration<IrSimpleFunction> { it.name.asString() == name }?.symbol
@@ -223,8 +228,7 @@ fun IrClass.getPropertyGetter(name: String): IrSimpleFunctionSymbol? =
 
 fun IrClass.getMethodWithoutArguments(name: String): IrSimpleFunction =
     functions.first { function ->
-        function.name.asString() == name && function.dispatchReceiverParameter != null
-                && function.extensionReceiverParameter == null && function.valueParameters.isEmpty()
+        function.name.asString() == name && function.parameters.singleOrNull()?.kind == IrParameterKind.DispatchReceiver
     }
 
 internal fun IrAnnotationContainer.hasAnyAnnotation(fqNames: List<FqName>): Boolean {

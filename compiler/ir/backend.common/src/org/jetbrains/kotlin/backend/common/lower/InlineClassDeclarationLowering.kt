@@ -8,13 +8,13 @@ package org.jetbrains.kotlin.backend.common.lower
 import org.jetbrains.kotlin.backend.common.BodyLoweringPass
 import org.jetbrains.kotlin.backend.common.CommonBackendContext
 import org.jetbrains.kotlin.backend.common.DeclarationTransformer
-import org.jetbrains.kotlin.backend.common.getOrPut
 import org.jetbrains.kotlin.backend.common.ir.isPure
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.*
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.irAttribute
 import org.jetbrains.kotlin.ir.transformStatement
 import org.jetbrains.kotlin.ir.types.SimpleTypeNullability
 import org.jetbrains.kotlin.ir.types.extractTypeParameters
@@ -27,8 +27,6 @@ import org.jetbrains.kotlin.name.Name
 private const val INLINE_CLASS_IMPL_SUFFIX = "-impl"
 
 class InlineClassLowering(val context: CommonBackendContext) {
-    private val transformedFunction = context.mapping.inlineClassMemberToStatic
-
     private fun isClassInlineLike(irClass: IrClass): Boolean = context.inlineClassesUtils.isClassInlineLike(irClass)
 
     val inlineClassDeclarationLowering = object : DeclarationTransformer {
@@ -172,7 +170,7 @@ class InlineClassLowering(val context: CommonBackendContext) {
                         // Use these delegating call later to initialize this variable.
                         lateinit var thisVar: IrVariable
                         val parameterMapping = staticMethod.valueParameters.associateBy {
-                            irConstructor.valueParameters[it.index].symbol
+                            irConstructor.valueParameters[it.indexInOldValueParameters].symbol
                         }
 
                         (constructorBody as IrBlockBody).statements.forEach { statement ->
@@ -264,7 +262,7 @@ class InlineClassLowering(val context: CommonBackendContext) {
 
                                     in function.valueParameters -> {
                                         val offset = if (function.extensionReceiverParameter != null) 2 else 1
-                                        staticMethod.valueParameters[valueDeclaration.index + offset]
+                                        staticMethod.valueParameters[valueDeclaration.indexInOldValueParameters + offset]
                                     }
 
                                     else -> return expression
@@ -279,7 +277,7 @@ class InlineClassLowering(val context: CommonBackendContext) {
                                 when (valueDeclaration) {
                                     in function.valueParameters -> {
                                         val offset = if (function.extensionReceiverParameter != null) 2 else 1
-                                        staticMethod.valueParameters[valueDeclaration.index + offset].symbol
+                                        staticMethod.valueParameters[valueDeclaration.indexInOldValueParameters + offset].symbol
                                     }
                                     else -> return expression
                                 },
@@ -309,7 +307,8 @@ class InlineClassLowering(val context: CommonBackendContext) {
 
                             val typeParameters = extractTypeParameters(function.parentAsClass) + function.typeParameters
                             for ((index, typeParameter) in typeParameters.withIndex()) {
-                                putTypeArgument(index, IrSimpleTypeImpl(typeParameter.symbol, SimpleTypeNullability.NOT_SPECIFIED, emptyList(), emptyList()))
+                                typeArguments[index] =
+                                    IrSimpleTypeImpl(typeParameter.symbol, SimpleTypeNullability.NOT_SPECIFIED, emptyList(), emptyList())
                             }
                         }
                     )
@@ -320,8 +319,8 @@ class InlineClassLowering(val context: CommonBackendContext) {
     }
 
     private fun getOrCreateStaticMethod(function: IrFunction): IrSimpleFunction =
-        transformedFunction.getOrPut(function) {
-            createStaticBodilessMethod(function)
+        function.staticMethod ?: createStaticBodilessMethod(function).also {
+            function.staticMethod = it
         }
 
     val inlineClassUsageLowering = object : BodyLoweringPass {
@@ -387,3 +386,5 @@ class InlineClassLowering(val context: CommonBackendContext) {
             remapMultiFieldValueClassStructure = context::remapMultiFieldValueClassStructure
         )
 }
+
+private var IrFunction.staticMethod: IrSimpleFunction? by irAttribute(followAttributeOwner = false)

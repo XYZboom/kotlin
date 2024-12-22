@@ -1,21 +1,19 @@
 /*
- * Copyright 2010-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license
- * that can be found in the LICENSE file.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.backend.konan.lower
 
-import org.jetbrains.kotlin.backend.common.FileLoweringPass
+import org.jetbrains.kotlin.backend.common.*
 import org.jetbrains.kotlin.backend.common.lower.*
-import org.jetbrains.kotlin.backend.common.peek
-import org.jetbrains.kotlin.backend.common.pop
-import org.jetbrains.kotlin.backend.common.push
 import org.jetbrains.kotlin.backend.konan.*
 import org.jetbrains.kotlin.backend.konan.cgen.*
 import org.jetbrains.kotlin.backend.konan.descriptors.synthesizedName
 import org.jetbrains.kotlin.backend.konan.ir.*
 import org.jetbrains.kotlin.backend.konan.llvm.IntrinsicType
 import org.jetbrains.kotlin.backend.konan.llvm.tryGetIntrinsicType
+import org.jetbrains.kotlin.backend.konan.serialization.isFromCInteropLibrary
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
@@ -36,6 +34,9 @@ import org.jetbrains.kotlin.ir.symbols.impl.IrSimpleFunctionSymbolImpl
 import org.jetbrains.kotlin.ir.symbols.impl.IrValueParameterSymbolImpl
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.isNullable
+import org.jetbrains.kotlin.ir.util.isSubtypeOf
+import org.jetbrains.kotlin.ir.util.isSubtypeOfClass
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
@@ -283,7 +284,7 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
                 isInfix = false,
         ).also { result ->
             result.parent = irClass
-            result.createDispatchReceiverParameter()
+            result.parameters += result.createDispatchReceiverParameterWithClassParent()
             result.valueParameters += constructor.valueParameters.map { it.copyTo(result) }
 
             result.overriddenSymbols += initMethod.symbol
@@ -294,7 +295,7 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
                             extensionReceiver = irGet(result.dispatchReceiverParameter!!)
                             putValueArgument(0, irCall(constructor).also {
                                 result.valueParameters.forEach { parameter ->
-                                    it.putValueArgument(parameter.index, irGet(parameter))
+                                    it.putValueArgument(parameter.indexInOldValueParameters, irGet(parameter))
                                 }
                             })
                         }
@@ -391,7 +392,6 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
                     type = type,
                     isAssignable = false,
                     symbol = IrValueParameterSymbolImpl(),
-                    index = index,
                     varargElementType = null,
                     isCrossinline = false,
                     isNoinline = false,
@@ -520,7 +520,7 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
                         initMethodInfo,
                         superQualifier = delegatingCallConstructingClass.symbol,
                         receiver = builder.irGet(constructedClass.thisReceiver!!),
-                        arguments = initMethod.valueParameters.map { expression.getValueArgument(it.index) },
+                        arguments = initMethod.valueParameters.map { expression.getValueArgument(it.indexInOldValueParameters) },
                         call = expression,
                         method = initMethod
                 )
@@ -595,7 +595,7 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
         val callee = expression.symbol.owner
         val initMethod = callee.getObjCInitMethod()
         if (initMethod != null) {
-            val arguments = callee.valueParameters.map { expression.getValueArgument(it.index) }
+            val arguments = callee.valueParameters.map { expression.getValueArgument(it.indexInOldValueParameters) }
             require(expression.extensionReceiver == null) { renderCompilerError(expression) }
             require(expression.dispatchReceiver == null) { renderCompilerError(expression) }
 
@@ -651,7 +651,7 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
                             ?.hasAnnotation(RuntimeNames.exportForCppRuntime) == true
 
             if (!useKotlinDispatch) {
-                val arguments = callee.valueParameters.map { expression.getValueArgument(it.index) }
+                val arguments = callee.valueParameters.map { expression.getValueArgument(it.indexInOldValueParameters) }
                 require(expression.dispatchReceiver == null || expression.extensionReceiver == null) { renderCompilerError(expression) }
                 require(expression.superQualifierSymbol?.owner?.isObjCMetaClass() != true) { renderCompilerError(expression) }
                 require(expression.superQualifierSymbol?.owner?.isInterface != true) { renderCompilerError(expression) }
@@ -722,15 +722,15 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
         }
     }
 
-    override fun visitBlock(expression: IrBlock): IrExpression {
-        if (expression is IrReturnableBlock && expression.inlineFunction?.isAutoreleasepool() == true) {
+    override fun visitInlinedFunctionBlock(inlinedBlock: IrInlinedFunctionBlock): IrExpression {
+        if (inlinedBlock.inlineFunctionSymbol?.owner?.isAutoreleasepool() == true) {
             // Prohibit calling suspend functions from `autoreleasepool {}` block.
             // See https://youtrack.jetbrains.com/issue/KT-50786 for more details.
             // Note: we can't easily check this in frontend, because we need to prohibit indirect cases like
             ///    inline fun <T> myAutoreleasepool(block: () -> T) = autoreleasepool(block)
             ///    myAutoreleasepool { suspendHere() }
 
-            expression.acceptVoid(object : IrElementVisitorVoid {
+            inlinedBlock.acceptVoid(object : IrElementVisitorVoid {
                 override fun visitElement(element: IrElement) {
                     element.acceptChildrenVoid(this)
                 }
@@ -749,7 +749,7 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
                 }
             })
         }
-        return super.visitBlock(expression)
+        return super.visitInlinedFunctionBlock(inlinedBlock)
     }
 
     private fun IrFunction.isAutoreleasepool(): Boolean {
@@ -857,7 +857,7 @@ private class InteropTransformer(
                         irCall(callee).apply {
                             extensionReceiver = irGet(tmp)
                             typeArguments.forEachIndexed { index, arg ->
-                                putTypeArgument(index, arg.typeOrNull!!)
+                                this.typeArguments[index] = arg.typeOrNull!!
                             }
                         }
                 )
@@ -947,9 +947,8 @@ private class InteropTransformer(
                         putValueArgument(0,
                                 irCall(interopGetPtr).apply {
                                     extensionReceiver = irGet(tmp)
-                                    putTypeArgument(0,
-                                            (correspondingInit.valueParameters.first().type as IrSimpleType).arguments.single().typeOrNull!!
-                                    )
+                                    typeArguments[0] =
+                                        (correspondingInit.valueParameters.first().type as IrSimpleType).arguments.single().typeOrNull!!
                                 }
                         )
                         for (index in 0 until expression.valueArgumentsCount) {
@@ -1024,13 +1023,13 @@ private class InteropTransformer(
     private fun tryGenerateInteropConstantRead(expression: IrCall): IrExpression? {
         val function = expression.symbol.owner
 
-        if (!function.isFromInteropLibrary()) return null
+        if (!function.isFromCInteropLibrary()) return null
         if (!function.isGetter) return null
 
         val constantProperty = function.correspondingPropertySymbol?.owner?.takeIf { it.isConst } ?: return null
 
         val initializer = constantProperty.backingField?.initializer?.expression
-        require(initializer is IrConst<*>) { renderCompilerError(expression) }
+        require(initializer is IrConst) { renderCompilerError(expression) }
 
         // Avoid node duplication
         return initializer.shallowCopy()
@@ -1106,7 +1105,7 @@ private class InteropTransformer(
             return when (intrinsicType) {
                 IntrinsicType.INTEROP_BITS_TO_FLOAT -> {
                     val argument = expression.getValueArgument(0)
-                    if (argument is IrConst<*> && argument.kind == IrConstKind.Int) {
+                    if (argument is IrConst && argument.kind == IrConstKind.Int) {
                         val floatValue = kotlinx.cinterop.bitsToFloat(argument.value as Int)
                         builder.irFloat(floatValue)
                     } else {
@@ -1115,7 +1114,7 @@ private class InteropTransformer(
                 }
                 IntrinsicType.INTEROP_BITS_TO_DOUBLE -> {
                     val argument = expression.getValueArgument(0)
-                    if (argument is IrConst<*> && argument.kind == IrConstKind.Long) {
+                    if (argument is IrConst && argument.kind == IrConstKind.Long) {
                         val doubleValue = kotlinx.cinterop.bitsToDouble(argument.value as Long)
                         builder.irDouble(doubleValue)
                     } else {
@@ -1125,15 +1124,14 @@ private class InteropTransformer(
                 IntrinsicType.INTEROP_STATIC_C_FUNCTION -> {
                     val irCallableReference = unwrapStaticFunctionArgument(expression.getValueArgument(0)!!)
 
-                    require(irCallableReference != null && irCallableReference.getArguments().isEmpty()
-                            && irCallableReference.symbol is IrSimpleFunctionSymbol) { renderCompilerError(expression) }
+                    require(irCallableReference != null && irCallableReference.symbol is IrSimpleFunctionSymbol) { renderCompilerError(expression) }
 
                     val targetSymbol = irCallableReference.symbol
                     val target = targetSymbol.owner
                     val signatureTypes = target.allParameters.map { it.type } + target.returnType
 
                     function.typeParameters.indices.forEach { index ->
-                        val typeArgument = expression.getTypeArgument(index)!!.toKotlinType()
+                        val typeArgument = expression.typeArguments[index]!!.toKotlinType()
                         val signatureType = signatureTypes[index].toKotlinType()
 
                         require(typeArgument.constructor == signatureType.constructor &&
@@ -1185,7 +1183,7 @@ private class InteropTransformer(
                 }
                 IntrinsicType.INTEROP_CONVERT -> {
                     val integerClasses = symbols.allIntegerClasses
-                    val typeOperand = expression.getTypeArgument(0)!!
+                    val typeOperand = expression.typeArguments[0]!!
                     val receiverType = expression.symbol.owner.extensionReceiverParameter!!.type
                     val source = receiverType.classifierOrFail as IrClassSymbol
                     require(source in integerClasses) { renderCompilerError(expression) }
@@ -1205,22 +1203,16 @@ private class InteropTransformer(
                         builder.irConvertInteger(source, target, valueToConvert)
                     }
                 }
-                IntrinsicType.INTEROP_MEMORY_COPY -> {
-                    TODO("So far unsupported")
-                }
                 IntrinsicType.WORKER_EXECUTE -> {
                     val irCallableReference = unwrapStaticFunctionArgument(expression.getValueArgument(2)!!)
 
-                    require(irCallableReference != null
-                            && irCallableReference.getArguments().isEmpty()) { renderCompilerError(expression) }
+                    require(irCallableReference != null) { renderCompilerError(expression) }
 
                     val targetSymbol = irCallableReference.symbol
-                    val jobPointer = IrFunctionReferenceImpl.fromSymbolDescriptor(
+                    val jobPointer = IrRawFunctionReferenceImpl(
                             builder.startOffset, builder.endOffset,
                             symbols.executeImpl.owner.valueParameters[3].type,
-                            targetSymbol,
-                            typeArgumentsCount = 0,
-                            reflectionTarget = null)
+                            targetSymbol)
 
                     builder.irCall(symbols.executeImpl).apply {
                         putValueArgument(0, expression.dispatchReceiver)
@@ -1302,12 +1294,13 @@ private class InteropTransformer(
                     }.toIrConst(context.irBuiltIns.booleanType)
                     putValueArgument(0,
                         irCall(symbols.interopInterpretNullablePointed).apply {
-                            putValueArgument(0,
-                                    irCall(symbols.interopCPointerGetRawValue).apply {
-                                        extensionReceiver = ccall
-                                    }
+                            putValueArgument(
+                                0,
+                                irCall(symbols.interopCPointerGetRawValue).apply {
+                                    extensionReceiver = ccall
+                                }
                             )
-                            putTypeArgument(0, pointed)
+                            typeArguments[0] = pointed
                         }
                     )
                     putValueArgument(1, managed)
@@ -1376,12 +1369,13 @@ private class InteropTransformer(
                     }.toIrConst(context.irBuiltIns.booleanType)
                     putValueArgument(0,
                             irCall(symbols.interopInterpretNullablePointed).apply {
-                                putValueArgument(0,
-                                        irCall(symbols.interopCPointerGetRawValue).apply {
-                                            extensionReceiver = ccall
-                                        }
+                                putValueArgument(
+                                    0,
+                                    irCall(symbols.interopCPointerGetRawValue).apply {
+                                        extensionReceiver = ccall
+                                    }
                                 )
-                                putTypeArgument(0, pointed)
+                                typeArguments[0] = pointed
                             }
                     )
                     putValueArgument(1, managed)
@@ -1407,8 +1401,8 @@ private class InteropTransformer(
         }
     }
 
-    private fun unwrapStaticFunctionArgument(argument: IrExpression): IrFunctionReference? {
-        if (argument is IrFunctionReference) {
+    private fun unwrapStaticFunctionArgument(argument: IrExpression): IrRawFunctionReference? {
+        if (argument is IrRawFunctionReference) {
             return argument
         }
 
@@ -1433,7 +1427,7 @@ private class InteropTransformer(
 
         // 3. Second statement is IrCallableReference:
 
-        return argument.statements.last() as? IrFunctionReference
+        return argument.statements.last() as? IrRawFunctionReference
     }
 
     val IrValueParameter.isDispatchReceiver: Boolean
@@ -1450,7 +1444,7 @@ private class InteropTransformer(
 
 private fun IrCall.getSingleTypeArgument(): IrType {
     val typeParameter = symbol.owner.typeParameters.single()
-    return getTypeArgument(typeParameter.index)!!
+    return typeArguments[typeParameter.index]!!
 }
 
 private fun IrBuilder.irFloat(value: Float) =

@@ -1,6 +1,7 @@
-KtFunctionSymbol:
-  annotationsList: []
-  callableIdIfNonLocal: /x
+KaNamedFunctionSymbol:
+  annotations: []
+  callableId: /x
+  compilerVisibility: Public
   contextReceivers: []
   contractEffects: []
   hasStableParameterNames: true
@@ -16,26 +17,28 @@ KtFunctionSymbol:
   isStatic: false
   isSuspend: false
   isTailRec: false
+  location: TOP_LEVEL
   modality: FINAL
   name: x
   origin: SOURCE
   receiverParameter: null
-  returnType: KtUsualClassType:
-    annotationsList: []
-    ownTypeArguments: []
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
     type: kotlin/Int
-  symbolKind: TOP_LEVEL
   typeParameters: []
   valueParameters: []
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(topLevelFunctions.kt)
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(topLevelFunctions.kt)
   getContainingJvmClassName: TopLevelFunctionsKt
-  getContainingModule: KtSourceModule "Sources of main"
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
   deprecationStatus: null
 
-KtFunctionSymbol:
-  annotationsList: []
-  callableIdIfNonLocal: /y
+KaNamedFunctionSymbol:
+  annotations: []
+  callableId: /y
+  compilerVisibility: Public
   contextReceivers: []
   contractEffects: []
   hasStableParameterNames: true
@@ -51,19 +54,20 @@ KtFunctionSymbol:
   isStatic: false
   isSuspend: false
   isTailRec: false
+  location: TOP_LEVEL
   modality: FINAL
   name: y
   origin: SOURCE
   receiverParameter: null
-  returnType: KtUsualClassType:
-    annotationsList: []
-    ownTypeArguments: []
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
     type: kotlin/Unit
-  symbolKind: TOP_LEVEL
   typeParameters: []
   valueParameters: []
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(topLevelFunctions.kt)
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(topLevelFunctions.kt)
   getContainingJvmClassName: TopLevelFunctionsKt
-  getContainingModule: KtSourceModule "Sources of main"
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
   deprecationStatus: null

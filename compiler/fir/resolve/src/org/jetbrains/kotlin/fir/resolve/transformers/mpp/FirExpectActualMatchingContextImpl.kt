@@ -13,11 +13,8 @@ import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.isActual
 import org.jetbrains.kotlin.fir.declarations.utils.isExpect
 import org.jetbrains.kotlin.fir.declarations.utils.isJava
-import org.jetbrains.kotlin.fir.expressions.*
-import org.jetbrains.kotlin.fir.expressions.impl.FirResolvedArgumentList
-import org.jetbrains.kotlin.fir.expressions.impl.toAnnotationArgumentMapping
+import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.resolve.*
-import org.jetbrains.kotlin.fir.resolve.providers.toSymbol
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
 import org.jetbrains.kotlin.fir.scopes.*
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
@@ -25,7 +22,6 @@ import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.symbols.resolvedAnnotationsWithArguments
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.impl.ConeClassLikeTypeImpl
-import org.jetbrains.kotlin.fir.utils.exceptions.withFirEntry
 import org.jetbrains.kotlin.mpp.*
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
@@ -33,13 +29,16 @@ import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.calls.mpp.ExpectActualCollectionArgumentsCompatibilityCheckStrategy
 import org.jetbrains.kotlin.resolve.calls.mpp.ExpectActualMatchingContext
 import org.jetbrains.kotlin.resolve.calls.mpp.ExpectActualMatchingContext.AnnotationCallInfo
+import org.jetbrains.kotlin.resolve.calls.mpp.ExpectActualMatchingContext.Companion.abstractMutableListModCountCallableId
 import org.jetbrains.kotlin.resolve.checkers.OptInNames
 import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualMatchingCompatibility
 import org.jetbrains.kotlin.types.AbstractTypeChecker
 import org.jetbrains.kotlin.types.TypeCheckerState
 import org.jetbrains.kotlin.types.Variance
-import org.jetbrains.kotlin.types.model.*
-import org.jetbrains.kotlin.utils.exceptions.errorWithAttachment
+import org.jetbrains.kotlin.types.model.KotlinTypeMarker
+import org.jetbrains.kotlin.types.model.SimpleTypeMarker
+import org.jetbrains.kotlin.types.model.TypeSubstitutorMarker
+import org.jetbrains.kotlin.types.model.TypeSystemContext
 import org.jetbrains.kotlin.utils.zipIfSizesAreEqual
 
 class FirExpectActualMatchingContextImpl private constructor(
@@ -82,7 +81,7 @@ class FirExpectActualMatchingContextImpl private constructor(
             .resolvedExpandedTypeRef
             .coneType
             .fullyExpandedType(actualSession)
-            .toSymbol(actualSession) as? FirRegularClassSymbol
+            .toRegularClassSymbol(actualSession)
     }
 
     override val RegularClassSymbolMarker.classKind: ClassKind
@@ -91,16 +90,11 @@ class FirExpectActualMatchingContextImpl private constructor(
         get() = asSymbol().resolvedStatus.isCompanion
     override val RegularClassSymbolMarker.isInner: Boolean
         get() = asSymbol().resolvedStatus.isInner
-    override val RegularClassSymbolMarker.isInline: Boolean
-        get() = asSymbol().resolvedStatus.isInline
-    override val RegularClassSymbolMarker.isValue: Boolean
-        get() = asSymbol().resolvedStatus.isInline
+    override val RegularClassSymbolMarker.isInlineOrValue: Boolean
+        get() = asSymbol().resolvedStatus.let { it.isInline || it.isValue }
 
-    /*
-     * In this context java interfaces should be considered as not fun interface, so they will be later checked by [isNotSamInterface] function
-     */
     override val RegularClassSymbolMarker.isFun: Boolean
-        get() = asSymbol().takeUnless { it.origin is FirDeclarationOrigin.Java }?.resolvedStatus?.isFun ?: false
+        get() = asSymbol().resolvedStatus.isFun
 
     override val ClassLikeSymbolMarker.typeParameters: List<TypeParameterSymbolMarker>
         get() = asSymbol().typeParameterSymbols
@@ -195,7 +189,21 @@ class FirExpectActualMatchingContextImpl private constructor(
         }
     }
 
-    override fun RegularClassSymbolMarker.getMembersForExpectClass(name: Name): List<FirCallableSymbol<*>> {
+    override fun RegularClassSymbolMarker.collectAllStaticCallables(isActualDeclaration: Boolean): List<FirCallableSymbol<*>> {
+        val symbol = asSymbol()
+        val session = when (isActualDeclaration) {
+            true -> actualSession
+            else -> symbol.moduleData.session
+        }
+        val scope = symbol.staticScope(SessionHolderImpl(session, actualScopeSession)) ?: return emptyList()
+        val result = ArrayList<FirCallableSymbol<*>>()
+        for (name in scope.getCallableNames()) {
+            scope.getMembersTo(result, name)
+        }
+        return result
+    }
+
+    override fun RegularClassSymbolMarker.getCallablesForExpectClass(name: Name): List<FirCallableSymbol<*>> {
         val symbol = asSymbol()
         val scope = symbol.defaultType().scope(
             useSiteSession = symbol.moduleData.session,
@@ -207,6 +215,14 @@ class FirExpectActualMatchingContextImpl private constructor(
         return mutableListOf<FirCallableSymbol<*>>().apply {
             scope.getMembersTo(this, name)
         }
+    }
+
+    override fun RegularClassSymbolMarker.getStaticCallablesForExpectClass(name: Name): List<FirCallableSymbol<*>> {
+        val symbol = asSymbol()
+        val scope = symbol.staticScope(SessionHolderImpl(symbol.moduleData.session, actualScopeSession)) ?: return emptyList()
+        val result = ArrayList<FirCallableSymbol<*>>()
+        scope.getMembersTo(result, name)
+        return result
     }
 
     override fun FirClassSymbol<*>.getConstructors(
@@ -229,7 +245,7 @@ class FirExpectActualMatchingContextImpl private constructor(
         scope.getDeclaredConstructors().mapTo(destination) { it }
     }
 
-    private fun FirTypeScope.getMembersTo(destination: MutableList<in FirCallableSymbol<*>>, name: Name) {
+    private fun FirScope.getMembersTo(destination: MutableList<in FirCallableSymbol<*>>, name: Name) {
         processFunctionsByName(name) { destination.add(it) }
         processPropertiesByName(name) { destination.add(it) }
     }
@@ -249,7 +265,7 @@ class FirExpectActualMatchingContextImpl private constructor(
     override val CallableSymbolMarker.extensionReceiverTypeRef: TypeRefMarker?
         get() = asSymbol().resolvedReceiverTypeRef
     override val CallableSymbolMarker.returnType: KotlinTypeMarker
-        get() = asSymbol().resolvedReturnType.type
+        get() = asSymbol().resolvedReturnType
     override val CallableSymbolMarker.returnTypeRef: TypeRefMarker
         get() = asSymbol().resolvedReturnTypeRef
     override val CallableSymbolMarker.typeParameters: List<TypeParameterSymbolMarker>
@@ -344,7 +360,7 @@ class FirExpectActualMatchingContextImpl private constructor(
             if (typeArgument !is ConeKotlinType) typeArgument
             else ConeKotlinTypeProjectionOut(typeArgument)
         }
-        return ConeClassLikeTypeImpl(lookupTag, argumentsWithOutProjection, isNullable)
+        return ConeClassLikeTypeImpl(lookupTag, argumentsWithOutProjection, isMarkedNullable)
     }
 
     override fun isSubtypeOf(superType: KotlinTypeMarker, subType: KotlinTypeMarker): Boolean {
@@ -399,7 +415,7 @@ class FirExpectActualMatchingContextImpl private constructor(
             )
         )
         return actualNestedClassId.constructClassLikeType(
-            expectNestedClassType.typeArguments, expectNestedClassType.isNullable, expectNestedClassType.attributes
+            expectNestedClassType.typeArguments, expectNestedClassType.isMarkedNullable, expectNestedClassType.attributes
         )
     }
 
@@ -407,10 +423,9 @@ class FirExpectActualMatchingContextImpl private constructor(
         return actualSession.typeContext.newTypeCheckerState(errorTypesEqualToAnything = true, stubTypesEqualToAnything = false)
     }
 
-    override fun RegularClassSymbolMarker.isNotSamInterface(): Boolean {
+    override fun RegularClassSymbolMarker.isSamInterface(): Boolean {
         val type = asSymbol().defaultType()
-        val isSam = FirSamResolver(actualSession, actualScopeSession).isSamType(type)
-        return !isSam
+        return FirSamResolver(actualSession, actualScopeSession).isSamType(type)
     }
 
     override fun CallableSymbolMarker.isFakeOverride(containingExpectClass: RegularClassSymbolMarker?): Boolean {
@@ -433,6 +448,9 @@ class FirExpectActualMatchingContextImpl private constructor(
 
     override val CallableSymbolMarker.isJavaField: Boolean
         get() = this is FirFieldSymbol && this.fir.unwrapFakeOverrides().isJava
+
+    override val CallableSymbolMarker.canBeActualizedByJavaField: Boolean
+        get() = this.isJavaField || this is FirPropertySymbol && callableId == abstractMutableListModCountCallableId
 
     override val DeclarationSymbolMarker.annotations: List<AnnotationCallInfo>
         get() = asSymbol().resolvedAnnotationsWithArguments.map(::AnnotationCallInfoImpl)
@@ -562,7 +580,7 @@ class FirExpectActualMatchingContextImpl private constructor(
 
     override fun DeclarationSymbolMarker.getSourceElement(): SourceElementMarker = FirSourceElement(asSymbol().source)
 
-    override fun TypeRefMarker.getClassId(): ClassId? = (this as FirResolvedTypeRef).type.fullyExpandedType(actualSession).classId
+    override fun TypeRefMarker.getClassId(): ClassId? = (this as FirResolvedTypeRef).coneType.fullyExpandedType(actualSession).classId
 
     override fun checkAnnotationsOnTypeRefAndArguments(
         expectContainingSymbol: DeclarationSymbolMarker,

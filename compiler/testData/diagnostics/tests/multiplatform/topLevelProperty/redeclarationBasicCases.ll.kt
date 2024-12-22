@@ -1,3 +1,5 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // LANGUAGE: +MultiPlatformProjects
 
 // MODULE: common
@@ -12,7 +14,7 @@ expect val x3: Int
 
 // MODULE: jvm()()(common)
 // FILE: main.kt
-<!AMBIGUOUS_EXPECTS!>actual val x1 = 1<!>
+<!AMBIGUOUS_EXPECTS!>actual<!> val x1 = 1
 
 actual val x2 = 2
 

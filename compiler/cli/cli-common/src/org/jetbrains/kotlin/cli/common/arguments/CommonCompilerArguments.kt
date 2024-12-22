@@ -196,7 +196,7 @@ progressive mode enabled may cause compilation errors in progressive mode."""
 
     @Argument(
         value = "-Xcompiler-plugin",
-        valueDescription = "<path1>,<path2>:<optionName>=<value>,<optionName>=<value>",
+        valueDescription = "<path1>,<path2>[=<optionName>=<value>,<optionName>=<value>]",
         description = "Register a compiler plugin.",
         delimiter = Argument.Delimiters.none
     )
@@ -207,6 +207,7 @@ progressive mode enabled may cause compilation errors in progressive mode."""
         }
 
     @Argument(value = "-Xmulti-platform", description = "Enable language support for multiplatform projects.")
+    @Enables(LanguageFeature.MultiPlatformProjects)
     var multiPlatform = false
         set(value) {
             checkFrozen()
@@ -235,6 +236,10 @@ progressive mode enabled may cause compilation errors in progressive mode."""
         value = "-Xnew-inference",
         description = "Enable the new experimental generic type inference algorithm."
     )
+    @Enables(LanguageFeature.NewInference)
+    @Enables(LanguageFeature.SamConversionPerArgument)
+    @Enables(LanguageFeature.FunctionReferenceWithDefaultValueAsOtherType)
+    @Enables(LanguageFeature.DisableCompatibilityModeForNewInference)
     var newInference = false
         set(value) {
             checkFrozen()
@@ -245,6 +250,7 @@ progressive mode enabled may cause compilation errors in progressive mode."""
         value = "-Xinline-classes",
         description = "Enable experimental inline classes."
     )
+    @Enables(LanguageFeature.InlineClasses)
     var inlineClasses = false
         set(value) {
             checkFrozen()
@@ -255,6 +261,7 @@ progressive mode enabled may cause compilation errors in progressive mode."""
         value = "-Xlegacy-smart-cast-after-try",
         description = "Allow 'var' smart casts even in the presence of assignments in 'try' blocks."
     )
+    @Disables(LanguageFeature.SoundSmartCastsAfterTry)
     var legacySmartCastAfterTry = false
         set(value) {
             checkFrozen()
@@ -432,6 +439,28 @@ They should be a subset of sources passed as free arguments."""
         }
 
     @Argument(
+        value = "-Xverify-ir",
+        valueDescription = "{none|warning|error}",
+        description = "IR verification mode (no verification by default)."
+    )
+    var verifyIr: String? = null
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
+        value = "-Xverify-ir-visibility",
+        description = "Check for visibility violations in IR when validating it before running any lowerings. " +
+                "Only has effect if '-Xverify-ir' is not 'none'.",
+    )
+    var verifyIrVisibility: Boolean = false
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
         value = "-Xprofile-phases",
         description = "Profile backend phases."
     )
@@ -463,7 +492,7 @@ They should be a subset of sources passed as free arguments."""
 
     @GradleDeprecatedOption(
         message = "Compiler flag -Xuse-k2 is deprecated; please use language version 2.0 instead",
-        level = DeprecationLevel.WARNING, // TODO: KT-65990 switch to ERROR in 2.1
+        level = DeprecationLevel.ERROR,
         removeAfter = LanguageVersion.KOTLIN_2_1,
     )
     @GradleOption(
@@ -483,10 +512,10 @@ They should be a subset of sources passed as free arguments."""
         }
 
     @Argument(
-        value = "-Xuse-fir-extended-checkers",
-        description = "Use extended analysis mode based on the frontend IR.\nWarning: This feature is not yet production-ready."
+        value = "-Xuse-fir-experimental-checkers",
+        description = "Enable experimental frontend IR checkers that are not yet ready for production."
     )
-    var useFirExtendedCheckers = false
+    var useFirExperimentalCheckers = false
         set(value) {
             checkFrozen()
             field = value
@@ -507,16 +536,6 @@ They should be a subset of sources passed as free arguments."""
         description = "Compile using the LightTree parser with the frontend IR."
     )
     var useFirLT = true
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(
-        value = "-Xuse-fir-fake-override-builder",
-        description = "Generate all fake overrides via FIR2IR instead of IR, i.e. revert to behavior before KT-61514 was resolved."
-    )
-    var useFirFakeOverrideBuilder = false
         set(value) {
             checkFrozen()
             field = value
@@ -569,6 +588,7 @@ This flag partially enables functionality of `-Xexplicit-api` flag, so please do
         value = "-Xinference-compatibility",
         description = "Enable compatibility changes for the generic type inference algorithm."
     )
+    @Enables(LanguageFeature.InferenceCompatibility)
     var inferenceCompatibility = false
         set(value) {
             checkFrozen()
@@ -624,6 +644,7 @@ Kotlin reports a warning every time you use one of them. You can use this flag t
         description = "The effect of this compiler flag is the same as applying @ConsistentCopyVisibility annotation to all data classes in the module. " +
                 "See https://youtrack.jetbrains.com/issue/KT-11914"
     )
+    @Enables(LanguageFeature.DataClassCopyRespectsConstructorVisibility)
     var consistentDataClassCopyVisibility = false
         set(value) {
             checkFrozen()
@@ -634,6 +655,7 @@ Kotlin reports a warning every time you use one of them. You can use this flag t
         value = "-Xunrestricted-builder-inference",
         description = "Eliminate builder inference restrictions, for example by allowing type variables to be returned from builder inference calls."
     )
+    @Enables(LanguageFeature.UnrestrictedBuilderInference)
     var unrestrictedBuilderInference = false
         set(value) {
             checkFrozen()
@@ -645,6 +667,7 @@ Kotlin reports a warning every time you use one of them. You can use this flag t
         description = """Use builder inference by default for all calls with lambdas that can't be resolved without it.
 The corresponding calls' declarations may not be marked with @BuilderInference."""
     )
+    @Enables(LanguageFeature.UseBuilderInferenceWithoutAnnotation)
     var enableBuilderInference = false
         set(value) {
             checkFrozen()
@@ -655,6 +678,7 @@ The corresponding calls' declarations may not be marked with @BuilderInference."
         value = "-Xself-upper-bound-inference",
         description = "Support inferring type arguments from the self-type upper bounds of the corresponding type parameters."
     )
+    @Enables(LanguageFeature.TypeInferenceOnCallsWithSelfTypes)
     var selfUpperBoundInference = false
         set(value) {
             checkFrozen()
@@ -665,6 +689,7 @@ The corresponding calls' declarations may not be marked with @BuilderInference."
         value = "-Xcontext-receivers",
         description = "Enable experimental context receivers."
     )
+    @Enables(LanguageFeature.ContextReceivers)
     var contextReceivers = false
         set(value) {
             checkFrozen()
@@ -672,30 +697,44 @@ The corresponding calls' declarations may not be marked with @BuilderInference."
         }
 
     @Argument(
-        value = "-Xklib-relative-path-base",
-        description = "Provide a base path to compute the source's relative paths in klib (default is empty)."
+        value = "-Xcontext-parameters",
+        description = "Enable experimental context parameters."
     )
-    var relativePathBases: Array<String>? = null
+    @Enables(LanguageFeature.ContextParameters)
+    var contextParameters = false
         set(value) {
             checkFrozen()
             field = value
         }
 
     @Argument(
-        value = "-Xklib-normalize-absolute-path",
-        description = "Normalize absolute paths in klibs."
+        value = "-Xnon-local-break-continue",
+        description = "Enable experimental non-local break and continue."
     )
-    var normalizeAbsolutePath = false
+    @Enables(LanguageFeature.BreakContinueInInlineLambdas)
+    var nonLocalBreakContinue = false
         set(value) {
             checkFrozen()
             field = value
         }
 
     @Argument(
-        value = "-Xklib-enable-signature-clash-checks",
-        description = "Enable signature uniqueness checks."
+        value = "-Xdirect-java-actualization",
+        description = "Enable experimental direct Java actualization support."
     )
-    var enableSignatureClashChecks = true
+    @Enables(LanguageFeature.DirectJavaActualization)
+    var directJavaActualization = false
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
+        value = "-Xmulti-dollar-interpolation",
+        description = "Enable experimental multi-dollar interpolation."
+    )
+    @Enables(LanguageFeature.MultiDollarInterpolation)
+    var multiDollarInterpolation = false
         set(value) {
             checkFrozen()
             field = value
@@ -716,6 +755,7 @@ The corresponding calls' declarations may not be marked with @BuilderInference."
         }
 
     @Argument(value = "-Xallow-any-scripts-in-source-roots", description = "Allow compiling scripts along with regular Kotlin sources.")
+    @Disables(LanguageFeature.SkipStandaloneScriptsInSourceRoots)
     var allowAnyScriptsInSourceRoots = false
         set(value) {
             checkFrozen()
@@ -780,9 +820,46 @@ The corresponding calls' declarations may not be marked with @BuilderInference."
 
     @Argument(
         value = "-Xwhen-guards",
-        description = "Enable language support for when guards."
+        description = "Enable experimental language support for when guards."
     )
+    @Enables(LanguageFeature.WhenGuards)
     var whenGuards = false
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
+        value = "-Xsuppress-warning",
+        valueDescription = "<WARNING_NAME>",
+        description = "Suppress specified warning module-wide."
+    )
+    var suppressedDiagnostics: Array<String>? = null
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
+        value = "-Xannotation-default-target",
+        valueDescription = "first-only|first-only-warn|param-property",
+        description = """Change the default annotation targets for constructor properties:
+-Xannotation-default-target=first-only:      use the first of the following allowed targets: '@param:', '@property:', '@field:';
+-Xannotation-default-target=first-only-warn: same as first-only, and raise warnings when both '@param:' and either '@property:' or '@field:' are allowed;
+-Xannotation-default-target=param-property:  use '@param:' target if applicable, and also use the first of either '@property:' or '@field:';
+default: 'first-only-warn' in language version 2.2+, 'first-only' in version 2.1 and before."""
+    )
+    var annotationDefaultTarget: String? = null
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
+        value = "-XXdebug-level-compiler-checks",
+        description = "Enable debug level compiler checks. ATTENTION: these checks can slow compiler down or even crash it."
+    )
+    var debugLevelCompilerChecks = false
         set(value) {
             checkFrozen()
             field = value
@@ -815,55 +892,30 @@ The corresponding calls' declarations may not be marked with @BuilderInference."
             put(AnalysisFlags.allowKotlinPackage, allowKotlinPackage)
             put(AnalysisFlags.stdlibCompilation, stdlibCompilation)
             put(AnalysisFlags.muteExpectActualClassesWarning, expectActualClasses)
-            put(AnalysisFlags.consistentDataClassCopyVisibility, consistentDataClassCopyVisibility)
             put(AnalysisFlags.allowFullyQualifiedNameInKClass, true)
             put(AnalysisFlags.dontWarnOnErrorSuppression, dontWarnOnErrorSuppression)
+            put(AnalysisFlags.globallySuppressedDiagnostics, suppressedDiagnostics?.toList().orEmpty())
         }
     }
 
     open fun configureLanguageFeatures(collector: MessageCollector): MutableMap<LanguageFeature, LanguageFeature.State> =
         HashMap<LanguageFeature, LanguageFeature.State>().apply {
-            if (multiPlatform) {
-                put(LanguageFeature.MultiPlatformProjects, LanguageFeature.State.ENABLED)
-            }
+            configureCommonLanguageFeatures(this@CommonCompilerArguments)
 
-            if (unrestrictedBuilderInference) {
-                put(LanguageFeature.UnrestrictedBuilderInference, LanguageFeature.State.ENABLED)
-            }
-
-            if (enableBuilderInference) {
-                put(LanguageFeature.UseBuilderInferenceWithoutAnnotation, LanguageFeature.State.ENABLED)
-            }
-
-            if (selfUpperBoundInference) {
-                put(LanguageFeature.TypeInferenceOnCallsWithSelfTypes, LanguageFeature.State.ENABLED)
-            }
-
-            if (newInference) {
-                put(LanguageFeature.NewInference, LanguageFeature.State.ENABLED)
-                put(LanguageFeature.SamConversionPerArgument, LanguageFeature.State.ENABLED)
-                put(LanguageFeature.FunctionReferenceWithDefaultValueAsOtherType, LanguageFeature.State.ENABLED)
-                put(LanguageFeature.DisableCompatibilityModeForNewInference, LanguageFeature.State.ENABLED)
-            }
-
-            if (contextReceivers) {
-                put(LanguageFeature.ContextReceivers, LanguageFeature.State.ENABLED)
-            }
-
-            if (inlineClasses) {
-                put(LanguageFeature.InlineClasses, LanguageFeature.State.ENABLED)
-            }
-
-            if (legacySmartCastAfterTry) {
-                put(LanguageFeature.SoundSmartCastsAfterTry, LanguageFeature.State.DISABLED)
-            }
-
-            if (inferenceCompatibility) {
-                put(LanguageFeature.InferenceCompatibility, LanguageFeature.State.ENABLED)
-            }
-
-            if (whenGuards) {
-                put(LanguageFeature.WhenGuards, LanguageFeature.State.ENABLED)
+            // Non-automatic logic as it's more complex
+            when (AnnotationDefaultTargetMode.fromStringOrNull(annotationDefaultTarget)) {
+                null -> {}
+                AnnotationDefaultTargetMode.FIRST_ONLY -> {
+                    put(LanguageFeature.AnnotationDefaultTargetMigrationWarning, LanguageFeature.State.DISABLED)
+                    put(LanguageFeature.PropertyParamAnnotationDefaultTargetMode, LanguageFeature.State.DISABLED)
+                }
+                AnnotationDefaultTargetMode.FIRST_ONLY_WARN -> {
+                    put(LanguageFeature.AnnotationDefaultTargetMigrationWarning, LanguageFeature.State.ENABLED)
+                    put(LanguageFeature.PropertyParamAnnotationDefaultTargetMode, LanguageFeature.State.DISABLED)
+                }
+                AnnotationDefaultTargetMode.PARAM_PROPERTY -> {
+                    put(LanguageFeature.PropertyParamAnnotationDefaultTargetMode, LanguageFeature.State.ENABLED)
+                }
             }
 
             if (progressiveMode) {
@@ -872,13 +924,6 @@ The corresponding calls' declarations may not be marked with @BuilderInference."
                     // breaking change manually instead of turning off whole progressive mode
                     if (!contains(it)) put(it, LanguageFeature.State.ENABLED)
                 }
-            }
-
-            if (useK2) {
-                // TODO: remove when K2 compilation will mean LV 2.0
-                put(LanguageFeature.SkipStandaloneScriptsInSourceRoots, LanguageFeature.State.ENABLED)
-            } else if (allowAnyScriptsInSourceRoots) {
-                put(LanguageFeature.SkipStandaloneScriptsInSourceRoots, LanguageFeature.State.DISABLED)
             }
 
             // Internal arguments should go last, because it may be useful to override
@@ -1082,23 +1127,16 @@ The corresponding calls' declarations may not be marked with @BuilderInference."
     }
 
     private fun parseOrConfigureLanguageVersion(collector: MessageCollector): LanguageVersion {
-        // If only "-api-version" is specified, language version is assumed to be the latest stable (or 2.0 with -Xuse-k2)
-        val explicitVersion = parseVersion(collector, languageVersion, "language")
-        val explicitOrDefaultVersion = explicitVersion ?: defaultLanguageVersion(collector)
         if (useK2) {
-            val message = when (explicitVersion?.usesK2) {
-                true ->
-                    "Deprecated compiler flag -Xuse-k2 is redundant because of \"-language-version $explicitVersion\" and should be removed"
-                false ->
-                    "Deprecated compiler flag -Xuse-k2 overrides \"-language-version $explicitVersion\" to 2.0;" +
-                            " please remove -Xuse-k2 and use -language-version to select either $explicitVersion or 2.0"
-                null ->
-                    "Compiler flag -Xuse-k2 is deprecated; please use \"-language-version 2.0\" instead"
-            }
-            collector.report(CompilerMessageSeverity.STRONG_WARNING, message)
+            collector.report(
+                CompilerMessageSeverity.ERROR,
+                "Compiler flag -Xuse-k2 is no more supported. " +
+                        "Compiler versions 2.0+ use K2 by default, unless the language version is set to 1.9 or earlier"
+            )
         }
-        return if (useK2 && !explicitOrDefaultVersion.usesK2) LanguageVersion.KOTLIN_2_0
-        else explicitOrDefaultVersion
+
+        // If only "-api-version" is specified, language version is assumed to be the latest stable
+        return parseVersion(collector, languageVersion, "language") ?: defaultLanguageVersion(collector)
     }
 
     private fun parseVersion(collector: MessageCollector, value: String?, versionOf: String): LanguageVersion? =

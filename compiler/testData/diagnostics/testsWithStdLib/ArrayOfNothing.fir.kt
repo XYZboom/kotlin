@@ -1,12 +1,15 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // DIAGNOSTICS: -UNUSED_PARAMETER -UNUSED_VARIABLE -UNCHECKED_CAST -USELESS_CAST
-// LANGUAGE: +ProhibitNonReifiedArraysAsReifiedTypeArguments
+// LANGUAGE: +ProhibitNonReifiedArraysAsReifiedTypeArguments +NullableNothingInReifiedPosition
 class A<T>
 class C<T, G>
 class D<T>
 
 fun test1(
-    a: <!UNSUPPORTED!>Array<Nothing><!>,
-    b: <!UNSUPPORTED!>Array<Nothing?><!>,
+    a: <!UNSUPPORTED("Array<Nothing> is illegal")!>Array<Nothing><!>,
+    // Note: in K2, it's JVM-only diagnostic. Other platforms support Array<Nothing?> properly.
+    // See also BB tests: reifiedNullableNothing3.kt, reifiedNullableNothing4.kt
+    b: <!UNSUPPORTED("Array<Nothing?> isn't supported in JVM")!>Array<Nothing?><!>,
     c: <!UNSUPPORTED!>Array<in Nothing><!>,
     d: <!UNSUPPORTED!>Array<in Nothing?><!>,
     e: <!UNSUPPORTED!>Array<out Nothing><!>,

@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.fir.expressions.FirLiteralExpression
 import org.jetbrains.kotlin.fir.expressions.FirOperation
 import org.jetbrains.kotlin.fir.expressions.FirThisReceiverExpression
 import org.jetbrains.kotlin.fir.render
+import org.jetbrains.kotlin.fir.resolve.calls.AbstractCallCandidate
 import org.jetbrains.kotlin.fir.resolve.calls.AbstractCandidate
 import org.jetbrains.kotlin.fir.resolve.calls.ResolutionDiagnostic
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
@@ -29,7 +30,6 @@ import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.calls.tower.CandidateApplicability
-import org.jetbrains.kotlin.resolve.deprecation.DeprecationInfo
 
 sealed interface ConeUnresolvedError : ConeDiagnostic {
     val qualifier: String
@@ -45,9 +45,9 @@ interface ConeDiagnosticWithCandidates : ConeDiagnostic {
 }
 
 interface ConeDiagnosticWithSingleCandidate : ConeDiagnosticWithCandidates {
-    val candidate: AbstractCandidate
+    val candidate: AbstractCallCandidate<*>
     val candidateSymbol: FirBasedSymbol<*> get() = candidate.symbol
-    override val candidates: Collection<AbstractCandidate> get() = listOf(candidate)
+    override val candidates: Collection<AbstractCallCandidate<*>> get() = listOf(candidate)
     override val candidateSymbols: Collection<FirBasedSymbol<*>> get() = listOf(candidateSymbol)
 }
 
@@ -84,7 +84,7 @@ class ConeUnresolvedNameError(
 class ConeFunctionCallExpectedError(
     val name: Name,
     val hasValueParameters: Boolean,
-    override val candidates: Collection<AbstractCandidate>
+    override val candidates: Collection<AbstractCallCandidate<*>>
 ) : ConeDiagnosticWithCandidates {
     override val reason: String get() = "Function call expected: $name(${if (hasValueParameters) "..." else ""})"
 }
@@ -94,14 +94,14 @@ class ConeFunctionExpectedError(val expression: String, val type: ConeKotlinType
 }
 
 class ConeResolutionToClassifierError(
-    override val candidate: AbstractCandidate,
+    override val candidate: AbstractCallCandidate<*>,
     override val candidateSymbol: FirRegularClassSymbol
 ) : ConeDiagnosticWithSingleCandidate {
     override val reason: String get() = "Resolution to classifier"
 }
 
 class ConeHiddenCandidateError(
-    override val candidate: AbstractCandidate
+    override val candidate: AbstractCallCandidate<*>
 ) : ConeDiagnosticWithSingleCandidate {
     override val reason: String get() = "HIDDEN: ${describeSymbol(candidateSymbol)} is deprecated with DeprecationLevel.HIDDEN"
 }
@@ -112,18 +112,12 @@ open class ConeVisibilityError(
     override val reason: String get() = "HIDDEN: ${describeSymbol(symbol)} is invisible"
 }
 
-open class ConeSetterVisibilityError(
-    override val symbol: FirPropertySymbol
-) : ConeDiagnosticWithSymbol<FirBasedSymbol<*>> {
-    override val reason: String get() = "HIDDEN SETTER: ${describeSymbol(symbol)} is invisible"
-}
-
 class ConeTypeVisibilityError(
     symbol: FirBasedSymbol<*>,
     val smallestUnresolvablePrefix: List<FirQualifierPart>,
 ) : ConeVisibilityError(symbol)
 
-class ConeInapplicableWrongReceiver(override val candidates: Collection<AbstractCandidate>) : ConeDiagnosticWithCandidates {
+class ConeInapplicableWrongReceiver(override val candidates: Collection<AbstractCallCandidate<*>>) : ConeDiagnosticWithCandidates {
     override val reason: String
         get() = "None of the following candidates is applicable because of receiver type mismatch: ${
             candidateSymbols.map { describeSymbol(it) }
@@ -137,20 +131,20 @@ class ConeInapplicableWrongReceiver(override val candidates: Collection<Abstract
 
 class ConeInapplicableCandidateError(
     val applicability: CandidateApplicability,
-    override val candidate: AbstractCandidate,
+    override val candidate: AbstractCallCandidate<*>,
 ) : ConeDiagnosticWithSingleCandidate {
     override val reason: String get() = "Inapplicable($applicability): ${describeSymbol(candidateSymbol)}"
 }
 
 class ConeNoCompanionObject(
-    override val candidate: AbstractCandidate
+    override val candidate: AbstractCallCandidate<*>
 ) : ConeDiagnosticWithSingleCandidate {
     override val reason: String
         get() = "Classifier ''$candidateSymbol'' does not have a companion object, and thus must be initialized here"
 }
 
 class ConeConstraintSystemHasContradiction(
-    override val candidate: AbstractCandidate,
+    override val candidate: AbstractCallCandidate<*>,
 ) : ConeDiagnosticWithSingleCandidate {
     override val reason: String get() = "CS errors: ${describeSymbol(candidateSymbol)}"
     override val candidateSymbol: FirBasedSymbol<*> get() = candidate.symbol
@@ -165,7 +159,7 @@ class ConeAmbiguityError(
     override val candidateSymbols: Collection<FirBasedSymbol<*>> get() = candidates.map { it.symbol }
 }
 
-class ConeOperatorAmbiguityError(override val candidates: Collection<AbstractCandidate>) : ConeDiagnosticWithCandidates {
+class ConeOperatorAmbiguityError(override val candidates: Collection<AbstractCallCandidate<*>>) : ConeDiagnosticWithCandidates {
     override val reason: String get() = "Operator overload ambiguity. Compatible candidates: ${candidateSymbols.map { describeSymbol(it) }}"
 }
 
@@ -181,17 +175,17 @@ sealed class ConeContractDescriptionError : ConeDiagnostic {
 
     class UnresolvedCall(val name: Name) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "unresolved call in contract description: ${name.asString()}"
+            get() = "unresolved call '$name' in contract description"
     }
 
     class NoReceiver(val name: Name) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "no receiver for call '${name.asString()}' found"
+            get() = "no receiver for call '$name' found"
     }
 
     class NoArgument(val name: Name) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "no argument for call '${name.asString()}' found"
+            get() = "no argument for call '$name' found"
     }
 
     class NotAConstant(val element: Any) : ConeContractDescriptionError() {
@@ -215,49 +209,54 @@ sealed class ConeContractDescriptionError : ConeDiagnostic {
 
     class NotAParameterReference(val element: ConeContractDescriptionElement) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "$element is not a parameter or receiver reference"
+            get() = "'$element' is not a parameter or receiver reference"
     }
 
     class IllegalParameter(val symbol: FirCallableSymbol<*>, override val reason: String) : ConeContractDescriptionError()
 
     class UnresolvedThis(val expression: FirThisReceiverExpression) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "Can't resolve this reference"
+            get() = "can't resolve 'this' reference"
     }
 
     class IllegalThis(val expression: FirThisReceiverExpression) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "Only this reference to extension receiver of a function is allowed"
+            get() = "'this' can only be a qualified reference to the extension receiver of contract owner."
     }
 
     class UnresolvedInvocationKind(val element: FirElement) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "${element.render()} is not a valid invocation kind"
+            get() = "'${element.render()}' is not a valid invocation kind"
     }
 
     class NotABooleanExpression(val element: ConeContractDescriptionElement) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "$element is not a boolean expression"
+            get() = "'$element' is not a boolean expression"
     }
 
     class NotContractDsl(val callableId: CallableId) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "$callableId is not a part of contracts DSL"
+            get() = "'$callableId' is not part of the contracts DSL"
     }
 
     class IllegalEqualityOperator(val operation: FirOperation) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "$operation operator call is illegal in contract description"
+            get() = "'$operation' operator call is illegal in contract descriptions"
     }
 
     class NotSelfTypeParameter(val symbol: FirTypeParameterSymbol) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "Type parameter ${symbol.name} does not belong to owner of contract"
+            get() = "type parameter '${symbol.name}' does not belong to contract owner"
     }
 
     class NotReifiedTypeParameter(val symbol: FirTypeParameterSymbol) : ConeContractDescriptionError() {
         override val reason: String
-            get() = "Type parameter ${symbol.name} is not reified"
+            get() = "type parameter '${symbol.name}' is not reified"
+    }
+
+    object ErasedIsCheck : ConeContractDescriptionError() {
+        override val reason: String
+            get() = "instance check for erased type"
     }
 }
 
@@ -279,6 +278,10 @@ class ConeWrongNumberOfTypeArgumentsError(
 
 class ConeTypeArgumentsNotAllowedOnPackageError(source: KtSourceElement) : ConeDiagnosticWithSource(source) {
     override val reason: String get() = "Type arguments are not allowed for packages"
+}
+
+class ConeTypeArgumentsForOuterClass(source: KtSourceElement) : ConeDiagnosticWithSource(source) {
+    override val reason: String get() = "Type arguments for outer class maybe redundant"
 }
 
 class ConeTypeArgumentsForOuterClassWhenNestedReferencedError(source: KtSourceElement) : ConeDiagnosticWithSource(source) {
@@ -309,7 +312,7 @@ class ConeInstanceAccessBeforeSuperCall(val target: String) : ConeDiagnostic {
     override val reason: String get() = "Cannot access ''${target}'' before the instance has been initialized"
 }
 
-class ConeUnsupportedCallableReferenceTarget(override val candidate: AbstractCandidate) : ConeDiagnosticWithSingleCandidate {
+class ConeUnsupportedCallableReferenceTarget(override val candidate: AbstractCallCandidate<*>) : ConeDiagnosticWithSingleCandidate {
     override val reason: String get() = "Unsupported declaration for callable reference: ${candidate.symbol.fir.render()}"
 }
 
@@ -323,6 +326,10 @@ class ConeTypeParameterInQualifiedAccess(val symbol: FirTypeParameterSymbol) : C
 
 class ConeCyclicTypeBound(val symbol: FirTypeParameterSymbol, val bounds: ImmutableList<FirTypeRef>) : ConeDiagnostic {
     override val reason: String get() = "Type parameter ${symbol.fir.name} has cyclic bounds"
+}
+
+object ConeDynamicUnsupported : ConeDiagnostic {
+    override val reason: String get() = "`dynamic` type is not allowed on this platform."
 }
 
 class ConeImportFromSingleton(val name: Name) : ConeDiagnostic {
@@ -409,4 +416,9 @@ object ConeResolutionResultOverridesOtherToPreserveCompatibility : ConeDiagnosti
 object ConeCallToDeprecatedOverrideOfHidden : ConeDiagnostic {
     override val reason: String
         get() = "Call to deprecated override of hidden"
+}
+
+class ConeNoInferTypeMismatch(val lowerType: ConeKotlinType, val upperType: ConeKotlinType) : ConeDiagnostic {
+    override val reason: String
+        get() = "(@NoInfer) Type mismatch: expected $upperType, actual $lowerType"
 }

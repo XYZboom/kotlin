@@ -58,6 +58,9 @@ class IrPrettyKotlinDumpHandler(
                 printFakeOverridesStrategy = FakeOverridesStrategy.NONE,
                 normalizeNames = true, // KT-61983: K1 and K2 kotlin-like dumps are closer to each other when tempvar names are normalized
                 stableOrder = true,
+                // Expect declarations exist in K1 IR just before serialization, but won't be serialized. Though, dumps should be same before and after
+                printExpectDeclarations = module.languageVersionSettings.languageVersion.usesK2,
+                inferElseBranches = true,
             ),
         )
     }
@@ -84,7 +87,7 @@ internal fun dumpModuleKotlinLike(
 ) {
     val irFiles = info.irModuleFragment.files
     val builder = multiModuleInfoDumper.builderForModule(module.name)
-    val filteredIrFiles = irFiles.groupWithTestFiles(module).filterNot { (testFile, _) ->
+    val filteredIrFiles = irFiles.groupWithTestFiles(module, ordered = true).filterNot { (testFile, _) ->
         testFile?.let { EXTERNAL_FILE in it.directives || it.isAdditional } ?: false
     }.map { it.second }
     val printFileName = filteredIrFiles.size > 1 || allModules.size > 1

@@ -29,24 +29,13 @@ Tower Data Context:
     Element 9
         Scope: FirLocalScope
     Element 10
-        Context receivers:
-            FirScriptSymbol context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
-            SCRIPT: <script-lastStatement.kts>
-                lval args: R|kotlin/Array<kotlin/String>|
-
-                public final? class ScriptClass : R|kotlin/Any|
-                public final fun scriptFunction(): R|kotlin/Int|
-                public? final? fun unusedScriptFunction(p: String): <implicit>
-                init
-                public final fun foo(i: R|kotlin/Int|, action: R|(kotlin/Int) -> kotlin/Unit|): R|kotlin/Unit|
-                public final val $$result: R|kotlin/Unit|
-                    public get(): R|kotlin/Unit|
+        Implicit receiver:
+            FirReceiverParameterSymbol <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
                 Type: kotlin.script.templates.standard.ScriptTemplateWithArgs
-                Label: <script>
 
 FILE: [ResolvedTo(IMPORTS)] lastStatement.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-lastStatement.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
         public final? [ResolvedTo(RAW_FIR)] class ScriptClass : R|kotlin/Any| {
@@ -67,9 +56,7 @@ FILE: [ResolvedTo(IMPORTS)] lastStatement.kts
 
         [ResolvedTo(RAW_FIR)] init { LAZY_BLOCK }
 
-        public final [ResolvedTo(CONTRACTS)] fun foo([ResolvedTo(CONTRACTS)] i: R|kotlin/Int|, [ResolvedTo(CONTRACTS)] action: R|(kotlin/Int) -> kotlin/Unit|): R|kotlin/Unit| {
-            action#(i#)
-        }
+        public final [ResolvedTo(CONTRACTS)] fun foo([ResolvedTo(CONTRACTS)] i: R|kotlin/Int|, [ResolvedTo(CONTRACTS)] action: R|(kotlin/Int) -> kotlin/Unit|): R|kotlin/Unit| { LAZY_BLOCK }
 
         public final [ResolvedTo(BODY_RESOLVE)] val $$result: R|kotlin/Unit| = R|/foo|(R|/scriptFunction|(), <L> = [ResolvedTo(BODY_RESOLVE)] foo@fun <anonymous>([ResolvedTo(BODY_RESOLVE)] it: R|kotlin/Int|): R|kotlin/Unit| <inline=NoInline>  {
             R|/scriptFunction|()

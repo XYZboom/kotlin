@@ -1,8 +1,11 @@
+import org.jetbrains.kotlin.build.androidsdkprovisioner.ProvisioningType
+
 description = "Parcelize compiler plugin"
 
 plugins {
     kotlin("jvm")
     id("jps-compatible")
+    id("android-sdk-provisioner")
 }
 
 val robolectricClasspath by configurations.creating
@@ -54,7 +57,7 @@ dependencies {
     testRuntimeOnly(commonDependency("org.codehaus.woodstox:stax2-api"))
     testRuntimeOnly(commonDependency("com.fasterxml:aalto-xml"))
     testRuntimeOnly("com.jetbrains.intellij.platform:util-xml-dom:$intellijVersion") { isTransitive = false }
-
+    testRuntimeOnly(toolsJar())
     testImplementation(libs.junit4)
 
     robolectricDependency("org.robolectric:android-all:5.0.2_r3-robolectric-r0")
@@ -102,7 +105,9 @@ projectTest(jUnitMode = JUnitMode.JUnit5) {
     dependsOn(prepareRobolectricDependencies)
     dependsOn(":dist")
     workingDir = rootDir
-    useAndroidJar()
+    androidSdkProvisioner {
+        provideToThisTaskAsSystemProperty(ProvisioningType.PLATFORM_JAR)
+    }
 
     val parcelizeRuntimeForTestsConf: FileCollection = parcelizeRuntimeForTests
     val robolectricClasspathConf: FileCollection = robolectricClasspath

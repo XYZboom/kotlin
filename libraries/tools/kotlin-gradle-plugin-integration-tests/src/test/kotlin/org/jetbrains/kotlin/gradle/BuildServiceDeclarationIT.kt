@@ -12,12 +12,7 @@ import org.jetbrains.kotlin.gradle.testbase.*
 import org.junit.jupiter.api.DisplayName
 
 @DisplayName("Build services usages in tasks are declared with `usesService`")
-@GradleTestVersions(minVersion = TestVersions.Gradle.G_7_5)
 class BuildServiceDeclarationIT : KGPBaseTest() {
-    override val defaultBuildOptions = super.defaultBuildOptions.copy(
-        warningMode = WarningMode.All // we currently have other warnings when `STABLE_CONFIGURATION_CACHE` is enabled unrelated to build services declaration, so we check for this kind of warnings in the build output
-        // see KT-55563 and KT-55740
-    )
 
     @DisplayName("Build services are registered for Kotlin/JVM projects")
     @GradleTest
@@ -38,9 +33,15 @@ class BuildServiceDeclarationIT : KGPBaseTest() {
     @DisplayName("Build services are registered for Kotlin/JS browser projects")
     @GradleTest
     @JsGradlePluginTests
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun testJsBrowserProject(gradleVersion: GradleVersion) {
-        project("kotlin-js-browser-project", gradleVersion) {
+        project(
+            "kotlin-js-browser-project",
+            gradleVersion,
+            buildOptions = defaultBuildOptions.suppressDeprecationWarningsOn(
+                "We currently have other warnings when `STABLE_CONFIGURATION_CACHE` is enabled unrelated to build services declaration, " +
+                        "so we check for this kind of warnings in the build output (see KT-55563 and KT-55740)"
+            ) { gradleVersion < GradleVersion.version(TestVersions.Gradle.G_8_0) }
+        ) {
             enableStableConfigurationCachePreview()
             build("build") {
                 assertOutputDoesNotContainBuildServiceDeclarationWarnings()
@@ -51,9 +52,15 @@ class BuildServiceDeclarationIT : KGPBaseTest() {
     @DisplayName("Build services are registered for Kotlin/JS nodejs projects")
     @GradleTest
     @JsGradlePluginTests
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun testJsNodeJsProject(gradleVersion: GradleVersion) {
-        project("kotlin-js-nodejs-project", gradleVersion) {
+        project(
+            "kotlin-js-nodejs-project",
+            gradleVersion,
+            buildOptions = defaultBuildOptions.suppressDeprecationWarningsOn(
+                "We currently have other warnings when `STABLE_CONFIGURATION_CACHE` is enabled unrelated to build services declaration, " +
+                        "so we check for this kind of warnings in the build output (see KT-55563 and KT-55740)"
+            ) { gradleVersion < GradleVersion.version(TestVersions.Gradle.G_8_0) }
+        ) {
             enableStableConfigurationCachePreview()
             build("build") {
                 assertOutputDoesNotContainBuildServiceDeclarationWarnings()
@@ -65,7 +72,14 @@ class BuildServiceDeclarationIT : KGPBaseTest() {
     @GradleTest
     @MppGradlePluginTests
     fun testMppProject(gradleVersion: GradleVersion) {
-        project("new-mpp-lib-with-tests", gradleVersion) {
+        project(
+            "new-mpp-lib-with-tests",
+            gradleVersion,
+            buildOptions = defaultBuildOptions.suppressDeprecationWarningsOn(
+                "We currently have other warnings when `STABLE_CONFIGURATION_CACHE` is enabled unrelated to build services declaration, " +
+                        "so we check for this kind of warnings in the build output (see KT-55563 and KT-55740)"
+            ) { gradleVersion < GradleVersion.version(TestVersions.Gradle.G_8_0) }
+        ) {
             enableStableConfigurationCachePreview()
             build("build") {
                 assertOutputDoesNotContainBuildServiceDeclarationWarnings()
@@ -85,7 +99,6 @@ class BuildServiceDeclarationIT : KGPBaseTest() {
             enableStableConfigurationCachePreview()
             build("build") {
                 assertOutputDoesNotContainBuildServiceDeclarationWarnings()
-                assertNoBuildWarnings(expectedK2KaptWarnings)
             }
         }
     }

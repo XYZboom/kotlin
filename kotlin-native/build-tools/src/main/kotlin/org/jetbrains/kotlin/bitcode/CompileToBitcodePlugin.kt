@@ -9,6 +9,8 @@ import kotlinBuildProperties
 import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationVariant
+import org.gradle.api.attributes.Category
+import org.gradle.api.attributes.LibraryElements
 import org.gradle.api.attributes.Usage
 import org.gradle.api.file.*
 import org.gradle.api.provider.ListProperty
@@ -23,6 +25,7 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.jetbrains.kotlin.ExecClang
 import org.jetbrains.kotlin.PlatformManagerPlugin
 import org.jetbrains.kotlin.cpp.*
+import org.jetbrains.kotlin.cpp.ClangFrontend
 import org.jetbrains.kotlin.dependencies.NativeDependenciesExtension
 import org.jetbrains.kotlin.dependencies.NativeDependenciesPlugin
 import org.jetbrains.kotlin.konan.target.KonanTarget
@@ -31,6 +34,7 @@ import org.jetbrains.kotlin.konan.target.SanitizerKind
 import org.jetbrains.kotlin.konan.target.TargetDomainObjectContainer
 import org.jetbrains.kotlin.konan.target.TargetWithSanitizer
 import org.jetbrains.kotlin.konan.target.enabledTargets
+import org.jetbrains.kotlin.nativeDistribution.nativeProtoDistribution
 import org.jetbrains.kotlin.testing.native.GoogleTestExtension
 import org.jetbrains.kotlin.utils.capitalized
 import java.time.Duration
@@ -95,6 +99,19 @@ private fun Configuration.targetVariant(target: TargetWithSanitizer): Configurat
         attribute(TargetWithSanitizer.TARGET_ATTRIBUTE, target)
     }
 }
+private fun Project.executorsClasspathConfiguration() = configurations.getOrCreate("executorsClasspath") {
+    description = "Classpath of executors CLI"
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    attributes {
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+    }
+    defaultDependencies {
+        add(project.dependencies.project(":native:executors"))
+    }
+}
 
 private abstract class RunGTestSemaphore : BuildService<BuildServiceParameters.None>
 private abstract class CompileTestsSemaphore : BuildService<BuildServiceParameters.None>
@@ -127,6 +144,8 @@ open class CompileToBitcodeExtension @Inject constructor(val project: Project) :
                 capability(CppConsumerPlugin.testCapability(project))
             }
         }
+
+        project.executorsClasspathConfiguration()
     }
 
     // TODO: These should be set by the plugin users.
@@ -209,43 +228,54 @@ open class CompileToBitcodeExtension @Inject constructor(val project: Project) :
         private val execClang = ExecClang.create(project.objects, platformManager)
         private val nativeDependencies = project.extensions.getByType<NativeDependenciesExtension>()
 
+        private val allCompilerArgs = module.compilerArgs.map {
+            it + when (sanitizer) {
+                null -> emptyList()
+                SanitizerKind.ADDRESS -> listOf("-fsanitize=address")
+                SanitizerKind.THREAD -> listOf("-fsanitize=thread")
+            }
+        }
+
         /**
          * Compiles source files into bitcode files.
          */
-        val compileTask = project.tasks.register<ClangFrontend>("clangFrontend${module.name.capitalized}${name.capitalized}${_target.toString().capitalized}").apply {
-            configure {
-                this.description = "Compiles '${module.name}' (${this@SourceSet.name} sources) to bitcode for $_target"
-                this.outputDirectory.set(this@SourceSet.outputDirectory)
-                this.targetName.set(target.name)
-                this.compiler.set(module.compiler)
-                this.arguments.set(module.compilerArgs)
-                this.arguments.addAll(when (sanitizer) {
-                    null -> emptyList()
-                    SanitizerKind.ADDRESS -> listOf("-fsanitize=address")
-                    SanitizerKind.THREAD -> listOf("-fsanitize=thread")
-                })
-                this.headersDirs.from(this@SourceSet.headersDirs)
-                this.inputFiles.from(this@SourceSet.inputFiles.dir)
-                this.inputFiles.setIncludes(this@SourceSet.inputFiles.includes)
-                this.inputFiles.setExcludes(this@SourceSet.inputFiles.excludes)
-                this.workingDirectory.set(module.compilerWorkingDirectory)
-                dependsOn(nativeDependencies.llvmDependency)
-                dependsOn(nativeDependencies.targetDependency(_target))
-                dependsOn(this@SourceSet.dependencies)
-                val specs = this@SourceSet.onlyIf
-                val target = target
-                onlyIf {
-                    specs.get().all { it.isSatisfiedBy(target) }
-                }
+        val compileTask = project.tasks.register<ClangFrontend>("clangFrontend${module.name.capitalized}${name.capitalized}${_target.toString().capitalized}") {
+            this.description = "Compiles '${module.name}' (${this@SourceSet.name} sources) to bitcode for $_target"
+            this.outputDirectory.set(this@SourceSet.outputDirectory)
+            this.targetName.set(target.name)
+            this.compiler.set(module.compiler)
+            this.arguments.set(allCompilerArgs)
+            // Add the sources, as clang by default adds directory with the source to the include path.
+            this.headersDirs.from(this@SourceSet.inputFiles.dir)
+            this.headersDirs.from(this@SourceSet.headersDirs)
+            this.inputFiles.from(this@SourceSet.inputFiles)
+            this.workingDirectory.set(module.compilerWorkingDirectory)
+            dependsOn(nativeDependencies.llvmDependency)
+            dependsOn(nativeDependencies.targetDependency(_target))
+            dependsOn(this@SourceSet.dependencies)
+            val specs = this@SourceSet.onlyIf
+            val target = target
+            onlyIf {
+                specs.get().all { it.isSatisfiedBy(target) }
             }
+        }
+
+        // Add the corresponding entry to the compilation database.
+        init {
             compilationDatabase.target(_target) {
                 entry {
-                    val compileTask: TaskProvider<ClangFrontend> = this@apply
-                    directory.set(compileTask.flatMap { it.workingDirectory })
-                    files.setFrom(compileTask.map { it.inputFiles })
-                    arguments.set(compileTask.map { listOf(execClang.resolveExecutable(it.compiler.get())) + it.compilerFlags.get() + execClang.clangArgsForCppRuntime(target.name) })
-                    // Only the location of output file matters, compdb does not depend on the compilation result.
-                    output.set(compileTask.flatMap { it.outputDirectory.locationOnly.map { it.asFile.absolutePath }})
+                    directory.set(module.compilerWorkingDirectory)
+                    files.setFrom(this@SourceSet.inputFiles)
+                    arguments.set(listOf(execClang.resolveExecutable(module.compiler.get())))
+                    val headers = project.objects.cppHeadersSet().apply {
+                        workingDir.set(module.compilerWorkingDirectory)
+                        from(this@SourceSet.inputFiles.dir)
+                        from(this@SourceSet.headersDirs)
+                    }
+                    arguments.addAll(ClangFrontend.defaultCompilerFlags(headers))
+                    arguments.addAll(allCompilerArgs)
+                    arguments.addAll(execClang.clangArgsForCppRuntime(target.name))
+                    output.set(this@SourceSet.outputDirectory.map { it.asFile.absolutePath })
                 }
                 task.configure {
                     // Compile task depends on the toolchain (including headers) and on the source code (e.g. googletest).
@@ -261,19 +291,17 @@ open class CompileToBitcodeExtension @Inject constructor(val project: Project) :
         /**
          * Links bitcode files together.
          */
-        val task = project.tasks.register<LlvmLink>("llvmLink${module.name.capitalized}${name.capitalized}${_target.toString().capitalized}").apply {
-            configure {
-                notCompatibleWithConfigurationCache("When GoogleTest are not downloaded llvm-link is missing arguments")
-                this.description = "Link '${module.name}' bitcode files (${this@SourceSet.name} sources) into a single bitcode file for $_target"
-                this.inputFiles.from(compileTask)
-                this.outputFile.set(this@SourceSet.outputFile)
-                this.arguments.set(module.linkerArgs)
-                val specs = this@SourceSet.onlyIf
-                val target = target
-                onlyIf {
-                    specs.get().all { it.isSatisfiedBy(target) }
-                }
+        val task = project.tasks.register<LlvmLink>("llvmLink${module.name.capitalized}${name.capitalized}${_target.toString().capitalized}") {
+            this.description = "Link '${module.name}' bitcode files (${this@SourceSet.name} sources) into a single bitcode file for $_target"
+            this.inputFiles.from(compileTask)
+            this.outputFile.set(this@SourceSet.outputFile)
+            this.arguments.set(module.linkerArgs)
+            val specs = this@SourceSet.onlyIf
+            val target = target
+            onlyIf {
+                specs.get().all { it.isSatisfiedBy(target) }
             }
+        }.apply {
             project.compileBitcodeElements(this@SourceSet.name).targetVariant(_target).artifact(this)
             project.moduleCompileBitcodeElements(module.name, this@SourceSet.name).targetVariant(_target).artifact(this)
         }
@@ -576,6 +604,8 @@ open class CompileToBitcodeExtension @Inject constructor(val project: Project) :
             }
 
             val compileTask = project.tasks.register<CompileToExecutable>("${testName}Compile") {
+                // TODO(KT-72188): Make it cacheable again
+                outputs.doNotCacheIf("Linked dynamic libraries have an absolute rpath") { target.family.isAppleFamily }
                 description = "Compile tests group '$testTaskName' for $target${sanitizer.description}"
                 group = VERIFICATION_BUILD_TASK_GROUP
                 this.target.set(target)
@@ -584,10 +614,6 @@ open class CompileToBitcodeExtension @Inject constructor(val project: Project) :
                 this.llvmLinkFirstStageOutputFile.set(project.layout.buildDirectory.file("bitcode/test/$target/$testName-firstStage.bc"))
                 this.llvmLinkOutputFile.set(project.layout.buildDirectory.file("bitcode/test/$target/$testName.bc"))
                 this.compilerOutputFile.set(project.layout.buildDirectory.file("obj/$target/$testName.o"))
-                val allModules = listOf(testsGroup.testLauncherModule.get()) + testsGroup.testSupportModules.get() + testsGroup.testedModules.get()
-                // TODO: Superwrong. Module should carry dependencies to system libraries that are passed to the linker.
-                val mimallocEnabled = allModules.contains("mimalloc")
-                this.mimallocEnabled.set(mimallocEnabled)
                 val mainFileConfiguration = testLauncherConfiguration.incoming.artifactView {
                     attributes {
                         attribute(TargetWithSanitizer.TARGET_ATTRIBUTE, _target)
@@ -622,17 +648,16 @@ open class CompileToBitcodeExtension @Inject constructor(val project: Project) :
                         (project.findProperty("gtest_timeout") as? String)?.let {
                             Duration.parse("PT${it}")
                         } ?: Duration.ofMinutes(5))
+                this.executorsClasspath.from(project.executorsClasspathConfiguration())
+                this.distPath.set(project.nativeProtoDistribution.root.asFile.absolutePath)
+                this.dataDirPath.set(project.kotlinBuildProperties.getOrNull("konan.data.dir") as String?)
 
                 usesService(runGTestSemaphore)
             }
 
             owner.allTestsTasks[target.name]!!.configure {
-                dependsOn(runTask)
-            }
-
-            // TODO: Support tsan natively on macOS arm64.
-            if (target == KonanTarget.MACOS_X64 && sanitizer == SanitizerKind.THREAD) {
-                owner.allTestsTasks[KonanTarget.MACOS_ARM64.name]!!.configure {
+                // TODO(KT-70409): Support Linux tsan tests
+                if (!(target == KonanTarget.LINUX_X64 && sanitizer == SanitizerKind.THREAD)) {
                     dependsOn(runTask)
                 }
             }

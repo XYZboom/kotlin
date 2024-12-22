@@ -189,7 +189,7 @@ to force diagnostics to be reported."""
     @Argument(
         value = "-Xbackend-threads",
         valueDescription = "<N>",
-        description = """When using the IR backend, run lowerings by file in N parallel threads.
+        description = """Run codegen phase in N parallel threads.
 0 means use one thread per processor core.
 The default value is 1."""
     )
@@ -307,7 +307,7 @@ This can be used in the event of problems with the new implementation."""
         value = "-Xuse-fast-jar-file-system",
         description = "Use the fast implementation of Jar FS. This may speed up compilation time, but it is experimental."
     )
-    var useFastJarFileSystem = false
+    var useFastJarFileSystem: Boolean? = null
         set(value) {
             checkFrozen()
             field = value
@@ -563,7 +563,7 @@ default: 'indy-with-constants' for JVM targets 9 or greater, 'inline' otherwise.
         value = "-Xjdk-release",
         valueDescription = "<version>",
         description = """Compile against the specified JDK API version, similarly to javac's '-release'. This requires JDK 9 or newer.
-The supported versions depend on the JDK used; for JDK 17+, the supported versions are 1.8 and 9–22.
+The supported versions depend on the JDK used; for JDK 17+, the supported versions are ${JvmTarget.SUPPORTED_VERSIONS_DESCRIPTION}.
 This also sets the value of '-jvm-target' to be equal to the selected JDK version."""
     )
     var jdkRelease: String? = null
@@ -577,8 +577,9 @@ This also sets the value of '-jvm-target' to be equal to the selected JDK versio
         value = "-Xsam-conversions",
         valueDescription = "{class|indy}",
         description = """Select the code generation scheme for SAM conversions.
--Xsam-conversions=indy          Generate SAM conversions using 'invokedynamic' with 'LambdaMetafactory.metafactory'. Requires '-jvm-target 1.8' or greater.
--Xsam-conversions=class         Generate SAM conversions as explicit classes"""
+-Xsam-conversions=indy          Generate SAM conversions using 'invokedynamic' with 'LambdaMetafactory.metafactory'.
+-Xsam-conversions=class         Generate SAM conversions as explicit classes.
+The default value is 'indy'."""
     )
     var samConversions: String? = null
         set(value) {
@@ -590,9 +591,10 @@ This also sets the value of '-jvm-target' to be equal to the selected JDK versio
         value = "-Xlambdas",
         valueDescription = "{class|indy}",
         description = """Select the code generation scheme for lambdas.
--Xlambdas=indy                  Generate lambdas using 'invokedynamic' with 'LambdaMetafactory.metafactory'. This requires '-jvm-target 1.8' or greater.
+-Xlambdas=indy                  Generate lambdas using 'invokedynamic' with 'LambdaMetafactory.metafactory'.
                                 A lambda object created using 'LambdaMetafactory.metafactory' will have a different 'toString()'.
--Xlambdas=class                 Generate lambdas as explicit classes."""
+-Xlambdas=class                 Generate lambdas as explicit classes.
+The default value is 'indy' if language version is 2.0+, and 'class' otherwise."""
     )
     var lambdas: String? = null
         set(value) {
@@ -609,26 +611,6 @@ This also sets the value of '-jvm-target' to be equal to the selected JDK versio
         set(value) {
             checkFrozen()
             field = if (value.isNullOrEmpty()) null else value
-        }
-
-    @Argument(
-        value = "-Xno-optimized-callable-references",
-        description = "Don't use optimized callable reference superclasses, which have been available since 1.4."
-    )
-    var noOptimizedCallableReferences = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(
-        value = "-Xno-kotlin-nothing-value-exception",
-        description = "Don't use KotlinNothingValueException, which has been available since 1.4."
-    )
-    var noKotlinNothingValueException = false
-        set(value) {
-            checkFrozen()
-            field = value
         }
 
     @Argument(
@@ -731,16 +713,6 @@ See KT-45671 for more details."""
         }
 
     @Argument(
-        value = "-Xvalidate-ir",
-        description = "Validate IR before and after lowering."
-    )
-    var validateIr = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(
         value = "-Xvalidate-bytecode",
         description = "Validate generated JVM bytecode before and after optimizations."
     )
@@ -776,7 +748,8 @@ It has no effect when -language-version is 2.0 or higher."""
     @Argument(
         value = "-Xdebug",
         description = """Enable debug mode for compilation.
-Currently this includes spilling all variables in a suspending context regardless of whether they are alive."""
+Currently this includes spilling all variables in a suspending context regardless of whether they are alive.
+If API Level >= 2.2 -- no-op."""
     )
     var enableDebugMode = false
         set(value) {
@@ -836,10 +809,30 @@ This option is deprecated and will be deleted in future versions."""
         }
 
     @Argument(
-        value = "-Xuse-kapt4",
-        description = "Enable the experimental KAPT 4."
+        value = "-Xuse-k2-kapt",
+        description = "Enable the experimental support for K2 KAPT."
     )
-    var useKapt4 = false
+    var useK2Kapt = true
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
+        value = "-Xcompile-builtins-as-part-of-stdlib",
+        description = "Enable behaviour needed to compile builtins as part of JVM stdlib"
+    )
+    var expectBuiltinsAsPartOfStdlib = false
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
+        value = "-Xoutput-builtins-metadata",
+        description = "Output builtins metadata as .kotlin_builtins files"
+    )
+    var outputBuiltinsMetadata = false
         set(value) {
             checkFrozen()
             field = value
@@ -863,6 +856,14 @@ This option is deprecated and will be deleted in future versions."""
         result[JvmAnalysisFlags.enableJvmPreview] = enableJvmPreview
         result[AnalysisFlags.allowUnstableDependencies] = allowUnstableDependencies
         result[JvmAnalysisFlags.useIR] = !useOldBackend
+        result[JvmAnalysisFlags.outputBuiltinsMetadata] = outputBuiltinsMetadata
+        if (expectBuiltinsAsPartOfStdlib && !stdlibCompilation) {
+            collector.report(
+                CompilerMessageSeverity.ERROR,
+                "-Xcompile-builtins-as-part-of-stdlib must not be used without -Xstdlib-compilation"
+            )
+        }
+        result[JvmAnalysisFlags.expectBuiltinsAsPartOfStdlib] = expectBuiltinsAsPartOfStdlib
         return result
     }
 

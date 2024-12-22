@@ -55,6 +55,8 @@ class ConstraintInjector(
 
         fun resolveForkPointsConstraints()
 
+        fun onNewConstraintOrForkPoint()
+
         fun recordTypeVariableReferenceInConstraint(
             constraintOwner: TypeConstructorMarker,
             referencedVariable: TypeConstructorMarker,
@@ -92,7 +94,7 @@ class ConstraintInjector(
         val typeCheckerState = TypeCheckerStateForConstraintInjector(c, IncorporationConstraintPosition(initialConstraint))
 
         // We add constraints like `T? == Foo!` in the old way
-        if (!typeVariable.isSimpleType() || typeVariable.isMarkedNullable()) {
+        if (!typeVariable.isRigidType() || typeVariable.isMarkedNullable()) {
             addInitialEqualityConstraintThroughSubtyping(typeVariable, equalType, typeCheckerState)
             return
         }
@@ -158,11 +160,15 @@ class ConstraintInjector(
         constraintSet: Collection<Pair<TypeVariableMarker, Constraint>>,
         position: IncorporationConstraintPosition
     ) {
+        val typeCheckerState = TypeCheckerStateForConstraintInjector(c, position)
         processGivenConstraints(
             c,
-            TypeCheckerStateForConstraintInjector(c, position),
+            typeCheckerState,
             constraintSet,
         )
+        if (languageVersionSettings.supportsFeature(LanguageFeature.InferenceEnhancementsIn21)) {
+            processConstraintsIgnoringForksData(typeCheckerState, c, skipProperEqualityConstraints = true)
+        }
     }
 
     private fun processConstraints(
@@ -175,6 +181,8 @@ class ConstraintInjector(
                 allForkPointsData.mapTo(c.constraintsFromAllForkPoints) { forkPointData ->
                     typeCheckerState.position to forkPointData
                 }
+
+                c.onNewConstraintOrForkPoint()
 
                 // During completion, we start processing fork constrains immediately
                 if (c.atCompletionState) {
@@ -236,6 +244,7 @@ class ConstraintInjector(
             }
 
             if (wasAdded) {
+                c.onNewConstraintOrForkPoint()
                 recordReferencesOfOtherTypeVariableInConstraint(c, constraint, typeVariableConstructor)
             }
 
@@ -305,7 +314,8 @@ class ConstraintInjector(
         private var stackForConstraintsSetsFromCurrentForkPoint: Stack<MutableList<ForkPointBranchDescription>>? = null
         private var stackForConstraintSetFromCurrentForkPointBranch: Stack<MutableList<Pair<TypeVariableMarker, Constraint>>>? = null
 
-        override val isInferenceCompatibilityEnabled = languageVersionSettings.supportsFeature(LanguageFeature.InferenceCompatibility)
+        override val languageVersionSettings: LanguageVersionSettings
+            get() = this@ConstraintInjector.languageVersionSettings
 
         private val allowForking: Boolean
             get() = constraintIncorporator.utilContext.isForcedAllowForkingInferenceSystem
@@ -314,6 +324,7 @@ class ConstraintInjector(
         private var baseUpperType = position.initialConstraint.b
 
         private var isIncorporatingConstraintFromDeclaredUpperBound = false
+        private var currentDerivedFromSet: Set<TypeVariableMarker> = emptySet()
 
         fun extractAllConstraints() = possibleNewConstraints.also { possibleNewConstraints = null }
         fun extractForkPointsData() = forkPointsData.also { forkPointsData = null }
@@ -416,14 +427,15 @@ class ConstraintInjector(
                 )
 
             if (!isSubtypeOf(upperType)) {
-                // todo improve error reporting -- add information about base types
-                if (shouldTryUseDifferentFlexibilityForUpperType && upperType.isSimpleType()) {
+                // TODO: Get rid of this additional workarounds for flexible types once KT-59138 is fixed and
+                //  the relevant feature for disabling it will be removed.
+                if (shouldTryUseDifferentFlexibilityForUpperType && upperType.isRigidType()) {
                     /*
                      * Please don't reuse this logic.
                      * It's necessary to solve constraint systems when flexibility isn't propagated through a type variable.
                      * It's OK in the old inference because it uses already substituted types, that are with the correct flexibility.
                      */
-                    require(upperType is SimpleTypeMarker)
+                    require(upperType is RigidTypeMarker)
                     val flexibleUpperType = createFlexibleType(upperType, upperType.withNullability(true))
                     if (!isSubtypeOf(flexibleUpperType)) {
                         c.addError(NewConstraintError(lowerType, flexibleUpperType, position))
@@ -431,11 +443,16 @@ class ConstraintInjector(
                 } else {
                     c.addError(NewConstraintError(lowerType, upperType, position))
                 }
+            } else if (isK2) {
+                @OptIn(K2Only::class)
+                for (constraintWithNoInfer in constraintsWithNoInfer) {
+                    c.addError(ConeNoInferSubtyping(constraintWithNoInfer, position))
+                }
             }
         }
 
         // from AbstractTypeCheckerContextForConstraintSystem
-        override fun isMyTypeVariable(type: SimpleTypeMarker): Boolean =
+        override fun isMyTypeVariable(type: RigidTypeMarker): Boolean =
             c.allTypeVariables.containsKey(type.typeConstructor().unwrapStubTypeVariableConstructor())
 
         override fun addUpperConstraint(typeVariable: TypeConstructorMarker, superType: KotlinTypeMarker) =
@@ -475,21 +492,16 @@ class ConstraintInjector(
             addNewIncorporatedConstraint(
                 typeVariable,
                 type,
-                ConstraintContext(kind, emptySet(), isNullabilityConstraint = isFromNullabilityConstraint)
+                ConstraintContext(kind, currentDerivedFromSet, isNullabilityConstraint = isFromNullabilityConstraint)
             )
         }
 
-        private fun addNewIncorporatedConstraintFromDeclaredUpperBound(runIsSubtypeOf: Runnable) {
-            isIncorporatingConstraintFromDeclaredUpperBound = true
-            runIsSubtypeOf.run()
-            isIncorporatingConstraintFromDeclaredUpperBound = false
-        }
-
         // from ConstraintIncorporator.Context
-        override fun addNewIncorporatedConstraint(
+        override fun processNewInitialConstraintFromIncorporation(
             lowerType: KotlinTypeMarker,
             upperType: KotlinTypeMarker,
             shouldTryUseDifferentFlexibilityForUpperType: Boolean,
+            newDerivedFrom: Set<TypeVariableMarker>,
             isFromNullabilityConstraint: Boolean,
             isFromDeclaredUpperBound: Boolean
         ) {
@@ -500,10 +512,31 @@ class ConstraintInjector(
                 if (lowerType === upperType) return
             }
             if (c.isAllowedType(lowerType) && c.isAllowedType(upperType)) {
-                fun runIsSubtypeOf() =
+                withNewConfigurationForIncorporationConstraints(
+                    newDerivedFrom,
+                    isFromDeclaredUpperBound
+                ) {
                     runIsSubtypeOf(lowerType, upperType, shouldTryUseDifferentFlexibilityForUpperType, isFromNullabilityConstraint)
+                }
+            }
+        }
 
-                if (isFromDeclaredUpperBound) addNewIncorporatedConstraintFromDeclaredUpperBound(::runIsSubtypeOf) else runIsSubtypeOf()
+        private inline fun withNewConfigurationForIncorporationConstraints(
+            newDerivedFromSet: Set<TypeVariableMarker>,
+            isFromDeclaredUpperBound: Boolean,
+            b: () -> Unit,
+        ) {
+            // No immediate recursive incorporation should happen, so `currentDerivedFromSet` would be reset at "finally"
+            check(currentDerivedFromSet.isEmpty())
+
+            try {
+                currentDerivedFromSet = newDerivedFromSet
+                isIncorporatingConstraintFromDeclaredUpperBound = isFromDeclaredUpperBound
+                b()
+            } finally {
+                // NB: `emptySet()` returns a singleton, so no excessive memory here
+                currentDerivedFromSet = emptySet()
+                isIncorporatingConstraintFromDeclaredUpperBound = false
             }
         }
 

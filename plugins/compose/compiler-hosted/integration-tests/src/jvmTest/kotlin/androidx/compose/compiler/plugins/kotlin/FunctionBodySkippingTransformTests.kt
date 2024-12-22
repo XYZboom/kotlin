@@ -18,18 +18,17 @@ package androidx.compose.compiler.plugins.kotlin
 
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.config.CompilerConfiguration
-import org.junit.Ignore
 import org.junit.Test
 
 abstract class FunctionBodySkippingTransformTestsBase(
-    useFir: Boolean
+    useFir: Boolean,
 ) : AbstractIrTransformTest(useFir) {
     protected fun comparisonPropagation(
         @Language("kotlin")
         unchecked: String,
         @Language("kotlin")
         checked: String,
-        dumpTree: Boolean = false
+        dumpTree: Boolean = false,
     ) = verifyGoldenComposeIrTransform(
         """
             import androidx.compose.runtime.Composable
@@ -44,12 +43,18 @@ abstract class FunctionBodySkippingTransformTestsBase(
             $unchecked
             fun used(x: Any?) {}
         """.trimIndent(),
-        dumpTree = dumpTree
+        dumpTree = dumpTree,
+        additionalPaths = listOf(
+            Classpath.composeUiJar(),
+            Classpath.composeUiUnitJar(),
+            Classpath.composeUiTextJar(),
+            Classpath.composeFoundationLayoutJar()
+        )
     )
 }
 
 class FunctionBodySkippingTransformTests(
-    useFir: Boolean
+    useFir: Boolean,
 ) : FunctionBodySkippingTransformTestsBase(useFir) {
     @Test
     fun testIfInLambda(): Unit = comparisonPropagation(
@@ -1306,14 +1311,45 @@ class FunctionBodySkippingTransformTests(
                 fun ReceiveValue(value: Int) { }
             """
         )
+
+    @Test
+    fun testExplicitGroups(): Unit = comparisonPropagation(
+        """
+            class Foo
+        """,
+        """
+            import androidx.compose.runtime.*
+
+            @Composable
+            @ExplicitGroupsComposable
+            inline fun ReusableContentHost(active: Boolean, crossinline content: @Composable () -> Unit) {
+                currentComposer.startReusableGroup(200, active)
+                val activeChanged = currentComposer.changed(active)
+                if (active) {
+                    content()
+                } else {
+                    currentComposer.deactivateToEndGroup(activeChanged)
+                }
+                currentComposer.endReusableGroup()
+            }
+        """
+    )
+
 }
 
 class FunctionBodySkippingTransformTestsNoSource(
-    useFir: Boolean
+    useFir: Boolean,
 ) : FunctionBodySkippingTransformTestsBase(useFir) {
     override fun CompilerConfiguration.updateConfiguration() {
         put(ComposeConfiguration.SOURCE_INFORMATION_ENABLED_KEY, false)
         put(ComposeConfiguration.TRACE_MARKERS_ENABLED_KEY, false)
+        put(
+            ComposeConfiguration.FEATURE_FLAGS,
+            listOf(
+                FeatureFlag.StrongSkipping.featureName,
+                FeatureFlag.OptimizeNonSkippingGroups.featureName,
+            )
+        )
     }
 
     @Test
@@ -1455,6 +1491,74 @@ class FunctionBodySkippingTransformTestsNoSource(
 
             @Composable
             fun Text(value: String) {}
+        """,
+        additionalPaths = listOf(
+            Classpath.composeUiJar(),
+            Classpath.composeFoundationLayoutJar()
+        )
+    )
+
+    @Test
+    fun testIfStatementGroups() = verifyGoldenComposeIrTransform(
+        source = """
+            import androidx.compose.runtime.*
+
+            @Composable
+            fun Test(level: Int) {
+                Wrap {
+                    if (level > 0) {
+                        used(remember { "Before" })
+                        Wrap {
+                            used(remember { "Middle" })
+                        }
+                        used(remember { "End" })
+                    }
+                }
+            }
+        """,
+        """
+            import androidx.compose.runtime.*
+
+            @Composable
+            fun Wrap(content: @Composable () -> Unit) = content()
+
+            fun used(value: Any) { }
+        """
+    )
+
+    @Test
+    fun ensureNoGroupsAreAddedToAnExplicitGroupsComposable() = verifyGoldenComposeIrTransform(
+        source = """
+            import androidx.compose.runtime.*
+
+            @ExplicitGroupsComposable
+            @Composable
+            inline fun Test(active: Boolean, content: @Composable () -> Unit) {
+                currentComposer.startReusableGroup(1, null)
+                if (active) {
+                    content()
+                } else {
+                    currentComposer.deactivateToEndGroup(false)
+                }
+                currentComposer.endReusableGroup()
+            }
+        """
+    )
+
+    @Test
+    fun openComposableFunction() = verifyGoldenComposeIrTransform(
+        source = """
+            import androidx.compose.runtime.*
+
+            open class Open {
+                @Composable open fun Test() {}
+            }
+
+            class Impl : Open() {
+                @Composable override fun Test() {
+                    super.Test()
+                }
+            }
         """
     )
 }

@@ -16,6 +16,8 @@ import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
+import org.jetbrains.kotlin.types.model.KotlinTypeMarker
+import org.jetbrains.kotlin.types.model.TypeConstructorMarker
 
 /**
  * A mangle computer that generates a mangled name for a Kotlin declaration represented by [IrDeclaration].
@@ -128,7 +130,6 @@ open class IrMangleComputer(
             }
             is IrDynamicType -> tBuilder.appendSignature(MangleConstant.DYNAMIC_MARK)
             is IrErrorType -> tBuilder.appendSignature(MangleConstant.ERROR_MARK)
-            else -> error("Unexpected type $type")
         }
     }
 

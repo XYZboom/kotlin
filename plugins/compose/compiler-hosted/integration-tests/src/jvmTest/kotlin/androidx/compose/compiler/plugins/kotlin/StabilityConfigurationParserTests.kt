@@ -21,6 +21,7 @@ import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
+import java.io.FileNotFoundException
 
 class StabilityConfigurationParserTests {
     private fun testConfigParsing(config: String, expectedClasses: Set<String>) {
@@ -125,12 +126,21 @@ class StabilityConfigurationParserTests {
             com.foo!.bar //comment
         """.trimIndent()
     )
+
+    @Test
+    fun testNonExistantFileThrows() {
+        assertThrows(FileNotFoundException::class.java) {
+            StabilityConfigParser.fromFile("doesnotexist")
+        }
+    }
 }
 
 private const val PATH_TO_CONFIG_FILES = "$TEST_RESOURCES_ROOT/testStabilityConfigFiles"
+
 class SingleStabilityConfigurationTest(useFir: Boolean) : AbstractIrTransformTest(useFir) {
     override fun CompilerConfiguration.updateConfiguration() {
-        put(ComposeConfiguration.STABILITY_CONFIG_PATH_KEY,
+        put(
+            ComposeConfiguration.STABILITY_CONFIG_PATH_KEY,
             listOf("$PATH_TO_CONFIG_FILES/config1.conf")
         )
         put(ComposeConfiguration.STRONG_SKIPPING_ENABLED_KEY, false)
@@ -160,7 +170,8 @@ class SingleStabilityConfigurationTest(useFir: Boolean) : AbstractIrTransformTes
 
 class MultipleStabilityConfigurationTest(useFir: Boolean) : AbstractIrTransformTest(useFir) {
     override fun CompilerConfiguration.updateConfiguration() {
-        put(ComposeConfiguration.STABILITY_CONFIG_PATH_KEY,
+        put(
+            ComposeConfiguration.STABILITY_CONFIG_PATH_KEY,
             listOf(
                 "$PATH_TO_CONFIG_FILES/config1.conf",
                 "$PATH_TO_CONFIG_FILES/config2.conf"

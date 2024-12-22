@@ -13,13 +13,15 @@ import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers.NAME
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers.STRING
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.DECLARATION_NAME
-import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.FQ_NAMES_IN_TYPES
+import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.DECLARATION_FQ_NAME
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.OPTIONAL_SENTENCE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.RENDER_TYPE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.SYMBOL
+import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.SYMBOL_WITH_CONTAINING_DECLARATION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.formatKotlinWithVersion
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.ACCIDENTAL_OVERRIDE_CLASH_BY_JVM_SIGNATURE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.CONCURRENT_HASH_MAP_CONTAINS_OPERATOR
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.DANGEROUS_CHARACTERS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.DELEGATION_BY_IN_JVM_RECORD
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.DEPRECATED_JAVA_ANNOTATION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.ENUM_JVM_RECORD
@@ -31,12 +33,15 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.FIELD_IN_J
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.FUNCTION_DELEGATE_MEMBER_NAME_CLASH
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.ILLEGAL_JAVA_LANG_RECORD_SUPERTYPE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.ILLEGAL_JVM_NAME
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.IMPLEMENTATION_BY_DELEGATION_WITH_DIFFERENT_GENERIC_SIGNATURE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.INAPPLICABLE_JVM_FIELD
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.INAPPLICABLE_JVM_FIELD_WARNING
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.INAPPLICABLE_JVM_NAME
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.INLINE_FROM_HIGHER_PLATFORM
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.INNER_JVM_RECORD
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.INTERFACE_CANT_CALL_DEFAULT_METHOD_VIA_SUPER
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JAVA_CLASS_INHERITS_KT_PRIVATE_CLASS
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JAVA_CLASS_ON_COMPANION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JAVA_FIELD_SHADOWED_BY_KOTLIN_PROPERTY
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JAVA_MODULE_DOES_NOT_DEPEND_ON_MODULE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE
@@ -54,6 +59,7 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_RECORD
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_RECORD_NOT_LAST_VARARG_PARAMETER
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_RECORD_NOT_VAL_PARAMETER
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_RECORD_WITHOUT_PRIMARY_CONSTRUCTOR_PARAMETERS
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_SERIALIZABLE_LAMBDA_ON_INLINED_FUNCTION_LITERALS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_STATIC_NOT_IN_OBJECT_OR_CLASS_COMPANION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_STATIC_NOT_IN_OBJECT_OR_COMPANION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_STATIC_ON_CONST_OR_JVM_FIELD
@@ -61,9 +67,11 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_STATIC
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_STATIC_ON_NON_PUBLIC_MEMBER
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_SYNTHETIC_ON_DELEGATE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.LOCAL_JVM_RECORD
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.MISSING_BUILT_IN_DECLARATION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.NON_DATA_CLASS_JVM_RECORD
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.NON_FINAL_JVM_RECORD
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.NON_SOURCE_REPEATED_ANNOTATION
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.NOT_YET_SUPPORTED_LOCAL_INLINE_FUNCTION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.NO_REFLECTION_IN_CLASS_PATH
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.OVERLOADS_ABSTRACT
@@ -74,6 +82,7 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.OVERLOADS_
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.OVERLOADS_WITHOUT_DEFAULT_ARGUMENTS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.OVERRIDE_CANNOT_BE_STATIC
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.POSITIONED_VALUE_ARGUMENT_FOR_JAVA_ANNOTATION
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.PROPERTY_HIDES_JAVA_FIELD
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.REDUNDANT_REPEATABLE_ANNOTATION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.REPEATABLE_ANNOTATION_HAS_NESTED_CLASS_NAMED_CONTAINER
@@ -86,11 +95,15 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SPREAD_ON_
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.STRICTFP_ON_CLASS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SUBCLASS_CANT_CALL_COMPANION_PROTECTED_NON_STATIC
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SUSPENSION_POINT_INSIDE_CRITICAL_SECTION
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNCHRONIZED_BLOCK_ON_VALUE_CLASS_OR_PRIMITIVE
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNCHRONIZED_IN_ANNOTATION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNCHRONIZED_IN_INTERFACE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNCHRONIZED_ON_ABSTRACT
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNCHRONIZED_ON_INLINE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNCHRONIZED_ON_SUSPEND
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNCHRONIZED_ON_VALUE_CLASS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNTHETIC_PROPERTY_WITHOUT_JAVA_ORIGIN
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.THROWS_IN_ANNOTATION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.TYPE_MISMATCH_WHEN_FLEXIBILITY_CHANGES
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.UPPER_BOUND_CANNOT_BE_ARRAY
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.UPPER_BOUND_VIOLATED_BASED_ON_JAVA_ANNOTATIONS
@@ -120,10 +133,17 @@ object FirJvmErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         map.put(
             TYPE_MISMATCH_WHEN_FLEXIBILITY_CHANGES,
             "Argument type mismatch: actual type is ''{1}'', but ''{0}'' was expected. This will become an error in ${
-                LanguageFeature.JavaTypeParameterDefaultRepresentationWithDNN.formatKotlinWithVersion()
+                LanguageFeature.ProhibitReturningIncorrectNullabilityValuesFromSamConstructorLambdaOfJdkInterfaces.formatKotlinWithVersion()
             }.",
             RENDER_TYPE,
             RENDER_TYPE,
+        )
+        map.put(
+            JAVA_CLASS_ON_COMPANION,
+            "The resulting type of this ''javaClass'' call is ''{0}'' and not ''{1}''. " +
+                    "Use ''::class.java'' to access type ''{1}''.",
+            RENDER_TYPE,
+            RENDER_TYPE
         )
 
         map.put(
@@ -135,32 +155,50 @@ object FirJvmErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
 
         map.put(
             ACCIDENTAL_OVERRIDE_CLASH_BY_JVM_SIGNATURE,
-            "This function accidentally overrides both ''{0}'' and {1} ''{2}'' from JVM point of view because of mixed Java/Kotlin hierarchy.\n" +
-                    "This situation provokes a JVM clash and thus is forbidden. To fix it, you have to delete either this function or one of overridden functions.",
-            FQ_NAMES_IN_TYPES,
+            "This function accidentally overrides both {0} and {1} {2} from JVM point of view because of mixed Java/Kotlin hierarchy.\n" +
+                    "This situation provokes a JVM clash and is forbidden. To fix it, delete either this or one of the overridden functions.",
+            SYMBOL_WITH_CONTAINING_DECLARATION,
             STRING,
-            FQ_NAMES_IN_TYPES,
+            SYMBOL_WITH_CONTAINING_DECLARATION,
         )
 
         map.put(
+            IMPLEMENTATION_BY_DELEGATION_WITH_DIFFERENT_GENERIC_SIGNATURE,
+            "The function {0} from an interface is generic, but the function {1} from a delegate is not.\n" +
+                    "Such an implementation can provoke runtime errors.",
+            SYMBOL_WITH_CONTAINING_DECLARATION,
+            SYMBOL_WITH_CONTAINING_DECLARATION,
+        )
+
+        map.put(NOT_YET_SUPPORTED_LOCAL_INLINE_FUNCTION, "Local inline functions are not yet supported.")
+
+        map.put(
             UPPER_BOUND_VIOLATED_BASED_ON_JAVA_ANNOTATIONS,
-            "Type argument is not within its bounds: should be subtype of ''{0}''.",
+            "Type argument is not within its bounds: must be subtype of ''{0}''.",
             RENDER_TYPE,
             RENDER_TYPE
         )
         map.put(
             UPPER_BOUND_VIOLATED_IN_TYPEALIAS_EXPANSION_BASED_ON_JAVA_ANNOTATIONS,
-            "Type argument is not within its bounds: should be subtype of ''{0}''.",
+            "Type argument is not within its bounds: must be subtype of ''{0}''.",
             RENDER_TYPE,
             RENDER_TYPE
+        )
+        map.put(
+            PROPERTY_HIDES_JAVA_FIELD,
+            "This property hides Java field ''{0}'' thus making it inaccessible.",
+            SYMBOL,
         )
 
         map.put(UPPER_BOUND_CANNOT_BE_ARRAY, "Upper bound of type parameter cannot be an array.")
         map.put(STRICTFP_ON_CLASS, "'@Strictfp' annotation on classes is not yet supported.")
         map.put(SYNCHRONIZED_ON_ABSTRACT, "'@Synchronized' annotation cannot be used on abstract functions.")
         map.put(SYNCHRONIZED_ON_INLINE, "'@Synchronized' annotation has no effect on inline functions.")
+        map.put(SYNCHRONIZED_ON_VALUE_CLASS, "'@Synchronized' annotation has no effect on value classes.")
+        map.put(SYNCHRONIZED_BLOCK_ON_VALUE_CLASS_OR_PRIMITIVE, "Synchronizing on ''{0}'' is forbidden.", RENDER_TYPE)
         map.put(SYNCHRONIZED_ON_SUSPEND, "'@Synchronized' annotation is not applicable to 'suspend' functions and lambdas.")
         map.put(SYNCHRONIZED_IN_INTERFACE, "'@Synchronized' annotation cannot be used on interface members.")
+        map.put(SYNCHRONIZED_IN_ANNOTATION, "'@Synchronized' annotation cannot be used on annotation parameters.")
         map.put(OVERLOADS_WITHOUT_DEFAULT_ARGUMENTS, "'@JvmOverloads' annotation has no effect for methods without default arguments.")
         map.put(OVERLOADS_ABSTRACT, "'@JvmOverloads' annotation cannot be used on abstract methods.")
         map.put(OVERLOADS_INTERFACE, "'@JvmOverloads' annotation cannot be used on interface methods.")
@@ -183,16 +221,16 @@ object FirJvmErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         )
 
         map.put(LOCAL_JVM_RECORD, "Local '@JvmRecord' classes are prohibited.")
-        map.put(NON_FINAL_JVM_RECORD, "'@JvmRecord' class should be final.")
-        map.put(ENUM_JVM_RECORD, "'@JvmRecord' class should not be an enum.")
+        map.put(NON_FINAL_JVM_RECORD, "'@JvmRecord' class must be final.")
+        map.put(ENUM_JVM_RECORD, "'@JvmRecord' class cannot be an enum.")
         map.put(
             JVM_RECORD_WITHOUT_PRIMARY_CONSTRUCTOR_PARAMETERS,
             "Primary constructor with parameters is required for '@JvmRecord' class."
         )
-        map.put(JVM_RECORD_NOT_VAL_PARAMETER, "Constructor parameter of '@JvmRecord' class should be a 'val'.")
+        map.put(JVM_RECORD_NOT_VAL_PARAMETER, "Constructor parameter of '@JvmRecord' class must be a 'val'.")
         map.put(JVM_RECORD_NOT_LAST_VARARG_PARAMETER, "Only the last constructor parameter of '@JvmRecord' can be a vararg.")
         map.put(JVM_RECORD_EXTENDS_CLASS, "Record cannot extend a class.", RENDER_TYPE)
-        map.put(INNER_JVM_RECORD, "'@JvmRecord' class should not be inner.")
+        map.put(INNER_JVM_RECORD, "'@JvmRecord' class cannot be inner.")
         map.put(FIELD_IN_JVM_RECORD, "Non-constructor properties with backing field in '@JvmRecord' class are prohibited.")
         map.put(DELEGATION_BY_IN_JVM_RECORD, "Delegation is prohibited for '@JvmRecord' classes.")
         map.put(NON_DATA_CLASS_JVM_RECORD, "Only data classes are allowed to be marked as '@JvmRecord'.")
@@ -274,7 +312,7 @@ object FirJvmErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
 
         map.put(
             INTERFACE_CANT_CALL_DEFAULT_METHOD_VIA_SUPER,
-            "Interfaces can only call JVM-default members via super within JVM-default members. Please use '-Xjvm-default=all/all-compatibility' modes for such calls."
+            "Calling JVM-default members via super is supported only in Kotlin 2.1 and later, or with -Xjvm-default=all/all-compatibility.",
         )
         map.put(
             SUBCLASS_CANT_CALL_COMPANION_PROTECTED_NON_STATIC,
@@ -318,7 +356,7 @@ object FirJvmErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         )
         map.put(
             INLINE_FROM_HIGHER_PLATFORM,
-            "Cannot inline bytecode built with {0} into bytecode that is being built with {1}. Please specify proper ''-jvm-target'' option.",
+            "Cannot inline bytecode built with {0} into bytecode that is being built with {1}. Specify proper ''-jvm-target'' option.",
             STRING,
             STRING
         )
@@ -338,9 +376,14 @@ object FirJvmErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         )
         map.put(
             REDUNDANT_REPEATABLE_ANNOTATION,
-            "Please remove the ''{0}'' annotation, as it is redundant in presence of ''{1}''.",
+            "Remove the ''{0}'' annotation, as it is redundant in presence of ''{1}''.",
             TO_STRING,
             TO_STRING,
+        )
+        map.put(THROWS_IN_ANNOTATION, "'@Throws' annotation cannot be used on annotation parameters.")
+        map.put(
+            JVM_SERIALIZABLE_LAMBDA_ON_INLINED_FUNCTION_LITERALS,
+            "'@JvmSerializableLambda' is not applicable to inlined function literals."
         )
         map.put(
             NO_REFLECTION_IN_CLASS_PATH,
@@ -361,8 +404,26 @@ object FirJvmErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
             JAVA_FIELD_SHADOWED_BY_KOTLIN_PROPERTY,
             "This variable access is resolved to Java field, but it is clashed with Kotlin property ''{0}'' with backing field " +
                     "which leads to the incorrect bytecode generation and failure at runtime. So such calls are prohibited until " +
-                    "corresponding bug will be fixed. See https://youtrack.jetbrains.com/issue/KT-56386 for more details",
+                    "corresponding bug will be fixed. See https://youtrack.jetbrains.com/issue/KT-56386 for more details.",
             SYMBOL
+        )
+
+        map.put(
+            JAVA_CLASS_INHERITS_KT_PRIVATE_CLASS,
+            "Java class ''{0}'' declaring this member directly or indirectly extends the private Kotlin class ''{1}''.",
+            TO_STRING,
+            RENDER_TYPE
+        )
+
+        map.put(
+            MISSING_BUILT_IN_DECLARATION,
+            "Cannot access built-in declaration ''{0}''. Ensure that you have a dependency on the Kotlin standard library.",
+            DECLARATION_FQ_NAME
+        )
+        map.put(
+            DANGEROUS_CHARACTERS,
+            "Name contains character(s) that can cause problems on Windows: {0}",
+            STRING
         )
     }
 }

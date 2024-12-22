@@ -14,6 +14,8 @@ namespace kotlin::mm {
 
 class ThreadData;
 
+// TODO(KT-67741): Unify different SpecialRefs
+
 // Stable reference to a Kotlin object.
 // Every stable reference makes Kotlin object be in the root set.
 // Use `create` and `dispose` to create and destroy the stable reference.
@@ -44,6 +46,12 @@ public:
     [[nodiscard("expensive pure function")]] ObjHeader* operator*() const noexcept {
         RuntimeAssert(node_, "operator* on null StableRef");
         return node_->ref();
+    }
+
+    // Get the type of underlying object.
+    [[nodiscard("expensive pure function")]] const TypeInfo* typeInfo() const noexcept {
+        RuntimeAssert(node_, "typeInfo on null StableRef");
+        return node_->typeInfo();
     }
 
     static StableRef& reinterpret(RawSpecialRef*& raw) noexcept { return reinterpret_cast<StableRef&>(raw); }

@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.build.report.metrics.GradleBuildPerformanceMetric
 import org.jetbrains.kotlin.build.report.metrics.GradleBuildTime
 import org.jetbrains.kotlin.build.report.metrics.endMeasureGc
 import org.jetbrains.kotlin.build.report.metrics.startMeasureGc
+import org.jetbrains.kotlin.buildtools.api.SourcesChanges
 import org.jetbrains.kotlin.cli.common.*
 import org.jetbrains.kotlin.cli.common.arguments.*
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
@@ -27,9 +28,8 @@ import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.modules.CoreJrtFileSystem
-import org.jetbrains.kotlin.cli.metadata.K2MetadataCompiler
+import org.jetbrains.kotlin.cli.metadata.KotlinMetadataCompiler
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
-import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.config.Services
 import org.jetbrains.kotlin.daemon.common.*
 import org.jetbrains.kotlin.daemon.report.CompileServicesFacadeMessageCollector
@@ -94,7 +94,7 @@ abstract class CompileServiceImplBase(
     val compilerId: CompilerId,
     val port: Int,
     val timer: Timer,
-) {
+) : CompileService {
     protected val log by lazy { Logger.getLogger("compiler") }
 
     init {
@@ -338,7 +338,7 @@ abstract class CompileServiceImplBase(
         val compiler = when (targetPlatform) {
             CompileService.TargetPlatform.JVM -> K2JVMCompiler()
             CompileService.TargetPlatform.JS -> K2JSCompiler()
-            CompileService.TargetPlatform.METADATA -> K2MetadataCompiler()
+            CompileService.TargetPlatform.METADATA -> KotlinMetadataCompiler()
         } as CLICompiler<CommonCompilerArguments>
 
         val k2PlatformArgs = compiler.createArguments()
@@ -420,7 +420,6 @@ abstract class CompileServiceImplBase(
 
                 }
             }
-            else -> throw IllegalStateException("Unknown compilation mode ${compilationOptions.compilerMode}")
         }
     }
 
@@ -527,6 +526,7 @@ abstract class CompileServiceImplBase(
     }
 
     fun configurePeriodicActivities() {
+        log.info("Periodic liveness check activities configured")
         timer.schedule(delay = DAEMON_PERIODIC_CHECK_INTERVAL_MS, period = DAEMON_PERIODIC_CHECK_INTERVAL_MS) {
             exceptionLoggingTimerThread { periodicAndAfterSessionCheck() }
         }
@@ -535,7 +535,6 @@ abstract class CompileServiceImplBase(
         }
     }
 
-
     protected inline fun <R> ifAliveChecksImpl(
         minAliveness: Aliveness = Aliveness.LastSession,
         body: () -> CompileService.CallResult<R>,
@@ -543,7 +542,17 @@ abstract class CompileServiceImplBase(
         val curState = state.alive.get()
         return when {
             curState < minAliveness.ordinal -> {
-                log.info("Cannot perform operation, requested state: ${minAliveness.name} > actual: ${curState.toAlivenessName()}")
+                val stackTrace = Thread.currentThread().stackTrace
+                // the depth to extract stacktrace element like `org.jetbrains.kotlin.daemon.CompileServiceImpl.registerClient`
+                val rmiBusinessCallDepth = 1
+                val callSource = stackTrace.getOrNull(rmiBusinessCallDepth)?.let { " Operation: $it" }
+                    ?: Thread.currentThread().stackTrace.joinToString(prefix = " at ", separator = "\n at ")
+                log.info(
+                    """
+                    |Cannot perform operation, requested state: ${minAliveness.name} > actual: ${curState.toAlivenessName()}
+                    |$callSource
+                    """.trimMargin()
+                )
                 CompileService.CallResult.Dying()
             }
             else -> {
@@ -582,12 +591,6 @@ abstract class CompileServiceImplBase(
         @Suppress("DEPRECATION") // TODO: get rid of that parsing KT-62759
         val allKotlinFiles = extractKotlinSourcesFromFreeCompilerArguments(args, setOf("kt"))
 
-        val changedFiles = if (incrementalCompilationOptions.areFileChangesKnown) {
-            ChangedFiles.Known(incrementalCompilationOptions.modifiedFiles!!, incrementalCompilationOptions.deletedFiles!!)
-        } else {
-            ChangedFiles.Unknown()
-        }
-
         val workingDir = incrementalCompilationOptions.workingDir
         val modulesApiHistory = incrementalCompilationOptions.multiModuleICSettings?.run {
             val modulesInfo = incrementalCompilationOptions.modulesInfo
@@ -601,16 +604,22 @@ abstract class CompileServiceImplBase(
             workingDir = workingDir,
             reporter = reporter,
             buildHistoryFile = incrementalCompilationOptions.multiModuleICSettings?.buildHistoryFile,
-            scopeExpansion = if (args.isIrBackendEnabled()) CompileScopeExpansionMode.ALWAYS else CompileScopeExpansionMode.NEVER,
+            scopeExpansion = CompileScopeExpansionMode.ALWAYS,
             modulesApiHistory = modulesApiHistory,
             icFeatures = incrementalCompilationOptions.icFeatures,
         )
         return try {
-            compiler.compile(allKotlinFiles, args, compilerMessageCollector, changedFiles)
+            compiler.compile(allKotlinFiles, args, compilerMessageCollector, incrementalCompilationOptions.sourceChanges.toChangedFiles())
         } finally {
             reporter.endMeasureGc()
             reporter.flush()
         }
+    }
+
+    private fun SourcesChanges.toChangedFiles(): ChangedFiles = when (this) {
+        is SourcesChanges.Unknown -> ChangedFiles.Unknown
+        is SourcesChanges.ToBeCalculated -> ChangedFiles.DeterminableFiles.ToBeComputed
+        is SourcesChanges.Known -> ChangedFiles.DeterminableFiles.Known(modifiedFiles, removedFiles)
     }
 
     protected fun execIncrementalCompiler(
@@ -625,12 +634,6 @@ abstract class CompileServiceImplBase(
 
         @Suppress("DEPRECATION") // TODO: get rid of that parsing KT-62759
         val allKotlinFiles = extractKotlinSourcesFromFreeCompilerArguments(k2jvmArgs, allKotlinExtensions)
-
-        val changedFiles = if (incrementalCompilationOptions.areFileChangesKnown) {
-            ChangedFiles.Known(incrementalCompilationOptions.modifiedFiles!!, incrementalCompilationOptions.deletedFiles!!)
-        } else {
-            ChangedFiles.Unknown()
-        }
 
         val workingDir = incrementalCompilationOptions.workingDir
 
@@ -656,17 +659,16 @@ abstract class CompileServiceImplBase(
             } ?: EmptyModulesApiHistory
         }
 
-        val useK2 = k2jvmArgs.useK2 || LanguageVersion.fromVersionString(k2jvmArgs.languageVersion)?.usesK2 == true
-        // TODO: This should be reverted after implementing of fir-based java tracker (KT-57147).
-        //  See org.jetbrains.kotlin.incremental.CompilerRunnerUtilsKt.makeJvmIncrementally
-        val usePreciseJavaTracking = if (useK2) false else incrementalCompilationOptions.usePreciseJavaTracking
+        val verifiedPreciseJavaTracking = k2jvmArgs.disablePreciseJavaTrackingIfK2(
+            usePreciseJavaTrackingByDefault = incrementalCompilationOptions.usePreciseJavaTracking
+        )
 
         val compiler = IncrementalJvmCompilerRunner(
             workingDir,
             reporter,
             buildHistoryFile = incrementalCompilationOptions.multiModuleICSettings?.buildHistoryFile,
             outputDirs = incrementalCompilationOptions.outputFiles,
-            usePreciseJavaTracking = usePreciseJavaTracking,
+            usePreciseJavaTracking = verifiedPreciseJavaTracking,
             modulesApiHistory = modulesApiHistory,
             kotlinSourceFilesExtensions = allKotlinExtensions,
             classpathChanges = incrementalCompilationOptions.classpathChanges,
@@ -674,7 +676,7 @@ abstract class CompileServiceImplBase(
         )
         return try {
             compiler.compile(
-                allKotlinFiles, k2jvmArgs, compilerMessageCollector, changedFiles,
+                allKotlinFiles, k2jvmArgs, compilerMessageCollector, incrementalCompilationOptions.sourceChanges.toChangedFiles(),
                 fileLocations = if (rootProjectDir != null && buildDir != null) {
                     FileLocations(rootProjectDir, buildDir)
                 } else null
@@ -693,7 +695,6 @@ abstract class CompileServiceImplBase(
             @Suppress("UNCHECKED_CAST")
             (session?.data as? KotlinJvmReplServiceT?)?.body() ?: CompileService.CallResult.Error("Not a REPL session $sessionId")
         }
-
 }
 
 class CompileServiceImpl(
@@ -854,7 +855,7 @@ class CompileServiceImpl(
             builder.register(EnumWhenTracker::class.java, RemoteEnumWhenTracker(facade, rpcProfiler))
         }
         if (facade.hasIncrementalResultsConsumer()) {
-            builder.register(IncrementalResultsConsumer::class.java, RemoteIncrementalResultsConsumer(facade, eventManager, rpcProfiler))
+            builder.register(IncrementalResultsConsumer::class.java, RemoteIncrementalResultsConsumer(facade, rpcProfiler))
         }
         if (facade.hasIncrementalDataProvider()) {
             builder.register(IncrementalDataProvider::class.java, RemoteIncrementalDataProvider(facade, rpcProfiler))
@@ -1078,14 +1079,16 @@ class CompileServiceImpl(
 
     private fun gracefulShutdown(onAnotherThread: Boolean): Boolean {
 
-        fun shutdownIfIdle() = when {
-            state.sessions.isEmpty() -> shutdownWithDelay()
-            else -> {
-                daemonOptions.autoshutdownIdleSeconds =
-                    TimeUnit.MILLISECONDS.toSeconds(daemonOptions.forceShutdownTimeoutMilliseconds).toInt()
-                daemonOptions.autoshutdownUnusedSeconds = daemonOptions.autoshutdownIdleSeconds
-                log.info("Some sessions are active, waiting for them to finish")
-                log.info("Unused/idle timeouts are set to ${daemonOptions.autoshutdownUnusedSeconds}/${daemonOptions.autoshutdownIdleSeconds}s")
+        fun shutdownIfIdle() = ifAliveExclusiveUnit(minAliveness = Aliveness.LastSession) {
+            when {
+                state.sessions.isEmpty() -> shutdownWithDelay()
+                else -> {
+                    daemonOptions.autoshutdownIdleSeconds =
+                        TimeUnit.MILLISECONDS.toSeconds(daemonOptions.forceShutdownTimeoutMilliseconds).toInt()
+                    daemonOptions.autoshutdownUnusedSeconds = daemonOptions.autoshutdownIdleSeconds
+                    log.info("Some sessions are active, waiting for them to finish")
+                    log.info("Unused/idle timeouts are set to ${daemonOptions.autoshutdownUnusedSeconds}/${daemonOptions.autoshutdownIdleSeconds}s")
+                }
             }
         }
 
@@ -1099,9 +1102,7 @@ class CompileServiceImpl(
             shutdownIfIdle()
         } else {
             timer.schedule(1) {
-                ifAliveExclusiveUnit(minAliveness = Aliveness.LastSession) {
-                    shutdownIfIdle()
-                }
+                shutdownIfIdle()
             }
         }
         return true

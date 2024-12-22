@@ -5,7 +5,9 @@
 
 package org.jetbrains.kotlin.konan.test.blackbox.support.compilation
 
+import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import java.io.File
+import java.nio.file.*
 
 sealed interface TestCompilationArtifact {
     val logFile: File
@@ -34,7 +36,11 @@ sealed interface TestCompilationArtifact {
     data class KLIBStaticCacheHeader(override val cacheDir: File, override val klib: KLIB, override val fileCheckStage: String? = null) :
         KLIBStaticCache
 
-    data class Executable(val executableFile: File, val fileCheckStage: String? = null) : TestCompilationArtifact {
+    data class Executable(
+        val executableFile: File,
+        val fileCheckStage: String? = null,
+        val hasSyntheticAccessorsDump: Boolean = false,
+    ) : TestCompilationArtifact {
         val path: String get() = executableFile.path
         override val logFile: File get() = executableFile.resolveSibling("${executableFile.name}.log")
         val testDumpFile: File get() = executableFile.resolveSibling("${executableFile.name}.dump")
@@ -42,6 +48,8 @@ sealed interface TestCompilationArtifact {
             get() = fileCheckStage?.let {
                 executableFile.resolveSibling("out.$it.ll")
             }
+        val syntheticAccessorsDumpDir: File?
+            get() = runIf(hasSyntheticAccessorsDump) { executableFile.resolveSibling("${executableFile.name}.accessors") }
     }
 
     data class ObjCFramework(private val buildDir: File, val frameworkName: String) : TestCompilationArtifact {
@@ -69,7 +77,16 @@ sealed interface TestCompilationArtifact {
     sealed interface Swift : TestCompilationArtifact {
         class Module(val rootDir: File, val moduleName: String) : Swift {
             override val logFile: File get() = rootDir.resolve("$moduleName.log")
-            val binaryLibrary: File get() = rootDir.resolve("lib$moduleName.dylib")
+            val binaryLibrary: File get() = rootDir.resolve("lib$moduleName.a")
         }
+    }
+
+    data class XCTestBundle(val bundleDir: File, val fileCheckStage: String? = null) : TestCompilationArtifact {
+        override val logFile: File get() = bundleDir.resolveSibling("${bundleDir.name}.log")
+        val testDumpFile: File get() = bundleDir.resolveSibling("${bundleDir.name}.dump")
+        val fileCheckDump: File?
+            get() = fileCheckStage?.let {
+                bundleDir.resolveSibling("out.$it.ll")
+            }
     }
 }

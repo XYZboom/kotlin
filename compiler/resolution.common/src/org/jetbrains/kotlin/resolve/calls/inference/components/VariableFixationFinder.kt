@@ -16,7 +16,10 @@ import org.jetbrains.kotlin.resolve.calls.inference.model.DeclaredUpperBoundCons
 import org.jetbrains.kotlin.resolve.calls.inference.model.IncorporationConstraintPosition
 import org.jetbrains.kotlin.resolve.calls.inference.model.VariableWithConstraints
 import org.jetbrains.kotlin.resolve.calls.model.PostponedResolvedAtomMarker
-import org.jetbrains.kotlin.types.model.*
+import org.jetbrains.kotlin.types.model.KotlinTypeMarker
+import org.jetbrains.kotlin.types.model.TypeConstructorMarker
+import org.jetbrains.kotlin.types.model.TypeSystemInferenceExtensionContext
+import org.jetbrains.kotlin.types.model.TypeVariableMarker
 
 class VariableFixationFinder(
     private val trivialConstraintTypeInferenceOracle: TrivialConstraintTypeInferenceOracle,
@@ -99,10 +102,18 @@ class VariableFixationFinder(
         !notFixedTypeVariables.contains(variable) || dependencyProvider.isVariableRelatedToTopLevelType(variable) ||
                 variableHasUnprocessedConstraintsInForks(variable) ->
             TypeVariableFixationReadiness.FORBIDDEN
+
+        // Might be fixed, but this condition should come earlier than the next one,
+        // because self-type-based cases do not have proper constraints, though they assumed to be fixed
         isTypeInferenceForSelfTypesSupported && areAllProperConstraintsSelfTypeBased(variable) ->
             TypeVariableFixationReadiness.READY_FOR_FIXATION_DECLARED_UPPER_BOUND_WITH_SELF_TYPES
+
+        // Prevents from fixation
         !variableHasProperArgumentConstraints(variable) -> TypeVariableFixationReadiness.WITHOUT_PROPER_ARGUMENT_CONSTRAINT
+        // PCLA only
         dependencyProvider.isRelatedToOuterTypeVariable(variable) -> TypeVariableFixationReadiness.OUTER_TYPE_VARIABLE_DEPENDENCY
+
+        // All cases below do not prevent fixation but just define the priority order of a variable
         hasDependencyToOtherTypeVariables(variable) -> TypeVariableFixationReadiness.WITH_COMPLEX_DEPENDENCY
         // TODO: Consider removing this kind of readiness, see KT-63032
         allConstraintsTrivialOrNonProper(variable) -> TypeVariableFixationReadiness.ALL_CONSTRAINTS_TRIVIAL_OR_NON_PROPER
@@ -140,7 +151,8 @@ class VariableFixationFinder(
     ): Boolean {
         return with(context) {
             val dependencyProvider = TypeVariableDependencyInformationProvider(
-                notFixedTypeVariables, emptyList(), topLevelType = null, context
+                notFixedTypeVariables, emptyList(), topLevelType = null, context,
+                languageVersionSettings,
             )
             when (getTypeVariableReadiness(typeVariable, dependencyProvider)) {
                 TypeVariableFixationReadiness.FORBIDDEN, TypeVariableFixationReadiness.WITHOUT_PROPER_ARGUMENT_CONSTRAINT -> false
@@ -171,6 +183,7 @@ class VariableFixationFinder(
 
         val dependencyProvider = TypeVariableDependencyInformationProvider(
             notFixedTypeVariables, postponedArguments, topLevelType.takeIf { completionMode == PARTIAL }, this,
+            languageVersionSettings,
         )
 
         val candidate =
@@ -284,18 +297,18 @@ fun TypeSystemInferenceExtensionContext.extractProjectionsForAllCapturedTypes(ba
             addAll(extractProjectionsForAllCapturedTypes(flexibleType.upperBound()))
         }
     }
-    val simpleBaseType = baseType.asSimpleType()?.originalIfDefinitelyNotNullable()
+    val simpleBaseType = baseType.asRigidType()?.asCapturedTypeUnwrappingDnn()
 
     return buildSet {
-        val projectionType = if (simpleBaseType is CapturedTypeMarker) {
-            val typeArgument = simpleBaseType.typeConstructorProjection().takeIf { !it.isStarProjection() } ?: return@buildSet
-            typeArgument.getType().also(::add)
+        val projectionType = if (simpleBaseType != null) {
+            val argumentType = simpleBaseType.typeConstructorProjection().getType() ?: return@buildSet
+            argumentType.also(::add)
         } else baseType
         val argumentsCount = projectionType.argumentsCount().takeIf { it != 0 } ?: return@buildSet
 
         for (i in 0 until argumentsCount) {
-            val typeArgument = projectionType.getArgument(i).takeIf { !it.isStarProjection() } ?: continue
-            addAll(extractProjectionsForAllCapturedTypes(typeArgument.getType()))
+            val argumentType = projectionType.getArgument(i).getType() ?: continue
+            addAll(extractProjectionsForAllCapturedTypes(argumentType))
         }
     }
 }

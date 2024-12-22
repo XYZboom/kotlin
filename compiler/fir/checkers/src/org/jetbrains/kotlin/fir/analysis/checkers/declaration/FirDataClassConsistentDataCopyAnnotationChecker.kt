@@ -5,7 +5,7 @@
 
 package org.jetbrains.kotlin.fir.analysis.checkers.declaration
 
-import org.jetbrains.kotlin.config.doesDataClassCopyRespectConstructorVisibility
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
@@ -43,13 +43,27 @@ object FirDataClassConsistentDataCopyAnnotationChecker : FirClassChecker(MppChec
                     )
                 }
 
-                if (consistentCopy != null && (context.languageVersionSettings.doesDataClassCopyRespectConstructorVisibility() ||
-                            declaration.primaryConstructorIfAny(context.session)?.visibility == Visibilities.Public)
-                ) {
+                val isPrimaryConstructorVisibilityPublic = run {
+                    val primaryConstructorVisibility = declaration.primaryConstructorIfAny(context.session)?.visibility
+                    primaryConstructorVisibility == Visibilities.Public
+                }
+                val isConstructorVisibilityRespected =
+                    context.languageVersionSettings.supportsFeature(LanguageFeature.DataClassCopyRespectsConstructorVisibility)
+
+                if (consistentCopy != null && (isPrimaryConstructorVisibilityPublic || isConstructorVisibilityRespected)) {
                     reporter.reportOn(
                         consistentCopy.source,
                         FirErrors.REDUNDANT_ANNOTATION,
                         StandardClassIds.Annotations.ConsistentCopyVisibility,
+                        context
+                    )
+                }
+
+                if (exposedCopy != null && isPrimaryConstructorVisibilityPublic) {
+                    reporter.reportOn(
+                        exposedCopy.source,
+                        FirErrors.REDUNDANT_ANNOTATION,
+                        StandardClassIds.Annotations.ExposedCopyVisibility,
                         context
                     )
                 }

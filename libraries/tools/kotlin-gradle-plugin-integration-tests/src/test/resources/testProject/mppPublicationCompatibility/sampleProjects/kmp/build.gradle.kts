@@ -15,6 +15,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+    flavorDimensions("myFlavor")
+    productFlavors {
+        create("flavor1") { dimension = "myFlavor" }
+    }
 }
 kotlin {
     androidTarget {
@@ -43,25 +47,3 @@ publishing {
 }
 
 version = "1.0"
-
-fun Project.resolveDependencies(name: String) {
-    val configuration = configurations.findByName(name) ?: return
-    configuration.resolve() // ensure that resolution is green
-    val allResolvedComponents = configuration.incoming.resolutionResult.allComponents
-    val content = allResolvedComponents
-        .map { component -> "${component.id} => ${component.variants.map { it.displayName }}" }
-        .sorted()
-        .joinToString("\n")
-    val dir = file("resolvedDependenciesReports")
-    dir.mkdirs()
-    dir.resolve("${name}.txt").writeText(content)
-}
-
-tasks.register("resolveDependencies") {
-    doFirst {
-        project.resolveDependencies("jvmCompileClasspath")
-        project.resolveDependencies("androidReleaseCompileClasspath")
-        project.resolveDependencies("linuxX64CompileKlibraries")
-        project.resolveDependencies("linuxArm64CompileKlibraries")
-    }
-}

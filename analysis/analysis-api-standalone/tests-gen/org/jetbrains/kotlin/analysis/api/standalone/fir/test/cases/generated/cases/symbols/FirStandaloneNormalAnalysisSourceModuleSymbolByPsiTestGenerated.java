@@ -43,7 +43,7 @@ public class FirStandaloneNormalAnalysisSourceModuleSymbolByPsiTestGenerated ext
 
   @Test
   public void testAllFilesPresentInSymbolByPsi() {
-    KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByPsi"), Pattern.compile("^(.+)\\.kt$"), null, true);
+    KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByPsi"), Pattern.compile("^(.+)\\.kt$"), null, true, "withTestCompilerPluginEnabled");
   }
 
   @Test
@@ -68,6 +68,18 @@ public class FirStandaloneNormalAnalysisSourceModuleSymbolByPsiTestGenerated ext
   @TestMetadata("class.kt")
   public void testClass() {
     runTest("analysis/analysis-api/testData/symbols/symbolByPsi/class.kt");
+  }
+
+  @Test
+  @TestMetadata("classFromDependencyModule.kt")
+  public void testClassFromDependencyModule() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByPsi/classFromDependencyModule.kt");
+  }
+
+  @Test
+  @TestMetadata("classFromDependentModule.kt")
+  public void testClassFromDependentModule() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByPsi/classFromDependentModule.kt");
   }
 
   @Test
@@ -98,6 +110,12 @@ public class FirStandaloneNormalAnalysisSourceModuleSymbolByPsiTestGenerated ext
   @TestMetadata("classWithTypeParams.kt")
   public void testClassWithTypeParams() {
     runTest("analysis/analysis-api/testData/symbols/symbolByPsi/classWithTypeParams.kt");
+  }
+
+  @Test
+  @TestMetadata("classWithTypeParamsAndSupertypes.kt")
+  public void testClassWithTypeParamsAndSupertypes() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByPsi/classWithTypeParamsAndSupertypes.kt");
   }
 
   @Test
@@ -173,6 +191,18 @@ public class FirStandaloneNormalAnalysisSourceModuleSymbolByPsiTestGenerated ext
   }
 
   @Test
+  @TestMetadata("externalProperty.kt")
+  public void testExternalProperty() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByPsi/externalProperty.kt");
+  }
+
+  @Test
+  @TestMetadata("externalPropertyOnJVM.kt")
+  public void testExternalPropertyOnJVM() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByPsi/externalPropertyOnJVM.kt");
+  }
+
+  @Test
   @TestMetadata("facadeWithJvmName.kt")
   public void testFacadeWithJvmName() {
     runTest("analysis/analysis-api/testData/symbols/symbolByPsi/facadeWithJvmName.kt");
@@ -188,6 +218,18 @@ public class FirStandaloneNormalAnalysisSourceModuleSymbolByPsiTestGenerated ext
   @TestMetadata("function.kt")
   public void testFunction() {
     runTest("analysis/analysis-api/testData/symbols/symbolByPsi/function.kt");
+  }
+
+  @Test
+  @TestMetadata("functionFromDependencyModule.kt")
+  public void testFunctionFromDependencyModule() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByPsi/functionFromDependencyModule.kt");
+  }
+
+  @Test
+  @TestMetadata("functionFromDependentModule.kt")
+  public void testFunctionFromDependentModule() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByPsi/functionFromDependentModule.kt");
   }
 
   @Test
@@ -281,6 +323,18 @@ public class FirStandaloneNormalAnalysisSourceModuleSymbolByPsiTestGenerated ext
   }
 
   @Test
+  @TestMetadata("propertyFromDependencyModule.kt")
+  public void testPropertyFromDependencyModule() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByPsi/propertyFromDependencyModule.kt");
+  }
+
+  @Test
+  @TestMetadata("propertyFromDependentModule.kt")
+  public void testPropertyFromDependentModule() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByPsi/propertyFromDependentModule.kt");
+  }
+
+  @Test
   @TestMetadata("similarGenericSignature.kt")
   public void testSimilarGenericSignature() {
     runTest("analysis/analysis-api/testData/symbols/symbolByPsi/similarGenericSignature.kt");
@@ -317,6 +371,12 @@ public class FirStandaloneNormalAnalysisSourceModuleSymbolByPsiTestGenerated ext
   }
 
   @Test
+  @TestMetadata("typeParametersStressTest.kt")
+  public void testTypeParametersStressTest() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByPsi/typeParametersStressTest.kt");
+  }
+
+  @Test
   @TestMetadata("varargFunctions.kt")
   public void testVarargFunctions() {
     runTest("analysis/analysis-api/testData/symbols/symbolByPsi/varargFunctions.kt");
@@ -328,7 +388,7 @@ public class FirStandaloneNormalAnalysisSourceModuleSymbolByPsiTestGenerated ext
   public class ContextReceivers {
     @Test
     public void testAllFilesPresentInContextReceivers() {
-      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByPsi/contextReceivers"), Pattern.compile("^(.+)\\.kt$"), null, true);
+      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByPsi/contextReceivers"), Pattern.compile("^(.+)\\.kt$"), null, true, "withTestCompilerPluginEnabled");
     }
 
     @Test
@@ -362,7 +422,7 @@ public class FirStandaloneNormalAnalysisSourceModuleSymbolByPsiTestGenerated ext
   public class ValueParameters {
     @Test
     public void testAllFilesPresentInValueParameters() {
-      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByPsi/valueParameters"), Pattern.compile("^(.+)\\.kt$"), null, true);
+      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByPsi/valueParameters"), Pattern.compile("^(.+)\\.kt$"), null, true, "withTestCompilerPluginEnabled");
     }
 
     @Test

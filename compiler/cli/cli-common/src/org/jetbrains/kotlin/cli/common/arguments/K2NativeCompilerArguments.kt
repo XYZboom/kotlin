@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.config.*
 
-class K2NativeCompilerArguments : CommonCompilerArguments() {
+class K2NativeCompilerArguments : CommonKlibBasedCompilerArguments() {
     // First go the options interesting to the general public.
     // Prepend them with a single dash.
     // Keep the list lexically sorted.
@@ -47,7 +47,12 @@ class K2NativeCompilerArguments : CommonCompilerArguments() {
     @Argument(value = "-library", shortName = "-l", valueDescription = "<path>", description = "Link with the given library.", delimiter = Argument.Delimiters.none)
     var libraries: Array<String>? = null
 
-    @Argument(value = "-library-version", shortName = "-lv", valueDescription = "<version>", description = "Set the library version.")
+    @Argument(
+        value = "-library-version",
+        shortName = "-lv",
+        valueDescription = "<version>",
+        description = "The library version.\nNote: This option is deprecated and will be removed in one of the future releases."
+    )
     var libraryVersion: String? = null
 
     @Argument(value = "-list-targets", deprecatedName = "-list_targets", description = "List available hardware targets.")
@@ -121,17 +126,6 @@ class K2NativeCompilerArguments : CommonCompilerArguments() {
     )
     var produce: String? = null
 
-    // TODO: remove after 2.0, KT-61098
-    @Argument(
-        value = "-repo",
-        shortName = "-r",
-        valueDescription = "<path>",
-        description = "Library search path.\n" +
-                "Note: This option is deprecated and will be removed in one of the future releases.\n" +
-                "Please use library paths instead of library names in all compiler options such as '-library' ('-l')."
-    )
-    var repositories: Array<String>? = null
-
     @Argument(value = "-target", valueDescription = "<target>", description = "Set the hardware target.")
     var target: String? = null
 
@@ -189,12 +183,6 @@ By default caches will be placed into the kotlin-native system cache directory."
 
     @Argument(value="-Xcheck-dependencies", deprecatedName = "--check_dependencies", description = "Check dependencies and download the missing ones.")
     var checkDependencies: Boolean = false
-
-    @Argument(value = EMBED_BITCODE_FLAG, description = "Embed LLVM IR bitcode as data.")
-    var embedBitcode: Boolean = false
-
-    @Argument(value = EMBED_BITCODE_MARKER_FLAG, description = "Embed placeholder LLVM IR data as a marker.")
-    var embedBitcodeMarker: Boolean = false
 
     @Argument(value = "-Xemit-lazy-objc-header", description = "")
     var emitLazyObjCHeader: String? = null
@@ -294,6 +282,13 @@ The default value is 1."""
     @Argument(value="-Xpurge-user-libs", deprecatedName = "--purge_user_libs", description = "Don't link unused libraries even if explicitly specified.")
     var purgeUserLibs: Boolean = false
 
+    @Argument(
+        value = "-Xwrite-dependencies-of-produced-klib-to",
+        valueDescription = "<path>",
+        description = "Write file containing the paths of dependencies used during klib compilation to the provided path"
+    )
+    var writeDependenciesOfProducedKlibTo: String? = null
+
     @Argument(value = "-Xruntime", deprecatedName = "--runtime", valueDescription = "<path>", description = "Override the standard 'runtime.bc' location.")
     var runtimeFile: String? = null
 
@@ -322,13 +317,6 @@ The default value is 1."""
 
     @Argument(value = "-Xverify-bitcode", deprecatedName = "--verify_bitcode", description = "Verify LLVM bitcode after each method.")
     var verifyBitCode: Boolean = false
-
-    @Argument(
-        value = "-Xverify-ir",
-        valueDescription = "{none|warning|error}",
-        description = "IR verification mode (no verification by default)."
-    )
-    var verifyIr: String? = null
 
     @Argument(value = "-Xverify-compiler", description = "Verify the compiler.")
     var verifyCompiler: String? = null
@@ -432,20 +420,6 @@ The default value is 1."""
     @Argument(value = "-Xlazy-ir-for-caches", valueDescription = "{disable|enable}", description = "Use lazy IR for cached libraries.")
     var lazyIrForCaches: String? = null
 
-    @Argument(value = "-Xpartial-linkage", valueDescription = "{enable|disable}", description = "Use partial linkage mode.")
-    var partialLinkageMode: String? = null
-        set(value) {
-            checkFrozen()
-            field = if (value.isNullOrEmpty()) null else value
-        }
-
-    @Argument(value = "-Xpartial-linkage-loglevel", valueDescription = "{info|warning|error}", description = "Define the compile-time log level for partial linkage.")
-    var partialLinkageLogLevel: String? = null
-        set(value) {
-            checkFrozen()
-            field = if (value.isNullOrEmpty()) null else value
-        }
-
     @Argument(value = "-Xomit-framework-binary", description = "Omit binary when compiling the framework.")
     var omitFrameworkBinary: Boolean = false
 
@@ -468,11 +442,38 @@ The default value is 1."""
     @Argument(value = "-Xkonan-data-dir", description = "Custom path to the location of konan distributions.")
     var konanDataDir: String? = null
 
+    @Argument(value = "-Xllvm-module-passes", description = "Custom set of LLVM passes to run as the ModuleOptimizationPipeline.")
+    var llvmModulePasses: String? = null
+
+    @Argument(value = "-Xllvm-lto-passes", description = "Custom set of LLVM passes to run as the LTOOptimizationPipeline.")
+    var llvmLTOPasses: String? = null
+
     @Argument(
         value = "-Xmanifest-native-targets",
         description = "Comma-separated list that will be written as the value of 'native_targets' property in the .klib manifest. Unknown values are discarded."
     )
     var manifestNativeTargets: Array<String>? = null
+
+    @Argument(
+        value = "-Xdump-synthetic-accessors-to",
+        description = "Path to a directory to dump synthetic accessors and their use sites."
+    )
+    var dumpSyntheticAccessorsTo: String? = null
+        set(value) {
+            checkFrozen()
+            field = if (value.isNullOrEmpty()) null else value
+        }
+
+    @Argument(
+        value = "-Xsynthetic-accessors-with-narrowed-visibility",
+        description = "Narrow the visibility of generated synthetic accessors to _internal_" +
+                " if such accessors are only used in inline functions that are not a part of public ABI"
+    )
+    var narrowedSyntheticAccessorsVisibility: Boolean = false
+        set(value) {
+            checkFrozen()
+            field = value
+        }
 
     override fun configureAnalysisFlags(collector: MessageCollector, languageVersion: LanguageVersion): MutableMap<AnalysisFlag<*>, Any> =
         super.configureAnalysisFlags(collector, languageVersion).also {
@@ -499,8 +500,6 @@ The default value is 1."""
     override fun copyOf(): Freezable = copyK2NativeCompilerArguments(this, K2NativeCompilerArguments())
 
     companion object {
-        const val EMBED_BITCODE_FLAG = "-Xembed-bitcode"
-        const val EMBED_BITCODE_MARKER_FLAG = "-Xembed-bitcode-marker"
         const val STATIC_FRAMEWORK_FLAG = "-Xstatic-framework"
         const val INCLUDE_ARG = "-Xinclude"
         const val CACHED_LIBRARY = "-Xcached-library"

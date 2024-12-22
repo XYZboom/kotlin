@@ -11,7 +11,6 @@ import org.jetbrains.kotlin.backend.common.overrides.FileLocalAwareLinker
 import org.jetbrains.kotlin.backend.common.overrides.IrLinkerFakeOverrideProvider
 import org.jetbrains.kotlin.backend.common.serialization.*
 import org.jetbrains.kotlin.backend.common.serialization.encodings.BinarySymbolData
-import org.jetbrains.kotlin.backend.common.serialization.signature.IdSignatureFactory
 import org.jetbrains.kotlin.backend.jvm.serialization.proto.JvmIr
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.IrBuiltIns
@@ -20,7 +19,6 @@ import org.jetbrains.kotlin.ir.backend.jvm.serialization.JvmIrMangler
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.impl.IrFileImpl
-import org.jetbrains.kotlin.ir.declarations.lazy.LazyIrFactory
 import org.jetbrains.kotlin.ir.linkage.IrProvider
 import org.jetbrains.kotlin.ir.symbols.IrPropertySymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
@@ -71,15 +69,13 @@ fun deserializeFromByteArray(
         referencePublicSymbol(symbolTable, idSignature, symbolKind)
     }
 
-    val lazyIrFactory = LazyIrFactory(irBuiltIns.irFactory)
-
     // We have to supply topLevelParent here, but this results in wrong values for parent fields in deeply embedded declarations.
     // Patching will be needed.
     val deserializer = IrDeclarationDeserializer(
-        irBuiltIns, symbolTable, lazyIrFactory, irLibraryFile, toplevelParent,
-        allowErrorNodes = false,
-        deserializeInlineFunctions = true,
-        deserializeBodies = true,
+        irBuiltIns, symbolTable, irBuiltIns.irFactory, irLibraryFile, toplevelParent,
+        settings = IrDeserializationSettings(
+            allowAlreadyBoundSymbols = true,
+        ),
         symbolDeserializer,
         onDeserializedClass = { _, _ -> },
         needToDeserializeFakeOverrides = { false },
@@ -221,7 +217,7 @@ private fun buildFakeOverridesForLocalClasses(
 
 class PrePopulatedDeclarationTable(
     sig2symbol: Map<IdSignature, IrSymbol>
-) : FakeOverrideDeclarationTable(JvmIrMangler, signatureSerializerFactory = ::IdSignatureFactory) {
+) : FakeOverrideDeclarationTable(JvmIrMangler) {
     private val symbol2Sig = sig2symbol.entries.associate { (x, y) -> y to x }
 
     override fun tryComputeBackendSpecificSignature(declaration: IrDeclaration): IdSignature? {

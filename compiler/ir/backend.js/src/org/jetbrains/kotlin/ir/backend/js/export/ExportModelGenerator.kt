@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.ir.symbols.IrClassifierSymbol
 import org.jetbrains.kotlin.ir.symbols.IrTypeParameterSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.isNullable
 import org.jetbrains.kotlin.name.SpecialNames
 import org.jetbrains.kotlin.serialization.js.ModuleKind
 import org.jetbrains.kotlin.utils.*
@@ -64,7 +65,9 @@ class ExportModelGenerator(val context: JsIrBackendContext, val generateNamespac
             is IrProperty -> exportProperty(candidate)
             is IrClass -> exportClass(candidate)
             is IrField -> null
-            else -> error("Can't export declaration $candidate")
+            else -> irError("Can't export declaration") {
+                withIrEntry("candidate", candidate)
+            }
         }?.withAttributesFor(candidate)
     }
 
@@ -175,7 +178,9 @@ class ExportModelGenerator(val context: JsIrBackendContext, val generateNamespac
 
     private fun exportEnumEntry(field: IrField, enumEntries: Map<IrEnumEntry, Int>): ExportedProperty {
         val irEnumEntry = context.mapping.fieldToEnumEntry[field]
-            ?: error("Unable to find enum entry for ${field.fqNameWhenAvailable}")
+            ?: irError("Unable to find enum entry") {
+                withIrEntry("field", field)
+            }
 
         val parentClass = field.parent as IrClass
 
@@ -207,7 +212,9 @@ class ExportModelGenerator(val context: JsIrBackendContext, val generateNamespac
             isStatic = true,
             isProtected = parentClass.visibility == DescriptorVisibilities.PROTECTED,
             irGetter = context.mapping.enumEntryToGetInstanceFun[irEnumEntry]
-                ?: error("Unable to find get instance fun for ${field.fqNameWhenAvailable}"),
+                ?: irError("Unable to find get instance fun") {
+                    withIrEntry("field", field)
+                },
         )
     }
 
@@ -258,7 +265,9 @@ class ExportModelGenerator(val context: JsIrBackendContext, val generateNamespac
 
     private fun exportOrdinaryClass(klass: IrClass, superTypes: Iterable<IrType>): ExportedDeclaration? {
         when (val exportability = classExportability(klass)) {
-            is Exportability.Prohibited -> error(exportability.reason)
+            is Exportability.Prohibited -> irError(exportability.reason) {
+                withIrEntry("klass", klass)
+            }
             Exportability.NotNeeded -> return null
             Exportability.Implicit -> return exportDeclarationImplicitly(klass, superTypes)
             Exportability.Allowed -> {}
@@ -276,7 +285,9 @@ class ExportModelGenerator(val context: JsIrBackendContext, val generateNamespac
 
     private fun exportEnumClass(klass: IrClass, superTypes: Iterable<IrType>): ExportedDeclaration? {
         when (val exportability = classExportability(klass)) {
-            is Exportability.Prohibited -> error(exportability.reason)
+            is Exportability.Prohibited -> irError(exportability.reason) {
+                withIrEntry("klass", klass)
+            }
             Exportability.NotNeeded -> return null
             Exportability.Implicit -> return exportDeclarationImplicitly(klass, superTypes)
             Exportability.Allowed -> {}
@@ -364,7 +375,9 @@ class ExportModelGenerator(val context: JsIrBackendContext, val generateNamespac
                     }
                 }
 
-                else -> error("Can't export member declaration $declaration")
+                else -> irError("Can't export member declaration") {
+                    withIrEntry("declaration", declaration)
+                }
             }
         }
 
@@ -647,7 +660,9 @@ class ExportModelGenerator(val context: JsIrBackendContext, val generateNamespac
                 }.withImplicitlyExported(isImplicitlyExported, exportedSupertype)
             }
 
-            else -> error("Unexpected classifier $classifier")
+            else -> irError("Unexpected classifier") {
+                withIrEntry("classifier.owner", classifier.owner)
+            }
         }
 
         return exportedType.withNullability(isMarkedNullable)
@@ -895,7 +910,9 @@ fun IrClass.getExportedIdentifierForClass(): String {
 fun IrDeclarationWithName.getExportedIdentifier(): String =
     with(getJsNameOrKotlinName()) {
         if (isSpecial)
-            error("Cannot export special name: ${name.asString()} for declaration $fqNameWhenAvailable")
+            irError("Cannot export special name: ${name.asString()} for declaration") {
+                withIrEntry("this", this@getExportedIdentifier)
+            }
         else identifier
     }
 

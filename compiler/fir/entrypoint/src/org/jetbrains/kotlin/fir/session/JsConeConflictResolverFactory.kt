@@ -7,10 +7,10 @@ package org.jetbrains.kotlin.fir.session
 
 import org.jetbrains.kotlin.fir.NoMutableState
 import org.jetbrains.kotlin.fir.resolve.BodyResolveComponents
-import org.jetbrains.kotlin.fir.resolve.calls.ConeCallConflictResolverFactory
-import org.jetbrains.kotlin.fir.resolve.calls.ConeCompositeConflictResolver
-import org.jetbrains.kotlin.fir.resolve.calls.ConeIntegerOperatorConflictResolver
-import org.jetbrains.kotlin.fir.resolve.calls.ConeOverloadConflictResolver
+import org.jetbrains.kotlin.fir.resolve.calls.overloads.ConeCallConflictResolverFactory
+import org.jetbrains.kotlin.fir.resolve.calls.overloads.ConeCompositeConflictResolver
+import org.jetbrains.kotlin.fir.resolve.calls.overloads.ConeIntegerOperatorConflictResolver
+import org.jetbrains.kotlin.fir.resolve.calls.overloads.ConeOverloadConflictResolver
 import org.jetbrains.kotlin.fir.resolve.calls.jvm.ConeEquivalentCallConflictResolver
 import org.jetbrains.kotlin.fir.resolve.inference.InferenceComponents
 import org.jetbrains.kotlin.fir.types.typeContext
@@ -27,7 +27,7 @@ object JsCallConflictResolverFactory : ConeCallConflictResolverFactory() {
         val specificityComparator = JsTypeSpecificityComparatorWithoutDelegate(components.session.typeContext)
         // NB: Adding new resolvers is strongly discouraged because the results are order-dependent.
         return ConeCompositeConflictResolver(
-            ConeEquivalentCallConflictResolver(specificityComparator, components, transformerComponents),
+            ConeEquivalentCallConflictResolver(components),
             ConeIntegerOperatorConflictResolver,
             ConeOverloadConflictResolver(specificityComparator, components, transformerComponents),
         )

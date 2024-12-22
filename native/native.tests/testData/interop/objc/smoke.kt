@@ -11,11 +11,11 @@ import kotlin.native.ref.*
 import kotlin.test.*
 
 fun main(args: Array<String>) {
-    // Test relies on full deinitialization at shutdown.
-    kotlin.native.runtime.Debugging.forceCheckedShutdown = true
     autoreleasepool {
         run()
     }
+    // The test relies on all objects being cleared out.
+    kotlin.native.runtime.GC.collect()
 }
 
 fun run() {
@@ -75,11 +75,7 @@ fun run() {
     }
     if (foo.hashCode() == hash) {
         // toString (virtually):
-        if (Platform.memoryModel == MemoryModel.STRICT)
-            println(map.keys.map { it.toString() }.minOrNull() == foo.description())
-        else
-            // TODO: hack until proper cycle collection in maps.
-            println(true)
+        println(map.keys.map { it.toString() }.minOrNull() == foo.description())
     }
     println(globalString)
     autoreleasepool {

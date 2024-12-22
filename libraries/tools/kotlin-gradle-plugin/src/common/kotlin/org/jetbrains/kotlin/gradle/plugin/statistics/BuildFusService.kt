@@ -19,6 +19,7 @@ import org.gradle.tooling.events.OperationCompletionListener
 import org.gradle.tooling.events.task.TaskFailureResult
 import org.gradle.tooling.events.task.TaskFinishEvent
 import org.gradle.util.GradleVersion
+import org.jetbrains.kotlin.gradle.fus.BuildUidService
 import org.jetbrains.kotlin.gradle.logging.kotlinDebug
 import org.jetbrains.kotlin.gradle.plugin.BuildEventsListenerRegistryHolder
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider
@@ -37,7 +38,6 @@ import org.jetbrains.kotlin.statistics.metrics.StatisticsValuesConsumer
 import org.jetbrains.kotlin.statistics.metrics.NumericalMetrics
 import org.jetbrains.kotlin.statistics.metrics.StringMetrics
 import java.io.Serializable
-import java.util.UUID.*
 
 
 internal interface UsesBuildFusService : Task {
@@ -48,7 +48,7 @@ internal interface UsesBuildFusService : Task {
 abstract class BuildFusService : BuildService<BuildFusService.Parameters>, AutoCloseable, OperationCompletionListener {
     private var buildFailed: Boolean = false
     private val log = Logging.getLogger(this.javaClass)
-    private val buildId = randomUUID().toString()
+    private val buildId = parameters.buildId.get()
 
     init {
         log.kotlinDebug("Initialize ${this.javaClass.simpleName}")
@@ -56,9 +56,11 @@ abstract class BuildFusService : BuildService<BuildFusService.Parameters>, AutoC
     }
 
     interface Parameters : BuildServiceParameters {
+        val generalConfigurationMetrics: Property<MetricContainer>
         val configurationMetrics: ListProperty<MetricContainer>
         val useBuildFinishFlowAction: Property<Boolean>
         val buildStatisticsConfiguration: Property<KotlinBuildStatsConfiguration>
+        val buildId: Property<String>
     }
 
     private val fusMetricsConsumer = NonSynchronizedMetricsContainer()
@@ -75,8 +77,8 @@ abstract class BuildFusService : BuildService<BuildFusService.Parameters>, AutoC
         internal val serviceName = "${BuildFusService::class.simpleName}_${BuildFusService::class.java.classLoader.hashCode()}"
         private var buildStartTime: Long = System.currentTimeMillis()
 
-        fun registerIfAbsent(project: Project, pluginVersion: String) =
-            registerIfAbsentImpl(project, pluginVersion).also { serviceProvider ->
+        fun registerIfAbsent(project: Project, pluginVersion: String, buildUidService: Provider<BuildUidService>) =
+            registerIfAbsentImpl(project, pluginVersion, buildUidService).also { serviceProvider ->
                 SingleActionPerProject.run(project, UsesBuildFusService::class.java.name) {
                     project.tasks.withType<UsesBuildFusService>().configureEach { task ->
                         task.buildFusService.value(serviceProvider).disallowChanges()
@@ -88,6 +90,7 @@ abstract class BuildFusService : BuildService<BuildFusService.Parameters>, AutoC
         private fun registerIfAbsentImpl(
             project: Project,
             pluginVersion: String,
+            buildUidService: Provider<BuildUidService>,
         ): Provider<BuildFusService> {
 
             val isProjectIsolationEnabled = project.isProjectIsolationEnabled
@@ -95,12 +98,6 @@ abstract class BuildFusService : BuildService<BuildFusService.Parameters>, AutoC
             val isProjectIsolationRequested = project.isProjectIsolationRequested
 
             project.gradle.sharedServices.registrations.findByName(serviceName)?.let {
-                (it.parameters as Parameters).configurationMetrics.add(
-                    project.provider {
-                        KotlinProjectConfigurationMetrics.collectMetrics(project)
-                    }
-
-                )
                 @Suppress("UNCHECKED_CAST")
                 return (it.service as Provider<BuildFusService>)
             }
@@ -109,14 +106,14 @@ abstract class BuildFusService : BuildService<BuildFusService.Parameters>, AutoC
             KotlinBuildStatsBeanService.initStatsService(project)
 
             val buildReportOutputs = reportingSettings(project).buildReportOutputs
-            val useClasspathSnapshot = PropertiesProvider(project).useClasspathSnapshot
+            val useClasspathSnapshot = PropertiesProvider(project).useClasspathSnapshot.get()
             val gradle = project.gradle
 
             //Workaround for known issues for Gradle 8+: https://github.com/gradle/gradle/issues/24887:
             // when this OperationCompletionListener is called services can be already closed for Gradle 8,
             // so there is a change that no VariantImplementationFactory will be found
             return gradle.sharedServices.registerIfAbsent(serviceName, BuildFusService::class.java) { spec ->
-                spec.parameters.configurationMetrics.add(project.provider {
+                spec.parameters.generalConfigurationMetrics.set(project.provider {
                     //isProjectIsolationEnabled isConfigurationCacheRequested and isProjectIsolationRequested should be calculated beforehand
                     // because since Gradle 8.0 provider's calculation is made in BuildFinishFlowAction
                     // and VariantImplementationFactories is not initialized at that moment
@@ -131,13 +128,11 @@ abstract class BuildFusService : BuildService<BuildFusService.Parameters>, AutoC
                         isConfigurationCacheRequested
                     )
                 })
-                spec.parameters.configurationMetrics.add(
-                    project.provider {
-                        collectProjectConfigurationTimeMetrics(project)
-                    }
-                )
                 spec.parameters.useBuildFinishFlowAction.set(GradleVersion.current().baseVersion >= GradleVersion.version("8.1"))
                 spec.parameters.buildStatisticsConfiguration.set(KotlinBuildStatsConfiguration(project))
+                //init value to avoid `java.lang.IllegalStateException: GradleScopeServices has been closed` exception on close
+                spec.parameters.configurationMetrics.add(MetricContainer())
+                spec.parameters.buildId.value(buildUidService.map { it.buildId }).disallowChanges()
             }.also { buildService ->
                 //DO NOT call buildService.get() before all parameters.configurationMetrics are set.
                 // buildService.get() call will cause parameters calculation and configuration cache storage.
@@ -173,15 +168,16 @@ abstract class BuildFusService : BuildService<BuildFusService.Parameters>, AutoC
 
     override fun close() {
         if (!parameters.useBuildFinishFlowAction.get()) {
-            recordBuildFinished(buildFailed)
+            recordBuildFinished(buildFailed, buildId)
         }
         KotlinBuildStatsBeanService.closeServices()
         log.kotlinDebug("Close ${this.javaClass.simpleName}")
     }
 
-    internal fun recordBuildFinished(buildFailed: Boolean) {
+    internal fun recordBuildFinished(buildFailed: Boolean, buildId: String) {
         BuildFinishMetrics.collectMetrics(log, buildFailed, buildStartTime, projectEvaluatedTime, fusMetricsConsumer)
         parameters.configurationMetrics.orElse(emptyList()).get().forEach { it.addToConsumer(fusMetricsConsumer) }
+        parameters.generalConfigurationMetrics.orNull?.addToConsumer(fusMetricsConsumer)
         parameters.buildStatisticsConfiguration.orNull?.also {
             val loggerService = KotlinBuildStatsLoggerService(it)
             loggerService.initSessionLogger(buildId)

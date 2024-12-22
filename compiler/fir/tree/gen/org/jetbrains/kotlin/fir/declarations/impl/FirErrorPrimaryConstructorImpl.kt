@@ -44,7 +44,7 @@ class FirErrorPrimaryConstructorImpl @FirImplementationDetail constructor(
     override var deprecationsProvider: DeprecationsProvider,
     override val containerSource: DeserializedContainerSource?,
     override val dispatchReceiverType: ConeSimpleKotlinType?,
-    override var contextReceivers: MutableOrEmptyList<FirContextReceiver>,
+    override var contextParameters: MutableOrEmptyList<FirValueParameter>,
     override val valueParameters: MutableList<FirValueParameter>,
     override var contractDescription: FirContractDescription?,
     override var annotations: MutableOrEmptyList<FirAnnotation>,
@@ -67,7 +67,7 @@ class FirErrorPrimaryConstructorImpl @FirImplementationDetail constructor(
         status.accept(visitor, data)
         returnTypeRef.accept(visitor, data)
         receiverParameter?.accept(visitor, data)
-        contextReceivers.forEach { it.accept(visitor, data) }
+        contextParameters.forEach { it.accept(visitor, data) }
         controlFlowGraphReference?.accept(visitor, data)
         valueParameters.forEach { it.accept(visitor, data) }
         contractDescription?.accept(visitor, data)
@@ -81,7 +81,7 @@ class FirErrorPrimaryConstructorImpl @FirImplementationDetail constructor(
         transformStatus(transformer, data)
         transformReturnTypeRef(transformer, data)
         transformReceiverParameter(transformer, data)
-        contextReceivers.transformInplace(transformer, data)
+        transformContextParameters(transformer, data)
         controlFlowGraphReference = controlFlowGraphReference?.transform(transformer, data)
         transformValueParameters(transformer, data)
         transformContractDescription(transformer, data)
@@ -108,6 +108,11 @@ class FirErrorPrimaryConstructorImpl @FirImplementationDetail constructor(
 
     override fun <D> transformReceiverParameter(transformer: FirTransformer<D>, data: D): FirErrorPrimaryConstructorImpl {
         receiverParameter = receiverParameter?.transform(transformer, data)
+        return this
+    }
+
+    override fun <D> transformContextParameters(transformer: FirTransformer<D>, data: D): FirErrorPrimaryConstructorImpl {
+        contextParameters.transformInplace(transformer, data)
         return this
     }
 
@@ -152,8 +157,8 @@ class FirErrorPrimaryConstructorImpl @FirImplementationDetail constructor(
         deprecationsProvider = newDeprecationsProvider
     }
 
-    override fun replaceContextReceivers(newContextReceivers: List<FirContextReceiver>) {
-        contextReceivers = newContextReceivers.toMutableOrEmpty()
+    override fun replaceContextParameters(newContextParameters: List<FirValueParameter>) {
+        contextParameters = newContextParameters.toMutableOrEmpty()
     }
 
     override fun replaceControlFlowGraphReference(newControlFlowGraphReference: FirControlFlowGraphReference?) {

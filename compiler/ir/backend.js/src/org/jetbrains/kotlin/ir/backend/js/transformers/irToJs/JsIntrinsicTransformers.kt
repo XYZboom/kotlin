@@ -93,13 +93,13 @@ class JsIntrinsicTransformers(backendContext: JsIrBackendContext) {
             }
 
             add(intrinsics.jsObjectCreateSymbol) { call, context ->
-                val classToCreate = call.getTypeArgument(0)!!.classifierOrFail.owner as IrClass
+                val classToCreate = call.typeArguments[0]!!.classifierOrFail.owner as IrClass
                 val className = classToCreate.getClassRef(context.staticContext)
                 objectCreate(prototypeOf(className, context.staticContext), context.staticContext)
             }
 
             add(intrinsics.jsClass) { call, context ->
-                val typeArgument = call.getTypeArgument(0)
+                val typeArgument = call.typeArguments[0]
                 typeArgument?.getClassRef(context.staticContext)
                     ?: compilationException(
                         "Type argument of jsClass must be statically known class",
@@ -181,7 +181,7 @@ class JsIntrinsicTransformers(backendContext: JsIrBackendContext) {
 
             add(intrinsics.jsBoxIntrinsic) { call, context ->
                 val arg = translateCallArguments(call, context).single()
-                val inlineClass = icUtils.getInlinedClass(call.getTypeArgument(0)!!)!!
+                val inlineClass = icUtils.getInlinedClass(call.typeArguments[0]!!)!!
                 val constructor = inlineClass.declarations.filterIsInstance<IrConstructor>().single { it.isPrimary }
 
                 JsNew(constructor.getConstructorRef(context.staticContext), listOf(arg))
@@ -190,7 +190,7 @@ class JsIntrinsicTransformers(backendContext: JsIrBackendContext) {
 
             add(intrinsics.jsUnboxIntrinsic) { call, context ->
                 val arg = translateCallArguments(call, context).single()
-                val inlineClass = icUtils.getInlinedClass(call.getTypeArgument(1)!!)!!
+                val inlineClass = icUtils.getInlinedClass(call.typeArguments[1]!!)!!
                 val field = getInlineClassBackingField(inlineClass)
                 val fieldName = context.getNameForField(field)
                 JsNameRef(fieldName, arg).apply { isInlineClassUnboxing = true }
@@ -283,6 +283,16 @@ class JsIntrinsicTransformers(backendContext: JsIrBackendContext) {
             add(intrinsics.void.owner.getter!!.symbol) { _, context ->
                 val backingField = context.getNameForField(intrinsics.void.owner.backingField!!)
                 JsNameRef(backingField)
+            }
+
+            add(intrinsics.suspendOrReturnFunctionSymbol) { call, context ->
+                val (generatorCall, continuation) = translateCallArguments(call, context)
+                val jsInvokeFunName = context.getNameForStaticFunction(call.symbol.owner)
+                val VOID = context.getNameForField(intrinsics.void.owner.backingField!!)
+                val generatorBindCall = (generatorCall as JsInvocation).let {
+                    JsInvocation(JsNameRef(Namer.BIND_FUNCTION, it.qualifier), listOf(JsNameRef(VOID)) + it.arguments.dropLast(1))
+                }
+                JsInvocation(JsNameRef(jsInvokeFunName), generatorBindCall, continuation)
             }
         }
     }

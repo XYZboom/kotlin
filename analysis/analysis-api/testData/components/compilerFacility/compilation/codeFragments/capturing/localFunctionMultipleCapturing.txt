@@ -5,7 +5,10 @@ public final class CodeFragment {
     public final inner class kotlin/jvm/internal/Ref$IntRef
 }
 
-public final class ContextKt
+public final class ContextKt {
+    // source: 'context.kt'
+    public final static method consume(p0: java.lang.Object): void
+}
 
 public final class Foo {
     // source: 'context.kt'

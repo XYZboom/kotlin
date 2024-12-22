@@ -9,10 +9,12 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.*
 import org.gradle.work.DisableCachingByDefault
 import org.gradle.work.NormalizeLineEndings
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrCompilation
 import org.jetbrains.kotlin.gradle.tasks.registerTask
 import org.jetbrains.kotlin.gradle.utils.newFileProperty
 
+@ExperimentalWasmDsl
 @DisableCachingByDefault
 open class D8Exec : AbstractExecTask<D8Exec>(D8Exec::class.java) {
     init {
@@ -37,7 +39,7 @@ open class D8Exec : AbstractExecTask<D8Exec>(D8Exec::class.java) {
             val inputFile = inputFileProperty.asFile.get()
             workingDir = inputFile.parentFile
             newArgs.add("--module")
-            newArgs.add(inputFile.canonicalPath)
+            newArgs.add(inputFile.absolutePath)
         }
         args?.let {
             if (it.isNotEmpty()) {
@@ -50,22 +52,31 @@ open class D8Exec : AbstractExecTask<D8Exec>(D8Exec::class.java) {
     }
 
     companion object {
-        fun create(
+        fun register(
             compilation: KotlinJsIrCompilation,
             name: String,
-            configuration: D8Exec.() -> Unit = {}
+            configuration: D8Exec.() -> Unit = {},
         ): TaskProvider<D8Exec> {
             val target = compilation.target
             val project = target.project
-            val d8 = D8RootPlugin.apply(project.rootProject)
+            val d8 = D8Plugin.applyWithEnvSpec(project)
             return project.registerTask(
                 name
             ) {
-                it.executable = d8.requireConfigured().executable
-                it.dependsOn(d8.setupTaskProvider)
+                it.executable = d8.executable.get()
+                with(d8) {
+                    it.dependsOn(project.d8SetupTaskProvider)
+                }
                 it.dependsOn(compilation.compileTaskProvider)
                 it.configuration()
             }
         }
+
+        @Deprecated("Use register instead", ReplaceWith("register(compilation, name, configuration)"))
+        fun create(
+            compilation: KotlinJsIrCompilation,
+            name: String,
+            configuration: D8Exec.() -> Unit = {},
+        ): TaskProvider<D8Exec> = register(compilation, name, configuration)
     }
 }

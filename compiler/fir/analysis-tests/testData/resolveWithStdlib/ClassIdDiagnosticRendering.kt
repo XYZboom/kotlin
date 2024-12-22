@@ -1,5 +1,5 @@
-// WITH_EXTENDED_CHECKERS
-@file:OptIn(ExperimentalSubclassOptIn::class)
+// RUN_PIPELINE_TILL: FRONTEND
+// WITH_EXTRA_CHECKERS
 
 package a.b.c
 
@@ -15,9 +15,9 @@ fun main() {
     <!OPT_IN_USAGE_ERROR("a.b.c.Marker; This declaration needs opt-in. Its usage must be marked with '@a.b.c.Marker' or '@OptIn(a.b.c.Marker::class)'")!>Some<!>()
 }
 
-annotation class DummyAnnotation
+annotation class NotOptIn
 
-<!SUBCLASS_OPT_ARGUMENT_IS_NOT_MARKER!>@SubclassOptInRequired(DummyAnnotation::class)<!>
+@SubclassOptInRequired(<!SUBCLASS_OPT_IN_ARGUMENT_IS_NOT_MARKER!>NotOptIn::class<!>)
 open class IncorrectSubclassOptInArgumentMarker
 
 internal fun interface StableInterface {

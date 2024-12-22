@@ -317,6 +317,12 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
     }
 
     @Test
+    @TestMetadata("sealedClassConstructorVisibility.kt")
+    public void testSealedClassConstructorVisibility() {
+      runTest("compiler/testData/ir/irText/classes/sealedClassConstructorVisibility.kt");
+    }
+
+    @Test
     @TestMetadata("sealedClasses.kt")
     public void testSealedClasses() {
       runTest("compiler/testData/ir/irText/classes/sealedClasses.kt");
@@ -634,9 +640,27 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
       }
 
       @Test
+      @TestMetadata("annotationMixedTargeting.kt")
+      public void testAnnotationMixedTargeting() {
+        runTest("compiler/testData/ir/irText/declarations/annotations/annotationMixedTargeting.kt");
+      }
+
+      @Test
       @TestMetadata("annotationOnClassWithInitializer.kt")
       public void testAnnotationOnClassWithInitializer() {
         runTest("compiler/testData/ir/irText/declarations/annotations/annotationOnClassWithInitializer.kt");
+      }
+
+      @Test
+      @TestMetadata("annotationRetentions.kt")
+      public void testAnnotationRetentions() {
+        runTest("compiler/testData/ir/irText/declarations/annotations/annotationRetentions.kt");
+      }
+
+      @Test
+      @TestMetadata("annotationRetentionsMultiModule.kt")
+      public void testAnnotationRetentionsMultiModule() {
+        runTest("compiler/testData/ir/irText/declarations/annotations/annotationRetentionsMultiModule.kt");
       }
 
       @Test
@@ -811,6 +835,12 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
       @TestMetadata("receiverParameterWithAnnotations.kt")
       public void testReceiverParameterWithAnnotations() {
         runTest("compiler/testData/ir/irText/declarations/annotations/receiverParameterWithAnnotations.kt");
+      }
+
+      @Test
+      @TestMetadata("specialAnnotationsMetadata.kt")
+      public void testSpecialAnnotationsMetadata() {
+        runTest("compiler/testData/ir/irText/declarations/annotations/specialAnnotationsMetadata.kt");
       }
 
       @Test
@@ -1122,6 +1152,12 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
         @TestMetadata("expectedEnumClass.kt")
         public void testExpectedEnumClass() {
           runTest("compiler/testData/ir/irText/declarations/multiplatform/k2/expectedEnumClass.kt");
+        }
+
+        @Test
+        @TestMetadata("expectedFun.kt")
+        public void testExpectedFun() {
+          runTest("compiler/testData/ir/irText/declarations/multiplatform/k2/expectedFun.kt");
         }
 
         @Test
@@ -1587,6 +1623,24 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
     }
 
     @Test
+    @TestMetadata("fieldAccess_generic.kt")
+    public void testFieldAccess_generic() {
+      runTest("compiler/testData/ir/irText/expressions/fieldAccess_generic.kt");
+    }
+
+    @Test
+    @TestMetadata("fieldAccess_invisible.kt")
+    public void testFieldAccess_invisible() {
+      runTest("compiler/testData/ir/irText/expressions/fieldAccess_invisible.kt");
+    }
+
+    @Test
+    @TestMetadata("fieldAccess_regular.kt")
+    public void testFieldAccess_regular() {
+      runTest("compiler/testData/ir/irText/expressions/fieldAccess_regular.kt");
+    }
+
+    @Test
     @TestMetadata("for.kt")
     public void testFor() {
       runTest("compiler/testData/ir/irText/expressions/for.kt");
@@ -1929,9 +1983,21 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
     }
 
     @Test
+    @TestMetadata("kt70753.kt")
+    public void testKt70753() {
+      runTest("compiler/testData/ir/irText/expressions/kt70753.kt");
+    }
+
+    @Test
     @TestMetadata("lambdaInCAO.kt")
     public void testLambdaInCAO() {
       runTest("compiler/testData/ir/irText/expressions/lambdaInCAO.kt");
+    }
+
+    @Test
+    @TestMetadata("lambdaWithParameterName.kt")
+    public void testLambdaWithParameterName() {
+      runTest("compiler/testData/ir/irText/expressions/lambdaWithParameterName.kt");
     }
 
     @Test
@@ -2127,6 +2193,12 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
     }
 
     @Test
+    @TestMetadata("smartcastToIntersection.kt")
+    public void testSmartcastToIntersection() {
+      runTest("compiler/testData/ir/irText/expressions/smartcastToIntersection.kt");
+    }
+
+    @Test
     @TestMetadata("specializedTypeAliasConstructorCall.kt")
     public void testSpecializedTypeAliasConstructorCall() {
       runTest("compiler/testData/ir/irText/expressions/specializedTypeAliasConstructorCall.kt");
@@ -2268,6 +2340,12 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
     @TestMetadata("vararg.kt")
     public void testVararg() {
       runTest("compiler/testData/ir/irText/expressions/vararg.kt");
+    }
+
+    @Test
+    @TestMetadata("varargListOfJsStatement.kt")
+    public void testVarargListOfJsStatement() {
+      runTest("compiler/testData/ir/irText/expressions/varargListOfJsStatement.kt");
     }
 
     @Test
@@ -2622,12 +2700,6 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
       }
 
       @Test
-      @TestMetadata("arrayAsVarargAfterSamArgument.kt")
-      public void testArrayAsVarargAfterSamArgument() {
-        runTest("compiler/testData/ir/irText/expressions/sam/arrayAsVarargAfterSamArgument.kt");
-      }
-
-      @Test
       @TestMetadata("genericSamProjectedOut.kt")
       public void testGenericSamProjectedOut() {
         runTest("compiler/testData/ir/irText/expressions/sam/genericSamProjectedOut.kt");
@@ -2696,6 +2768,12 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
     @TestMetadata("annotatedTypeParameter.kt")
     public void testAnnotatedTypeParameter() {
       runTest("compiler/testData/ir/irText/fakeOverrides/annotatedTypeParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("capturedTypeInFakeOverride.kt")
+    public void testCapturedTypeInFakeOverride() {
+      runTest("compiler/testData/ir/irText/fakeOverrides/capturedTypeInFakeOverride.kt");
     }
 
     @Test
@@ -3818,6 +3896,36 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
       }
 
       @Test
+      @TestMetadata("lateinitPropertiesFakeOverrideJKK.kt")
+      public void testLateinitPropertiesFakeOverrideJKK() {
+        runTest("compiler/testData/ir/irText/fakeOverrides/visibility/lateinitPropertiesFakeOverrideJKK.kt");
+      }
+
+      @Test
+      @TestMetadata("lateinitPropertiesJJK.kt")
+      public void testLateinitPropertiesJJK() {
+        runTest("compiler/testData/ir/irText/fakeOverrides/visibility/lateinitPropertiesJJK.kt");
+      }
+
+      @Test
+      @TestMetadata("lateinitPropertiesJK.kt")
+      public void testLateinitPropertiesJK() {
+        runTest("compiler/testData/ir/irText/fakeOverrides/visibility/lateinitPropertiesJK.kt");
+      }
+
+      @Test
+      @TestMetadata("lateinitPropertiesJKK.kt")
+      public void testLateinitPropertiesJKK() {
+        runTest("compiler/testData/ir/irText/fakeOverrides/visibility/lateinitPropertiesJKK.kt");
+      }
+
+      @Test
+      @TestMetadata("lateinitPropertiesSeparateModule.kt")
+      public void testLateinitPropertiesSeparateModule() {
+        runTest("compiler/testData/ir/irText/fakeOverrides/visibility/lateinitPropertiesSeparateModule.kt");
+      }
+
+      @Test
       @TestMetadata("overrideKotlinMethodsKJKK.kt")
       public void testOverrideKotlinMethodsKJKK() {
         runTest("compiler/testData/ir/irText/fakeOverrides/visibility/overrideKotlinMethodsKJKK.kt");
@@ -4247,6 +4355,12 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
     }
 
     @Test
+    @TestMetadata("typeOfNonExhaustiveWhen.kt")
+    public void testTypeOfNonExhaustiveWhen() {
+      runTest("compiler/testData/ir/irText/firProblems/typeOfNonExhaustiveWhen.kt");
+    }
+
+    @Test
     @TestMetadata("TypeParameterBounds.kt")
     public void testTypeParameterBounds() {
       runTest("compiler/testData/ir/irText/firProblems/TypeParameterBounds.kt");
@@ -4397,6 +4511,12 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
     public void testSamAdapter() {
       runTest("compiler/testData/ir/irText/lambdas/samAdapter.kt");
     }
+
+    @Test
+    @TestMetadata("samConversionClassInProjection.kt")
+    public void testSamConversionClassInProjection() {
+      runTest("compiler/testData/ir/irText/lambdas/samConversionClassInProjection.kt");
+    }
   }
 
   @Nested
@@ -4406,6 +4526,12 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
     @Test
     public void testAllFilesPresentInProperties() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/ir/irText/properties"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM_IR, true);
+    }
+
+    @Test
+    @TestMetadata("setters.kt")
+    public void testSetters() {
+      runTest("compiler/testData/ir/irText/properties/setters.kt");
     }
 
     @Test
@@ -4572,6 +4698,12 @@ public class FirPsiJvmIrTextTestGenerated extends AbstractFirPsiJvmIrTextTest {
     @TestMetadata("genericClassInDifferentModule.kt")
     public void testGenericClassInDifferentModule() {
       runTest("compiler/testData/ir/irText/stubs/genericClassInDifferentModule.kt");
+    }
+
+    @Test
+    @TestMetadata("javaAnnotationOnJavaEnum.kt")
+    public void testJavaAnnotationOnJavaEnum() {
+      runTest("compiler/testData/ir/irText/stubs/javaAnnotationOnJavaEnum.kt");
     }
 
     @Test

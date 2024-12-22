@@ -17,7 +17,6 @@
 package androidx.compose.compiler.plugins.kotlin
 
 import androidx.compose.compiler.plugins.kotlin.facade.SourceFile
-import java.io.File
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.ir.util.DumpIrTreeOptions
@@ -25,10 +24,11 @@ import org.jetbrains.kotlin.ir.util.DumpIrTreeVisitor
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runners.Parameterized
+import java.io.File
 
 class StrongSkippingModeTransformTests(
     useFir: Boolean,
-    private val intrinsicRememberEnabled: Boolean
+    private val intrinsicRememberEnabled: Boolean,
 ) : AbstractIrTransformTest(useFir) {
     companion object {
         @JvmStatic
@@ -329,12 +329,94 @@ class StrongSkippingModeTransformTests(
         """
     )
 
+    @Test
+    fun unstableCrossinline() = verifyMemoization(
+        """
+            
+            // note: using var makes this class unstable (and this vm needs to be unstable for the crash to occur)
+            class MyUnstableViewModel(var text: String?) {
+                fun onClickyClicky() {}
+            }
+            
+            @Composable
+            fun Dialog(content: (@Composable () -> Unit)?) { content?.invoke() }
+
+            @Composable
+            fun Button(
+                onClick: () -> Unit
+            ) {}
+
+            inline fun <ValueT : Any> slotIfNotNull(
+                value: ValueT?,
+                crossinline slot: @Composable (ValueT) -> Unit
+            ): (@Composable () -> Unit)? {
+                return if (value != null) {
+                    @Composable { slot(value) }
+                } else null
+            }
+        """,
+        """
+            @Composable fun Scratch(vm: MyUnstableViewModel) {
+                Dialog(
+                    content = slotIfNotNull(vm.text) {
+                        Button(
+                            onClick = vm::onClickyClicky
+                        )
+                    }
+                )
+            }
+        """
+    )
+
+    @Test
+    fun testMemoizingFromReferenceDelegate() = verifyMemoization(
+        """
+            class ClassWithData(
+                var action: Int = 0,
+            )
+
+            fun getData(): ClassWithData = TODO()
+        """,
+        """
+            @Composable
+            fun StrongSkippingIssue(
+                data: ClassWithData
+            ) {
+                val action by data::action
+                val action1 by getData()::action
+                {
+                    action
+                }
+                {
+                    action1
+                }
+            }
+        """,
+    )
+
+    @Test
+    fun testMemoizingFromStateDelegate() = verifyMemoization(
+        """
+        """,
+        """
+            import androidx.compose.runtime.mutableStateOf
+            import androidx.compose.runtime.remember
+            import androidx.compose.runtime.getValue
+
+            @Composable
+            fun StrongSkippingState() {
+                val state by remember { mutableStateOf("") }; // <-- this is a load bearing ;
+                { state }
+            }
+        """,
+    )
+
     private fun verifyMemoization(
         @Language("kotlin")
         unchecked: String,
         @Language("kotlin")
         checked: String,
-        dumpTree: Boolean = false
+        dumpTree: Boolean = false,
     ) {
         val source = """
             import androidx.compose.runtime.Composable

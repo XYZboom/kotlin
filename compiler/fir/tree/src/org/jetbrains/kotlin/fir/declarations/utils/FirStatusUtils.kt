@@ -27,9 +27,6 @@ inline val FirMemberDeclaration.visibility: Visibility get() = status.visibility
 inline val FirMemberDeclaration.effectiveVisibility: EffectiveVisibility
     get() = (status as? FirResolvedDeclarationStatus)?.effectiveVisibility ?: EffectiveVisibility.Local
 
-inline val FirMemberDeclaration.allowsToHaveFakeOverride: Boolean
-    get() = visibility.allowsToHaveFakeOverride
-
 inline val FirMemberDeclaration.isOverridable: Boolean
     get() = status.modality != Modality.FINAL && status.visibility != Visibilities.Private
 
@@ -41,6 +38,16 @@ inline val FirMemberDeclaration.isOverride: Boolean get() = status.isOverride
 inline val FirMemberDeclaration.isOperator: Boolean get() = status.isOperator
 inline val FirMemberDeclaration.isInfix: Boolean get() = status.isInfix
 inline val FirMemberDeclaration.isInline: Boolean get() = status.isInline
+
+@RequiresOptIn(message = "Please consider using isInlineOrValue, as separate isInline or isValue calls don't cover other case")
+annotation class SuspiciousValueClassCheck
+
+@SuspiciousValueClassCheck
+inline val FirClass.isValue: Boolean get() = status.isValue
+
+@OptIn(SuspiciousValueClassCheck::class)
+inline val FirClass.isInlineOrValue: Boolean get() = status.isInline || status.isValue
+
 inline val FirMemberDeclaration.isTailRec: Boolean get() = status.isTailRec
 inline val FirMemberDeclaration.isExternal: Boolean get() = status.isExternal
 inline val FirMemberDeclaration.isSuspend: Boolean get() = status.isSuspend
@@ -70,8 +77,5 @@ inline val FirRegularClass.isData: Boolean get() = status.isData
 inline val FirFunction.hasBody: Boolean get() = body != null
 
 inline val FirPropertyAccessor.hasBody: Boolean get() = body != null
-
-inline val Visibility.allowsToHaveFakeOverride: Boolean
-    get() = !Visibilities.isPrivate(this) && this != Visibilities.InvisibleFake
 
 inline val FirSimpleFunction.isLocal: Boolean get() = status.visibility == Visibilities.Local

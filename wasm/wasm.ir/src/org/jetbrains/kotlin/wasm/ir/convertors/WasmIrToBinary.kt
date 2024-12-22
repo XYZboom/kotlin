@@ -58,9 +58,11 @@ class WasmIrToBinary(
     val module: WasmModule,
     val moduleName: String,
     val emitNameSection: Boolean,
-    private val debugInformationGenerator: DebugInformationGenerator? = null
+    private val debugInformationGenerator: DebugInformationGenerator? = null,
+    private val optimizeInstructionFlow: Boolean = true,
 ) : DebugInformationConsumer {
     private var b: ByteWriter = ByteWriter.OutputStream(outputStream)
+    private var codeSectionOffset: Int = 0
 
     // "Stack" of offsets waiting initialization. 
     // Since blocks have as a prefix variable length number encoding its size, we can't calculate absolute offsets inside those blocks
@@ -73,6 +75,7 @@ class WasmIrToBinary(
                 b.writeString(it.name)
                 when (it.data) {
                     is DebugData.StringData -> b.writeString(it.data.value)
+                    is DebugData.RawBytes -> b.writeBytes(it.data.value)
                 }
             }
         }
@@ -171,7 +174,7 @@ class WasmIrToBinary(
             }
 
             // code section
-            appendSection(WasmBinary.Section.CODE) {
+            appendSection(WasmBinary.Section.CODE, beforeContentWrite = { codeSectionOffset = b.written }) {
                 appendVectorSize(definedFunctions.size)
                 definedFunctions.forEach { appendCode(it) }
             }
@@ -253,7 +256,7 @@ class WasmIrToBinary(
 
     private fun appendInstr(instr: WasmInstr) {
         instr.location?.let {
-            debugInformationGenerator?.addSourceLocation(SourceLocationMappingToBinary(it, offsets + Box(b.written)))
+            debugInformationGenerator?.addSourceLocation(getCurrentSourceLocationMapping(it))
         }
 
         val opcode = instr.operator.opcode
@@ -272,6 +275,9 @@ class WasmIrToBinary(
             appendImmediate(it)
         }
     }
+
+    private fun getCurrentSourceLocationMapping(sourceLocation: SourceLocation): SourceLocationMappingToBinary =
+        SourceLocationMappingToBinary(sourceLocation, offsets + Box(b.written), ::codeSectionOffset)
 
     private fun appendImmediate(x: WasmImmediate) {
         when (x) {
@@ -294,7 +300,7 @@ class WasmIrToBinary(
             is WasmImmediate.DataIdx -> b.writeVarUInt32(x.value.owner)
             is WasmImmediate.TableIdx -> b.writeVarUInt32(x.value.owner)
             is WasmImmediate.LabelIdx -> b.writeVarUInt32(x.value)
-            is WasmImmediate.TagIdx -> b.writeVarUInt32(x.value)
+            is WasmImmediate.TagIdx -> b.writeVarUInt32(x.value.owner)
             is WasmImmediate.LabelIdxVector -> {
                 b.writeVarUInt32(x.value.size)
                 for (target in x.value) {
@@ -321,12 +327,12 @@ class WasmIrToBinary(
         }
     }
 
-    private fun appendSection(section: WasmBinary.Section, content: () -> Unit) {
+    private fun appendSection(section: WasmBinary.Section, beforeContentWrite: () -> Unit = {}, content: () -> Unit) {
         b.writeVarUInt7(section.id)
-        withVarUInt32PayloadSizePrepended { content() }
+        withVarUInt32PayloadSizePrepended(beforeContentWrite, { content() })
     }
 
-    private fun withVarUInt32PayloadSizePrepended(fn: () -> Unit) {
+    private fun withVarUInt32PayloadSizePrepended(beforeContentWrite: () -> Unit = {}, fn: () -> Unit) {
         val box = Box(-1)
         val previousOffsets = offsets
         offsets += box
@@ -341,6 +347,7 @@ class WasmIrToBinary(
         box.value = b.written
         offsets = previousOffsets
 
+        beforeContentWrite()
         b.write(newWriter)
     }
 
@@ -418,7 +425,7 @@ class WasmIrToBinary(
 
     private fun appendImportedFunction(function: WasmFunction.Imported) {
         b.writeString(function.importPair.moduleName)
-        b.writeString(function.importPair.declarationName)
+        b.writeString(function.importPair.declarationName.owner)
         b.writeByte(0)  // Function external kind.
         b.writeVarUInt32(function.type.owner.index)
     }
@@ -430,7 +437,7 @@ class WasmIrToBinary(
     private fun appendTable(table: WasmTable) {
         if (table.importPair != null) {
             b.writeString(table.importPair.moduleName)
-            b.writeString(table.importPair.declarationName)
+            b.writeString(table.importPair.declarationName.owner)
             b.writeByte(1)
         }
 
@@ -441,7 +448,7 @@ class WasmIrToBinary(
     private fun appendMemory(memory: WasmMemory) {
         if (memory.importPair != null) {
             b.writeString(memory.importPair.moduleName)
-            b.writeString(memory.importPair.declarationName)
+            b.writeString(memory.importPair.declarationName.owner)
             b.writeByte(2)
         }
         appendLimits(memory.limits)
@@ -450,7 +457,7 @@ class WasmIrToBinary(
     private fun appendGlobal(c: WasmGlobal) {
         if (c.importPair != null) {
             b.writeString(c.importPair.moduleName)
-            b.writeString(c.importPair.declarationName)
+            b.writeString(c.importPair.declarationName.owner)
             b.writeByte(3)
             appendType(c.type)
             b.writeVarUInt1(c.isMutable)
@@ -464,18 +471,27 @@ class WasmIrToBinary(
     private fun appendTag(t: WasmTag) {
         if (t.importPair != null) {
             b.writeString(t.importPair.moduleName)
-            b.writeString(t.importPair.declarationName)
+            b.writeString(t.importPair.declarationName.owner)
             b.writeByte(4)
-            return
         }
         b.writeByte(0) // attribute
         assert(t.type.id != null) { "Unlinked tag id" }
         b.writeVarUInt32(t.type.id!!)
     }
 
-    private fun appendExpr(expr: Iterable<WasmInstr>) {
-        expr.forEach { appendInstr(it) }
-        appendInstr(WasmInstrWithLocation(WasmOp.END, SourceLocation.NoLocation("End of instruction list")))
+    private fun appendExpr(expr: Iterable<WasmInstr>, endLocation: SourceLocation = SourceLocation.NoLocation("End of instruction list")) {
+        val expressionWithEndOp = sequence {
+            yieldAll(expr)
+            yield(WasmInstrWithLocation(WasmOp.END, endLocation))
+        }
+
+        if (optimizeInstructionFlow) {
+            for (instruction in processInstructionsFlow(expressionWithEndOp)) {
+                appendInstr(instruction)
+            }
+        } else {
+            expressionWithEndOp.forEach(::appendInstr)
+        }
     }
 
     private fun appendExport(export: WasmExport<*>) {
@@ -551,7 +567,21 @@ class WasmIrToBinary(
     }
 
     private fun appendCode(function: WasmFunction.Defined) {
+        val shouldWriteLocationBeforeFunctionHeader = function.endLocation is SourceLocation.IgnoredLocation
+
+        if (shouldWriteLocationBeforeFunctionHeader) {
+            debugInformationGenerator?.addSourceLocation(
+                SourceLocationMappingToBinary(SourceLocation.IgnoredLocation, offsets + Box(b.written), ::codeSectionOffset)
+            )
+        }
+
         withVarUInt32PayloadSizePrepended {
+            if (!shouldWriteLocationBeforeFunctionHeader) {
+                debugInformationGenerator?.addSourceLocation(
+                    SourceLocationMappingToBinary(SourceLocation.NextLocation, offsets + Box(b.written), ::codeSectionOffset)
+                )
+            }
+
             b.writeVarUInt32(function.locals.count { !it.isParameter })
             function.locals.forEach { local ->
                 if (!local.isParameter) {
@@ -560,7 +590,9 @@ class WasmIrToBinary(
                 }
             }
 
-            appendExpr(function.instructions)
+            debugInformationGenerator?.startFunction(getCurrentSourceLocationMapping(function.startLocation), function.name)
+            appendExpr(function.instructions, function.endLocation)
+            debugInformationGenerator?.endFunction(getCurrentSourceLocationMapping(function.endLocation))
         }
     }
 
@@ -606,7 +638,8 @@ class WasmIrToBinary(
     }
 
     fun appendModuleFieldReference(field: WasmNamedModuleField) {
-        val id = field.id ?: error("${field::class} ${field.name} ID is unlinked")
+        val id = field.id
+            ?: error("${field::class} ${field.name} ID is unlinked")
         b.writeVarUInt32(id)
     }
 
@@ -619,18 +652,48 @@ class WasmIrToBinary(
         this.writeVarUInt32(bytes.size)
         this.writeBytes(bytes)
     }
+
+
+    private class SourceLocationMappingToBinary(
+        override val sourceLocation: SourceLocation,
+        // Offsets in generating binary, initialized lazily. Since blocks has as a prefix variable length number encoding its size
+        // we can't calculate absolute offsets inside those blocks until we generate whole block and generate size.
+        private val offsets: List<Box>,
+        private val codeSectionOffsetProvider: () -> Int
+    ) : SourceLocationMapping() {
+        override val generatedLocation by lazy {
+            SourceLocation.DefinedLocation(
+                module = "",
+                file = "",
+                line = 0,
+                column = offsets.sumOf {
+                    assert(it.value >= 0) { "Offset must be >=0 but ${it.value}" }
+                    it.value
+                }
+            )
+        }
+
+        override val generatedLocationRelativeToCodeSection by lazy {
+            generatedLocation.copy(column = generatedLocation.column - codeSectionOffsetProvider())
+        }
+    }
 }
 
-abstract class ByteWriter {
-    abstract val written: Int
+interface ByteWriter {
+    val written: Int
 
-    abstract fun write(v: ByteWriter)
-    abstract fun writeByte(v: Byte)
-    abstract fun writeBytes(v: ByteArray)
-    abstract fun createTemp(): ByteWriter
+    fun write(v: ByteWriter)
+    fun writeByte(v: Byte)
+    fun writeBytes(v: ByteArray)
+    fun createTemp(): ByteWriter
 
     fun writeUByte(v: UByte) {
         writeByte(v.toByte())
+    }
+
+    fun writeUInt16(v: UShort) {
+        writeByte(v.toByte())
+        writeByte((v.toUInt() shr 8).toByte())
     }
 
     fun writeUInt32(v: UInt) {
@@ -650,6 +713,15 @@ abstract class ByteWriter {
         writeByte((v shr 48).toByte())
         writeByte((v shr 56).toByte())
     }
+
+    fun writeUInt64(v: ULong, size: Int) =
+        when (size) {
+            1 -> writeUByte(v.toUByte())
+            2 -> writeUInt16(v.toUShort())
+            4 -> writeUInt32(v.toUInt())
+            8 -> writeUInt64(v)
+            else -> error("Unsupported size $size")
+        }
 
     fun writeVarInt7(v: Byte) {
         writeSignedLeb128(v.toLong())
@@ -673,6 +745,10 @@ abstract class ByteWriter {
 
     fun writeVarUInt32(v: UInt) {
         writeUnsignedLeb128(v)
+    }
+
+    fun writeBoolean(value: Boolean) {
+        writeByte(if (value) 1 else 0)
     }
 
     private fun writeUnsignedLeb128(v: UInt) {
@@ -706,7 +782,7 @@ abstract class ByteWriter {
         }
     }
 
-    class OutputStream(val os: java.io.OutputStream) : ByteWriter() {
+    class OutputStream(val os: java.io.OutputStream) : ByteWriter {
         override var written = 0; private set
 
         override fun write(v: ByteWriter) {
@@ -726,23 +802,5 @@ abstract class ByteWriter {
         }
 
         override fun createTemp() = OutputStream(ByteArrayOutputStream())
-    }
-}
-
-private class SourceLocationMappingToBinary(
-    override val sourceLocation: SourceLocation,
-    // Offsets in generating binary, initialized lazily. Since blocks has as a prefix variable length number encoding its size
-    // we can't calculate absolute offsets inside those blocks until we generate whole block and generate size.
-    private val offsets: List<Box>,
-) : SourceLocationMapping() {
-    override val generatedLocation: SourceLocation.Location by lazy {
-        SourceLocation.Location(
-            file = "",
-            line = 0,
-            column = offsets.sumOf {
-                assert(it.value >= 0) { "Offset must be >=0 but ${it.value}" }
-                it.value
-            }
-        )
     }
 }

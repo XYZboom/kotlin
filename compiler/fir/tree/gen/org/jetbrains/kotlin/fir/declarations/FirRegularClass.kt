@@ -22,7 +22,7 @@ import org.jetbrains.kotlin.fir.visitors.FirVisitor
 import org.jetbrains.kotlin.name.Name
 
 /**
- * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.regularClass]
+ * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTree.regularClass]
  */
 abstract class FirRegularClass : FirClass() {
     abstract override val source: KtSourceElement?
@@ -42,7 +42,7 @@ abstract class FirRegularClass : FirClass() {
     abstract val hasLazyNestedClassifiers: Boolean
     abstract val companionObjectSymbol: FirRegularClassSymbol?
     abstract override val superTypeRefs: List<FirTypeRef>
-    abstract val contextReceivers: List<FirContextReceiver>
+    abstract val contextParameters: List<FirValueParameter>
 
     override fun <R, D> accept(visitor: FirVisitor<R, D>, data: D): R =
         visitor.visitRegularClass(this, data)
@@ -72,4 +72,6 @@ abstract class FirRegularClass : FirClass() {
     abstract override fun <D> transformAnnotations(transformer: FirTransformer<D>, data: D): FirRegularClass
 
     abstract override fun <D> transformSuperTypeRefs(transformer: FirTransformer<D>, data: D): FirRegularClass
+
+    abstract fun <D> transformContextParameters(transformer: FirTransformer<D>, data: D): FirRegularClass
 }

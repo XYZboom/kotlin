@@ -1,4 +1,5 @@
-// FIR_DISABLE_LAZY_RESOLVE_CHECKS
+// RUN_PIPELINE_TILL: FRONTEND
+// SUPPRESS_NO_TYPE_ALIAS_EXPANSION_MODE: TBD
 // ^Problem with FirCompilerLazyDeclarationResolverWithPhaseChecking
 
 // MODULE: topmost
@@ -14,6 +15,7 @@ typealias Alias = Base
 interface Topmost : Alias
 
 // MODULE: top(topmost)
+
 // FILE: top.kt
 package org.example
 
@@ -21,19 +23,15 @@ interface Base : <!CYCLIC_INHERITANCE_HIERARCHY!>TopAdditional<!> {
     fun top()
 }
 
-// FILE: TopAdditional.java
+// FILE: org/example/TopAdditional.java
 package org.example;
 
-public interface TopAdditional extends Top {
+public interface TopAdditional extends Top {}
 
-}
-
-// FILE: Top.java
+// FILE: org/example/Top.java
 package org.example;
 
-public interface Top extends Topmost {
-
-}
+public interface Top extends Topmost {}
 
 // MODULE: middle(top)
 // FILE: middle.kt

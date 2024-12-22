@@ -45,6 +45,7 @@ class Fir2IrLazyConstructor(
         this.parent = parent
         symbol.bind(this)
         classifierStorage.preCacheTypeParameters(fir)
+        this.contextReceiverParametersCount = fir.contextParameters.size
     }
 
     override var annotations: List<IrConstructorCall> by createLazyAnnotations()
@@ -81,50 +82,6 @@ class Fir2IrLazyConstructor(
 
     override var returnType: IrType by lazyVar(lock) {
         fir.returnTypeRef.toIrType(typeConverter)
-    }
-
-    override var dispatchReceiverParameter: IrValueParameter? by lazyVar(lock) {
-        val containingClass = parent as? IrClass
-        val outerClass = containingClass?.parentClassOrNull
-        if (containingClass?.isInner == true && outerClass != null) {
-            declarationStorage.enterScope(this.symbol)
-            declareThisReceiverParameter(
-                c,
-                thisType = outerClass.thisReceiver!!.type,
-                thisOrigin = origin
-            ).apply {
-                declarationStorage.leaveScope(this@Fir2IrLazyConstructor.symbol)
-            }
-        } else null
-    }
-
-    override var extensionReceiverParameter: IrValueParameter? = null
-
-    override var contextReceiverParametersCount: Int = fir.contextReceivers.size
-
-    override var valueParameters: List<IrValueParameter> by lazyVar(lock) {
-        declarationStorage.enterScope(this.symbol)
-
-        buildList {
-            callablesGenerator.addContextReceiverParametersTo(
-                fir.contextReceivers,
-                this@Fir2IrLazyConstructor,
-                this@buildList
-            )
-
-            fir.valueParameters.mapIndexedTo(this) { index, valueParameter ->
-                val parentClass = parent as? IrClass
-                callablesGenerator.createIrParameter(
-                    valueParameter, index + contextReceiverParametersCount,
-                    useStubForDefaultValueStub = parentClass?.classId != StandardClassIds.Enum,
-                    forcedDefaultValueConversion = parentClass?.isAnnotationClass == true
-                ).apply {
-                    this.parent = this@Fir2IrLazyConstructor
-                }
-            }
-        }.apply {
-            declarationStorage.leaveScope(this@Fir2IrLazyConstructor.symbol)
-        }
     }
 
     override var metadata: MetadataSource?

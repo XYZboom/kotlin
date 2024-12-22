@@ -21,6 +21,7 @@ dependencies {
     testImplementation(project(":compiler:ir.tree"))
     testImplementation(project(":compiler:backend.jvm.entrypoint"))
     testImplementation(project(":compiler:backend.jvm.lower"))
+    testImplementation(project(":kotlin-util-klib-abi"))
     testImplementation(intellijCore())
     testImplementation(commonDependency("org.jetbrains.kotlin:kotlin-reflect")) { isTransitive = false }
 
@@ -36,6 +37,7 @@ dependencies {
     testApi(projectTests(":compiler:test-infrastructure-utils"))
     testApi(projectTests(":compiler:tests-compiler-utils"))
     testApi(project(":libraries:tools:abi-comparator"))
+    testApi(project(":compiler:tests-mutes:mutes-junit5"))
 
     /*
      * Actually those dependencies are needed only at runtime, but they
@@ -47,10 +49,10 @@ dependencies {
     testApi(commonDependency("org.jetbrains.intellij.deps.jna:jna"))
     testApi(jpsModel()) { isTransitive = false }
     testApi(jpsModelImpl()) { isTransitive = false }
-    testApi(intellijJavaRt()) // for FileComparisonFailure
-    testApi(libs.junit4) // for ComparisonFailure
+    testApi(libs.junit4)
 
-    testApi(toolsJar())
+    testApi(toolsJarApi())
+    testRuntimeOnly(toolsJar())
 }
 
 optInToExperimentalCompilerApi()
@@ -65,6 +67,10 @@ sourceSets {
 }
 
 compilerTests {
+    testData("../testData/diagnostics")
+    testData("../testData/codegen")
+    testData("../testData/debug")
+    testData("../testData/ir")
     withStdlibCommon()
     withScriptRuntime()
     withTestJar()
@@ -77,17 +83,17 @@ compilerTests {
 projectTest(
     jUnitMode = JUnitMode.JUnit5,
     defineJDKEnvVariables = listOf(
+        JdkMajorVersion.JDK_1_8,
         JdkMajorVersion.JDK_11_0, // e.g. org.jetbrains.kotlin.test.runners.ForeignAnnotationsCompiledJavaTestGenerated.Java11Tests
+        JdkMajorVersion.JDK_17_0,
         JdkMajorVersion.JDK_21_0, // e.g. org.jetbrains.kotlin.test.runners.codegen.FirLightTreeBlackBoxModernJdkCodegenTestGenerated.TestsWithJava21
     )
 ) {
     workingDir = rootDir
     useJUnitPlatform()
-
-    inputs.dir(layout.projectDirectory.dir("../testData")).withPathSensitivity(PathSensitivity.RELATIVE)
-    inputs.file(File(rootDir, "compiler/cli/cli-common/resources/META-INF/extensions/compiler.xml"))
-        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file(File(rootDir, "compiler/cli/cli-common/resources/META-INF/extensions/compiler.xml")).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(File(rootDir, "compiler/testData/mockJDK/jre/lib/rt.jar")).withNormalizer(ClasspathNormalizer::class)
+    inputs.file(File(rootDir, "compiler/testData/mockJDK/jre/lib/annotations.jar")).withNormalizer(ClasspathNormalizer::class)
     inputs.dir(File(rootDir, "third-party/annotations")).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir(File(rootDir, "third-party/java8-annotations")).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir(File(rootDir, "third-party/java9-annotations")).withPathSensitivity(PathSensitivity.RELATIVE)

@@ -24,35 +24,27 @@ Tower Data Context:
             Classifiers:
                 FirRegularClassSymbol public final class Foo : R|kotlin/Any|
     Element 10
-        Context receivers:
-            FirScriptSymbol context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
-            SCRIPT: <script-insideClassBody.kts>
-                lval args: R|kotlin/Array<kotlin/String>|
-
-                public final class Foo : R|kotlin/Any|
+        Implicit receiver:
+            FirReceiverParameterSymbol <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
                 Type: kotlin.script.templates.standard.ScriptTemplateWithArgs
-                Label: <script>
     Element 11
         Implicit receiver:
             FirRegularClassSymbol public final class Foo : R|kotlin/Any|
                 Type: Foo
-    Element 12
-        Scope: FirLocalScope
 
 FILE: [ResolvedTo(IMPORTS)] insideClassBody.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-insideClassBody.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
         public final [ResolvedTo(STATUS)] class Foo : R|kotlin/Any| {
-            public [ResolvedTo(STATUS)] constructor(): R|Foo| {
+            public? [ResolvedTo(RAW_FIR)] constructor(): R|Foo| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final [ResolvedTo(STATUS)] val x: <implicit> = LAZY_EXPRESSION
-                public [ResolvedTo(STATUS)] get(): <implicit>
+            public? final? [ResolvedTo(RAW_FIR)] val x: <implicit> = LAZY_EXPRESSION
+                public? [ResolvedTo(RAW_FIR)] get(): <implicit>
 
-            public final [ResolvedTo(BODY_RESOLVE)] fun foo(): R|kotlin/Unit| {
-            }
+            public? final? [ResolvedTo(RAW_FIR)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
 
         }

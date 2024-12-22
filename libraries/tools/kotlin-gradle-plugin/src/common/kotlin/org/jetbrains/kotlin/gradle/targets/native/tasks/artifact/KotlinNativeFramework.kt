@@ -12,7 +12,9 @@ import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.jetbrains.kotlin.gradle.dsl.*
+import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.Companion.kotlinPropertiesProvider
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
+import org.jetbrains.kotlin.gradle.targets.native.toolchain.chooseKotlinNativeProvider
 import org.jetbrains.kotlin.gradle.tasks.dependsOn
 import org.jetbrains.kotlin.gradle.tasks.registerTask
 import org.jetbrains.kotlin.gradle.utils.lowerCamelCaseName
@@ -44,7 +46,6 @@ abstract class KotlinNativeFrameworkConfigImpl @Inject constructor(artifactName:
             toolOptionsConfigure = toolOptionsConfigure,
             binaryOptions = binaryOptions,
             target = target,
-            embedBitcode = embedBitcode,
             extensions = extensions
         )
     }
@@ -62,7 +63,8 @@ class KotlinNativeFrameworkImpl(
     override val toolOptionsConfigure: KotlinCommonCompilerToolOptions.() -> Unit,
     override val binaryOptions: Map<String, String>,
     override val target: KonanTarget,
-    override val embedBitcode: BitcodeEmbeddingMode?,
+    @Deprecated(BITCODE_EMBEDDING_DEPRECATION_MESSAGE)
+    override val embedBitcode: BitcodeEmbeddingMode? = null,
     extensions: ExtensionAware
 ) : KotlinNativeFramework, ExtensionAware by extensions {
     private val kind = NativeOutputKind.FRAMEWORK
@@ -87,7 +89,6 @@ class KotlinNativeFrameworkImpl(
                 buildType = buildType,
                 librariesConfigurationName = librariesConfigurationName,
                 exportConfigurationName = exportConfigurationName,
-                embedBitcode = embedBitcode
             )
             resultTask.dependsOn(targetTask)
         }
@@ -101,7 +102,6 @@ internal fun KotlinNativeArtifact.registerLinkFrameworkTask(
     buildType: NativeBuildType,
     librariesConfigurationName: String,
     exportConfigurationName: String,
-    embedBitcode: BitcodeEmbeddingMode?,
     outDirName: String = outDir,
     taskNameSuffix: String = ""
 ): TaskProvider<KotlinNativeLinkArtifactTask> {
@@ -112,7 +112,8 @@ internal fun KotlinNativeArtifact.registerLinkFrameworkTask(
         listOf(target, kind.compilerOutputKind)
     ) { task ->
         task.description = "Assemble ${kind.description} '$name' for a target '${target.name}'."
-        task.enabled = target.enabledOnCurrentHostForBinariesCompilation()
+        val enabledOnCurrentHost = target.enabledOnCurrentHostForBinariesCompilation()
+        task.enabled = enabledOnCurrentHost
         task.baseName.set(name)
         task.destinationDir.set(destinationDir)
         task.optimized.set(buildType.optimized)
@@ -120,13 +121,14 @@ internal fun KotlinNativeArtifact.registerLinkFrameworkTask(
         task.linkerOptions.set(linkerOptions)
         task.binaryOptions.set(binaryOptions)
         task.staticFramework.set(isStatic)
-        if (embedBitcode != null) {
-            task.embedBitcode.set(embedBitcode)
-        }
         task.libraries.setFrom(project.configurations.getByName(librariesConfigurationName))
         task.exportLibraries.setFrom(project.configurations.getByName(exportConfigurationName))
         @Suppress("DEPRECATION")
         task.kotlinOptions(kotlinOptionsFn)
+        task.kotlinNativeProvider.set(task.chooseKotlinNativeProvider(enabledOnCurrentHost, task.konanTarget))
+        task.kotlinCompilerArgumentsLogLevel
+            .value(project.kotlinPropertiesProvider.kotlinCompilerArgumentsLogLevel)
+            .finalizeValueOnRead()
     }
     project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).dependsOn(resultTask)
     return resultTask

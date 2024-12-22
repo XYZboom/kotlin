@@ -5,33 +5,35 @@
 
 package org.jetbrains.sir.lightclasses.nodes
 
-import org.jetbrains.kotlin.analysis.api.symbols.KtConstructorSymbol
-import org.jetbrains.kotlin.analysis.project.structure.KtModule
+import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.sir.*
 import org.jetbrains.kotlin.sir.providers.SirSession
 import org.jetbrains.kotlin.sir.providers.source.KotlinSource
-import org.jetbrains.kotlin.sir.providers.utils.computeIsOverrideForDesignatedInit
+import org.jetbrains.kotlin.sir.providers.utils.throwsAnnotation
 import org.jetbrains.sir.lightclasses.SirFromKtSymbol
 import org.jetbrains.sir.lightclasses.extensions.documentation
 import org.jetbrains.sir.lightclasses.extensions.lazyWithSessions
 import org.jetbrains.sir.lightclasses.extensions.withSessions
+import org.jetbrains.sir.lightclasses.utils.OverrideStatus
+import org.jetbrains.sir.lightclasses.utils.computeIsOverride
 import org.jetbrains.sir.lightclasses.utils.translateParameters
+import org.jetbrains.sir.lightclasses.utils.translatedAttributes
 
 internal class SirInitFromKtSymbol(
-    override val ktSymbol: KtConstructorSymbol,
-    override val ktModule: KtModule,
+    override val ktSymbol: KaConstructorSymbol,
+    override val ktModule: KaModule,
     override val sirSession: SirSession,
-) : SirInit(), SirFromKtSymbol<KtConstructorSymbol> {
+) : SirInit(), SirFromKtSymbol<KaConstructorSymbol> {
 
-    override val visibility: SirVisibility = SirVisibility.PUBLIC
+    override val visibility: SirVisibility by lazyWithSessions {
+        ktSymbol.sirVisibility(this) ?: error("$ktSymbol shouldn't be exposed to SIR")
+    }
+
     override val isFailable: Boolean = false
-    override val initKind: SirInitializerKind = SirInitializerKind.ORDINARY
 
     override val origin: SirOrigin by lazy {
         KotlinSource(ktSymbol)
-    }
-    override val kind: SirCallableKind by lazy {
-        SirCallableKind.CLASS_METHOD
     }
     override val parameters: List<SirParameter> by lazy {
         translateParameters()
@@ -40,15 +42,25 @@ internal class SirInitFromKtSymbol(
         ktSymbol.documentation()
     }
 
-    override val isOverride: Boolean by lazy {
-        computeIsOverrideForDesignatedInit(parent, parameters)
-    }
+    override val isRequired: Boolean = false
+
+    override val isConvenience: Boolean = false
+
+    override val isOverride: Boolean get() = overrideStatus is OverrideStatus.Overrides
+
+    private val overrideStatus: OverrideStatus<SirInit>? by lazy { computeIsOverride() }
 
     override var parent: SirDeclarationParent
         get() = withSessions {
-            ktSymbol.getSirParent(analysisSession)
+            ktSymbol.getSirParent(useSiteSession)
         }
         set(_) = Unit
+
+    override val attributes: List<SirAttribute> by lazy {
+        this.translatedAttributes + listOfNotNull(SirAttribute.NonOverride.takeIf { overrideStatus is OverrideStatus.Conflicts })
+    }
+
+    override val errorType: SirType get() = if (ktSymbol.throwsAnnotation != null) SirType.any else SirType.never
 
     override var body: SirFunctionBody? = null
 }

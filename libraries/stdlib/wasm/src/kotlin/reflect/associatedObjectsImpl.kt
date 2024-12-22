@@ -17,21 +17,9 @@ internal fun tryGetAssociatedObject(
     @Suppress("UNUSED_PARAMETER") klassId: Int,
     @Suppress("UNUSED_PARAMETER") keyId: Int,
 ): Any? {
-    // Init implicitly with AssociatedObjectsLowering:
+    // Init implicitly with AssociatedObjectsLowering and WasmCompiledModuleFragment::createTryGetAssociatedObjectFunction:
     // if (C1.klassId == klassId) if (Key1.klassId == keyId) return OBJ1
     // if (C2.klassId == klassId) if (Key2.klassId == keyId) return OBJ2
     // ...
     return null
 }
-
-// Remove after bootstrap KT-65322
-@Suppress("UNUSED_PARAMETER")
-internal fun addAssociatedObject(
-    mapToInit: MutableMap<ULong, Any>,
-    klassId: Int,
-    keyId: Int,
-    instance: Any
-): Unit = error("Remove after bootstrap")
-
-// Remove after bootstrap KT-65322
-internal fun initAssociatedObjects(): Unit = error("Remove after bootstrap")

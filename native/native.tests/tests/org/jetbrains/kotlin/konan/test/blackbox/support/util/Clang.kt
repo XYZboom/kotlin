@@ -19,6 +19,8 @@ import org.jetbrains.kotlin.konan.test.blackbox.support.settings.configurables
 import org.jetbrains.kotlin.native.executors.RunProcessException
 import org.jetbrains.kotlin.native.executors.runProcess
 import java.io.File
+import kotlin.test.assertTrue
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.measureTimedValue
 
@@ -43,10 +45,17 @@ internal enum class ClangMode {
     C, CXX
 }
 
+private fun AbstractNativeSimpleTest.defaultClangDistribution(): ClangDistribution =
+    if (testRunSettings.configurables.target.family.isAppleFamily) {
+        ClangDistribution.Toolchain
+    } else {
+        ClangDistribution.Llvm
+    }
+
 // FIXME: absoluteTargetToolchain might not work correctly with KONAN_USE_INTERNAL_SERVER because
 // :kotlin-native:dependencies:update is not a dependency of :native:native.tests:test where this test runs
 internal fun AbstractNativeSimpleTest.compileWithClang(
-    clangDistribution: ClangDistribution = ClangDistribution.Llvm,
+    clangDistribution: ClangDistribution = defaultClangDistribution(),
     clangMode: ClangMode = ClangMode.C,
     sourceFiles: List<File>,
     outputFile: File,
@@ -72,7 +81,7 @@ internal fun AbstractNativeSimpleTest.compileWithClang(
         addAll(
             when (clangMode) {
                 ClangMode.C -> clangArgsProvider.clangArgs
-                ClangMode.CXX -> clangArgsProvider.clangXXArgs
+                ClangMode.CXX -> clangArgsProvider.clangXXArgs + "-std=c++17"
             }
         )
         addAll(sourceFiles.map { it.absolutePath })
@@ -89,6 +98,10 @@ internal fun AbstractNativeSimpleTest.compileWithClang(
             // error: argument unused during compilation: '-static-libstdc++'
             add("-Wno-unused-command-line-argument")
             addAll(configurables.linkerKonanFlags)
+        }
+        if (configurables.target.family.isAppleFamily && clangDistribution == ClangDistribution.Llvm && clangMode == ClangMode.CXX) {
+            // Prevent KT-70603 by removing llvm-dev C++ stdlib from the search path
+            addAll(listOf("-stdlib++-isystem", "${configurables.absoluteTargetSysRoot}/usr/include/c++/v1"))
         }
         addAll(additionalClangFlags)
         add("-o")
@@ -135,14 +148,41 @@ internal fun AbstractNativeSimpleTest.compileWithClang(
     }
 }
 
-internal fun createModuleMap(directory: File, umbrellaHeader: File): File {
-    return directory.resolve("module.modulemap").apply {
-        writeText("""
-            module KotlinBridges {
-                umbrella header "${umbrellaHeader.absolutePath}"
-                export *
-            }
-            """.trimIndent()
-        )
+internal fun AbstractNativeSimpleTest.compileWithClangToStaticLibrary(
+    clangDistribution: ClangDistribution = defaultClangDistribution(),
+    clangMode: ClangMode = ClangMode.C,
+    sourceFiles: List<File>,
+    outputFile: File,
+    includeDirectories: List<File> = emptyList(),
+    frameworkDirectories: List<File> = emptyList(),
+    libraryDirectories: List<File> = emptyList(),
+    libraries: List<String> = emptyList(),
+    additionalClangFlags: List<String> = emptyList(),
+) : TestCompilationResult<out TestCompilationArtifact.BinaryLibrary> {
+    val llvmAr = ClangArgs.Native(testRunSettings.configurables).llvmAr().first()
+    val objFile = File("${outputFile.absolutePath}.o")
+    val compilationResult = compileWithClang(
+        clangDistribution,
+        clangMode,
+        sourceFiles,
+        outputFile = objFile,
+        includeDirectories,
+        frameworkDirectories,
+        libraryDirectories,
+        libraries,
+        additionalClangFlags = additionalClangFlags + listOf("-c"),
+        fmodules = false, // with `-fmodules`, ld cannot find symbol `_assert`
+    )
+    val loggedData = when (compilationResult) {
+        is TestCompilationResult.Success -> compilationResult.loggedData
+        is TestCompilationResult.DependencyFailures -> return compilationResult
+        is TestCompilationResult.CompilationToolFailure -> return compilationResult
+        is TestCompilationResult.UnexpectedFailure -> return compilationResult
     }
+    // Assuming that if the compiler succeeded, llvm-ar cannot fail.
+    runProcess(llvmAr, "-rc", outputFile.absolutePath, objFile.absolutePath) {
+        timeout = Duration.parse("1m")
+    }
+    assertTrue(outputFile.exists())
+    return TestCompilationResult.Success(TestCompilationArtifact.BinaryLibrary(outputFile), loggedData)
 }

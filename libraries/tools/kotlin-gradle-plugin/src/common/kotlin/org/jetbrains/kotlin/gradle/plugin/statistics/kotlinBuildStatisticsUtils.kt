@@ -45,7 +45,7 @@ internal fun collectGeneralConfigurationTimeMetrics(
                 BuildReportType.JSON -> configurationTimeMetrics.put(BooleanMetrics.JSON_BUILD_REPORT, true)
             }
         }
-        configurationTimeMetrics.put(StringMetrics.PROJECT_PATH,  project.rootDir.absolutePath)
+        configurationTimeMetrics.put(StringMetrics.PROJECT_PATH, project.rootDir.absolutePath)
         configurationTimeMetrics.put(StringMetrics.GRADLE_VERSION, gradle.gradleVersion)
 
         //will be updated with KT-58266
@@ -172,7 +172,7 @@ private fun collectAppliedPluginsStatistics(
     configurationTimeMetrics: MetricContainer,
 ) {
     for (plugin in ObservablePlugins.values()) {
-        project.plugins.withId(plugin.title) {
+        if (project.plugins.hasPlugin(plugin.title)) {
             configurationTimeMetrics.put(plugin.metric, true)
         }
     }

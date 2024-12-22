@@ -7,7 +7,7 @@ package org.jetbrains.kotlin.analysis.low.level.api.fir.lazy.resolve
 
 import org.jetbrains.kotlin.analysis.low.level.api.fir.LLFirModuleResolveComponents
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.targets.LLFirResolveTarget
-import org.jetbrains.kotlin.analysis.low.level.api.fir.project.structure.llFirModuleData
+import org.jetbrains.kotlin.analysis.low.level.api.fir.projectStructure.llFirModuleData
 import org.jetbrains.kotlin.analysis.low.level.api.fir.sessions.llFirSession
 import org.jetbrains.kotlin.analysis.low.level.api.fir.transformers.LLFirLazyResolverRunner
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.checkCanceled
@@ -50,6 +50,10 @@ internal class LLFirModuleLazyDeclarationResolver(val moduleComponents: LLFirMod
      * Resolution is performed under the lock specific to each declaration that is going to be resolved.
      */
     fun lazyResolveWithCallableMembers(target: FirRegularClass, toPhase: FirResolvePhase) {
+        if (target.resolvePhase >= toPhase && target.declarations.all { it !is FirCallableDeclaration || it.resolvePhase >= toPhase }) {
+            return
+        }
+
         lazyResolve(target, toPhase, LLFirResolveDesignationCollector::getDesignationToResolveWithCallableMembers)
     }
 
@@ -122,14 +126,21 @@ internal class LLFirModuleLazyDeclarationResolver(val moduleComponents: LLFirMod
         var currentPhase = getMinResolvePhase(target).coerceAtLeast(FirResolvePhase.IMPORTS)
         if (currentPhase >= toPhase) return
 
-        while (currentPhase < toPhase) {
-            currentPhase = currentPhase.next
-            checkCanceled()
+        val helper = LLFirResolutionActivityTracker.getInstance()
+        try {
+            helper?.beforeLazyResolve()
 
-            LLFirLazyResolverRunner.runLazyResolverByPhase(
-                phase = currentPhase,
-                target = target,
-            )
+            while (currentPhase < toPhase) {
+                currentPhase = currentPhase.next
+                checkCanceled()
+
+                LLFirLazyResolverRunner.runLazyResolverByPhase(
+                    phase = currentPhase,
+                    target = target,
+                )
+            }
+        } finally {
+            helper?.afterLazyResolve()
         }
     }
 
@@ -161,12 +172,12 @@ private fun handleExceptionFromResolve(
             appendLine("origin: ${(firDeclarationToResolve as? FirDeclaration)?.origin}")
             appendLine("session: ${session::class}")
             appendLine("module data: ${moduleData::class}")
-            appendLine("KtModule: ${module::class}")
-            appendLine("platform: ${module.platform}")
+            appendLine("KaModule: ${module::class}")
+            appendLine("platform: ${module.targetPlatform}")
         },
         exception = exception,
     ) {
-        withEntry("KtModule", module) { it.moduleDescription }
+        withEntry("KaModule", module) { it.moduleDescription }
         withEntry("session", session) { it.toString() }
         withEntry("moduleData", firDeclarationToResolve.moduleData) { it.toString() }
         withFirEntry("firDeclarationToResolve", firDeclarationToResolve)
@@ -187,12 +198,12 @@ private fun handleExceptionFromResolve(
             appendLine("Error while resolving ${designation::class.java.name} ")
             appendLine("to $toPhase")
             appendLine("module data: ${moduleData::class}")
-            appendLine("KtModule: ${module::class}")
-            appendLine("platform: ${module.platform}")
+            appendLine("KaModule: ${module::class}")
+            appendLine("platform: ${module.targetPlatform}")
         },
         exception = exception,
     ) {
-        withEntry("KtModule", module) { it.moduleDescription }
+        withEntry("KaModule", module) { it.moduleDescription }
         withEntry("session", session) { it.toString() }
         withEntry("moduleData", moduleData) { it.toString() }
         withEntry("firDesignationToResolve", designation) { it.toString() }

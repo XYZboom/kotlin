@@ -1,3 +1,5 @@
+// DISABLE_JAVA_FACADE
+// RUN_PIPELINE_TILL: BACKEND
 // FIR_IDENTICAL
 
 // ISSUE: KT-56520 (case 2, Space subcase)
@@ -12,7 +14,7 @@ interface Semaphore {}
 
 fun Semaphore(arg0: Int, arg: Int = 0) = 1
 
-// FILE: 2.java
+// FILE: java/util/concurrent/Semaphore.java
 package java.util.concurrent;
 
 public class Semaphore {

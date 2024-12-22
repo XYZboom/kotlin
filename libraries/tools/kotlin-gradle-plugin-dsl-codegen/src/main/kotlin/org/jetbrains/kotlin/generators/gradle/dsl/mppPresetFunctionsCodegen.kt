@@ -4,14 +4,13 @@
  */
 
 @file:OptIn(DeprecatedTargetPresetApi::class, InternalKotlinGradlePluginApi::class)
-@file:Suppress("DEPRECATION")
 
 package org.jetbrains.kotlin.generators.gradle.dsl
 
-import org.jetbrains.kotlin.gradle.plugin.*
 import org.gradle.api.Action
 import org.jetbrains.kotlin.gradle.DeprecatedTargetPresetApi
 import org.jetbrains.kotlin.gradle.InternalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.plugin.KotlinTargetsContainerWithPresets
 import java.io.File
 
 fun main() {
@@ -20,6 +19,7 @@ fun main() {
 
 private val parentInterface = KotlinTargetsContainerWithPresets::class
 
+@Suppress("DEPRECATION_ERROR")
 private val presetsProperty = KotlinTargetsContainerWithPresets::presets.name
 
 private fun generateKotlinTargetContainerWithPresetFunctionsInterface() {
@@ -60,7 +60,7 @@ private fun generateKotlinTargetContainerWithPresetFunctionsInterface() {
         "}"
     ).joinToString("\n\n")
 
-    val targetFile = File("$outputSourceRoot/${className.fqName.replace(".", "/")}.kt")
+    val targetFile = File("$kotlinGradlePluginSourceRoot/${className.fqName.replace(".", "/")}.kt")
     targetFile.writeText(code)
 }
 

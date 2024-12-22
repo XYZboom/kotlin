@@ -7,7 +7,8 @@ dependencies {
     api(project(":core:compiler.common"))
 
     implementation(project(":compiler:util"))
-    implementation(project(":generators"))
+    implementation(commonDependency("org.jetbrains.kotlin:kotlin-reflect")) { isTransitive = false }
+    api(project(":generators"))
 }
 
 sourceSets {

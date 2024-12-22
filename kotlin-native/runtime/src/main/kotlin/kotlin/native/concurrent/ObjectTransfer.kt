@@ -6,7 +6,6 @@
 package kotlin.native.concurrent
 
 import kotlinx.cinterop.*
-import kotlin.native.internal.Frozen
 import kotlin.concurrent.AtomicNativePtr
 
 /**
@@ -36,7 +35,6 @@ import kotlin.concurrent.AtomicNativePtr
  *
  *  @see [kotlin.native.runtime.GC.collect].
  */
-// Not @FreezingIsDeprecated: every `Worker.execute` uses this.
 @ObsoleteWorkersApi
 public enum class TransferMode(public val value: Int) {
     /**
@@ -54,9 +52,9 @@ public enum class TransferMode(public val value: Int) {
  * Detached object graph encapsulates transferrable detached subgraph which cannot be accessed
  * externally, until it is attached with the [attach] extension function.
  */
-@Frozen
-@FreezingIsDeprecated
 @ObsoleteWorkersApi
+@Deprecated("Support for the legacy memory manager has been completely removed. Use the pointed value directly. To pass the value through the C interop, use the StableRef class.")
+@DeprecatedSinceKotlin(errorSince = "2.1")
 public class DetachedObjectGraph<T> internal constructor(pointer: NativePtr) {
     @PublishedApi
     internal val stable: AtomicNativePtr = AtomicNativePtr(pointer)
@@ -78,7 +76,7 @@ public class DetachedObjectGraph<T> internal constructor(pointer: NativePtr) {
      * Returns raw C pointer value, usable for interoperability with C scenarious.
      */
     @ExperimentalForeignApi
-    public fun asCPointer(): COpaquePointer? = interpretCPointer<COpaque>(stable.value)
+    public fun asCPointer(): COpaquePointer? = interpretCPointer<COpaque>(stable.load())
 }
 
 /**
@@ -87,12 +85,14 @@ public class DetachedObjectGraph<T> internal constructor(pointer: NativePtr) {
  * make sense anymore, and shall be discarded, so attach of one DetachedObjectGraph object can only
  * happen once.
  */
-@FreezingIsDeprecated
 @ObsoleteWorkersApi
+@Deprecated("Support for the legacy memory manager has been completely removed.")
+@DeprecatedSinceKotlin(errorSince = "2.1")
+@Suppress("DEPRECATION_ERROR")
 public inline fun <reified T> DetachedObjectGraph<T>.attach(): T {
     var rawStable: NativePtr
     do {
-        rawStable = stable.value
+        rawStable = stable.load()
     } while (!stable.compareAndSet(rawStable, NativePtr.NULL))
     val result = attachObjectGraphInternal(rawStable) as T
     return result

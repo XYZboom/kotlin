@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // DIAGNOSTICS: -UNUSED_PARAMETER
 
 class A
@@ -19,35 +20,34 @@ class E {
         // `bar` calls are inapplicable since both E nor D aren't proper receivers
         // But prior to this change, every lambda was analyzed repeatedly for every candidate
         // Thus, the resulting time was exponential
-        <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-            <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-                <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-                    <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-                        <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-                            <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-                                <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-                                    <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-                                        <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-                                            <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-                                                <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-                                                    <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
-                                                        <!NONE_APPLICABLE!>bar<!> <!NONE_APPLICABLE!>{
+        <!NONE_APPLICABLE!>bar<!> {
+            <!NONE_APPLICABLE!>bar<!> {
+                <!NONE_APPLICABLE!>bar<!> {
+                    <!NONE_APPLICABLE!>bar<!> {
+                        <!NONE_APPLICABLE!>bar<!> {
+                            <!NONE_APPLICABLE!>bar<!> {
+                                <!NONE_APPLICABLE!>bar<!> {
+                                    <!NONE_APPLICABLE!>bar<!> {
+                                        <!NONE_APPLICABLE!>bar<!> {
+                                            <!NONE_APPLICABLE!>bar<!> {
+                                                <!NONE_APPLICABLE!>bar<!> {
+                                                    <!NONE_APPLICABLE!>bar<!> {
+                                                        <!NONE_APPLICABLE!>bar<!> {
                                                             <!NONE_APPLICABLE!>bar<!> {
 
                                                             }
-                                                        }<!>
-                                                    }<!>
-                                                }<!>
-                                            }<!>
-                                        }<!>
-                                    }<!>
-                                }<!>
-                            }<!>
-                        }<!>
-                    }<!>
-                }<!>
-            }<!>
-        }<!>
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
-

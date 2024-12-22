@@ -63,10 +63,10 @@ class CinteropIT : KGPBaseTest() {
     fun cinteropWithDefFileFromTaskOutput(gradleVersion: GradleVersion) {
         nativeProject("cinterop-with-def-creation-task", gradleVersion = gradleVersion) {
 
-            val defFilePath = projectPath.resolve("def/cinterop.def").toFile().canonicalFile.absolutePath
+            val defFilePath = projectPath.resolve("def/cinterop.def").toFile().absoluteFile.absolutePath
 
             build(":assemble") {
-                assertTasksUpToDate(":createDefFileTask") // this task does not have any action, so it always just UpToDate
+                assertTasksExecuted(":createDefFileTask")
                 extractNativeTasksCommandLineArgumentsFromOutput(":cinteropCinteropNative", toolName = NativeToolKind.C_INTEROP) {
                     assertCommandLineArgumentsContainSequentially("-def", defFilePath)
                 }
@@ -83,7 +83,7 @@ class CinteropIT : KGPBaseTest() {
     @GradleTest
     fun cinteropWithExplicitPassingHeader(gradleVersion: GradleVersion) {
         nativeProject("cinterop-with-header", gradleVersion = gradleVersion) {
-            val dummyHeaderPath = projectPath.resolve("libs").resolve("include").resolve("dummy.h").toFile().canonicalPath
+            val dummyHeaderPath = projectPath.resolve("libs").resolve("include").resolve("dummy.h").toFile().absolutePath
             build(":assemble") {
                 assertTasksExecuted(":cinteropCinteropNative")
                 extractNativeTasksCommandLineArgumentsFromOutput(":cinteropCinteropNative", toolName = NativeToolKind.C_INTEROP) {
@@ -92,6 +92,34 @@ class CinteropIT : KGPBaseTest() {
                     assertCommandLineArgumentsContainSequentially("-pkg", "cinterop")
                     assertCommandLineArgumentsDoNotContain("-def")
                 }
+            }
+        }
+    }
+
+    @DisplayName("KT-45559: cinterop checks headers content for up-to-date checks")
+    @GradleTest
+    fun cinteropHeadersContentUTDChecks(gradleVersion: GradleVersion) {
+        nativeProject("KT-45559-cinterop-header-UTD-checks", gradleVersion = gradleVersion) {
+            build(":cinteropCinteropNative") {
+                assertTasksExecuted(":cinteropCinteropNative")
+            }
+
+            projectPath.resolve("compilerOptionIncludeDir").resolve("dummyFromCompilerOption.h").replaceText(
+                "void dummyFromCompilerOption();", "void dummyFromCompilerOption(){};"
+            )
+            build(":cinteropCinteropNative") {
+                assertTasksExecuted(":cinteropCinteropNative")
+            }
+
+            projectPath.resolve("includeDirs").resolve("dummyFromIncludeDirs.h").replaceText(
+                "void dummyFromIncludeDirs();", "void dummyFromIncludeDirs(){};"
+            )
+            build(":cinteropCinteropNative") {
+                assertTasksExecuted(":cinteropCinteropNative")
+            }
+
+            build(":cinteropCinteropNative") {
+                assertTasksUpToDate(":cinteropCinteropNative")
             }
         }
     }
@@ -105,8 +133,8 @@ class CinteropIT : KGPBaseTest() {
                 assertOutputContains(
                     """
                     |For the Cinterop task, either the `definitionFile` or `packageName` parameter must be specified, however, neither has been provided.
-                    |
-                    |More info here: https://kotlinlang.org/docs/multiplatform-dsl-reference.html#cinterops 
+                    |Please specify either the `definitionFile` or `packageName` parameter for the Cinterop task.
+                    |More info here: https://kotlinlang.org/docs/multiplatform-dsl-reference.html#cinterops
                     """.trimMargin()
                 )
             }
@@ -121,10 +149,10 @@ class CinteropIT : KGPBaseTest() {
             "cinterop-with-header",
             gradleVersion = gradleVersion,
             buildOptions = defaultBuildOptions.copy(
-                configurationCache = true
+                configurationCache = BuildOptions.ConfigurationCacheValue.ENABLED
             )
         ) {
-            val dummyHeaderPath = projectPath.resolve("libs").resolve("include").resolve("dummy.h").toFile().canonicalPath
+            val dummyHeaderPath = projectPath.resolve("libs").resolve("include").resolve("dummy.h").toFile().absolutePath
             // first build with non-existing .def file and configuration cache enabled
             build(":assemble") {
                 assertTasksExecuted(":cinteropCinteropNative")
@@ -151,7 +179,7 @@ class CinteropIT : KGPBaseTest() {
                     assertCommandLineArgumentsContainSequentially("-header", dummyHeaderPath)
                     assertCommandLineArgumentsContainSequentially("-Ilibs/include")
                     assertCommandLineArgumentsContainSequentially("-pkg", "cinterop")
-                    assertCommandLineArgumentsContainSequentially("-def", cinteropDefFile.toFile().canonicalPath)
+                    assertCommandLineArgumentsContainSequentially("-def", cinteropDefFile.toFile().absolutePath)
                 }
             }
         }

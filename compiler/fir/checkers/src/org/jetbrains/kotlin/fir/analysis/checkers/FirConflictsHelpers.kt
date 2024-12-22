@@ -21,17 +21,14 @@ import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusIm
 import org.jetbrains.kotlin.fir.declarations.impl.modifiersRepresentation
 import org.jetbrains.kotlin.fir.declarations.utils.nameOrSpecialName
 import org.jetbrains.kotlin.fir.expressions.FirBlock
-import org.jetbrains.kotlin.fir.expressions.FirComponentCall
-import org.jetbrains.kotlin.fir.expressions.FirPropertyAccessExpression
-import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
-import org.jetbrains.kotlin.fir.resolve.outerType
 import org.jetbrains.kotlin.fir.resolve.providers.firProvider
-import org.jetbrains.kotlin.fir.resolve.scope
-import org.jetbrains.kotlin.fir.scopes.*
+import org.jetbrains.kotlin.fir.scopes.FirScope
 import org.jetbrains.kotlin.fir.scopes.impl.FirPackageMemberScope
-import org.jetbrains.kotlin.fir.scopes.impl.TypeAliasConstructorsSubstitutingScope
 import org.jetbrains.kotlin.fir.scopes.impl.toConeType
+import org.jetbrains.kotlin.fir.scopes.processAllFunctions
+import org.jetbrains.kotlin.fir.scopes.processAllProperties
+import org.jetbrains.kotlin.fir.scopes.processClassifiersByName
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.*
@@ -58,7 +55,7 @@ private val CallableId.isTopLevel get() = className == null
 
 private fun FirBasedSymbol<*>.isCollectable(): Boolean {
     if (this is FirCallableSymbol<*>) {
-        if (resolvedContextReceivers.any { it.typeRef.coneType.hasError() }) return false
+        if (resolvedContextParameters.any { it.returnTypeRef.coneType.hasError() }) return false
         if (typeParameterSymbols.any { it.toConeType().hasError() }) return false
         if (receiverParameter?.typeRef?.coneType?.hasError() == true) return false
         if (this is FirFunctionSymbol<*> && valueParameterSymbols.any { it.resolvedReturnType.hasError() }) return false
@@ -85,7 +82,7 @@ private fun FirBasedSymbol<*>.isCollectable(): Boolean {
 private val FirNamedFunctionSymbol.isCollectableAccordingToSource: Boolean
     get() = source?.kind !is KtFakeSourceElementKind || source?.kind == KtFakeSourceElementKind.DataClassGeneratedMembers
 
-private val FirBasedSymbol<*>.resolvedStatus
+internal val FirBasedSymbol<*>.resolvedStatus
     get() = when (this) {
         is FirCallableSymbol<*> -> resolvedStatus
         is FirClassLikeSymbol<*> -> resolvedStatus
@@ -165,7 +162,7 @@ class FirDeclarationCollector<D : FirBasedSymbol<*>>(
     val declarationConflictingSymbols: HashMap<D, SmartSet<FirBasedSymbol<*>>> = hashMapOf()
 }
 
-fun FirDeclarationCollector<FirBasedSymbol<*>>.collectClassMembers(klass: FirRegularClassSymbol) {
+fun FirDeclarationCollector<FirBasedSymbol<*>>.collectClassMembers(klass: FirClassSymbol<*>) {
     val otherDeclarations = mutableMapOf<String, MutableSet<FirBasedSymbol<*>>>()
     val functionDeclarations = mutableMapOf<String, MutableSet<FirFunctionSymbol<*>>>()
     val declaredMemberScope = klass.declaredMemberScope(context)
@@ -426,28 +423,8 @@ fun FirDeclarationCollector<FirBasedSymbol<*>>.collectTopLevel(file: FirFile, pa
     }
 }
 
-private fun FirClassLikeSymbol<*>.expandedClassWithConstructorsScope(context: CheckerContext): Pair<FirRegularClassSymbol, FirScope>? {
-    return when (this) {
-        is FirRegularClassSymbol -> this to unsubstitutedScope(context)
-        is FirTypeAliasSymbol -> {
-            val expandedType = resolvedExpandedTypeRef.coneType as? ConeClassLikeType
-            val expandedClass = expandedType?.toRegularClassSymbol(context.session)
-            val expandedTypeScope = expandedType?.scope(
-                context.session, context.scopeSession,
-                CallableCopyTypeCalculator.DoNothing,
-                requiredMembersPhase = FirResolvePhase.STATUS,
-            )
-
-            if (expandedType != null && expandedClass != null && expandedTypeScope != null) {
-                val outerType = outerType(expandedType, context.session) { it.outerClassSymbol(context) }
-                expandedClass to TypeAliasConstructorsSubstitutingScope(this, expandedTypeScope, outerType)
-            } else {
-                null
-            }
-        }
-        else -> null
-    }
-}
+private fun FirClassLikeSymbol<*>.expandedClassWithConstructorsScope(context: CheckerContext): Pair<FirRegularClassSymbol, FirScope>? =
+    expandedClassWithConstructorsScope(context.session, context.scopeSession, FirResolvePhase.STATUS)
 
 private fun shouldCheckForMultiplatformRedeclaration(dependency: FirBasedSymbol<*>, dependent: FirBasedSymbol<*>): Boolean {
     if (dependency.moduleData !in dependent.moduleData.allDependsOnDependencies) return false
@@ -497,6 +474,8 @@ private fun FirDeclarationCollector<FirBasedSymbol<*>>.collectTopLevelConflict(
 private fun FirNamedFunctionSymbol.representsMainFunctionAllowingConflictingOverloads(session: FirSession): Boolean {
     if (name != StandardNames.MAIN || !callableId.isTopLevel || !hasMainFunctionStatus) return false
     if (receiverParameter != null || typeParameterSymbols.isNotEmpty()) return false
+    val returnType = resolvedReturnType.fullyExpandedType(session)
+    if (!returnType.isUnit) return false
     if (valueParameterSymbols.isEmpty()) return true
     val paramType = valueParameterSymbols.singleOrNull()?.resolvedReturnTypeRef?.coneType?.fullyExpandedType(session) ?: return false
     if (!paramType.isNonPrimitiveArray) return false
@@ -528,8 +507,8 @@ private fun FirDeclarationCollector<*>.areNonConflictingCallables(
 
     if (declaration !is FirCallableSymbol<*> || conflicting !is FirCallableSymbol<*>) return false
 
-    val declarationIsFinal = declaration.isEffectivelyFinal(session)
-    val conflictingIsFinal = conflicting.isEffectivelyFinal(session)
+    val declarationIsFinal = declaration.isEffectivelyFinal()
+    val conflictingIsFinal = conflicting.isEffectivelyFinal()
 
     if (declarationIsFinal && conflictingIsFinal) {
         val declarationIsHidden = declaration.isDeprecationLevelHidden(session)
@@ -540,16 +519,6 @@ private fun FirDeclarationCollector<*>.areNonConflictingCallables(
     }
 
     return session.declarationOverloadabilityHelper.isOverloadable(declaration, conflicting)
-}
-
-internal fun FirVariable.getDestructuredParameter(): FirValueParameterSymbol? {
-    val initializer = initializer
-    if (initializer !is FirComponentCall) return null
-    if (initializer.source?.kind !is KtFakeSourceElementKind.DesugaredComponentFunctionCall) return null
-    val receiver = initializer.dispatchReceiver ?: initializer.extensionReceiver ?: return null
-    if (receiver !is FirPropertyAccessExpression) return null
-    val calleeReference = receiver.calleeReference as? FirResolvedNamedReference ?: return null
-    return calleeReference.resolvedSymbol as? FirValueParameterSymbol
 }
 
 /** Checks for redeclarations of value and type parameters, and local variables. */

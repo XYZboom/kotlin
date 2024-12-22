@@ -18,11 +18,13 @@
 
 package androidx.compose.compiler.plugins.kotlin
 
+import androidx.compose.compiler.plugins.StabilityTestProtos
 import androidx.compose.compiler.plugins.kotlin.analysis.FqNameMatcher
 import androidx.compose.compiler.plugins.kotlin.analysis.StabilityInferencer
 import androidx.compose.compiler.plugins.kotlin.facade.SourceFile
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.ir.declarations.IrClass
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.expressions.IrExpression
@@ -58,6 +60,7 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
         "class Foo<T>(val value: T)",
         "Parameter(T)"
     )
+
 
     @Test
     fun testValTypeParam33Types() = assertStability(
@@ -179,6 +182,19 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
         "interface Foo",
         "Uncertain(Foo)"
     )
+
+    @Test
+    fun testInterfacesAreUncertainOnIncrementalCompilation() {
+        assertStability(
+            classDefSrc = """
+                interface Foo
+            """,
+            transform = {
+                it.origin = IrDeclarationOrigin.IR_EXTERNAL_DECLARATION_STUB
+            },
+            stability = "Uncertain(Foo)"
+        )
+    }
 
     @Test
     fun testInterfaceWithStableValAreUncertain() = assertStability(
@@ -843,6 +859,16 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
         stability = "Stable",
         externalTypes = setOf("dependency.b.c.d.A"),
         packageName = "dependency.b.c.d"
+    )
+
+    @Test
+    fun testGenericLoop() = assertStability(
+        """
+            class B<T>(val a: A<T>)
+            class A<T>(val b: B<T>, val c: T)
+        """,
+        "class Foo(val a: A<String>)",
+        "Runtime(A)"
     )
 
     @Test
@@ -1556,7 +1582,7 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
                 }
             }
         """
-    )
+        )
 
     @Test
     fun testSingleVarVersusValProperty() = assertTransform(
@@ -1614,6 +1640,7 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
         classDefSrc: String,
         stability: String,
         externalTypes: Set<String> = emptySet(),
+        transform: (IrClass) -> Unit = {},
     ) {
         val source = """
             import androidx.compose.runtime.mutableStateOf
@@ -1630,10 +1657,10 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
         """.trimIndent()
 
         val files = listOf(SourceFile("Test.kt", source))
-        val irModule = compileToIr(files, registerExtensions = {
+        val irModule = compileToIr(files, additionalPaths, registerExtensions = {
             it.put(ComposeConfiguration.TEST_STABILITY_CONFIG_KEY, externalTypes)
         })
-        val irClass = irModule.files.last().declarations.first() as IrClass
+        val irClass = (irModule.files.last().declarations.first() as IrClass).apply(transform)
         val externalTypeMatchers = externalTypes.map { FqNameMatcher(it) }.toSet()
         val stabilityInferencer = StabilityInferencer(irModule.descriptor, externalTypeMatchers)
         val classStability = stabilityInferencer.stabilityOf(irClass.defaultType as IrType)
@@ -1652,7 +1679,7 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
         stability: String,
         dumpClasses: Boolean = false,
         externalTypes: Set<String> = emptySet(),
-        packageName: String = "dependency"
+        packageName: String = "dependency",
     ) {
         val irModule = buildModule(
             externalSrc,
@@ -1736,7 +1763,7 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
         expression: String,
         stability: String,
         dumpClasses: Boolean = false,
-        externalTypes: Set<String> = emptySet()
+        externalTypes: Set<String> = emptySet(),
     ) {
         val irModule = buildModule(
             externalSrc,
@@ -1778,7 +1805,7 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
         localSrc: String,
         dumpClasses: Boolean = false,
         packageName: String = "dependency",
-        externalTypes: Set<String>
+        externalTypes: Set<String>,
     ): IrModuleFragment {
         val dependencyFileName = "Test_REPLACEME_${uniqueNumber++}"
         val dependencySrc = """
@@ -1796,7 +1823,7 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
             $externalSrc
         """.trimIndent()
 
-        classLoader(dependencySrc, dependencyFileName, dumpClasses)
+        classLoader(dependencySrc, dependencyFileName, dumpClasses, additionalPaths)
             .allGeneratedFiles
             .also {
                 // Write the files to the class directory so they can be used by the next module
@@ -1818,7 +1845,7 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
         """.trimIndent()
 
         val files = listOf(SourceFile("Test.kt", source))
-        return compileToIr(files, listOf(classesDirectory.root), registerExtensions = {
+        return compileToIr(files, additionalPaths + classesDirectory.root, registerExtensions = {
             it.put(ComposeConfiguration.TEST_STABILITY_CONFIG_KEY, externalTypes)
             it.updateConfiguration()
         })
@@ -1828,7 +1855,7 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
         @Language("kotlin")
         checked: String,
         unchecked: String = "",
-        dumpTree: Boolean = false
+        dumpTree: Boolean = false,
     ) = verifyGoldenComposeIrTransform(
         checked,
         """
@@ -1837,4 +1864,13 @@ class ClassStabilityTransformTests(useFir: Boolean) : AbstractIrTransformTest(us
         """,
         dumpTree = dumpTree
     )
+
+    companion object {
+        val additionalPaths = listOf(
+            Classpath.jarFor<kotlinx.collections.immutable.ImmutableSet<*>>(), // kotlinx-collections
+            Classpath.jarFor<com.google.common.collect.ImmutableSet<*>>(), // guava
+            Classpath.jarFor<dagger.Lazy<*>>(), // dagger
+            Classpath.jarFor<StabilityTestProtos>() // protobuf-test-classes
+        )
+    }
 }

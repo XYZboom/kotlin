@@ -19,15 +19,13 @@ package androidx.compose.compiler.plugins.kotlin.lower
 import androidx.compose.compiler.plugins.kotlin.ComposeClassIds
 import androidx.compose.compiler.plugins.kotlin.FeatureFlags
 import androidx.compose.compiler.plugins.kotlin.ModuleMetrics
-import androidx.compose.compiler.plugins.kotlin.analysis.Stability
-import androidx.compose.compiler.plugins.kotlin.analysis.StabilityInferencer
-import androidx.compose.compiler.plugins.kotlin.analysis.forEach
-import androidx.compose.compiler.plugins.kotlin.analysis.hasStableMarker
-import androidx.compose.compiler.plugins.kotlin.analysis.knownStable
-import androidx.compose.compiler.plugins.kotlin.analysis.normalize
+import androidx.compose.compiler.plugins.kotlin.analysis.*
 import org.jetbrains.kotlin.backend.common.ClassLoweringPass
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.jvm.ir.isInlineClassType
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
+import org.jetbrains.kotlin.cli.common.messages.MessageCollector
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.IrImplementationDetail
 import org.jetbrains.kotlin.ir.IrStatement
@@ -37,24 +35,17 @@ import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrExpressionBodyImpl
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.defaultType
-import org.jetbrains.kotlin.ir.util.DeepCopySymbolRemapper
-import org.jetbrains.kotlin.ir.util.constructors
-import org.jetbrains.kotlin.ir.util.defaultType
-import org.jetbrains.kotlin.ir.util.isAnnotationClass
-import org.jetbrains.kotlin.ir.util.isAnonymousObject
-import org.jetbrains.kotlin.ir.util.isEnumClass
-import org.jetbrains.kotlin.ir.util.isEnumEntry
-import org.jetbrains.kotlin.ir.util.isFileClass
-import org.jetbrains.kotlin.ir.util.isInterface
+import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.platform.jvm.isJvm
+import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 
 enum class StabilityBits(val bits: Int) {
     UNSTABLE(0b100),
     STABLE(0b000);
+
     fun bitsForSlot(slot: Int): Int = bits shl (1 + slot * 3)
 }
 
@@ -65,21 +56,36 @@ enum class StabilityBits(val bits: Int) {
 class ClassStabilityTransformer(
     private val useK2: Boolean,
     context: IrPluginContext,
-    symbolRemapper: DeepCopySymbolRemapper,
     metrics: ModuleMetrics,
     stabilityInferencer: StabilityInferencer,
     private val classStabilityInferredCollection: ClassStabilityInferredCollection? = null,
     featureFlags: FeatureFlags,
-) : AbstractComposeLowering(context, symbolRemapper, metrics, stabilityInferencer, featureFlags),
+    private val messageCollector: MessageCollector,
+) : AbstractComposeLowering(context, metrics, stabilityInferencer, featureFlags),
     ClassLoweringPass,
     ModuleLoweringPass {
 
     private val StabilityInferredClass = getTopLevelClass(ComposeClassIds.StabilityInferred)
     private val UNSTABLE = StabilityBits.UNSTABLE.bitsForSlot(0)
     private val STABLE = StabilityBits.STABLE.bitsForSlot(0)
+    private val unstableClassesWarning: MutableSet<ClassDescriptor>? = if (!context.platform.isJvm()) mutableSetOf() else null
 
-    override fun lower(module: IrModuleFragment) {
-        module.transformChildrenVoid(this)
+
+    override fun lower(irModule: IrModuleFragment) {
+        irModule.transformChildrenVoid(this)
+
+        if (!context.platform.isJvm() && !unstableClassesWarning.isNullOrEmpty()) {
+            val classIds = unstableClassesWarning.mapTo(mutableSetOf()) { it.fqNameSafe.toString() }
+            val classesConcatenated = classIds.sorted().joinToString("\n")
+            messageCollector.report(
+                CompilerMessageSeverity.WARNING,
+                "Some of the dependencies were build using an older version of the Compose compiler plugin, " +
+                        "which may cause additional (or endless) recompositions on non-JVM targets. " +
+                        "To prevent that consider updating dependency libraries to versions built with a newer Compose compiler. " +
+                        "Right now, the following classes are considered `Unstable`:\n" +
+                        classesConcatenated
+            )
+        }
     }
 
     override fun lower(irClass: IrClass) {
@@ -96,11 +102,11 @@ class ClassStabilityTransformer(
 
         if (
             (
-                // Including public AND internal to support incremental compilation, which
-                // is separated by file.
-                cls.visibility != DescriptorVisibilities.PUBLIC &&
-                    cls.visibility != DescriptorVisibilities.INTERNAL
-            ) ||
+                    // Including public AND internal to support incremental compilation, which
+                    // is separated by file.
+                    cls.visibility != DescriptorVisibilities.PUBLIC &&
+                            cls.visibility != DescriptorVisibilities.INTERNAL
+                    ) ||
             cls.isEnumClass ||
             cls.isEnumEntry ||
             cls.isInterface ||
@@ -158,9 +164,12 @@ class ClassStabilityTransformer(
             stableExpr = if (externalParameters)
                 irConst(UNSTABLE)
             else
-                stability.irStableExpression { irConst(STABLE) } ?: irConst(UNSTABLE)
+                stability.irStableExpression(
+                    resolve = { irConst(STABLE) },
+                    reportUnknownStability = { unstableClassesWarning?.add(it.descriptor) }) ?: irConst(UNSTABLE)
         } else {
-            stableExpr = stability.irStableExpression() ?: irConst(UNSTABLE)
+            stableExpr =
+                stability.irStableExpression(reportUnknownStability = { unstableClassesWarning?.add(it.descriptor) }) ?: irConst(UNSTABLE)
             if (stability.knownStable()) {
                 parameterMask = 0b1
             }
@@ -175,15 +184,14 @@ class ClassStabilityTransformer(
             UNDEFINED_OFFSET,
             StabilityInferredClass.defaultType,
             StabilityInferredClass.constructors.first(),
-            0,
-            0,
-            1,
-            null
+            typeArgumentsCount = 0,
+            constructorTypeArgumentsCount = 0,
+            origin = null
         ).also {
             it.putValueArgument(0, irConst(parameterMask))
         }
 
-        if (useK2) {
+        if (useK2 && cls.hasFirDeclaration()) {
             context.metadataDeclarationRegistrar.addMetadataVisibleAnnotationsToElement(
                 cls,
                 annotation,
@@ -199,16 +207,11 @@ class ClassStabilityTransformer(
 
     @OptIn(IrImplementationDetail::class, UnsafeDuringIrConstructionAPI::class)
     private fun IrClass.addStabilityMarkerField(stabilityExpression: IrExpression) {
-        val stabilityField = this.makeStabilityField().apply {
-            initializer = context.irFactory.createExpressionBody(
-                UNDEFINED_OFFSET,
-                UNDEFINED_OFFSET,
-                stabilityExpression
-            )
-        }
-
-        if (context.platform.isJvm()) {
-            declarations += stabilityField
-        }
+        val stabilityField = makeStabilityField()
+        stabilityField.initializer = context.irFactory.createExpressionBody(
+            UNDEFINED_OFFSET,
+            UNDEFINED_OFFSET,
+            stabilityExpression
+        )
     }
 }

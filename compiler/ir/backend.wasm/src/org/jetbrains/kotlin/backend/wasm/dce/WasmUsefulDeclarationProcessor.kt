@@ -19,15 +19,16 @@ import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 internal class WasmUsefulDeclarationProcessor(
     override val context: WasmBackendContext,
     printReachabilityInfo: Boolean,
-    dumpReachabilityInfoToFile: String?
+    dumpReachabilityInfoToFile: String?,
 ) : UsefulDeclarationProcessor(printReachabilityInfo, removeUnusedAssociatedObjects = false, dumpReachabilityInfoToFile) {
 
     // The mapping from function for wrapping a kotlin closure/lambda with JS closure to function used to call a kotlin closure from JS side.
-    private val kotlinClosureToJsClosureConvertFunToKotlinClosureCallFun =
-        context.kotlinClosureToJsConverters.entries.associate { (k, v) -> v to context.closureCallExports[k] }
+    private val kotlinClosureToJsClosureConvertFunToKotlinClosureCallFun = context.fileContexts.mapValues { (_, fileContext) ->
+        fileContext.kotlinClosureToJsConverters.entries.associate { (k, v) -> v to fileContext.closureCallExports[k] }
+    }
 
     override val bodyVisitor: BodyVisitorBase = object : BodyVisitorBase() {
-        override fun visitConst(expression: IrConst<*>, data: IrDeclaration) = when (expression.kind) {
+        override fun visitConst(expression: IrConst, data: IrDeclaration) = when (expression.kind) {
             is IrConstKind.Null -> expression.type.enqueueType(data, "expression type")
             is IrConstKind.String -> context.wasmSymbols.stringGetLiteral.owner
                 .enqueue(data, "String literal intrinsic getter stringGetLiteral")
@@ -65,9 +66,9 @@ internal class WasmUsefulDeclarationProcessor(
 
         private fun tryToProcessIntrinsicCall(from: IrDeclaration, call: IrCall): Boolean = when (call.symbol) {
             context.wasmSymbols.unboxIntrinsic -> {
-                val fromType = call.getTypeArgument(0)
+                val fromType = call.typeArguments[0]
                 if (fromType != null && !fromType.isNothing() && !fromType.isNullableNothing()) {
-                    val backingField = call.getTypeArgument(1)
+                    val backingField = call.typeArguments[1]
                         ?.let { context.inlineClassesUtils.getInlinedClass(it) }
                         ?.let { getInlineClassBackingField(it) }
                     backingField?.enqueue(from, "backing inline class field for unboxIntrinsic")
@@ -79,11 +80,11 @@ internal class WasmUsefulDeclarationProcessor(
             context.wasmSymbols.refCastNull,
             context.wasmSymbols.refTest,
             context.wasmSymbols.wasmArrayCopy -> {
-                call.getTypeArgument(0)?.enqueueRuntimeClassOrAny(from, "intrinsic ${call.symbol.owner.name}")
+                call.typeArguments[0]?.enqueueRuntimeClassOrAny(from, "intrinsic ${call.symbol.owner.name}")
                 true
             }
             context.wasmSymbols.boxIntrinsic -> {
-                val type = call.getTypeArgument(0)!!
+                val type = call.typeArguments[0]!!
                 if (type == context.irBuiltIns.booleanType) {
                     context.wasmSymbols.getBoxedBoolean.owner.enqueue(from, "intrinsic boxIntrinsic")
                 } else {
@@ -114,6 +115,21 @@ internal class WasmUsefulDeclarationProcessor(
                     klass.enqueue(data, "receiver class")
                 }
                 function.enqueue(data, "method call")
+            }
+        }
+    }
+
+    override fun handleAssociatedObjects() {
+        for (klass in classesWithObjectAssociations) {
+            if (removeUnusedAssociatedObjects && !klass.isReachable()) continue
+
+            for (annotation in klass.annotations) {
+                val annotationClass = annotation.symbol.owner.constructedClass
+                if (removeUnusedAssociatedObjects && !annotationClass.isReachable()) continue
+
+                annotation.associatedObject()?.let { obj ->
+                    context.mapping.objectToGetInstanceFunction[obj]?.enqueue(klass, "associated object factory")
+                }
             }
         }
     }
@@ -189,7 +205,7 @@ internal class WasmUsefulDeclarationProcessor(
         irFunction.getEffectiveValueParameters().forEach { it.enqueueValueParameterType(irFunction) }
         irFunction.returnType.enqueueType(irFunction, "function return type")
 
-        kotlinClosureToJsClosureConvertFunToKotlinClosureCallFun[irFunction]?.enqueue(
+        kotlinClosureToJsClosureConvertFunToKotlinClosureCallFun[irFunction.fileOrNull]?.get(irFunction)?.enqueue(
             irFunction,
             "kotlin closure to JS closure conversion",
             false

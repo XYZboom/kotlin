@@ -5,16 +5,21 @@
 
 package org.jetbrains.kotlin.gradle.testbase
 
+import org.jetbrains.kotlin.gradle.KOTLIN_VERSION
 import org.jetbrains.kotlin.gradle.util.assertProcessRunResult
 import org.jetbrains.kotlin.gradle.util.modify
 import org.jetbrains.kotlin.gradle.util.runProcess
 import java.nio.file.Path
+import java.util.*
 import kotlin.io.path.exists
 import kotlin.test.assertEquals
 
-internal enum class XcodeBuildMode {
-    NORMAL,
-    TEST
+internal sealed class XcodeBuildAction(
+    val action: String,
+) {
+    object Build : XcodeBuildAction("build")
+    object Test : XcodeBuildAction("test")
+    class Archive(val archivePath: String) : XcodeBuildAction("archive")
 }
 
 internal fun TestProject.buildXcodeProject(
@@ -23,10 +28,13 @@ internal fun TestProject.buildXcodeProject(
     configuration: String = "Debug",
     destination: String = "generic/platform=iOS Simulator",
     sdk: String = "iphonesimulator",
-    buildMode: XcodeBuildMode = XcodeBuildMode.NORMAL,
-    extraArguments: Map<String, Any> = emptyMap(),
+    action: XcodeBuildAction = XcodeBuildAction.Build,
+    testRunEnvironment: Map<String, String> = emptyMap(),
+    buildSettingOverrides: Map<String, String> = emptyMap(),
+    appendToProperties: () -> String = { "" },
+    expectedExitCode: Int = 0,
 ) {
-    prepareForXcodebuild()
+    prepareForXcodebuild(appendToProperties)
 
     xcodebuild(
         xcodeproj = xcodeproj,
@@ -34,8 +42,10 @@ internal fun TestProject.buildXcodeProject(
         configuration = configuration,
         sdk = sdk,
         destination = destination,
-        buildMode = buildMode,
-        extraArguments = extraArguments
+        action = action,
+        buildSettingOverrides = buildSettingOverrides,
+        testRunEnvironment = testRunEnvironment,
+        expectedExitCode = expectedExitCode,
     )
 }
 
@@ -48,12 +58,14 @@ internal fun TestProject.xcodebuild(
     sdk: String? = null,
     arch: String? = null,
     destination: String? = null,
-    buildMode: XcodeBuildMode = XcodeBuildMode.NORMAL,
-    extraArguments: Map<String, Any> = emptyMap(),
+    action: XcodeBuildAction = XcodeBuildAction.Build,
+    testRunEnvironment: Map<String, String> = emptyMap(),
+    buildSettingOverrides: Map<String, String> = emptyMap(),
     derivedDataPath: Path? = projectPath.resolve("xcodeDerivedData"),
+    expectedExitCode: Int = 0,
 ) {
     xcodebuild(
-        buildList {
+        cmd = buildList {
             infix fun String.set(value: Any?) {
                 if (value != null) {
                     add(this)
@@ -68,6 +80,7 @@ internal fun TestProject.xcodebuild(
             }
 
             add("xcodebuild")
+            add(action.action)
             "-project" set xcodeproj
             "-workspace" set workspace
             "-scheme" set scheme
@@ -77,42 +90,69 @@ internal fun TestProject.xcodebuild(
             "-destination" set destination
             "-derivedDataPath" set derivedDataPath
 
-            extraArguments.forEach {
-                it.key eq it.value
+            when (action) {
+                is XcodeBuildAction.Build -> {}
+                is XcodeBuildAction.Test -> {
+                    // Disable parallel testing to output stdout/stderr from tests to xcodebuild
+                    add("-parallel-testing-enabled")
+                    add("NO")
+                }
+                is XcodeBuildAction.Archive -> {
+                    add("-archivePath")
+                    add(action.archivePath)
+                }
             }
 
-            if (buildMode == XcodeBuildMode.TEST) {
-                add("test")
+            buildSettingOverrides.forEach {
+                it.key eq it.value
             }
         },
-        workingDir,
+        workingDir = workingDir,
+        testRunEnvironment = testRunEnvironment,
+        expectedExitCode = expectedExitCode,
     )
 }
 
-internal fun TestProject.prepareForXcodebuild() {
+internal fun TestProject.prepareForXcodebuild(appendToProperties: () -> String = { "" }) {
     overrideMavenLocalIfNeeded()
 
     gradleProperties
         .takeIf(Path::exists)
         ?.let {
             it.append("kotlin_version=${buildOptions.kotlinVersion}")
-            it.append("test_fixes_version=${buildOptions.kotlinVersion}")
+            it.append("test_fixes_version=${KOTLIN_VERSION}")
+            appendToProperties().let { extraProperties ->
+                it.append(extraProperties)
+            }
             buildOptions.konanDataDir?.let { konanDataDir ->
                 it.append("konan.data.dir=${konanDataDir.toAbsolutePath().normalize()}")
+            }
+            val configurationCacheFlag = buildOptions.configurationCache.toBooleanFlag(gradleVersion)
+            if (configurationCacheFlag != null) {
+                it.append("org.gradle.unsafe.configuration-cache=$configurationCacheFlag")
+                it.append("org.gradle.unsafe.configuration-cache-problems=${buildOptions.configurationCacheProblems.name.lowercase(Locale.getDefault())}")
             }
         }
 
     build(":wrapper")
 }
 
-private fun TestProject.xcodebuild(cmd: List<String>, workingDir: Path) {
+private fun TestProject.xcodebuild(
+    cmd: List<String>,
+    workingDir: Path,
+    testRunEnvironment: Map<String, String>,
+    expectedExitCode: Int,
+) {
     val xcodebuildResult = runProcess(
         cmd = cmd,
-        environmentVariables = environmentVariables.environmentalVariables,
+        environmentVariables = environmentVariables.environmentalVariables + testRunEnvironment.mapKeys {
+            // e.g. TEST_RUNNER_FOO prefixed env gets passed to tests in "xcodebuild test" as FOO env
+            "TEST_RUNNER_" + it.key
+        },
         workingDir = workingDir.toFile(),
     )
     assertProcessRunResult(xcodebuildResult) {
-        assertEquals(0, exitCode, "Exit code mismatch for `xcodebuild`.")
+        assertEquals(expectedExitCode, exitCode, "Exit code mismatch for `xcodebuild`.")
     }
 }
 

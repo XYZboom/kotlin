@@ -5,15 +5,12 @@
 
 package org.jetbrains.kotlin.kapt4
 
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiJavaFile
-import org.jetbrains.kotlin.analysis.api.KtAnalysisApiInternals
-import org.jetbrains.kotlin.analysis.api.lifetime.KtLifetimeTokenProvider
-import org.jetbrains.kotlin.analysis.api.standalone.KtAlwaysAccessibleLifetimeTokenProvider
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaSourceModule
 import org.jetbrains.kotlin.analysis.api.standalone.buildStandaloneAnalysisAPISession
-import org.jetbrains.kotlin.analysis.project.structure.KtCompilerPluginsProvider
-import org.jetbrains.kotlin.analysis.project.structure.KtSourceModule
 import org.jetbrains.kotlin.asJava.classes.KtLightClassForFacade
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
@@ -23,29 +20,33 @@ import org.jetbrains.kotlin.cli.jvm.config.JvmClasspathRoot
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.config.CommonConfigurationKeys.USE_FIR
-import org.jetbrains.kotlin.extensions.ProjectExtensionDescriptor
 import org.jetbrains.kotlin.fir.extensions.FirAnalysisHandlerExtension
 import org.jetbrains.kotlin.kapt3.EfficientProcessorLoader
 import org.jetbrains.kotlin.kapt3.KAPT_OPTIONS
 import org.jetbrains.kotlin.kapt3.base.*
 import org.jetbrains.kotlin.kapt3.base.util.KaptBaseError
 import org.jetbrains.kotlin.kapt3.base.util.KaptLogger
+import org.jetbrains.kotlin.kapt3.base.util.doOpenInternalPackagesIfRequired
 import org.jetbrains.kotlin.kapt3.base.util.info
 import org.jetbrains.kotlin.kapt3.measureTimeMillis
 import org.jetbrains.kotlin.kapt3.util.MessageCollectorBackedKaptLogger
 import org.jetbrains.kotlin.metadata.deserialization.BinaryVersion
-import org.jetbrains.kotlin.utils.metadataVersion
+import org.jetbrains.kotlin.util.metadataVersion
 import java.io.File
 
+/**
+ * This extension implements K2 kapt via Analysis API standalone.
+ * This implementation is discontinued, and is left in the codebase only as a potential fallback in case we encounter critical problems
+ * with the new implementation ([FirKaptAnalysisHandlerExtension]).
+ */
 private class Kapt4AnalysisHandlerExtension : FirAnalysisHandlerExtension() {
     override fun isApplicable(configuration: CompilerConfiguration): Boolean {
         return configuration[KAPT_OPTIONS] != null && configuration.getBoolean(USE_FIR)
     }
 
-    @OptIn(KtAnalysisApiInternals::class)
-    override fun doAnalysis(configuration: CompilerConfiguration): Boolean {
+    override fun doAnalysis(project: Project, configuration: CompilerConfiguration): Boolean {
         val optionsBuilder = configuration[KAPT_OPTIONS]!!
-        val messageCollector = configuration[CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY]!!
+        val messageCollector = configuration.getNotNull(CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY)
         val logger = MessageCollectorBackedKaptLogger(
             KaptFlag.VERBOSE in optionsBuilder.flags,
             KaptFlag.INFO_AS_WARNINGS in optionsBuilder.flags,
@@ -72,30 +73,11 @@ private class Kapt4AnalysisHandlerExtension : FirAnalysisHandlerExtension() {
         val projectDisposable = Disposer.newDisposable("StandaloneAnalysisAPISession.project")
         try {
             val standaloneAnalysisAPISession =
-                buildStandaloneAnalysisAPISession(
-                    projectDisposable = projectDisposable,
-                    classLoader = Kapt4AnalysisHandlerExtension::class.java.classLoader) {
+                buildStandaloneAnalysisAPISession(projectDisposable = projectDisposable) {
                     @Suppress("DEPRECATION") // TODO: KT-61319 Kapt: remove usages of deprecated buildKtModuleProviderByCompilerConfiguration
                     buildKtModuleProviderByCompilerConfiguration(updatedConfiguration)
 
-                    registerProjectService(KtLifetimeTokenProvider::class.java, KtAlwaysAccessibleLifetimeTokenProvider())
-                    registerProjectService(KtCompilerPluginsProvider::class.java, object : KtCompilerPluginsProvider() {
-                        private val extensionStorage = CompilerPluginRegistrar.ExtensionStorage().apply {
-                            for (registrar in updatedConfiguration.getList(CompilerPluginRegistrar.COMPILER_PLUGIN_REGISTRARS)) {
-                                with(registrar) { registerExtensions(updatedConfiguration) }
-                            }
-                        }
-
-                        override fun <T : Any> getRegisteredExtensions(
-                            module: KtSourceModule,
-                            extensionType: ProjectExtensionDescriptor<T>,
-                        ): List<T> {
-                            @Suppress("UNCHECKED_CAST")
-                            return (extensionStorage.registeredExtensions[extensionType] as? List<T>) ?: emptyList()
-                        }
-
-                        override fun isPluginOfTypeRegistered(module: KtSourceModule, pluginType: CompilerPluginType): Boolean = false
-                    })
+                    registerCompilerPluginServices(updatedConfiguration)
                 }
 
             val (module, files) = standaloneAnalysisAPISession.modulesWithFiles.entries.single()
@@ -150,7 +132,7 @@ private class Kapt4AnalysisHandlerExtension : FirAnalysisHandlerExtension() {
     }
 
     private fun generateAndSaveStubs(
-        module: KtSourceModule,
+        module: KaSourceModule,
         files: List<PsiFile>,
         options: KaptOptions,
         logger: MessageCollectorBackedKaptLogger,
@@ -242,7 +224,13 @@ class Kapt4CompilerPluginRegistrar : CompilerPluginRegistrar() {
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
         if (!configuration.getBoolean(USE_FIR)) return
 
-        FirAnalysisHandlerExtension.registerExtension(Kapt4AnalysisHandlerExtension())
+        doOpenInternalPackagesIfRequired()
+
+        val implementation =
+            if (System.getProperty("kotlin.kapt.aa.impl") != null) Kapt4AnalysisHandlerExtension()
+            else FirKaptAnalysisHandlerExtension()
+
+        FirAnalysisHandlerExtension.registerExtension(implementation)
     }
 
     override val supportsK2: Boolean

@@ -14,6 +14,7 @@ class NativePrimitivesGenerator(writer: PrintWriter) : BasePrimitivesGenerator(w
         suppress("OVERRIDE_BY_INLINE")
         suppress("NOTHING_TO_INLINE")
         import("kotlin.native.internal.*")
+        import("kotlin.native.internal.escapeAnalysis.Escapes")
     }
 
     override fun CompanionObjectBuilder.modifyGeneratedCompanionObject(thisKind: PrimitiveType) {
@@ -166,6 +167,7 @@ class NativePrimitivesGenerator(writer: PrintWriter) : BasePrimitivesGenerator(w
         } else {
             modifySignature { isExternal = true }
             annotations += "GCUnsafeCall(\"Kotlin_${thisKind.capitalized}_toString\")"
+            annotations += "Escapes.Nothing"
         }
     }
 
@@ -177,27 +179,11 @@ class NativePrimitivesGenerator(writer: PrintWriter) : BasePrimitivesGenerator(w
         }
     }
 
-    private fun ClassBuilder.generateHashCode(thisKind: PrimitiveType) {
-        method {
-            signature {
-                isOverride = true
-                methodName = "hashCode"
-                returnType = PrimitiveType.INT.capitalized
-            }
-
-            when (thisKind) {
-                PrimitiveType.LONG -> "((this ushr 32) xor this).toInt()"
-                PrimitiveType.FLOAT -> "toBits()"
-                PrimitiveType.DOUBLE -> "toBits().hashCode()"
-                else -> "this${thisKind.castToIfNecessary(PrimitiveType.INT)}"
-            }.setAsExpressionBody()
-        }
-    }
-
     private fun ClassBuilder.generateCustomEquals(thisKind: PrimitiveType) {
         method {
             annotations += "Deprecated(\"Provided for binary compatibility\", level = DeprecationLevel.HIDDEN)"
             annotations += intrinsicConstEvaluationAnnotation
+            expectActual = ExpectActualModifier.Unspecified
             signature {
                 methodName = "equals"
                 parameter {
@@ -216,6 +202,7 @@ class NativePrimitivesGenerator(writer: PrintWriter) : BasePrimitivesGenerator(w
 
     private fun ClassBuilder.generateBits(thisKind: PrimitiveType) {
         method {
+            expectActual = ExpectActualModifier.Unspecified
             signature {
                 isExternal = true
                 visibility = MethodVisibility.INTERNAL

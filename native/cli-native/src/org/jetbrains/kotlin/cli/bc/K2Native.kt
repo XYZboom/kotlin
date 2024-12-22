@@ -1,6 +1,6 @@
 /*
- * Copyright 2010-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license
- * that can be found in the LICENSE file.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.cli.bc
@@ -9,29 +9,25 @@ import com.intellij.openapi.Disposable
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
 import org.jetbrains.kotlin.analyzer.CompilationErrorException
+import org.jetbrains.kotlin.backend.common.IrValidationError
 import org.jetbrains.kotlin.backend.konan.*
 import org.jetbrains.kotlin.cli.common.*
 import org.jetbrains.kotlin.cli.common.arguments.K2NativeCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.parseCommandLineArguments
-import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity.*
-import org.jetbrains.kotlin.cli.common.messages.MessageCollector
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity.ERROR
 import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.plugins.PluginCliParser
 import org.jetbrains.kotlin.config.*
-import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageConfig
 import org.jetbrains.kotlin.ir.linkage.partial.partialLinkageConfig
 import org.jetbrains.kotlin.ir.linkage.partial.setupPartialLinkageConfig
-import org.jetbrains.kotlin.ir.util.IrMessageLogger
+import org.jetbrains.kotlin.konan.KonanPendingCompilationError
 import org.jetbrains.kotlin.library.metadata.KlibMetadataVersion
 import org.jetbrains.kotlin.metadata.deserialization.BinaryVersion
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.util.profile
 import org.jetbrains.kotlin.utils.KotlinPaths
-
-
-private class K2NativeCompilerPerformanceManager: CommonCompilerPerformanceManager("Kotlin to Native Compiler")
 
 class K2Native : CLICompiler<K2NativeCompilerArguments>() {
 
@@ -57,19 +53,22 @@ class K2Native : CLICompiler<K2NativeCompilerArguments>() {
                 PluginCliParser.loadPluginsSafe(arguments.pluginClasspaths, arguments.pluginOptions, arguments.pluginConfigurations, configuration)
         if (pluginLoadResult != ExitCode.OK) return pluginLoadResult
 
-        val messageCollector = configuration.get(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY) ?: MessageCollector.NONE
-
         val enoughArguments = arguments.freeArgs.isNotEmpty() || arguments.isUsefulWithoutFreeArgs
         if (!enoughArguments) {
-            messageCollector.report(ERROR, "You have not specified any compilation arguments. No output has been produced.")
+            configuration.messageCollector.report(ERROR, "You have not specified any compilation arguments. No output has been produced.")
         }
         val environment = prepareEnvironment(arguments, configuration, rootDisposable)
 
         try {
             runKonanDriver(configuration, environment, rootDisposable)
         } catch (e: Throwable) {
-            if (e is KonanCompilationException || e is CompilationErrorException)
+            if (e is KonanCompilationException || e is CompilationErrorException || e is IrValidationError)
                 return ExitCode.COMPILATION_ERROR
+
+            if (e is KonanPendingCompilationError) {
+                configuration.report(ERROR, e.message)
+                return ExitCode.COMPILATION_ERROR
+            }
 
             configuration.report(ERROR, """
                 |Compilation failed: ${e.message}
@@ -93,7 +92,7 @@ class K2Native : CLICompiler<K2NativeCompilerArguments>() {
         val environment = KotlinCoreEnvironment.createForProduction(rootDisposable,
                 configuration, EnvironmentConfigFiles.NATIVE_CONFIG_FILES)
 
-        configuration.put(CLIConfigurationKeys.FLEXIBLE_PHASE_CONFIG, createFlexiblePhaseConfig(arguments))
+        configuration.phaseConfig = createPhaseConfig(arguments)
 
         /* Set default version of metadata version */
         val metadataVersionString = arguments.metadataVersion
@@ -101,14 +100,28 @@ class K2Native : CLICompiler<K2NativeCompilerArguments>() {
             configuration.put(CommonConfigurationKeys.METADATA_VERSION, KlibMetadataVersion.INSTANCE)
         }
 
-        val relativePathBases = arguments.relativePathBases
-        if (relativePathBases != null) {
-            configuration.put(CommonConfigurationKeys.KLIB_RELATIVE_PATH_BASES, relativePathBases.toList())
+        arguments.relativePathBases?.let {
+            configuration.put(KlibConfigurationKeys.KLIB_RELATIVE_PATH_BASES, it.toList())
         }
 
-        configuration.put(CommonConfigurationKeys.KLIB_NORMALIZE_ABSOLUTE_PATH, arguments.normalizeAbsolutePath)
+        // Values for keys for non-nullable arguments below must be also copied during 1st stage preparation within `KonanDriver.splitOntoTwoStages()`
+        configuration.put(KlibConfigurationKeys.KLIB_NORMALIZE_ABSOLUTE_PATH, arguments.normalizeAbsolutePath)
         configuration.put(CLIConfigurationKeys.RENDER_DIAGNOSTIC_INTERNAL_NAME, arguments.renderInternalDiagnosticNames)
-        configuration.put(CommonConfigurationKeys.PRODUCE_KLIB_SIGNATURES_CLASH_CHECKS, arguments.enableSignatureClashChecks)
+        configuration.put(KlibConfigurationKeys.PRODUCE_KLIB_SIGNATURES_CLASH_CHECKS, arguments.enableSignatureClashChecks)
+
+        configuration.put(KlibConfigurationKeys.NO_DOUBLE_INLINING, arguments.noDoubleInlining)
+        arguments.dumpSyntheticAccessorsTo?.let { configuration.put(KlibConfigurationKeys.SYNTHETIC_ACCESSORS_DUMP_DIR, it) }
+        configuration.put(
+            KlibConfigurationKeys.SYNTHETIC_ACCESSORS_WITH_NARROWED_VISIBILITY,
+            arguments.narrowedSyntheticAccessorsVisibility
+        )
+        configuration.put(
+            KlibConfigurationKeys.DUPLICATED_UNIQUE_NAME_STRATEGY,
+            DuplicatedUniqueNameStrategy.parseOrDefault(
+                arguments.duplicatedUniqueNameStrategy,
+                default = if (arguments.metadataKlib) DuplicatedUniqueNameStrategy.ALLOW_ALL_WITH_WARNING else DuplicatedUniqueNameStrategy.DENY
+            )
+        )
 
         return environment
     }
@@ -133,8 +146,8 @@ class K2Native : CLICompiler<K2NativeCompilerArguments>() {
                 parseCommandLineArguments(arguments, spawnedArguments)
                 val spawnedConfiguration = CompilerConfiguration()
 
-                spawnedConfiguration.put(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, configuration.getNotNull(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY))
-                spawnedConfiguration.put(IrMessageLogger.IR_MESSAGE_LOGGER, configuration.getNotNull(IrMessageLogger.IR_MESSAGE_LOGGER))
+                spawnedConfiguration.messageCollector =  configuration.getNotNull(CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY)
+                spawnedConfiguration.performanceManager = configuration.performanceManager
                 spawnedConfiguration.setupCommonArguments(spawnedArguments, this@K2Native::createMetadataVersion)
                 spawnedConfiguration.setupFromArguments(spawnedArguments)
                 spawnedConfiguration.setupPartialLinkageConfig(configuration.partialLinkageConfig)
@@ -144,8 +157,16 @@ class K2Native : CLICompiler<K2NativeCompilerArguments>() {
                 configuration.get(CommonConfigurationKeys.LANGUAGE_VERSION_SETTINGS)?.let {
                     spawnedConfiguration.put(CommonConfigurationKeys.LANGUAGE_VERSION_SETTINGS, it)
                 }
+                configuration.get(KonanConfigKeys.OVERRIDE_KONAN_PROPERTIES)?.let {
+                    spawnedConfiguration.put(KonanConfigKeys.OVERRIDE_KONAN_PROPERTIES, it)
+                }
                 spawnedConfiguration.setupConfiguration()
                 val spawnedEnvironment = prepareEnvironment(spawnedArguments, spawnedConfiguration, rootDisposable)
+                // KT-71976: Should empty `arguments` be provided, prepareEnvironment() resets the keys for 1st compilation stage
+                // In order to keep them, they should be re-initialized with the second invocation of `setupConfiguration()` lambda below.
+                // Meanwhile, the first invocation is still needed to initialize other important keys before `prepareEnvironment()`
+                // TODO KT-72014: Remove the second invocation of `setupConfiguration()`
+                spawnedConfiguration.setupConfiguration()
                 runKonanDriver(spawnedConfiguration, spawnedEnvironment, rootDisposable)
             }
         })
@@ -153,8 +174,21 @@ class K2Native : CLICompiler<K2NativeCompilerArguments>() {
     }
 
     private val K2NativeCompilerArguments.isUsefulWithoutFreeArgs: Boolean
-        get() = listTargets || listPhases || checkDependencies || !includes.isNullOrEmpty() ||
-                libraryToAddToCache != null || !exportedLibraries.isNullOrEmpty() || !compileFromBitcode.isNullOrEmpty()
+        get() {
+            if (listTargets || listPhases || checkDependencies) {
+                return true
+            }
+            // A little hack: produce == null is assumed to be treated as produce == "program" later in the pipeline.
+            val producingExecutable = produce == null || produce == "program"
+            // KT-68673: It is legal to store entry point in one of the libraries.
+            if (producingExecutable && libraries?.isNotEmpty() == true) {
+                return true
+            }
+            return !includes.isNullOrEmpty()
+                    || !exportedLibraries.isNullOrEmpty()
+                    || libraryToAddToCache != null
+                    || !compileFromBitcode.isNullOrEmpty()
+        }
 
     // It is executed before doExecute().
     override fun setupPlatformSpecificArgumentsAndServices(

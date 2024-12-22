@@ -45,7 +45,7 @@ internal class FirRegularClassImpl(
     override val symbol: FirRegularClassSymbol,
     override var companionObjectSymbol: FirRegularClassSymbol?,
     override val superTypeRefs: MutableList<FirTypeRef>,
-    override var contextReceivers: MutableOrEmptyList<FirContextReceiver>,
+    override var contextParameters: MutableOrEmptyList<FirValueParameter>,
 ) : FirRegularClass() {
     override var controlFlowGraphReference: FirControlFlowGraphReference? = null
     override val hasLazyNestedClassifiers: Boolean
@@ -63,7 +63,7 @@ internal class FirRegularClassImpl(
         declarations.forEach { it.accept(visitor, data) }
         annotations.forEach { it.accept(visitor, data) }
         superTypeRefs.forEach { it.accept(visitor, data) }
-        contextReceivers.forEach { it.accept(visitor, data) }
+        contextParameters.forEach { it.accept(visitor, data) }
     }
 
     override fun <D> transformChildren(transformer: FirTransformer<D>, data: D): FirRegularClassImpl {
@@ -73,7 +73,7 @@ internal class FirRegularClassImpl(
         transformDeclarations(transformer, data)
         transformAnnotations(transformer, data)
         transformSuperTypeRefs(transformer, data)
-        contextReceivers.transformInplace(transformer, data)
+        transformContextParameters(transformer, data)
         return this
     }
 
@@ -99,6 +99,11 @@ internal class FirRegularClassImpl(
 
     override fun <D> transformSuperTypeRefs(transformer: FirTransformer<D>, data: D): FirRegularClassImpl {
         superTypeRefs.transformInplace(transformer, data)
+        return this
+    }
+
+    override fun <D> transformContextParameters(transformer: FirTransformer<D>, data: D): FirRegularClassImpl {
+        contextParameters.transformInplace(transformer, data)
         return this
     }
 

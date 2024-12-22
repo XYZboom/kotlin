@@ -1,3 +1,5 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // LANGUAGE: +MultiPlatformProjects
 
 // MODULE: common
@@ -17,7 +19,7 @@ val <!ACTUAL_MISSING!>x2<!> = 2
 actual val x3 = 3
 
 // MODULE: main()()(intermediate)
-<!AMBIGUOUS_EXPECTS!>actual val x1 = 1<!>
+<!AMBIGUOUS_EXPECTS!>actual<!> val x1 = 1
 
 actual val x2 = 2
 

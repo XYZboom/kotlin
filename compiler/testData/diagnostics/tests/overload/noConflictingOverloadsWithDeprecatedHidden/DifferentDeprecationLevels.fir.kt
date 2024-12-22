@@ -1,7 +1,8 @@
-<!CONFLICTING_OVERLOADS!>@Deprecated(message = "", level = DeprecationLevel.WARNING) fun TestWarning()<!> {}
+// RUN_PIPELINE_TILL: FRONTEND
+@Deprecated(message = "", level = DeprecationLevel.WARNING) <!CONFLICTING_OVERLOADS!>fun TestWarning()<!> {}
 <!CONFLICTING_OVERLOADS!>fun TestWarning()<!> {}
 
-<!CONFLICTING_OVERLOADS!>@Deprecated(message = "", level = DeprecationLevel.ERROR) fun TestError()<!> {}
+@Deprecated(message = "", level = DeprecationLevel.ERROR) <!CONFLICTING_OVERLOADS!>fun TestError()<!> {}
 <!CONFLICTING_OVERLOADS!>fun TestError()<!> {}
 
 @Deprecated(message = "", level = DeprecationLevel.HIDDEN) fun TestHidden() {}

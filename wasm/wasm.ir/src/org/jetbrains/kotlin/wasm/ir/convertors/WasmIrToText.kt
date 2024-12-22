@@ -52,7 +52,8 @@ open class SExpressionBuilder {
 
 
 class WasmIrToText(
-    private val debugInformationGenerator: DebugInformationGenerator? = null
+    private val debugInformationGenerator: DebugInformationGenerator? = null,
+    private val optimizeInstructionFlow: Boolean = true,
 ) : SExpressionBuilder(), DebugInformationConsumer {
     override fun consumeDebugInformation(debugInformation: DebugInformation) {
         debugInformation.forEach {
@@ -61,6 +62,7 @@ class WasmIrToText(
             stringBuilder.append(it.name)
             when (it.data) {
                 is DebugData.StringData -> stringBuilder.append(" \"${it.data.value}\"")
+                else -> error("Unsupported debug data type ${it.data::class}")
             }
             stringBuilder.append(" ;)")
         }
@@ -78,12 +80,22 @@ class WasmIrToText(
             appendElement("align=$alignEffective")
     }
 
+    private fun appendInstrList(instr: List<WasmInstr>) {
+        if (optimizeInstructionFlow) {
+            for (instruction in processInstructionsFlow(instr.asSequence())) {
+                appendInstr(instruction)
+            }
+        } else {
+            instr.forEach(::appendInstr)
+        }
+    }
+
     private fun appendInstr(wasmInstr: WasmInstr) {
         wasmInstr.location?.let {
             debugInformationGenerator?.addSourceLocation(
                 SourceLocationMappingToText(
                     it,
-                    SourceLocation.Location("", stringBuilder.lineNumber, stringBuilder.columnNumber),
+                    SourceLocation.DefinedLocation("", "", stringBuilder.lineNumber, stringBuilder.columnNumber),
                 )
             )
         }
@@ -371,7 +383,7 @@ class WasmIrToText(
     private fun WasmImportDescriptor.appendImportPair() {
         sameLineList("import") {
             toWatString(moduleName)
-            toWatString(declarationName)
+            toWatString(declarationName.owner)
         }
     }
 
@@ -386,7 +398,7 @@ class WasmIrToText(
                 }
             }
             function.locals.forEach { if (!it.isParameter) appendLocal(it) }
-            function.instructions.forEach { appendInstr(it) }
+            appendInstrList(function.instructions)
         }
     }
 
@@ -423,7 +435,7 @@ class WasmIrToText(
             else
                 appendType(global.type)
 
-            global.init.forEach { appendInstr(it) }
+            appendInstrList(global.init)
         }
     }
 

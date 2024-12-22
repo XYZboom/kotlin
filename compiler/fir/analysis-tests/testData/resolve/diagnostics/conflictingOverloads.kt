@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 <!CONFLICTING_OVERLOADS!>fun test(x: Int)<!> {}
 
 <!CONFLICTING_OVERLOADS!>fun test(y: Int)<!> {}
@@ -17,7 +18,7 @@ class <!CLASSIFIER_REDECLARATION!>A<!> {
 }
 
 class <!CLASSIFIER_REDECLARATION!>B<!> : <!SUPERTYPE_NOT_INITIALIZED!>A<!> {
-    <!CONFLICTING_OVERLOADS!>override fun rest(s: String)<!> {}
+    override <!CONFLICTING_OVERLOADS!>fun rest(s: String)<!> {}
 
     <!CONFLICTING_OVERLOADS!>fun <!VIRTUAL_MEMBER_HIDDEN!>rest<!>(s: String)<!> {}
 
@@ -68,4 +69,4 @@ class <!CONFLICTING_OVERLOADS!>mest<!>
 
 <!FUNCTION_DECLARATION_WITH_NO_NAME!>fun()<!> {}
 
-<!FUNCTION_DECLARATION_WITH_NO_NAME!>private fun()<!> {}
+private <!FUNCTION_DECLARATION_WITH_NO_NAME!>fun()<!> {}

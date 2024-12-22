@@ -7,14 +7,12 @@ package org.jetbrains.kotlin.fir.symbols.impl
 
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.descriptors.ClassKind
-import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.*
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.lazyResolveToPhase
+import org.jetbrains.kotlin.fir.types.ConeClassLikeLookupTag
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
-import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.toLookupTag
 import org.jetbrains.kotlin.mpp.ClassLikeSymbolMarker
 import org.jetbrains.kotlin.mpp.RegularClassSymbolMarker
@@ -54,7 +52,7 @@ sealed class FirClassLikeSymbol<out D : FirClassLikeDeclaration>(
 
 sealed class FirClassSymbol<out C : FirClass>(classId: ClassId) : FirClassLikeSymbol<C>(classId) {
     private val lookupTag: ConeClassLikeLookupTag =
-        if (classId.isLocal) ConeClassLookupTagWithFixedSymbol(classId, this)
+        if (classId.isLocal) ConeClassLikeLookupTagWithFixedSymbol(classId, this)
         else classId.toLookupTag()
 
     override fun toLookupTag(): ConeClassLikeLookupTag = lookupTag
@@ -80,11 +78,11 @@ class FirRegularClassSymbol(classId: ClassId) : FirClassSymbol<FirRegularClass>(
     val companionObjectSymbol: FirRegularClassSymbol?
         get() = fir.companionObjectSymbol
 
-    val resolvedContextReceivers: List<FirContextReceiver>
+    val resolvedContextParameters: List<FirValueParameter>
         get() {
-            if (fir.contextReceivers.isEmpty()) return emptyList()
+            if (fir.contextParameters.isEmpty()) return emptyList()
             lazyResolveToPhase(FirResolvePhase.TYPES)
-            return fir.contextReceivers
+            return fir.contextParameters
         }
 }
 
@@ -93,7 +91,12 @@ class FirAnonymousObjectSymbol(packageFqName: FqName) : FirClassSymbol<FirAnonym
 )
 
 class FirTypeAliasSymbol(classId: ClassId) : FirClassLikeSymbol<FirTypeAlias>(classId), TypeAliasSymbolMarker {
-    override fun toLookupTag(): ConeClassLikeLookupTag = classId.toLookupTag()
+    private val lookupTag: ConeClassLikeLookupTag =
+        if (classId.isLocal) ConeClassLikeLookupTagWithFixedSymbol(classId, this)
+        else classId.toLookupTag()
+
+    override fun toLookupTag(): ConeClassLikeLookupTag = lookupTag
+
 
     val resolvedExpandedTypeRef: FirResolvedTypeRef
         get() {

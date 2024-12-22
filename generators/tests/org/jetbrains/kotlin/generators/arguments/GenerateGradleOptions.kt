@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -53,7 +53,6 @@ private const val JVM_COMPILER_OPTIONS_KDOC = "Compiler options for Kotlin/JVM."
 private const val JS_COMPILER_OPTIONS_KDOC = "Compiler options for Kotlin/JS."
 private const val NATIVE_COMPILER_OPTIONS_KDOC = "Compiler options for Kotlin Native."
 private const val MULTIPLATFORM_COMPILER_OPTION_KDOC = "Compiler options for the Kotlin common platform."
-private const val JS_DCE_TOOL_OPTIONS_KDOC = "Options for the Kotlin JavaScript dead code elimination tool."
 
 fun generateKotlinGradleOptions(withPrinterToFile: (targetFile: File, Printer.() -> Unit) -> Unit) {
     val apiSrcDir = File(GRADLE_API_SRC_DIR)
@@ -120,20 +119,6 @@ fun generateKotlinGradleOptions(withPrinterToFile: (targetFile: File, Printer.()
         commonCompilerOptionsImpl.baseImplName,
         commonCompilerOptionsImpl.helperName,
         nativeOptions.properties,
-        withPrinterToFile
-    )
-
-    val jsDceOptions = generateJsDceOptions(
-        apiSrcDir,
-        commonToolOptions,
-        withPrinterToFile
-    )
-    generateJsDceOptionsImpl(
-        srcDir,
-        jsDceOptions.optionsName,
-        commonToolImplOptions.baseImplName,
-        commonToolImplOptions.helperName,
-        jsDceOptions.properties,
         withPrinterToFile
     )
 
@@ -472,73 +457,6 @@ private fun generateKotlinNativeOptionsImpl(
             commonCompilerHelper,
             k2NativeCompilerArgumentsFqName,
             nativeOptions
-        )
-    }
-}
-
-
-private fun generateJsDceOptions(
-    apiSrcDir: File,
-    commonToolOptions: GeneratedOptions,
-    withPrinterToFile: (targetFile: File, Printer.() -> Unit) -> Unit
-): GeneratedOptions {
-    val jsDceInterfaceFqName = FqName("$OPTIONS_PACKAGE_PREFIX.KotlinJsDceCompilerToolOptions")
-    val jsDceOptions = gradleOptions<K2JSDceArguments>()
-    withPrinterToFile(fileFromFqName(apiSrcDir, jsDceInterfaceFqName)) {
-        generateInterface(
-            jsDceInterfaceFqName,
-            jsDceOptions,
-            parentType = commonToolOptions.optionsName,
-            interfaceKDoc = JS_DCE_TOOL_OPTIONS_KDOC,
-        )
-    }
-
-    val deprecatedJsDceInterfaceFqName = FqName("$OPTIONS_PACKAGE_PREFIX.KotlinJsDceOptions")
-    withPrinterToFile(fileFromFqName(apiSrcDir, deprecatedJsDceInterfaceFqName)) {
-        generateDeprecatedInterface(
-            deprecatedJsDceInterfaceFqName,
-            jsDceInterfaceFqName,
-            jsDceOptions,
-            parentType = commonToolOptions.deprecatedOptionsName,
-            interfaceKDoc = JS_DCE_TOOL_OPTIONS_KDOC,
-        )
-    }
-
-    println("\n### Attributes specific for JS/DCE\n")
-    generateMarkdown(jsDceOptions)
-
-    return GeneratedOptions(jsDceInterfaceFqName, deprecatedJsDceInterfaceFqName, jsDceOptions)
-}
-
-private fun generateJsDceOptionsImpl(
-    srcDir: File,
-    jsDceInterfaceFqName: FqName,
-    commonToolImpl: FqName,
-    commonToolHelper: FqName,
-    jsDceOptions: List<KProperty1<*, *>>,
-    withPrinterToFile: (targetFile: File, Printer.() -> Unit) -> Unit
-) {
-    val jsDceImplFqName = FqName("${jsDceInterfaceFqName.asString()}$IMPLEMENTATION_SUFFIX")
-    withPrinterToFile(fileFromFqName(srcDir, jsDceImplFqName)) {
-        generateImpl(
-            jsDceImplFqName,
-            commonToolImpl,
-            jsDceInterfaceFqName,
-            jsDceOptions
-        )
-    }
-
-    val k2JsDceArgumentsFqName = FqName(K2JSDceArguments::class.qualifiedName!!)
-    val jsDceCompilerHelperFqName = FqName(
-        "${jsDceInterfaceFqName.asString()}$IMPLEMENTATION_HELPERS_SUFFIX"
-    )
-    withPrinterToFile(fileFromFqName(srcDir, jsDceCompilerHelperFqName)) {
-        generateCompilerOptionsHelper(
-            jsDceInterfaceFqName,
-            jsDceCompilerHelperFqName,
-            commonToolHelper,
-            k2JsDceArgumentsFqName,
-            jsDceOptions
         )
     }
 }

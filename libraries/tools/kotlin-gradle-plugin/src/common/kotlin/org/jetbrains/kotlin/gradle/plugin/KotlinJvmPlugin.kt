@@ -11,7 +11,6 @@ import org.jetbrains.kotlin.gradle.dsl.*
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.Companion.kotlinPropertiesProvider
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.jetbrains.kotlin.gradle.tasks.*
-import org.jetbrains.kotlin.gradle.utils.configureExperimentalTryNext
 
 const val KOTLIN_DSL_NAME = "kotlin"
 
@@ -30,7 +29,6 @@ internal open class KotlinJvmPlugin(
             extensionCompilerOptions: KotlinJvmCompilerOptions,
             targetCompilerOptions: KotlinJvmCompilerOptions
         ) {
-            extensionCompilerOptions.verbose.convention(logger.isDebugEnabled)
             extensionCompilerOptions.moduleName.convention(baseModuleName())
             DefaultKotlinJavaToolchain.wireJvmTargetToToolchain(
                 extensionCompilerOptions,
@@ -47,29 +45,7 @@ internal open class KotlinJvmPlugin(
         Kotlin2JvmSourceSetProcessor(tasksProvider, KotlinCompilationInfo(compilation))
 
     override fun apply(project: Project) {
-        @Suppress("UNCHECKED_CAST", "TYPEALIAS_EXPANSION_DEPRECATION", "DEPRECATION")
-        val target = (project.objects.newInstance(
-            KotlinWithJavaTarget::class.java,
-            project,
-            KotlinPlatformType.jvm,
-            targetName,
-            {
-                object : DeprecatedHasCompilerOptions<KotlinJvmCompilerOptions> {
-                    override val options: KotlinJvmCompilerOptions =
-                        project.objects
-                            .newInstance(KotlinJvmCompilerOptionsDefault::class.java)
-                            .configureExperimentalTryNext(project)
-                }
-            },
-            { compilerOptions: KotlinJvmCompilerOptions ->
-                object : KotlinJvmOptions {
-                    override val options: KotlinJvmCompilerOptions get() = compilerOptions
-                }
-            }
-        ) as KotlinWithJavaTarget<KotlinJvmOptions, KotlinJvmCompilerOptions>)
-            .apply {
-                disambiguationClassifier = null // don't add anything to the task names
-            }
+        val target = project.objects.KotlinWithJavaTargetForJvm(project, targetName)
         val kotlinExtension = project.kotlinExtension as KotlinJvmProjectExtension
         kotlinExtension.targetFuture.complete(target)
 
@@ -83,7 +59,7 @@ internal open class KotlinJvmPlugin(
 
     override fun configureClassInspectionForIC(project: Project) {
         // For new IC this task is not needed
-        if (!project.kotlinPropertiesProvider.useClasspathSnapshot) {
+        if (!project.kotlinPropertiesProvider.useClasspathSnapshot.get()) {
             super.configureClassInspectionForIC(project)
         }
     }

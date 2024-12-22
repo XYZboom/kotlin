@@ -1,15 +1,11 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.backend.jvm.codegen
 
-import org.jetbrains.kotlin.backend.common.ir.getDefaultAdditionalStatementsFromInlinedBlock
-import org.jetbrains.kotlin.backend.common.ir.getNonDefaultAdditionalStatementsFromInlinedBlock
-import org.jetbrains.kotlin.backend.common.ir.getOriginalStatementsFromInlinedBlock
 import org.jetbrains.kotlin.backend.common.lower.BOUND_RECEIVER_PARAMETER
-import org.jetbrains.kotlin.backend.common.lower.LoweredStatementOrigins
 import org.jetbrains.kotlin.backend.jvm.*
 import org.jetbrains.kotlin.backend.jvm.intrinsics.IntrinsicMethod
 import org.jetbrains.kotlin.backend.jvm.intrinsics.JavaClassProperty
@@ -39,7 +35,6 @@ import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedDescriptor
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
 import org.jetbrains.kotlin.ir.expressions.*
-import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrCompositeImpl
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.symbols.IrTypeParameterSymbol
@@ -47,10 +42,13 @@ import org.jetbrains.kotlin.ir.symbols.IrValueParameterSymbol
 import org.jetbrains.kotlin.ir.symbols.IrValueSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.isNullable
+import org.jetbrains.kotlin.ir.util.isSubtypeOfClass
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
+import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.jvm.AsmTypes
 import org.jetbrains.kotlin.resolve.jvm.AsmTypes.JAVA_STRING_TYPE
@@ -148,7 +146,7 @@ class ExpressionCodegen(
     var finallyDepth = 0
 
     val enclosingFunctionForLocalObjects: IrFunction
-        get() = generateSequence(irFunction) { context.enclosingMethodOverride[it] }.last()
+        get() = generateSequence(irFunction) { it.enclosingMethodOverride }.last()
 
     val context = classCodegen.context
     val typeMapper = classCodegen.typeMapper
@@ -295,7 +293,7 @@ class ExpressionCodegen(
 
         if ((DescriptorVisibilities.isPrivate(irFunction.visibility) && !shouldGenerateNonNullAssertionsForPrivateFun(irFunction)) ||
             irFunction.origin.isSynthetic ||
-            irFunction.origin == JvmLoweredDeclarationOrigin.INLINE_LAMBDA ||
+            irFunction.origin == IrDeclarationOrigin.INLINE_LAMBDA ||
             // TODO: refine this condition to not generate nullability assertions on parameters
             //       corresponding to captured variables and anonymous object super constructor arguments
             (irFunction is IrConstructor && irFunction.parentAsClass.isAnonymousObject) ||
@@ -338,7 +336,7 @@ class ExpressionCodegen(
     // * Hidden constructors with mangled parameters require non-null assertions (see KT-53492)
     private fun shouldGenerateNonNullAssertionsForPrivateFun(irFunction: IrFunction): Boolean {
         if (irFunction is IrSimpleFunction && irFunction.isOperator || irFunction.origin == IrDeclarationOrigin.LOCAL_FUNCTION_FOR_LAMBDA) return true
-        if (context.hiddenConstructorsWithMangledParams.containsKey(irFunction)) return true
+        if (irFunction is IrConstructor && irFunction.hiddenConstructorMangledParams != null) return true
         return false
     }
 
@@ -382,11 +380,7 @@ class ExpressionCodegen(
         // If the parameter is an extension receiver parameter or a captured extension receiver from enclosing,
         // then generate name accordingly.
         val name = if (param.origin == BOUND_RECEIVER_PARAMETER || isReceiver) {
-            getNameForReceiverParameter(
-                irFunction.toIrBasedDescriptor(),
-                state.bindingContext,
-                context.config.languageVersionSettings
-            )
+            getNameForReceiverParameter(irFunction.toIrBasedDescriptor(), context.config.languageVersionSettings)
         } else {
             param.name.asString()
         }
@@ -400,7 +394,7 @@ class ExpressionCodegen(
 
     override fun visitBlock(expression: IrBlock, data: BlockInfo): PromisedValue {
         assert(expression !is IrReturnableBlock) { "unlowered returnable block: ${expression.dump()}" }
-        val isSynthesizedInitBlock = expression.origin == LoweredStatementOrigins.SYNTHESIZED_INIT_BLOCK
+        val isSynthesizedInitBlock = expression.origin == IrStatementOrigin.SYNTHESIZED_INIT_BLOCK
         if (isSynthesizedInitBlock) {
             expression.markLineNumber(startOffset = true)
             mv.nop()
@@ -471,13 +465,8 @@ class ExpressionCodegen(
     override fun visitInlinedFunctionBlock(inlinedBlock: IrInlinedFunctionBlock, data: BlockInfo): PromisedValue {
         val info = BlockInfo(data)
 
-        val inlineCall = inlinedBlock.inlineCall
+        val inlineCall = inlinedBlock.inlineCall!!
         val callee = inlinedBlock.inlineDeclaration as? IrFunction
-
-        // 1. Evaluate NON DEFAULT arguments from inline function call
-        inlinedBlock.getNonDefaultAdditionalStatementsFromInlinedBlock().forEach { exp ->
-            exp.accept(this, info).discard()
-        }
 
         lineNumberMapper.beforeIrInline(inlinedBlock)
 
@@ -485,7 +474,7 @@ class ExpressionCodegen(
             inlineCall.markLineNumber(startOffset = true)
             mv.nop()
 
-            lineNumberMapper.buildSmapFor(inlinedBlock, inlinedBlock.buildOrGetClassSMAP(info), info)
+            lineNumberMapper.buildSmapFor(inlinedBlock)
 
             if (inlineCall.usesDefaultArguments()) {
                 // $default function has first LN pointing to original callee
@@ -493,18 +482,7 @@ class ExpressionCodegen(
                 mv.nop()
             }
 
-            // 2. Evaluate DEFAULT arguments from inline function call
-            inlinedBlock.getDefaultAdditionalStatementsFromInlinedBlock().forEach { exp ->
-                exp.accept(this, info).discard()
-            }
-
-            if (inlineCall.usesDefaultArguments()) {
-                // we must reset LN because at this point in original inliner we will inline non default call
-                lineNumberMapper.resetLineNumber()
-            }
-
-            // 3. Evaluate statements from inline function body
-            val result = inlinedBlock.getOriginalStatementsFromInlinedBlock().fold(unitValue) { prev, exp ->
+            val result = inlinedBlock.statements.fold(unitValue) { prev, exp ->
                 prev.discard()
                 exp.accept(this, info)
             }
@@ -535,41 +513,6 @@ class ExpressionCodegen(
                 lineNumberMapper.afterIrInline(inlinedBlock)
             }
         }
-    }
-
-    private fun IrDeclaration.getClassWithDeclaredFunction(): IrClass? {
-        val parent = this.parentClassOrNull ?: return null
-        if (!parent.isInterface || (this is IrFunction && this.hasJvmDefault())) return parent
-        return parent.declarations.singleOrNull { it.origin == JvmLoweredDeclarationOrigin.DEFAULT_IMPLS } as IrClass
-    }
-
-    private fun IrInlinedFunctionBlock.buildOrGetClassSMAP(data: BlockInfo): SMAP {
-        if (this.isLambdaInlining()) {
-            return context.typeToCachedSMAP[context.getLocalClassType(this.inlinedElement as IrAttributeContainer)]!!
-        }
-
-        val callee = this.inlineDeclaration
-        val calleeFromActualClass = callee.getClassWithDeclaredFunction()!!.declarations
-            .asSequence()
-            .filterIsInstance<IrSimpleFunction>()
-            .filter { it.attributeOwnerId == callee } // original callee could be transformed after lowerings, so we must get correct one
-            .filter {
-                if (inlineCall.usesDefaultArguments()) it.origin == IrDeclarationOrigin.FUNCTION_FOR_DEFAULT_PARAMETER
-                else it.origin != IrDeclarationOrigin.FUNCTION_FOR_DEFAULT_PARAMETER
-            }
-            .filter { it.origin != JvmLoweredDeclarationOrigin.FOR_INLINE_STATE_MACHINE_TEMPLATE } // filter functions with $$forInline postfix
-            .single()
-
-        val nodeAndSmap = calleeFromActualClass.let { actualCallee ->
-            val callToActualCallee = IrCallImpl.fromSymbolOwner(
-                inlineCall.startOffset, inlineCall.endOffset, inlineCall.type, actualCallee.symbol
-            )
-            val callable = methodSignatureMapper.mapToCallableMethod(callToActualCallee, null)
-            val callGenerator = getOrCreateCallGenerator(callToActualCallee, data, callable.signature)
-            (callGenerator as IrInlineCodegen).compileInline()
-        }
-
-        return nodeAndSmap.classSMAP
     }
 
     private fun visitStatementContainer(container: IrStatementContainer, data: BlockInfo): PromisedValue {
@@ -725,8 +668,8 @@ class ExpressionCodegen(
         // In this case the receiver is `this` (not specified in IR) and the return value is discarded anyway.
         mv.load(0, OBJECT_TYPE)
 
-        for (argumentIndex in 0 until expression.typeArgumentsCount) {
-            val classifier = expression.getTypeArgument(argumentIndex)?.classifierOrNull
+        for (typeArg in expression.typeArguments) {
+            val classifier = typeArg?.classifierOrNull
             if (classifier is IrTypeParameterSymbol && classifier.owner.isReified) {
                 consumeReifiedOperationMarker(classifier)
             }
@@ -778,7 +721,7 @@ class ExpressionCodegen(
 
         if (state.configuration.getBoolean(JVMConfigurationKeys.USE_INLINE_SCOPES_NUMBERS) &&
             state.configuration.getBoolean(JVMConfigurationKeys.ENABLE_IR_INLINER) &&
-            isFakeLocalVariableForInline(name) &&
+            JvmAbi.isFakeLocalVariableForInline(name) &&
             name.contains(INLINE_SCOPE_NUMBER_SEPARATOR)
         ) {
             declaration.name = Name.identifier(updateCallSiteLineNumber(name, lineNumberMapper.getLineNumber()))
@@ -786,11 +729,18 @@ class ExpressionCodegen(
 
         val initializer = declaration.initializer
         if (initializer != null) {
-            val value = initializer.accept(this, data)
-            initializer.markLineNumber(startOffset = true)
-            value.materializeAt(varType, declaration.type)
-            declaration.markLineNumber(startOffset = true)
-            mv.store(index, varType)
+            val shouldNotGenerateLineNumber =
+                declaration.origin == IrDeclarationOrigin.IR_DESTRUCTURED_PARAMETER_VARIABLE
+            lineNumberMapper.noLineNumberScopeWithCondition(shouldNotGenerateLineNumber) {
+                val value = initializer.accept(this, data)
+                initializer.markLineNumber(startOffset = true)
+                value.materializeAt(varType, declaration.type)
+                declaration.markLineNumber(startOffset = true)
+                mv.store(index, varType)
+                if (declaration.origin == JvmLoweredDeclarationOrigin.SUSPEND_LAMBDA_PARAMETER) {
+                    addSuspendLambdaParameterMarker(mv)
+                }
+            }
         } else if (declaration.isVisibleInLVT) {
             declaration.markLineNumber(startOffset = true)
             pushDefaultValueOnStack(varType, mv)
@@ -808,15 +758,22 @@ class ExpressionCodegen(
         return MaterialValue(this, type, expression.symbol.owner.realType)
     }
 
-    internal fun genOrGetLocal(expression: IrExpression, type: Type, parameterType: IrType, data: BlockInfo): StackValue =
-        if (expression is IrGetValue)
-            StackValue.local(
-                findLocalIndex(expression.symbol),
-                frameMap.typeOf(expression.symbol),
-                expression.symbol.owner.realType.toIrBasedKotlinType()
-            )
-        else
-            genToStackValue(expression, type, parameterType, data)
+    internal fun genOrGetLocal(
+        expression: IrExpression,
+        type: Type,
+        parameterType: IrType,
+        data: BlockInfo,
+        eraseType: Boolean,
+    ): StackValue = if (expression is IrGetValue) {
+        val variableIndex = findLocalIndex(expression.symbol)
+        val asmType = frameMap.typeOf(expression.symbol)
+        val irValueDeclaration = expression.symbol.owner
+        val realType = irValueDeclaration.realType
+        val kotlinType = if (eraseType) realType.upperBound.withNullability(realType.isNullable()) else realType
+        StackValue.local(variableIndex, asmType, kotlinType.toIrBasedKotlinType())
+    } else {
+        genToStackValue(expression, type, parameterType, data)
+    }
 
     // We do not mangle functions if Result is the only parameter of the function. This means that if a function
     // taking `Result` as a parameter overrides a function taking `Any?`, there is no bridge unless needed for
@@ -826,7 +783,7 @@ class ExpressionCodegen(
             val isBoxedResult = this is IrValueParameter && parent is IrSimpleFunction &&
                     parent.dispatchReceiverParameter != this &&
                     (parent.parent as? IrClass)?.isClassWithFqName(StandardNames.RESULT_FQ_NAME) != true &&
-                    parent.resultIsActuallyAny(index) == true
+                    parent.resultIsActuallyAny(indexInOldValueParameters) == true
             return if (isBoxedResult) context.irBuiltIns.anyNType else type
         }
 
@@ -902,7 +859,7 @@ class ExpressionCodegen(
         // Do not add redundant field initializers that initialize to default values.
         val inClassInit = irFunction.origin == JvmLoweredDeclarationOrigin.CLASS_STATIC_INITIALIZER
         val isFieldInitializer = expression.origin == IrStatementOrigin.INITIALIZE_FIELD
-        val skip = (irFunction is IrConstructor || inClassInit) && isFieldInitializer && expressionValue is IrConst<*> &&
+        val skip = (irFunction is IrConstructor || inClassInit) && isFieldInitializer && expressionValue is IrConst &&
                 isDefaultValueForType(expression.symbol.owner.type.asmType, expressionValue.value)
         return if (skip) unitValue else super.visitSetField(expression, data)
     }
@@ -943,7 +900,7 @@ class ExpressionCodegen(
         return unitValue
     }
 
-    override fun visitConst(expression: IrConst<*>, data: BlockInfo): PromisedValue {
+    override fun visitConst(expression: IrConst, data: BlockInfo): PromisedValue {
         expression.markLineNumber(startOffset = true)
         when (val value = expression.value) {
             is Boolean -> {
@@ -998,9 +955,6 @@ class ExpressionCodegen(
             val childCodegen = ClassCodegen.getOrCreate(declaration, context, enclosingFunctionForLocalObjects)
             childCodegen.generate()
             closureReifiedMarkers[declaration] = childCodegen.reifiedTypeParametersUsages
-            if (irFunction.origin == IrDeclarationOrigin.FUNCTION_FOR_DEFAULT_PARAMETER || declaration.origin == JvmLoweredDeclarationOrigin.LAMBDA_IMPL) {
-                context.typeToCachedSMAP[childCodegen.type] = SMAP(childCodegen.smap.resultMappings)
-            }
         }
         return unitValue
     }
@@ -1318,8 +1272,8 @@ class ExpressionCodegen(
             mv.areturn(Type.VOID_TYPE)
         } else {
             mv.fixStackAndJump(if (jump is IrBreak) stackElement.breakLabel else stackElement.continueLabel)
-            mv.mark(endLabel)
         }
+        mv.mark(endLabel)
         return unitValue
     }
 
@@ -1451,17 +1405,15 @@ class ExpressionCodegen(
     ) {
         val gapStart = markNewLinkedLabel()
         data.localGapScope(tryWithFinallyInfo) {
-            lineNumberMapper.stashSmapForGivenTry(tryWithFinallyInfo) {
-                finallyDepth++
-                if (isFinallyMarkerRequired) {
-                    generateFinallyMarker(mv, finallyDepth, true)
-                }
-                tryWithFinallyInfo.onExit.accept(this, data).discard()
-                if (isFinallyMarkerRequired) {
-                    generateFinallyMarker(mv, finallyDepth, false)
-                }
-                finallyDepth--
+            finallyDepth++
+            if (isFinallyMarkerRequired) {
+                generateFinallyMarker(mv, finallyDepth, true)
             }
+            tryWithFinallyInfo.onExit.accept(this, data).discard()
+            if (isFinallyMarkerRequired) {
+                generateFinallyMarker(mv, finallyDepth, false)
+            }
+            finallyDepth--
             if (tryCatchBlockEnd != null) {
                 tryWithFinallyInfo.onExit.markLineNumber(startOffset = false)
                 mv.goTo(tryCatchBlockEnd)
@@ -1513,7 +1465,7 @@ class ExpressionCodegen(
         }
         val generator = StringConcatGenerator(context.config.runtimeStringConcat, mv)
         expression.arguments.forEach { arg ->
-            if (arg is IrConst<*>) {
+            if (arg is IrConst) {
                 val type = when (arg.kind) {
                     IrConstKind.Boolean -> Type.BOOLEAN_TYPE
                     IrConstKind.Char -> Type.CHAR_TYPE
@@ -1596,13 +1548,16 @@ class ExpressionCodegen(
         }
 
         val callee = element.symbol.owner
-        val typeArgumentContainer = if (callee is IrConstructor) callee.parentAsClass else callee
+        val typeArgumentContainer = when (callee) {
+            is IrConstructor -> callee.parentAsClass
+            is IrSimpleFunction -> callee
+        }
         val typeArguments =
-            if (element.typeArgumentsCount == 0) {
+            if (element.typeArguments.isEmpty()) {
                 //avoid ambiguity with type constructor type parameters
                 emptyMap()
             } else typeArgumentContainer.typeParameters.associate {
-                it.symbol to (element.getTypeArgument(it.index) ?: it.defaultType)
+                it.symbol to (element.typeArguments[it.index] ?: it.defaultType)
             }
 
         val mappings = TypeParameterMappings(typeMapper.typeSystem, typeArguments, allReified = false, typeMapper::mapTypeParameter)
@@ -1632,7 +1587,7 @@ class ExpressionCodegen(
     }
 
     val isFinallyMarkerRequired: Boolean
-        get() = irFunction.isInline || irFunction.origin == JvmLoweredDeclarationOrigin.INLINE_LAMBDA
+        get() = irFunction.isInline || irFunction.origin == IrDeclarationOrigin.INLINE_LAMBDA
 
     companion object {
         internal fun generateClassInstance(v: InstructionAdapter, classType: IrType, typeMapper: IrTypeMapper, wrapPrimitives: Boolean) {

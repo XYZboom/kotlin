@@ -43,22 +43,21 @@ fun FirTypeRef.resolvedTypeFromPrototype(
     type: ConeKotlinType,
     fallbackSource: KtSourceElement? = null,
 ): FirResolvedTypeRef {
+    if (this is FirResolvedTypeRef) {
+        return withReplacedSourceAndType(this@resolvedTypeFromPrototype.source ?: fallbackSource, type)
+    }
     return if (type is ConeErrorType) {
         buildErrorTypeRef {
             source = this@resolvedTypeFromPrototype.source ?: fallbackSource
-            this.type = type
+            this.coneType = type
             diagnostic = type.diagnostic
             annotations += this@resolvedTypeFromPrototype.annotations
         }
     } else {
         buildResolvedTypeRef {
             source = this@resolvedTypeFromPrototype.source ?: fallbackSource
-            this.type = type
-            delegatedTypeRef = when (val original = this@resolvedTypeFromPrototype) {
-                is FirResolvedTypeRef -> original.delegatedTypeRef
-                is FirUserTypeRef -> original
-                else -> null
-            }
+            this.coneType = type
+            delegatedTypeRef = this@resolvedTypeFromPrototype as? FirUserTypeRef
             annotations += this@resolvedTypeFromPrototype.annotations
         }
     }
@@ -79,6 +78,7 @@ fun List<FirAnnotation>.computeTypeAttributes(
         return ConeAttributes.create(predefined)
     }
     val attributes = mutableListOf<ConeAttribute<*>>()
+    var parameterName: ParameterNameTypeAttribute? = null
     attributes += predefined
     val customAnnotations = mutableListOf<FirAnnotation>()
     for (annotation in this) {
@@ -95,10 +95,20 @@ fun List<FirAnnotation>.computeTypeAttributes(
             CompilerConeAttributes.ContextFunctionTypeParams.ANNOTATION_CLASS_ID ->
                 attributes +=
                     CompilerConeAttributes.ContextFunctionTypeParams(
-                        annotation.extractContextReceiversCount() ?: 0
+                        annotation.extractContextParameterCount() ?: 0
                     )
-
+            ParameterNameTypeAttribute.ANNOTATION_CLASS_ID -> {
+                // ConeAttributes.create() will always take the last attribute of a given type,
+                // where ParameterName should prefer the first annotation.
+                if (parameterName == null) {
+                    parameterName = ParameterNameTypeAttribute(annotation)
+                } else {
+                    // Preserve repeated ParameterName annotations to check for repeated errors.
+                    parameterName = ParameterNameTypeAttribute(parameterName.annotation, parameterName.others + annotation)
+                }
+            }
             CompilerConeAttributes.UnsafeVariance.ANNOTATION_CLASS_ID -> attributes += CompilerConeAttributes.UnsafeVariance
+            CompilerConeAttributes.EnhancedNullability.ANNOTATION_CLASS_ID -> attributes += CompilerConeAttributes.EnhancedNullability
             else -> {
                 val attributeFromPlugin = session.extensionService.typeAttributeExtensions.firstNotNullOfOrNull {
                     it.extractAttributeFromAnnotation(annotation)
@@ -112,6 +122,9 @@ fun List<FirAnnotation>.computeTypeAttributes(
         }
     }
 
+    if (parameterName != null) {
+        attributes += parameterName
+    }
     if (customAnnotations.isNotEmpty()) {
         attributes += CustomAnnotationTypeAttribute(customAnnotations)
     }
@@ -126,5 +139,5 @@ private fun FirAnnotation.tryExpandClassId(session: FirSession): ClassId? {
     }
 }
 
-private fun FirAnnotation.extractContextReceiversCount() =
+private fun FirAnnotation.extractContextParameterCount() =
     (argumentMapping.mapping[StandardNames.CONTEXT_FUNCTION_TYPE_PARAMETER_COUNT_NAME] as? FirLiteralExpression)?.value as? Int

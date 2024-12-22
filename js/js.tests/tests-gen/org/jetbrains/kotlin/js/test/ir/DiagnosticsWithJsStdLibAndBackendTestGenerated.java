@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.js.test.ir;
 
 import com.intellij.testFramework.TestDataPath;
 import org.jetbrains.kotlin.test.util.KtTestUtil;
+import org.junit.jupiter.api.Tag;
 import org.jetbrains.kotlin.test.TargetBackend;
 import org.jetbrains.kotlin.test.TestMetadata;
 import org.junit.jupiter.api.Nested;
@@ -19,6 +20,7 @@ import java.util.regex.Pattern;
 @SuppressWarnings("all")
 @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation")
 @TestDataPath("$PROJECT_ROOT")
+@Tag("legacy-frontend")
 public class DiagnosticsWithJsStdLibAndBackendTestGenerated extends AbstractDiagnosticsTestWithJsStdLibWithBackend {
   @Test
   public void testAllFilesPresentInTestsWithJsStdLibAndBackendCompilation() {
@@ -28,6 +30,7 @@ public class DiagnosticsWithJsStdLibAndBackendTestGenerated extends AbstractDiag
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/constants")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class Constants {
     @Test
     public void testAllFilesPresentInConstants() {
@@ -44,6 +47,7 @@ public class DiagnosticsWithJsStdLibAndBackendTestGenerated extends AbstractDiag
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/exportedNamesClash")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class ExportedNamesClash {
     @Test
     public void testAllFilesPresentInExportedNamesClash() {
@@ -108,6 +112,7 @@ public class DiagnosticsWithJsStdLibAndBackendTestGenerated extends AbstractDiag
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/inline")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class Inline {
     @Test
     public void testAllFilesPresentInInline() {
@@ -142,6 +147,7 @@ public class DiagnosticsWithJsStdLibAndBackendTestGenerated extends AbstractDiag
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class JsCode {
     @Test
     public void testAllFilesPresentInJsCode() {
@@ -233,6 +239,12 @@ public class DiagnosticsWithJsStdLibAndBackendTestGenerated extends AbstractDiag
     }
 
     @Test
+    @TestMetadata("lambdaWithoutNonLocalControlflow.kt")
+    public void testLambdaWithoutNonLocalControlflow() {
+      runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/lambdaWithoutNonLocalControlflow.kt");
+    }
+
+    @Test
     @TestMetadata("noJavaScriptProduced.kt")
     public void testNoJavaScriptProduced() {
       runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/noJavaScriptProduced.kt");
@@ -243,11 +255,77 @@ public class DiagnosticsWithJsStdLibAndBackendTestGenerated extends AbstractDiag
     public void testWarning() {
       runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/warning.kt");
     }
+
+    @Nested
+    @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/inlinedReturnBreakContinue")
+    @TestDataPath("$PROJECT_ROOT")
+    @Tag("legacy-frontend")
+    public class InlinedReturnBreakContinue {
+      @Test
+      public void testAllFilesPresentInInlinedReturnBreakContinue() {
+        KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/inlinedReturnBreakContinue"), Pattern.compile("^([^_](.+))\\.kt$"), Pattern.compile("^(.+)\\.fir\\.kts?$"), TargetBackend.JS_IR, true);
+      }
+
+      @Test
+      @TestMetadata("inlineFunctionWithMultipleParameters.kt")
+      public void testInlineFunctionWithMultipleParameters() {
+        runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/inlinedReturnBreakContinue/inlineFunctionWithMultipleParameters.kt");
+      }
+
+      @Test
+      @TestMetadata("lambdaPassedToInlineFunction.kt")
+      public void testLambdaPassedToInlineFunction() {
+        runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/inlinedReturnBreakContinue/lambdaPassedToInlineFunction.kt");
+      }
+
+      @Test
+      @TestMetadata("loopWithinInlineFunction.kt")
+      public void testLoopWithinInlineFunction() {
+        runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/inlinedReturnBreakContinue/loopWithinInlineFunction.kt");
+      }
+
+      @Test
+      @TestMetadata("nonLocalReturn.kt")
+      public void testNonLocalReturn() {
+        runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/inlinedReturnBreakContinue/nonLocalReturn.kt");
+      }
+
+      @Test
+      @TestMetadata("simple.kt")
+      public void testSimple() {
+        runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/inlinedReturnBreakContinue/simple.kt");
+      }
+
+      @Test
+      @TestMetadata("simpleDoWhile.kt")
+      public void testSimpleDoWhile() {
+        runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/inlinedReturnBreakContinue/simpleDoWhile.kt");
+      }
+
+      @Test
+      @TestMetadata("withReturnValue.kt")
+      public void testWithReturnValue() {
+        runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/inlinedReturnBreakContinue/withReturnValue.kt");
+      }
+
+      @Test
+      @TestMetadata("withReturnValueDoWhileContinue.kt")
+      public void testWithReturnValueDoWhileContinue() {
+        runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/inlinedReturnBreakContinue/withReturnValueDoWhileContinue.kt");
+      }
+
+      @Test
+      @TestMetadata("withReturnValueNested.kt")
+      public void testWithReturnValueNested() {
+        runTest("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/jsCode/inlinedReturnBreakContinue/withReturnValueNested.kt");
+      }
+    }
   }
 
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/name")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class Name {
     @Test
     public void testAllFilesPresentInName() {
@@ -270,6 +348,7 @@ public class DiagnosticsWithJsStdLibAndBackendTestGenerated extends AbstractDiag
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLibAndBackendCompilation/unsupportedFeatures")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class UnsupportedFeatures {
     @Test
     public void testAllFilesPresentInUnsupportedFeatures() {

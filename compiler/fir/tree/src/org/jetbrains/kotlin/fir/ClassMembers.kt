@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -8,14 +8,8 @@ package org.jetbrains.kotlin.fir
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.isLocal
 import org.jetbrains.kotlin.fir.declarations.utils.isSynthetic
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag
-import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
-import org.jetbrains.kotlin.fir.types.ConeClassLikeType
-import org.jetbrains.kotlin.fir.types.ConeIntersectionType
-import org.jetbrains.kotlin.fir.types.ConeKotlinType
-import org.jetbrains.kotlin.fir.types.toLookupTag
+import org.jetbrains.kotlin.fir.symbols.impl.*
+import org.jetbrains.kotlin.fir.types.*
 
 fun FirCallableSymbol<*>.dispatchReceiverClassTypeOrNull(): ConeClassLikeType? =
     fir.dispatchReceiverClassTypeOrNull()
@@ -41,6 +35,8 @@ fun FirCallableDeclaration.containingClassLookupTag(): ConeClassLikeLookupTag? =
 fun FirRegularClass.containingClassForLocal(): ConeClassLikeLookupTag? =
     if (isLocal) containingClassForLocalAttr else null
 
+fun FirDanglingModifierSymbol.containingClassLookupTag(): ConeClassLikeLookupTag? = fir.containingClass()
+
 fun FirDanglingModifierList.containingClass(): ConeClassLikeLookupTag? =
     containingClassAttr
 
@@ -59,6 +55,9 @@ var FirRegularClass.containingClassForLocalAttr: ConeClassLikeLookupTag? by FirD
 var FirDanglingModifierList.containingClassAttr: ConeClassLikeLookupTag? by FirDeclarationDataRegistry.data(ContainingClassKey)
 val FirRegularClassSymbol.containingClassForLocalAttr: ConeClassLikeLookupTag?
     get() = fir.containingClassForLocalAttr
+
+private object ContainingScriptKey : FirDeclarationDataKey()
+var FirClassLikeDeclaration.containingScriptSymbolAttr: FirScriptSymbol? by FirDeclarationDataRegistry.data(ContainingScriptKey)
 
 private object HasNoEnumEntriesKey : FirDeclarationDataKey()
 var FirClass.hasNoEnumEntriesAttr: Boolean? by FirDeclarationDataRegistry.data(HasNoEnumEntriesKey)
@@ -131,8 +130,8 @@ inline fun <reified D : FirCallableDeclaration> D.unwrapFakeOverridesOrDelegated
     } while (true)
 }
 
-inline fun <reified D : FirCallableSymbol<*>> D.unwrapFakeOverridesOrDelegated(): FirCallableSymbol<*> =
-    fir.unwrapFakeOverridesOrDelegated().symbol
+inline fun <reified D : FirCallableSymbol<*>> D.unwrapFakeOverridesOrDelegated(): D =
+    fir.unwrapFakeOverridesOrDelegated().symbol as D
 
 inline fun <reified D : FirCallableDeclaration> D.unwrapSubstitutionOverrides(): D {
     var current = this
@@ -178,7 +177,7 @@ private object InitialSignatureKey : FirDeclarationDataKey()
  *
  * When the receiver is a mapped declaration with a Kotlin signature, this property returns the declaration with the initial Java signature.
  */
-var FirCallableDeclaration.initialSignatureAttr: FirCallableDeclaration? by FirDeclarationDataRegistry.data(InitialSignatureKey)
+var FirCallableDeclaration.initialSignatureAttr: FirNamedFunctionSymbol? by FirDeclarationDataRegistry.data(InitialSignatureKey)
 
 private object MatchingParameterFunctionTypeKey : FirDeclarationDataKey()
 

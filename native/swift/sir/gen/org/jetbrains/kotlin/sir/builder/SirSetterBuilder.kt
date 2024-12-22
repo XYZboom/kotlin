@@ -19,8 +19,9 @@ class SirSetterBuilder {
     var origin: SirOrigin = SirOrigin.Unknown
     var visibility: SirVisibility = SirVisibility.PUBLIC
     var documentation: String? = null
-    lateinit var kind: SirCallableKind
+    val attributes: MutableList<SirAttribute> = mutableListOf()
     var body: SirFunctionBody? = null
+    var errorType: SirType = SirType.never
     var parameterName: String = "newValue"
 
     fun build(): SirSetter {
@@ -28,8 +29,9 @@ class SirSetterBuilder {
             origin,
             visibility,
             documentation,
-            kind,
+            attributes,
             body,
+            errorType,
             parameterName,
         )
     }
@@ -37,7 +39,7 @@ class SirSetterBuilder {
 }
 
 @OptIn(ExperimentalContracts::class)
-inline fun buildSetter(init: SirSetterBuilder.() -> Unit): SirSetter {
+inline fun buildSetter(init: SirSetterBuilder.() -> Unit = {}): SirSetter {
     contract {
         callsInPlace(init, InvocationKind.EXACTLY_ONCE)
     }
@@ -45,7 +47,7 @@ inline fun buildSetter(init: SirSetterBuilder.() -> Unit): SirSetter {
 }
 
 @OptIn(ExperimentalContracts::class)
-inline fun buildSetterCopy(original: SirSetter, init: SirSetterBuilder.() -> Unit): SirSetter {
+inline fun buildSetterCopy(original: SirSetter, init: SirSetterBuilder.() -> Unit = {}): SirSetter {
     contract {
         callsInPlace(init, InvocationKind.EXACTLY_ONCE)
     }
@@ -53,8 +55,9 @@ inline fun buildSetterCopy(original: SirSetter, init: SirSetterBuilder.() -> Uni
     copyBuilder.origin = original.origin
     copyBuilder.visibility = original.visibility
     copyBuilder.documentation = original.documentation
-    copyBuilder.kind = original.kind
+    copyBuilder.attributes.addAll(original.attributes)
     copyBuilder.body = original.body
+    copyBuilder.errorType = original.errorType
     copyBuilder.parameterName = original.parameterName
     return copyBuilder.apply(init).build()
 }

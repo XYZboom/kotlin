@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.ir.util.getAnnotation
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.wasm.ir.WasmImportDescriptor
+import org.jetbrains.kotlin.wasm.ir.WasmSymbol
 
 fun IrAnnotationContainer.hasExcludedFromCodegenAnnotation(): Boolean =
     hasAnnotation(FqName("kotlin.wasm.internal.ExcludedFromCodegen"))
@@ -25,10 +26,11 @@ fun IrFunction.getWasmImportDescriptor(): WasmImportDescriptor? {
     val annotation = getAnnotation(FqName("kotlin.wasm.WasmImport"))
         ?: return null
 
-    @Suppress("UNCHECKED_CAST")
+    val moduleName = (annotation.getValueArgument(0) as IrConst).value as String
+    val declarationName = (annotation.getValueArgument(1) as? IrConst)?.value as? String
     return WasmImportDescriptor(
-        (annotation.getValueArgument(0) as IrConst<String>).value,
-        (annotation.getValueArgument(1) as? IrConst<String>)?.value ?: this.name.asString()
+        moduleName,
+        WasmSymbol(declarationName ?: this.name.asString())
     )
 }
 
@@ -52,7 +54,7 @@ fun IrAnnotationContainer.getWasmArrayAnnotation(): WasmArrayInfo? =
     getAnnotation(FqName("kotlin.wasm.internal.WasmArrayOf"))?.let {
         WasmArrayInfo(
             (it.getValueArgument(0) as IrClassReference).symbol.owner as IrClass,
-            (it.getValueArgument(1) as IrConst<*>).value as Boolean,
+            (it.getValueArgument(1) as IrConst).value as Boolean,
         )
     }
 
@@ -62,9 +64,9 @@ fun IrAnnotationContainer.getJsFunAnnotation(): String? =
 fun IrAnnotationContainer.getJsPrimitiveType(): String? =
     getAnnotation(FqName("kotlin.wasm.internal.JsPrimitive"))?.getSingleConstStringArgument()
 
-@Suppress("UNCHECKED_CAST")
 fun IrFunction.getWasmExportNameIfWasmExport(): String? {
     val annotation = getAnnotation(FqName("kotlin.wasm.WasmExport")) ?: return null
     if (annotation.valueArgumentsCount == 0) return name.identifier
-    return (annotation.getValueArgument(0) as? IrConst<String>)?.value ?: name.identifier
+    val nameFromAnnotation = (annotation.getValueArgument(0) as? IrConst)?.value as? String
+    return nameFromAnnotation ?: name.identifier
 }

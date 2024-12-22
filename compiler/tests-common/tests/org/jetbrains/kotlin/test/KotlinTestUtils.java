@@ -26,7 +26,6 @@ import org.jetbrains.kotlin.analyzer.AnalysisResult;
 import org.jetbrains.kotlin.builtins.DefaultBuiltIns;
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns;
 import org.jetbrains.kotlin.checkers.CompilerTestLanguageVersionSettingsKt;
-import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys;
 import org.jetbrains.kotlin.cli.common.config.ContentRootsKt;
 import org.jetbrains.kotlin.cli.common.config.KotlinSourceRoot;
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity;
@@ -48,7 +47,6 @@ import org.jetbrains.kotlin.psi.KtPsiFactory;
 import org.jetbrains.kotlin.resolve.lazy.JvmResolveUtil;
 import org.jetbrains.kotlin.storage.LockBasedStorageManager;
 import org.jetbrains.kotlin.test.testFramework.KtUsefulTestCase;
-import org.jetbrains.kotlin.test.util.JUnit4Assertions;
 import org.jetbrains.kotlin.test.util.KtTestUtil;
 import org.jetbrains.kotlin.test.util.StringUtilsKt;
 import org.jetbrains.kotlin.utils.ExceptionUtilsKt;
@@ -83,7 +81,7 @@ public class KotlinTestUtils {
     private static final boolean AUTOMATICALLY_UNMUTE_PASSED_TESTS = false;
     private static final boolean AUTOMATICALLY_MUTE_FAILED_TESTS = false;
 
-    private static final Pattern DIRECTIVE_PATTERN = Pattern.compile("^//\\s*[!]?([A-Z_0-9]+)(:[ \\t]*(.*))?$", Pattern.MULTILINE);
+    private static final Pattern DIRECTIVE_PATTERN = Pattern.compile("^//\\s*([A-Z_0-9]+)(:[ \\t]*(.*))?$", Pattern.MULTILINE);
 
     private KotlinTestUtils() {
     }
@@ -129,7 +127,7 @@ public class KotlinTestUtils {
         CompilerConfiguration configuration = new CompilerConfiguration();
         configuration.put(CommonConfigurationKeys.MODULE_NAME, TEST_MODULE_NAME);
 
-        configuration.put(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, new MessageCollector() {
+        configuration.put(CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY, new MessageCollector() {
             @Override
             public void clear() {
             }
@@ -180,18 +178,6 @@ public class KotlinTestUtils {
         else if (jdkKind == TestJdkKind.MODIFIED_MOCK_JDK) {
             JvmContentRootsKt.addJvmClasspathRoot(configuration, KtTestUtil.findMockJdkRtModified());
             configuration.put(JVMConfigurationKeys.NO_JDK, true);
-        }
-        else if (jdkKind == TestJdkKind.ANDROID_API) {
-            JvmContentRootsKt.addJvmClasspathRoot(configuration, KtTestUtil.findAndroidApiJar());
-            configuration.put(JVMConfigurationKeys.NO_JDK, true);
-        }
-        else if (jdkKind == TestJdkKind.FULL_JDK_6) {
-            String jdk6 = System.getenv("JDK_1_6");
-            if (jdk6 == null) {
-                jdk6 = System.getenv("JDK_16");
-            }
-            assert jdk6 != null : "Environment variable JDK_1_6 is not set";
-            configuration.put(JVMConfigurationKeys.JDK_HOME, new File(jdk6));
         }
         else if (jdkKind == TestJdkKind.FULL_JDK_11) {
             configuration.put(JVMConfigurationKeys.JDK_HOME, KtTestUtil.getJdk11Home());
@@ -297,24 +283,13 @@ public class KotlinTestUtils {
         }
     }
 
-    public static boolean compileKotlinWithJava(
+    public static JavaCompilationResult compileKotlinWithJava(
             @NotNull List<File> javaFiles,
             @NotNull List<File> ktFiles,
             @NotNull File outDir,
             @NotNull Disposable disposable,
-            @Nullable File javaErrorFile
-    ) throws IOException {
-        return compileKotlinWithJava(javaFiles, ktFiles, outDir, disposable, javaErrorFile, null);
-    }
-
-    public static boolean compileKotlinWithJava(
-            @NotNull List<File> javaFiles,
-            @NotNull List<File> ktFiles,
-            @NotNull File outDir,
-            @NotNull Disposable disposable,
-            @Nullable File javaErrorFile,
             @Nullable Function1<CompilerConfiguration, Unit> updateConfiguration
-    ) throws IOException {
+    ) {
         if (!ktFiles.isEmpty()) {
             KotlinCoreEnvironment environment = createEnvironmentWithFullJdkAndIdeaAnnotations(disposable);
             CompilerTestLanguageVersionSettingsKt.setupLanguageVersionSettingsForMultifileCompilerTests(ktFiles, environment);
@@ -327,12 +302,13 @@ public class KotlinTestUtils {
             boolean mkdirs = outDir.mkdirs();
             assert mkdirs : "Not created: " + outDir;
         }
-        if (javaFiles.isEmpty()) return true;
+        if (javaFiles.isEmpty()) return JavaCompilationResult.Success.INSTANCE;
 
-        return compileJavaFiles(javaFiles, Arrays.asList(
+        List<String> options = Arrays.asList(
                 "-classpath", outDir.getPath() + File.pathSeparator + ForTestCompileRuntime.runtimeJarForTests(),
                 "-d", outDir.getPath()
-        ), javaErrorFile);
+        );
+        return JvmCompilationUtils.compileJavaFiles(javaFiles, options);
     }
 
     @NotNull
@@ -423,22 +399,6 @@ public class KotlinTestUtils {
         return comments;
     }
 
-    public static boolean compileJavaFiles(@NotNull Collection<File> files, List<String> options) throws IOException {
-        return compileJavaFiles(files, options, null);
-    }
-
-    private static boolean compileJavaFiles(@NotNull Collection<File> files, List<String> options, @Nullable File javaErrorFile) throws IOException {
-        return JvmCompilationUtils.compileJavaFiles(files, options, javaErrorFile, JUnit4Assertions.INSTANCE);
-    }
-
-    public static boolean compileJavaFilesExternallyWithJava11(@NotNull Collection<File> files, @NotNull List<String> options) {
-        return JvmCompilationUtils.compileJavaFilesExternally(files, options, KtTestUtil.getJdk11Home());
-    }
-
-    public static boolean compileJavaFilesExternally(@NotNull Collection<File> files, @NotNull List<String> options, @NotNull File jdkHome) {
-        return JvmCompilationUtils.compileJavaFilesExternally(files, options, jdkHome);
-    }
-
     public static String navigationMetadata(@TestDataFile String testFile) {
         return testFile;
     }
@@ -452,11 +412,11 @@ public class KotlinTestUtils {
     }
 
     public static void runTest(@NotNull TestCase testCase, @NotNull Function0<Unit> test) {
-        MuteWithDatabaseKt.runTest(testCase, test);
+        MuteWithDatabaseJunit4Kt.runTest(testCase, test);
     }
 
     public static void runTestWithThrowable(@NotNull TestCase testCase, @NotNull RunnableWithThrowable test) {
-        MuteWithDatabaseKt.runTest(testCase, () -> {
+        MuteWithDatabaseJunit4Kt.runTest(testCase, () -> {
             try {
                 test.run();
             }
@@ -494,7 +454,7 @@ public class KotlinTestUtils {
 
     private static void runTestImpl(@NotNull DoTest test, @Nullable TestCase testCase, String testDataFilePath) {
         if (testCase != null && !isRunTestOverridden(testCase)) {
-            Function0<Unit> wrapWithMuteInDatabase = MuteWithDatabaseKt.wrapWithMuteInDatabase(testCase, () -> {
+            Function0<Unit> wrapWithMuteInDatabase = MuteWithDatabaseJunit4Kt.wrapWithMuteInDatabase(testCase, () -> {
                 try {
                     test.invoke(testDataFilePath);
                 }
@@ -546,10 +506,10 @@ public class KotlinTestUtils {
                     String directive = ignoreDirectives[0] + targetBackend.name() + "\n";
 
                     String newText;
-                    if (text.startsWith("// !") || text.startsWith("// ")) {
+                    if (text.startsWith("//")) {
                         StringBuilder prefixBuilder = new StringBuilder();
                         int l = 0;
-                        while (text.startsWith("// !", l) || text.startsWith("// ", l)) {
+                        while (text.startsWith("//", l)) {
                             int r = text.indexOf("\n", l) + 1;
                             if (r <= 0) r = text.length();
                             prefixBuilder.append(text.substring(l, r));

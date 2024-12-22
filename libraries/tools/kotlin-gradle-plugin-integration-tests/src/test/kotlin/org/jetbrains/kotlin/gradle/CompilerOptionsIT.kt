@@ -23,7 +23,6 @@ internal class CompilerOptionsIT : KGPBaseTest() {
     @DisplayName("Allows to set kotlinOptions.freeCompilerArgs on task execution with warning")
     @JvmGradlePluginTests
     @GradleTestVersions(
-        minVersion = TestVersions.Gradle.G_7_3,
         // In Gradle 8.0 there is logic to filter logger messages that contain compiler options configured by `kotlin-dsl` plugin
         // https://github.com/gradle/gradle/blob/master/subprojects/kotlin-dsl-plugins/src/main/kotlin/org/gradle/kotlin/dsl/plugins/dsl/KotlinDslCompilerPlugins.kt#L70-L73
         maxVersion = TestVersions.Gradle.G_7_6,
@@ -38,6 +37,23 @@ internal class CompilerOptionsIT : KGPBaseTest() {
                 |systemProp.org.gradle.kotlin.dsl.precompiled.accessors.strict=true
                 """.trimMargin()
                 )
+
+            if (gradleVersion == GradleVersion.version(TestVersions.Gradle.G_7_6)) {
+                subProject("buildSrc").buildGradleKts.modify {
+                    //language=kts
+                    """
+                    $it
+
+                    afterEvaluate {
+                        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+                            // aligned with embedded Kotlin compiler: https://docs.gradle.org/current/userguide/compatibility.html#kotlin
+                            compilerOptions.apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_7)
+                            compilerOptions.languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_7)
+                        }
+                    }
+                    """.trimIndent()
+                }
+            }
 
             build("tasks") {
                 assertOutputContains("kotlinOptions.freeCompilerArgs were changed on task :compileKotlin execution phase:")
@@ -109,7 +125,6 @@ internal class CompilerOptionsIT : KGPBaseTest() {
     @DisplayName("compiler plugin arguments set via kotlinOptions.freeCompilerArgs on task execution applied properly in MPP")
     @MppGradlePluginTests
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     internal fun freeArgsModifiedAtExecutionTimeCorrectlyMpp(gradleVersion: GradleVersion) {
         project("new-mpp-lib-with-tests", gradleVersion) {
             buildGradle.appendText(
@@ -172,7 +187,6 @@ internal class CompilerOptionsIT : KGPBaseTest() {
     @DisplayName("Should combine -opt-in arguments from languageSettings DSL")
     @MppGradlePluginTests
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun combinesOptInFromLanguageSettings(gradleVersion: GradleVersion) {
         project(
             projectName = "new-mpp-lib-and-app/sample-lib",
@@ -210,7 +224,6 @@ internal class CompilerOptionsIT : KGPBaseTest() {
     @DisplayName("Should combine -opt-in arguments from languageSettings DSL for Native")
     @MppGradlePluginTests
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun combinesOptInFromLanguageSettingsNative(gradleVersion: GradleVersion) {
         project(
             projectName = "new-mpp-lib-and-app/sample-lib",
@@ -395,7 +408,6 @@ internal class CompilerOptionsIT : KGPBaseTest() {
     @DisplayName("KT-57823: should be possible to configure native module name via compilation")
     @NativeGradlePluginTests
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun passesModuleNameFromNativeCompilation(gradleVersion: GradleVersion) {
         project(
             projectName = "new-mpp-lib-and-app/sample-lib",
@@ -439,24 +451,15 @@ internal class CompilerOptionsIT : KGPBaseTest() {
     @DisplayName("KT-57823: uses archivesName value for native compilation module name convention")
     @NativeGradlePluginTests
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun nativeCompilationModuleNameConvention(gradleVersion: GradleVersion) {
         project(
             projectName = "new-mpp-lib-and-app/sample-lib",
             gradleVersion = gradleVersion,
         ) {
-            buildGradle.modify {
-                val buildScript = """
-                |${it.substringBefore("apply plugin:")}
-                |apply plugin: 'base'
-                |apply plugin: ${it.substringAfter("apply plugin:")}
-                |
-                """.trimMargin()
-                if (gradleVersion < GradleVersion.version("7.1")) {
-                    "$buildScript\narchivesBaseName = \"myNativeLib\""
-                } else {
-                    "$buildScript\nbase.archivesName.set(\"myNativeLib\")"
-                }
+            if (gradleVersion < GradleVersion.version("7.1")) {
+                buildGradle.append("archivesBaseName = \"myNativeLib\"")
+            } else {
+                buildGradle.append("base.archivesName.set(\"myNativeLib\")")
             }
 
             build(":compileNativeMainKotlinMetadata") {

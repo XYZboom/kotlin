@@ -33,15 +33,11 @@ import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinWebpackRulesContainer
 import org.jetbrains.kotlin.gradle.targets.js.dsl.WebpackRulesDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.WebpackRulesDsl.Companion.webpackRulesContainer
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrCompilation
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsExtension
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsRootExtension
 import org.jetbrains.kotlin.gradle.targets.js.npm.RequiresNpmDependencies
 import org.jetbrains.kotlin.gradle.targets.js.npm.npmProject
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig.Mode
 import org.jetbrains.kotlin.gradle.utils.*
-import org.jetbrains.kotlin.gradle.utils.archivesName
-import org.jetbrains.kotlin.gradle.utils.injected
-import org.jetbrains.kotlin.gradle.utils.property
-import org.jetbrains.kotlin.gradle.utils.providerWithLazyConvention
 import java.io.File
 import javax.inject.Inject
 
@@ -55,9 +51,8 @@ constructor(
     private val objects: ObjectFactory,
 ) : DefaultTask(), RequiresNpmDependencies, WebpackRulesDsl, UsesBuildMetricsService {
     @Transient
-    private val nodeJs = project.rootProject.kotlinNodeJsExtension
+    private val nodeJs = project.rootProject.kotlinNodeJsRootExtension
     private val versions = nodeJs.versions
-    private val rootPackageDir by lazy { nodeJs.rootPackageDirectory }
 
     private val npmProject = compilation.npmProject
 
@@ -98,18 +93,18 @@ constructor(
     @get:NormalizeLineEndings
     val inputFiles: FileTree
         get() = objects.fileTree()
-            // in webpack.config.js there is path relative to npmProjectDir (kotlin/<module>.js).
-            // And we need have relative path in build cache
-            // That's why we use npmProjectDir with filter instead of just inputFilesDirectory,
-            // if we would use inputFilesDirectory, we will get in cache just file names,
-            // and if directory is changed to kotlin2, webpack config will be invalid.
-            .from(npmProjectDir)
-            .matching {
-                it.include { element: FileTreeElement ->
-                    val inputFilesDirectory = inputFilesDirectory.get().asFile
-                    element.file == inputFilesDirectory ||
-                            element.file.parentFile == inputFilesDirectory
-                }
+            .let { fileTree ->
+                // in webpack.config.js there is path relative to npmProjectDir (kotlin/<module>.js).
+                // And we need have relative path in build cache
+                // That's why we use npmProjectDir with filter instead of just inputFilesDirectory,
+                // if we would use inputFilesDirectory, we will get in cache just file names,
+                // and if directory is changed to kotlin2, webpack config will be invalid.
+                fileTree.from(npmProjectDir)
+                    .matching {
+                        it.include { element: FileTreeElement ->
+                            this.inputFilesDirectory.get().asFile.isParentOf(element.file)
+                        }
+                    }
             }
 
     @get:Input
@@ -307,7 +302,6 @@ constructor(
             runner.copy(
                 config = runner.config.copy(
                     progressReporter = true,
-                    progressReporterPathFilter = rootPackageDir.getFile()
                 )
             ).execute(services)
 

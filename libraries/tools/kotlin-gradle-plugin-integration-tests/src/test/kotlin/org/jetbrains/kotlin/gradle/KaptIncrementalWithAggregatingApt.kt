@@ -22,6 +22,9 @@ import kotlin.test.assertTrue
 
 @DisplayName("Kapt incremental tests with aggregating apt")
 open class KaptIncrementalWithAggregatingApt : KaptIncrementalIT() {
+    override fun TestProject.customizeProject() {
+        forceK1Kapt()
+    }
 
     override val defaultBuildOptions = super.defaultBuildOptions.copy(
         incremental = true,
@@ -65,6 +68,7 @@ open class KaptIncrementalWithAggregatingApt : KaptIncrementalIT() {
                         "$KAPT3_STUBS_PATH/bar/B.java",
                         "$KAPT3_STUBS_PATH/baz/UtilKt.java",
                         "$KAPT3_STUBS_PATH/foo/A.java",
+                        "$KAPT3_STUBS_PATH/jvmName/Math.java",
                         "$KAPT3_STUBS_PATH/error/NonExistentClass.java"
                     ).map { projectPath.resolve(it).toRealPath().toString() }.toSet(),
                     getProcessedSources(output)
@@ -83,6 +87,7 @@ open class KaptIncrementalWithAggregatingApt : KaptIncrementalIT() {
                         "$KAPT3_STUBS_PATH/bar/B.java",
                         "$KAPT3_STUBS_PATH/baz/UtilKt.java",
                         "$KAPT3_STUBS_PATH/foo/A.java",
+                        "$KAPT3_STUBS_PATH/jvmName/Math.java",
                         "$KAPT3_STUBS_PATH/error/NonExistentClass.java"
                     ).map { projectPath.resolve(it).toRealPath().toString() }.toSet(),
                     getProcessedSources(output)
@@ -106,6 +111,7 @@ open class KaptIncrementalWithAggregatingApt : KaptIncrementalIT() {
                         "$KAPT3_STUBS_PATH/bar/B.java",
                         "$KAPT3_STUBS_PATH/baz/UtilKt.java",
                         "$KAPT3_STUBS_PATH/foo/A.java",
+                        "$KAPT3_STUBS_PATH/jvmName/Math.java",
                         "$KAPT3_STUBS_PATH/error/NonExistentClass.java"
                     ).map { projectPath.resolve(it).toRealPath().toString() }.toSet(),
                     getProcessedSources(output)
@@ -219,7 +225,7 @@ open class KaptIncrementalWithAggregatingApt : KaptIncrementalIT() {
     }
 
     @DisplayName("Incremental binary aggregating changes")
-    @JdkVersions(versions = [JavaVersion.VERSION_1_8, JavaVersion.VERSION_11])
+    @JdkVersions(versions = [JavaVersion.VERSION_1_8, JavaVersion.VERSION_11, JavaVersion.VERSION_17, JavaVersion.VERSION_21])
     @GradleWithJdkTest
     fun testIncrementalBinaryAggregatingChanges(gradleVersion: GradleVersion, jdk: JdkVersions.ProvidedJdk) {
         doIncrementalAggregatingChanges(
@@ -244,14 +250,14 @@ open class KaptIncrementalWithAggregatingApt : KaptIncrementalIT() {
         project(
             "kaptIncrementalAggregatingProcessorProject",
             gradleVersion,
-            buildJdk = jdk.location
+            buildJdk = jdk.location,
         ) {
             setupIncrementalAptProject(
                 "ISOLATING" to if (isBinary) IncrementalBinaryIsolatingProcessor::class.java else IncrementalIsolatingProcessor::class.java,
                 "AGGREGATING" to IncrementalAggregatingProcessor::class.java
             )
 
-            build("clean", "assemble") {
+            build("assemble") {
                 assertEquals(
                     listOf(
                         "$KAPT3_STUBS_PATH/bar/WithAnnotation.java",

@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 class A {
     constructor(x: Int = <!INSTANCE_ACCESS_BEFORE_SUPER_CALL!>getSomeInt<!>(), other: A = <!INSTANCE_ACCESS_BEFORE_SUPER_CALL!>this<!>, header: String = <!INSTANCE_ACCESS_BEFORE_SUPER_CALL!>keker<!>) {}
     fun getSomeInt() = 10
@@ -7,7 +8,7 @@ class A {
 class B(other: B = <!NO_THIS!>this<!>)
 
 class C() {
-    constructor(x: Int) : this(<!ARGUMENT_TYPE_MISMATCH, INSTANCE_ACCESS_BEFORE_SUPER_CALL!>{
+    constructor(x: Int) : this(<!ARGUMENT_TYPE_MISMATCH!>{
         val a = 10
         <!INSTANCE_ACCESS_BEFORE_SUPER_CALL!>this<!>
     }<!>) {}

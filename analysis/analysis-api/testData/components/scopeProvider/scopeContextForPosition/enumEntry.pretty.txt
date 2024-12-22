@@ -1,10 +1,10 @@
 element: e
 implicit receivers:
   type: `<anonymous>`
-  owner symbol: KtFirEnumEntryInitializerSymbol
+  owner symbol: KaFirEnumEntryInitializerSymbol
 
   type: kotlin.Enum.Companion
-  owner symbol: KtFirNamedClassOrObjectSymbol
+  owner symbol: KaFirNamedClassSymbol
 
 scopes:
   LocalScope, index = 0

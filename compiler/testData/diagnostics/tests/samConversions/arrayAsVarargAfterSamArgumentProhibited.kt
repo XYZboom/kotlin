@@ -1,6 +1,6 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // DIAGNOSTICS: -UNUSED_VARIABLE
 // LANGUAGE: +SamConversionForKotlinFunctions +SamConversionPerArgument +ProhibitVarargAsArrayAfterSamArgument
-// IGNORE_BACKEND: JS
 // SKIP_TXT
 
 // FILE: Test.java

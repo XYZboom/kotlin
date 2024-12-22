@@ -25,14 +25,13 @@ fun IrPluginContext.generateBodyForDefaultConstructor(declaration: IrConstructor
         irBuiltIns.anyType,
         irBuiltIns.anyClass.owner.primaryConstructor?.symbol ?: return null,
         typeArgumentsCount = 0,
-        valueArgumentsCount = 0
     )
 
     val initializerCall = IrInstanceInitializerCallImpl(
         -1,
         -1,
         (declaration.parent as? IrClass)?.symbol ?: return null,
-        type
+        irBuiltIns.unitType,
     )
 
     return irFactory.createBlockBody(-1, -1, listOf(delegatingAnyCall, initializerCall))

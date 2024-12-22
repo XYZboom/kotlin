@@ -3,12 +3,13 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
+@file:Suppress("DEPRECATION_ERROR") // Freezing API
+
 package test.native.concurrent
 
 import kotlin.native.concurrent.*
 import kotlin.test.*
 
-@OptIn(FreezingIsDeprecated::class)
 private fun assertContentsEquals(expected: ByteArray, actual: MutableData) {
     assertEquals(expected.size, actual.size)
 
@@ -17,7 +18,6 @@ private fun assertContentsEquals(expected: ByteArray, actual: MutableData) {
     }
 }
 
-@OptIn(FreezingIsDeprecated::class)
 class MutableDataTest {
     // See https://youtrack.jetbrains.com/issue/KT-39145
     @Test

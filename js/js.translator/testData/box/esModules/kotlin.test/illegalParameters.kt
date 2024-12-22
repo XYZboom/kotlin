@@ -1,8 +1,10 @@
-// IGNORE_BACKEND: JS
 // KJS_WITH_FULL_RUNTIME
 // SKIP_DCE_DRIVEN
 // RUN_UNIT_TESTS
 // ES_MODULES
+
+// DISABLE_IR_VISIBILITY_CHECKS: ANY
+// ^ @Suppress("INVISIBLE_MEMBER") in _common.kt
 
 // FILE: test.kt
 import kotlin.test.Test

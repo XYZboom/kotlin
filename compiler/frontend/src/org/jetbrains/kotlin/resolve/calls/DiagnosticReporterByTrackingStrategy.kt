@@ -815,8 +815,6 @@ class DiagnosticReporterByTrackingStrategy(
             is ConstrainingTypeIsError -> {}
             // LowerPriorityToPreserveCompatibility is not expected to report something
             is LowerPriorityToPreserveCompatibility -> {}
-            // NoSuccessfulFork does not exist in K1
-            is NoSuccessfulFork -> shouldNotBeCalled()
             // MultiLambdaBuilderInferenceRestriction does not exist in K1
             is org.jetbrains.kotlin.resolve.calls.inference.model.MultiLambdaBuilderInferenceRestriction<*> -> shouldNotBeCalled()
             // NotEnoughInformationForTypeParameterImpl is already considered above
@@ -831,8 +829,7 @@ class DiagnosticReporterByTrackingStrategy(
             KtPsiUtil.deparenthesize(it) ?: it
         }
         if (expression != null) {
-            @Suppress("USELESS_IS_CHECK") // K2 warning suppression, TODO: KT-62472
-            if (expression.isNull() && expression is KtConstantExpression) {
+            if (expression.isNull()) {
                 val factory = when (diagnostic) {
                     is ArgumentNullabilityErrorDiagnostic -> NULL_FOR_NONNULL_TYPE
                     is ArgumentNullabilityWarningDiagnostic -> NULL_FOR_NONNULL_TYPE_WARNING

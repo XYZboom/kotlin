@@ -77,7 +77,7 @@ D'E"F\G$H */;
 
   private final int f1$1 = 2 /* initializer type: int */;
 
-  private final long e = 2L /* initializer type: long */;
+  private final long e;
 
   private int counter = 0 /* initializer type: int */;
 
@@ -232,7 +232,8 @@ public final class Foo2 /* Foo2*/ {
 }
 
 public final class Modifiers /* Modifiers*/ {
-  private final int plainField = 1 /* initializer type: int */;
+  @kotlin.jvm.Transient()
+  private final transient int plainField = 1 /* initializer type: int */;
 
   public  Modifiers();//  .ctor()
 

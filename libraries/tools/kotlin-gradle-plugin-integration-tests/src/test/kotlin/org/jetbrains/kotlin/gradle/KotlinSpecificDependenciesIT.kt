@@ -7,11 +7,11 @@ package org.jetbrains.kotlin.gradle
 
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.testbase.*
+import org.jetbrains.kotlin.test.TestMetadata
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments
-import org.junit.jupiter.params.provider.ArgumentsSource
+import org.junit.jupiter.params.provider.*
 import java.nio.file.Path
 import java.util.*
 import java.util.stream.Stream
@@ -74,7 +74,6 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
     @JsGradlePluginTests
     @DisplayName("JS: kotlin-stdlib dependency is added by default")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun testStdlibByDefaultJs(gradleVersion: GradleVersion) {
         project(
             "kotlin-js-plugin-project",
@@ -95,7 +94,6 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
     @JsGradlePluginTests
     @DisplayName("JS: kotlin-stdlib dependency is not added when disabled via properties")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun testStdlibDisabledJs(gradleVersion: GradleVersion) {
         project(
             "kotlin-js-plugin-project",
@@ -284,7 +282,6 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
     @JsGradlePluginTests
     @DisplayName("Stdlib should be added into wasm compilations")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun testStdlibAddedIntoWasmCompilationDependencies(gradleVersion: GradleVersion) {
         project("wasm-d8-simple-project", gradleVersion) {
             checkTaskCompileClasspath(
@@ -432,7 +429,6 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
     @JsGradlePluginTests
     @DisplayName("JS: Kotlin test single dependency")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun kotlinTestSingleDependencyJs(gradleVersion: GradleVersion) {
         project(
             "kotlin-js-plugin-project",
@@ -661,6 +657,21 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
             }
 
             checkTaskCompileClasspath("compileKotlin", listOf("kotlin-reflect"))
+        }
+    }
+
+    @JvmGradlePluginTests
+    @DisplayName("KT-65271: Don't mutate dependency after it is being finalized")
+    @GradleTest
+    @GradleTestVersions(
+        additionalVersions = [TestVersions.Gradle.G_8_6]
+    )
+    @TestMetadata("kt-65271-test-suite-with-kotlin-test-dependency")
+    fun testDontMutateDependencyAfterItIsFinalized(gradleVersion: GradleVersion) {
+        project("kt-65271-test-suite-with-kotlin-test-dependency", gradleVersion) {
+            build("dependencies") {
+                assertOutputDoesNotContain("org.jetbrains.kotlin:kotlin-test-junit5 FAILED")
+            }
         }
     }
 

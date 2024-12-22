@@ -3,6 +3,8 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
+@file:Suppress("DEPRECATION_ERROR") // Freezing API
+
 package test.native.concurrent
 
 import kotlin.native.concurrent.*
@@ -10,7 +12,6 @@ import kotlin.test.*
 
 private class A(var x: Int)
 
-@OptIn(FreezingIsDeprecated::class)
 class FreezingTest {
     @Test
     fun freezeIsNoopForObjects() {

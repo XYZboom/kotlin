@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.gradle.targets.js.ir
 
 import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.DeprecatedTargetPresetApi
-import org.jetbrains.kotlin.gradle.utils.runProjectConfigurationHealthCheckWhenEvaluated
 import org.jetbrains.kotlin.gradle.plugin.AbstractKotlinTargetConfigurator
 import org.jetbrains.kotlin.gradle.plugin.KotlinOnlyTargetConfigurator
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
@@ -15,6 +14,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinCompilationFactory
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinOnlyTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinOnlyTargetPreset
 import org.jetbrains.kotlin.gradle.plugin.statistics.KotlinJsIrTargetMetrics
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget.Companion.buildNpmProjectName
 
 @DeprecatedTargetPresetApi
 open class KotlinJsIrTargetPreset(
@@ -30,13 +30,12 @@ open class KotlinJsIrTargetPreset(
     override fun instantiateTarget(name: String): KotlinJsIrTarget {
         return project.objects.newInstance(KotlinJsIrTarget::class.java, project, platformType).apply {
             this.isMpp = this@KotlinJsIrTargetPreset.isMpp
-            project.runProjectConfigurationHealthCheckWhenEvaluated {
-                KotlinJsIrTargetMetrics.collectMetrics(
-                    isBrowserConfigured = isBrowserConfigured,
-                    isNodejsConfigured = isNodejsConfigured,
-                    project
-                )
-            }
+            this.outputModuleName.convention(buildNpmProjectName(project, name))
+            KotlinJsIrTargetMetrics.collectMetrics(
+                isBrowserConfigured = isBrowserConfigured,
+                isNodejsConfigured = isNodejsConfigured,
+                project
+            )
         }
     }
 

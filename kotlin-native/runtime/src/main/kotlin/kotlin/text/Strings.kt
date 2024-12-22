@@ -5,30 +5,36 @@
 
 package kotlin.text
 
+import kotlin.native.internal.escapeAnalysis.Escapes
 import kotlin.native.internal.GCUnsafeCall
+import kotlin.native.internal.escapeAnalysis.PointsTo
 
 /**
  * Returns the index within this string of the first occurrence of the specified character, starting from the specified offset.
  */
 @GCUnsafeCall("Kotlin_String_indexOfChar")
+@Escapes.Nothing
 internal actual external fun String.nativeIndexOf(ch: Char, fromIndex: Int): Int
 
 /**
  * Returns the index within this string of the first occurrence of the specified substring, starting from the specified offset.
  */
 @GCUnsafeCall("Kotlin_String_indexOfString")
+@Escapes.Nothing
 internal actual external fun String.nativeIndexOf(str: String, fromIndex: Int): Int
 
 /**
  * Returns the index within this string of the last occurrence of the specified character.
  */
 @GCUnsafeCall("Kotlin_String_lastIndexOfChar")
+@Escapes.Nothing
 internal actual external fun String.nativeLastIndexOf(ch: Char, fromIndex: Int): Int
 
 /**
  * Returns the index within this string of the last occurrence of the specified character, starting from the specified offset.
  */
 @GCUnsafeCall("Kotlin_String_lastIndexOfString")
+@Escapes.Nothing
 internal actual external fun String.nativeLastIndexOf(str: String, fromIndex: Int): Int
 
 /**
@@ -67,6 +73,7 @@ public actual fun String.replace(oldChar: Char, newChar: Char, ignoreCase: Boole
 }
 
 @GCUnsafeCall("Kotlin_String_replace")
+@Escapes.Nothing
 private external fun String.replace(oldChar: Char, newChar: Char): String
 
 private fun String.replaceIgnoreCase(oldChar: Char, newChar: Char): String {
@@ -194,6 +201,7 @@ public actual fun String.regionMatches(
 
 // Bounds must be checked before calling this method
 @GCUnsafeCall("Kotlin_String_unsafeRangeEquals")
+@Escapes.Nothing
 private external fun String.unsafeRangeEquals(thisOffset: Int, other: String, otherOffset: Int, length: Int): Boolean
 
 // Bounds must be checked before calling this method
@@ -212,7 +220,7 @@ private fun String.unsafeRangeEqualsIgnoreCase(thisOffset: Int, other: String, o
  * Returns a copy of this string converted to upper case using the rules of the default locale.
  */
 @Deprecated("Use uppercase() instead.", ReplaceWith("uppercase()"))
-@DeprecatedSinceKotlin(warningSince = "1.5")
+@DeprecatedSinceKotlin(warningSince = "1.5", errorSince = "2.1")
 public actual fun String.toUpperCase(): String = uppercaseImpl()
 
 /**
@@ -231,7 +239,7 @@ public actual fun String.uppercase(): String = uppercaseImpl()
  * Returns a copy of this string converted to lower case using the rules of the default locale.
  */
 @Deprecated("Use lowercase() instead.", ReplaceWith("lowercase()"))
-@DeprecatedSinceKotlin(warningSince = "1.5")
+@DeprecatedSinceKotlin(warningSince = "1.5", errorSince = "2.1")
 public actual fun String.toLowerCase(): String = lowercaseImpl()
 
 /**
@@ -252,6 +260,14 @@ public actual fun String.lowercase(): String = lowercaseImpl()
 public actual fun String.toCharArray(): CharArray = toCharArray(this, CharArray(length), 0, 0, length)
 
 @GCUnsafeCall("Kotlin_String_toCharArray")
+@PointsTo(
+        0x000000,
+        0x000000,
+        0x000000,
+        0x000000,
+        0x000000,
+        0x000010,
+) // the return value is destination
 private external fun toCharArray(string: String, destination: CharArray, destinationOffset: Int, start: Int, size: Int): CharArray
 
 /**
@@ -266,8 +282,7 @@ private external fun toCharArray(string: String, destination: CharArray, destina
 @Deprecated("Use replaceFirstChar instead.", ReplaceWith("replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }"))
 @DeprecatedSinceKotlin(warningSince = "1.5")
 public actual fun String.capitalize(): String {
-    @Suppress("DEPRECATION")
-    return if (isNotEmpty() && this[0].isLowerCase()) substring(0, 1).toUpperCase() + substring(1) else this
+    return if (isNotEmpty() && this[0].isLowerCase()) substring(0, 1).uppercase() + substring(1) else this
 }
 
 /**
@@ -279,8 +294,7 @@ public actual fun String.capitalize(): String {
 @Deprecated("Use replaceFirstChar instead.", ReplaceWith("replaceFirstChar { it.lowercase() }"))
 @DeprecatedSinceKotlin(warningSince = "1.5")
 public actual fun String.decapitalize(): String {
-    @Suppress("DEPRECATION")
-    return if (isNotEmpty() && !this[0].isLowerCase()) substring(0, 1).toLowerCase() + substring(1) else this
+    return if (isNotEmpty() && !this[0].isLowerCase()) substring(0, 1).lowercase() + substring(1) else this
 }
 
 /**
@@ -355,7 +369,10 @@ public actual fun CharArray.concatToString(startIndex: Int = 0, endIndex: Int = 
 }
 
 @GCUnsafeCall("Kotlin_String_unsafeStringFromCharArray")
-internal external fun unsafeStringFromCharArray(array: CharArray, start: Int, size: Int) : String
+// The return value may be an empty string, which is statically allocated and immutable;
+// we can treat it as non-escaping
+@Escapes.Nothing
+internal actual external fun unsafeStringFromCharArray(array: CharArray, start: Int, size: Int) : String
 
 /**
  * Returns a [CharArray] containing characters of this string or its substring.
@@ -459,15 +476,23 @@ public actual fun String.encodeToByteArray(startIndex: Int = 0, endIndex: Int = 
 }
 
 @GCUnsafeCall("Kotlin_ByteArray_unsafeStringFromUtf8")
+// The return value may be an empty string, which is statically allocated and immutable;
+// we can treat it as non-escaping
+@Escapes.Nothing
 internal external fun ByteArray.unsafeStringFromUtf8(start: Int, size: Int) : String
 
 @GCUnsafeCall("Kotlin_ByteArray_unsafeStringFromUtf8OrThrow")
+// The return value may be an empty string, which is statically allocated and immutable;
+// we can treat it as non-escaping
+@Escapes.Nothing
 internal external fun ByteArray.unsafeStringFromUtf8OrThrow(start: Int, size: Int) : String
 
 @GCUnsafeCall("Kotlin_String_unsafeStringToUtf8")
+@Escapes.Nothing
 internal external fun String.unsafeStringToUtf8(start: Int, size: Int) : ByteArray
 
 @GCUnsafeCall("Kotlin_String_unsafeStringToUtf8OrThrow")
+@Escapes.Nothing
 internal external fun String.unsafeStringToUtf8OrThrow(start: Int, size: Int) : ByteArray
 
 internal fun compareToIgnoreCase(thiz: String, other: String): Int {

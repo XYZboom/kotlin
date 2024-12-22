@@ -8,10 +8,10 @@ package org.jetbrains.kotlin.ir.generator.print
 import org.jetbrains.kotlin.generators.tree.AbstractFieldPrinter
 import org.jetbrains.kotlin.generators.tree.AbstractImplementationPrinter
 import org.jetbrains.kotlin.generators.tree.ClassRef
-import org.jetbrains.kotlin.generators.tree.elementAncestorsAndSelfDepthFirst
+import org.jetbrains.kotlin.generators.tree.isSubclassOf
 import org.jetbrains.kotlin.generators.tree.printer.FunctionParameter
 import org.jetbrains.kotlin.generators.tree.printer.ImportCollectingPrinter
-import org.jetbrains.kotlin.generators.tree.printer.printBlock
+import org.jetbrains.kotlin.generators.util.printBlock
 import org.jetbrains.kotlin.ir.generator.IrTree
 import org.jetbrains.kotlin.ir.generator.irElementConstructorIndicatorType
 import org.jetbrains.kotlin.ir.generator.irImplementationDetailType
@@ -26,8 +26,8 @@ internal class ImplementationPrinter(
         override fun forceMutable(field: Field) = field.isMutable
     }
 
-    override val pureAbstractElementType: ClassRef<*>
-        get() = org.jetbrains.kotlin.ir.generator.elementBaseType
+    override fun getPureAbstractElementType(implementation: Implementation): ClassRef<*> =
+        org.jetbrains.kotlin.ir.generator.elementBaseType
 
     override val implementationOptInAnnotation: ClassRef<*>
         get() = irImplementationDetailType
@@ -38,10 +38,7 @@ internal class ImplementationPrinter(
     override fun ImportCollectingPrinter.printAdditionalMethods(implementation: Implementation) {
         implementation.generationCallback?.invoke(this)
 
-        if (
-            implementation.element.elementAncestorsAndSelfDepthFirst().any { it == IrTree.symbolOwner } &&
-            implementation.bindOwnedSymbol
-        ) {
+        if (implementation.element.isSubclassOf(IrTree.symbolOwner) && implementation.bindOwnedSymbol) {
             val symbolField = implementation.getOrNull("symbol")
             if (symbolField != null) {
                 println()
@@ -54,7 +51,7 @@ internal class ImplementationPrinter(
     }
 
     override fun additionalConstructorParameters(implementation: Implementation): List<FunctionParameter> =
-        if (implementation.element.category == Element.Category.Expression) {
+        if (implementation.hasConstructorIndicator) {
             listOf(FunctionParameter("constructorIndicator", irElementConstructorIndicatorType.copy(nullable = true), markAsUnused = true))
         } else {
             emptyList()

@@ -15,6 +15,7 @@ import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import org.gradle.process.ExecOperations
 import org.gradle.work.DisableCachingByDefault
+import org.jetbrains.kotlin.gradle.dsl.KotlinGradlePluginPublicDsl
 import org.jetbrains.kotlin.gradle.plugin.cocoapods.asValidFrameworkName
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.UsesKotlinToolingDiagnostics
@@ -27,13 +28,14 @@ import org.jetbrains.kotlin.gradle.utils.lowerCamelCaseName
 import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import java.io.File
+import java.io.Serializable
 import javax.inject.Inject
 
 @Suppress("unused") // used through .values() call
 internal enum class AppleTarget(
     val targetName: String,
     val targets: List<KonanTarget>
-) {
+) : Serializable {
     MACOS_DEVICE("macos", listOf(KonanTarget.MACOS_X64, KonanTarget.MACOS_ARM64)),
     IPHONE_DEVICE("ios", listOf(KonanTarget.IOS_ARM64)),
     IPHONE_SIMULATOR("iosSimulator", listOf(KonanTarget.IOS_X64, KonanTarget.IOS_SIMULATOR_ARM64)),
@@ -64,6 +66,7 @@ internal class XCFrameworkTaskHolder(
     }
 }
 
+@KotlinGradlePluginPublicDsl
 class XCFrameworkConfig {
     private val taskHolders: List<XCFrameworkTaskHolder>
 
@@ -99,6 +102,7 @@ class XCFrameworkConfig {
     }
 }
 
+@KotlinGradlePluginPublicDsl
 fun Project.XCFramework(xcFrameworkName: String = name) = XCFrameworkConfig(this, xcFrameworkName)
 
 private fun Project.eraseIfDefault(xcFrameworkName: String) =
@@ -203,7 +207,7 @@ internal constructor(
         get() = fatFrameworkDir(projectLayout.buildDirectory, xcFrameworkName.get(), buildType).getFile()
 
     @get:OutputDirectory
-    protected val outputXCFrameworkFile: File
+    internal val outputXCFrameworkFile: File
         get() = outputDir.resolve(buildType.getName()).resolve("${xcFrameworkName.get()}.xcframework")
 
     /**
@@ -214,7 +218,7 @@ internal constructor(
             require(framework.konanTarget.family.isAppleFamily) {
                 "XCFramework supports Apple frameworks only"
             }
-            dependsOn(framework.linkTask)
+            dependsOn(framework.linkTaskProvider)
         }
         fromFrameworkDescriptors(frameworks.map { FrameworkDescriptor(it) })
     }
@@ -238,47 +242,60 @@ internal constructor(
 
     @TaskAction
     fun assemble() {
-        val frameworks = groupedFrameworkFiles.values.flatten()
         val xcfName = xcFrameworkName.get()
-        if (frameworks.isNotEmpty()) {
-            val rawXcfName = baseName.get()
-            val name = frameworks.first().name
-            if (frameworks.any { it.name != name }) {
-                error("All inner frameworks in XCFramework '$rawXcfName' should have same names!" +
-                              frameworks.joinToString("\n") { it.file.path })
-            }
-            if (name != xcfName) {
-                toolingDiagnosticsCollector.get().report(this, KotlinToolingDiagnostics.XCFrameworkDifferentInnerFrameworksName(
-                    xcFramework = rawXcfName,
-                    innerFrameworks = name,
-                ))
-            }
-        }
 
-        val frameworksForXCFramework = groupedFrameworkFiles.entries.mapNotNull { (group, files) ->
-            when {
-                files.size == 1 -> files.first()
-                files.size > 1 -> FrameworkDescriptor(
-                    fatFrameworksDir.resolve(group.targetName).resolve("$xcfName.framework"),
-                    files.all { it.isStatic },
-                    group.targets.first() //will be not used
-                )
-                else -> null
-            }
-        }
+        val frameworksForXCFramework = xcframeworkSlices(
+            frameworkName = singleFrameworkName(xcfName)
+        )
+
         createXCFramework(frameworksForXCFramework, outputXCFrameworkFile)
     }
 
-    private fun createXCFramework(frameworkFiles: List<FrameworkDescriptor>, output: File) {
-        if (output.exists()) output.deleteRecursively()
+    internal fun singleFrameworkName(xcfName: String): String {
+        val frameworks = groupedFrameworkFiles.values.flatten()
+        if (frameworks.isEmpty()) error("XCFramework $xcfName is empty")
 
+        val rawXcfName = baseName.get()
+        val name = frameworks.first().name
+        if (frameworks.any { it.name != name }) {
+            error("All inner frameworks in XCFramework '$rawXcfName' should have same names!" +
+                          frameworks.joinToString("\n") { it.file.path })
+        }
+        if (name != xcfName) {
+            toolingDiagnosticsCollector.get().report(
+                this, KotlinToolingDiagnostics.XCFrameworkDifferentInnerFrameworksName(
+                    xcFramework = rawXcfName,
+                    innerFrameworks = name,
+                )
+            )
+        }
+        return name
+    }
+
+    internal fun xcframeworkSlices(frameworkName: String) = groupedFrameworkFiles.entries.mapNotNull { (group, files) ->
+        when {
+            files.size == 1 -> files.first()
+            files.size > 1 -> FrameworkDescriptor(
+                fatFrameworksDir.resolve(group.targetName).resolve("${frameworkName}.framework"),
+                files.all { it.isStatic },
+                group.targets.first() //will be not used
+            )
+            else -> null
+        }
+    }
+
+    internal fun xcodebuildArguments(
+        frameworkFiles: List<FrameworkDescriptor>,
+        output: File,
+        fileExists: (File) -> Boolean = { it.exists() }
+    ): List<String> {
         val cmdArgs = mutableListOf("xcodebuild", "-create-xcframework")
         frameworkFiles.forEach { frameworkFile ->
             cmdArgs.add("-framework")
             cmdArgs.add(frameworkFile.file.path)
             if (!frameworkFile.isStatic) {
                 val dsymFile = File(frameworkFile.file.path + ".dSYM")
-                if (dsymFile.exists()) {
+                if (fileExists(dsymFile)) {
                     cmdArgs.add("-debug-symbols")
                     cmdArgs.add(dsymFile.path)
                 }
@@ -286,6 +303,13 @@ internal constructor(
         }
         cmdArgs.add("-output")
         cmdArgs.add(output.path)
+        return cmdArgs
+    }
+
+    private fun createXCFramework(frameworkFiles: List<FrameworkDescriptor>, output: File) {
+        if (output.exists()) output.deleteRecursively()
+
+        val cmdArgs = xcodebuildArguments(frameworkFiles, output)
         execOperations.exec { it.commandLine(cmdArgs) }
     }
 

@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.utils.IDEAPluginsCompatibilityAPI
 import java.lang.reflect.Modifier
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.reflect.KMutableProperty0
 
 inline fun <reified T : Any> Sequence<*>.firstIsInstanceOrNull(): T? {
     for (element in this) if (element is T) return element
@@ -68,12 +69,16 @@ inline fun <reified T : Any> Iterable<*>.lastIsInstanceOrNull(): T? {
     }
 }
 
-inline fun <T, reified R> Iterable<T>.partitionIsInstance(): Pair<List<R>, List<T>> {
+inline fun <T, reified R> Iterable<T>.partitionIsInstance(): Pair<List<R>, List<T>> =
+    partitionNotNull { it as? R }
+
+inline fun <T, R> Iterable<T>.partitionNotNull(map: (T) -> R?): Pair<List<R>, List<T>> {
     val first = ArrayList<R>()
     val second = ArrayList<T>()
     for (element in this) {
-        if (element is R) {
-            first.add(element)
+        val result = map(element)
+        if (result != null) {
+            first.add(result)
         } else {
             second.add(element)
         }
@@ -102,7 +107,7 @@ fun <T> sequenceOfLazyValues(vararg elements: () -> T): Sequence<T> = elements.a
 fun <T1, T2> Pair<T1, T2>.swap(): Pair<T2, T1> = Pair(second, first)
 
 @RequiresOptIn(
-    message ="""
+    message = """
         Usage of this function is unsafe because it does not have native compiler support
          This means that compiler won't report UNCHECKED_CAST, CAST_NEVER_SUCCEED or similar
          diagnostics in case of error cast (which can happen immediately or after some
@@ -284,7 +289,7 @@ inline fun <T, K> List<T>.flatGroupBy(keySelector: (T) -> Collection<K>): Map<K,
 inline fun <T, U, K, V> List<T>.flatGroupBy(
     keySelector: (T) -> Collection<U>,
     keyTransformer: (U) -> K,
-    valueTransformer: (T) -> V
+    valueTransformer: (T) -> V,
 ): Map<K, List<V>> {
     val result = mutableMapOf<K, MutableList<V>>()
     for (element in this) {
@@ -379,3 +384,27 @@ fun <T, A : Appendable> Iterable<T>.joinToWithBuffer(
     return buffer
 }
 
+fun String.countOccurrencesOf(substring: String): Int {
+    var result = 0
+    var lastIndex = 0
+    while (true) {
+        lastIndex = indexOf(substring, lastIndex) + 1
+        if (lastIndex == 0) break
+        result++
+    }
+    return result
+}
+
+inline fun <V : Any> KMutableProperty0<V?>.getOrSetIfNull(compute: () -> V): V =
+    this.get() ?: compute().also {
+        this.set(it)
+    }
+
+inline fun <T, S> MutableList<T>.assignFrom(other: Iterable<S>, transform: (S) -> T) {
+    clear()
+    other.mapTo(this, transform)
+}
+
+fun <T> MutableList<T>.assignFrom(other: Iterable<T>) {
+    assignFrom(other) { it }
+}

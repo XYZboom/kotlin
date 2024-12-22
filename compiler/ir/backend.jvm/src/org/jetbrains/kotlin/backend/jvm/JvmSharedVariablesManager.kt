@@ -20,7 +20,8 @@ import org.jetbrains.kotlin.ir.expressions.impl.*
 import org.jetbrains.kotlin.ir.symbols.IrValueSymbol
 import org.jetbrains.kotlin.ir.symbols.impl.IrVariableSymbolImpl
 import org.jetbrains.kotlin.ir.types.*
-import org.jetbrains.kotlin.ir.util.createImplicitParameterDeclarationWithWrappedDescriptor
+import org.jetbrains.kotlin.ir.util.createThisReceiverParameter
+import org.jetbrains.kotlin.ir.util.defaultValueForType
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
@@ -55,7 +56,7 @@ class JvmSharedVariablesManager(
             origin = IrDeclarationOrigin.IR_BUILTINS_STUB
             name = Name.identifier(primitiveType.classOrNull!!.owner.name.asString() + "Ref")
         }.apply {
-            createImplicitParameterDeclarationWithWrappedDescriptor()
+            createThisReceiverParameter()
         }
         primitiveType.classifierOrFail to RefProvider(refClass, primitiveType)
     }
@@ -69,7 +70,7 @@ class JvmSharedVariablesManager(
                 name = Name.identifier("T")
                 superTypes.add(irBuiltIns.anyNType)
             }
-            createImplicitParameterDeclarationWithWrappedDescriptor()
+            createThisReceiverParameter()
         }
         RefProvider(refClass, refClass.typeParameters[0].defaultType)
     }
@@ -88,7 +89,9 @@ class JvmSharedVariablesManager(
         val refConstructorCall = IrConstructorCallImpl.fromSymbolOwner(
             originalDeclaration.startOffset, originalDeclaration.startOffset, refType, provider.refConstructor.symbol
         ).apply {
-            typeArguments.forEachIndexed(::putTypeArgument)
+            typeArguments.forEachIndexed { index, type ->
+                this.typeArguments[index] = type
+            }
         }
         return with(originalDeclaration) {
             IrVariableImpl(
@@ -105,7 +108,7 @@ class JvmSharedVariablesManager(
     override fun defineSharedValue(originalDeclaration: IrVariable, sharedVariableDeclaration: IrVariable): IrStatement {
         val initializer = originalDeclaration.initializer ?: return sharedVariableDeclaration
         val default = IrConstImpl.defaultValueForType(initializer.startOffset, initializer.endOffset, originalDeclaration.type)
-        if (initializer is IrConst<*> && initializer.value == default.value) {
+        if (initializer is IrConst && initializer.value == default.value) {
             // The field is preinitialized to the default value, so an explicit set is not required.
             return sharedVariableDeclaration
         }
@@ -123,9 +126,9 @@ class JvmSharedVariablesManager(
 
     private fun unsafeCoerce(value: IrExpression, from: IrType, to: IrType): IrExpression =
         IrCallImpl.fromSymbolOwner(value.startOffset, value.endOffset, to, symbols.unsafeCoerceIntrinsic).apply {
-            putTypeArgument(0, from)
-            putTypeArgument(1, to)
-            putValueArgument(0, value)
+            typeArguments[0] = from
+            typeArguments[1] = to
+            arguments[0] = value
         }
 
     override fun getSharedValue(sharedVariableSymbol: IrValueSymbol, originalGet: IrGetValue): IrExpression =

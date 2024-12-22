@@ -75,6 +75,24 @@ public class LldbTestGenerated extends AbstractNativeBlackBoxTest {
   }
 
   @Test
+  @TestMetadata("inlineArgs.kt")
+  public void testInlineArgs() {
+    runTest("native/native.tests/testData/lldb/inlineArgs.kt");
+  }
+
+  @Test
+  @TestMetadata("inlineLambdaRepresentation.kt")
+  public void testInlineLambdaRepresentation() {
+    runTest("native/native.tests/testData/lldb/inlineLambdaRepresentation.kt");
+  }
+
+  @Test
+  @TestMetadata("inlineOnlyFunction.kt")
+  public void testInlineOnlyFunction() {
+    runTest("native/native.tests/testData/lldb/inlineOnlyFunction.kt");
+  }
+
+  @Test
   @TestMetadata("kt33055.kt")
   public void testKt33055() {
     runTest("native/native.tests/testData/lldb/kt33055.kt");
@@ -120,6 +138,12 @@ public class LldbTestGenerated extends AbstractNativeBlackBoxTest {
   @TestMetadata("kt61131.kt")
   public void testKt61131() {
     runTest("native/native.tests/testData/lldb/kt61131.kt");
+  }
+
+  @Test
+  @TestMetadata("kt68536.kt")
+  public void testKt68536() {
+    runTest("native/native.tests/testData/lldb/kt68536.kt");
   }
 
   @Test

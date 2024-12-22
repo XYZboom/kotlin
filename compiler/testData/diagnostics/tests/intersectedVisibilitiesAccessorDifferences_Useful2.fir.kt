@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // ISSUE: KT-66717
 
 interface IVar {
@@ -11,7 +12,7 @@ abstract class WithVarPrivateSet {
 
 class <!CANNOT_WEAKEN_ACCESS_PRIVILEGE_WARNING!>G2<!> : WithVarPrivateSet(), IVar {
     fun foo() {
-        z = 5
+        <!INVISIBLE_SETTER!>z<!> = 5
     }
 }
 

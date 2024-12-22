@@ -1,6 +1,7 @@
 // LANGUAGE: +IntrinsicConstEvaluation
 // DONT_TARGET_EXACT_BACKEND: JVM
-// DONT_TARGET_EXACT_BACKEND: JS
+// IGNORE_IR_DESERIALIZATION_TEST: NATIVE
+// ^^^ KT-73621: EVALUATED{FIR} is shown instead of EVALUATED
 
 var result = "Fail"
 

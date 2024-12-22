@@ -7,8 +7,9 @@ package org.jetbrains.kotlin.gradle.android
 
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.Kapt3BaseIT
+import org.jetbrains.kotlin.gradle.forceK1Kapt
 import org.jetbrains.kotlin.gradle.testbase.*
-import org.jetbrains.kotlin.gradle.util.*
+import org.jetbrains.kotlin.gradle.util.checkBytecodeContains
 import org.junit.jupiter.api.DisplayName
 import kotlin.io.path.appendText
 import kotlin.io.path.writeText
@@ -16,6 +17,10 @@ import kotlin.io.path.writeText
 @DisplayName("android with kapt3 tests")
 @AndroidGradlePluginTests
 open class Kapt3AndroidIT : Kapt3BaseIT() {
+    override fun TestProject.customizeProject() {
+        forceK1Kapt()
+    }
+
     @DisplayName("KT-15001")
     @GradleAndroidTest
     fun testKt15001(
@@ -336,6 +341,35 @@ open class Kapt3AndroidIT : Kapt3BaseIT() {
                 checkBytecodeContains(
                     compiledClassFile.toFile(),
                     "public final bar${'$'}app_debugAndroidTest()V"
+                )
+            }
+        }
+    }
+
+    @DisplayName("KT-71233 Kapt does not cause build to fail if no annotation processors are defined")
+    @GradleAndroidTest
+    fun testNoProcessors(
+        gradleVersion: GradleVersion,
+        agpVersion: String,
+        jdkVersion: JdkVersions.ProvidedJdk,
+    ) {
+        project(
+            "kapt2/noProcessors",
+            gradleVersion,
+            buildOptions = defaultBuildOptions.copy(
+                kaptOptions = kaptOptions().copy(
+                    includeCompileClasspath = true,
+                ),
+                androidVersion = agpVersion,
+            ),
+            buildJdk = jdkVersion.location
+        ) {
+            build("build") {
+                assertTasksExecuted(
+                    ":app:compileDebugKotlin",
+                    ":app:compileReleaseKotlin",
+                    ":app:kaptGenerateStubsDebugKotlin",
+                    ":app:kaptGenerateStubsReleaseKotlin",
                 )
             }
         }

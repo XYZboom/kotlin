@@ -1,3 +1,5 @@
+// RUN_PIPELINE_TILL: FRONTEND
+// FIR_IDENTICAL
 @file:OptIn(ExperimentalSubclassOptIn::class)
 
 @RequiresOptIn
@@ -8,4 +10,4 @@ interface Interface
 
 typealias TypeAlias = Interface
 
-class InterfaceInheritorB: TypeAlias
+class InterfaceInheritorB: <!OPT_IN_TO_INHERITANCE_ERROR!>TypeAlias<!>

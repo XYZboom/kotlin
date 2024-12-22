@@ -1,3 +1,5 @@
+// LATEST_LV_DIFFERENCE
+// RUN_PIPELINE_TILL: BACKEND
 // LANGUAGE: +IntrinsicConstEvaluation
 // MODULE: m1-common
 // FILE: common.kt
@@ -18,5 +20,5 @@ expect fun nonMatching()
 @Ann(MyEnum.FOO.name)
 actual fun matching() {}
 
-<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>@Ann(MyEnum.FOO.name)
-actual fun nonMatching() {}<!>
+@Ann(MyEnum.FOO.name)
+<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT, ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>actual<!> fun nonMatching() {}

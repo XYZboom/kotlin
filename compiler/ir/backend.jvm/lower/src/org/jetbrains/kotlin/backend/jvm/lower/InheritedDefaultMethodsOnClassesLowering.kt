@@ -32,10 +32,10 @@ import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 
-@PhaseDescription(
-    name = "InheritedDefaultMethodsOnClasses",
-    description = "Add bridge-implementations in classes that inherit default implementations from interfaces"
-)
+/**
+ * Adds bridge implementations in classes that inherit default implementations from interfaces.
+ */
+@PhaseDescription(name = "InheritedDefaultMethodsOnClasses")
 internal class InheritedDefaultMethodsOnClassesLowering(val context: JvmBackendContext) : ClassLoweringPass {
     override fun lower(irClass: IrClass) {
         if (!irClass.isJvmInterface) {
@@ -100,7 +100,7 @@ internal class InheritedDefaultMethodsOnClassesLowering(val context: JvmBackendC
                     }
                 +irCall(defaultImplFun.symbol, irFunction.returnType).apply {
                     for (index in superMethod.parentAsClass.typeParameters.indices) {
-                        putTypeArgument(index, createPlaceholderAnyNType(context.irBuiltIns))
+                        typeArguments[index] = createPlaceholderAnyNType(context.irBuiltIns)
                     }
                     passTypeArgumentsFrom(irFunction, offset = superMethod.parentAsClass.typeParameters.size)
 
@@ -117,35 +117,10 @@ internal class InheritedDefaultMethodsOnClassesLowering(val context: JvmBackendC
     }
 }
 
-@PhaseDescription(
-    name = "ReplaceDefaultImplsOverriddenSymbols",
-    description = "Replace overridden symbols for methods inherited from interfaces to classes"
-)
-internal class ReplaceDefaultImplsOverriddenSymbols(private val context: JvmBackendContext) : ClassLoweringPass {
-    override fun lower(irClass: IrClass) {
-        for (declaration in irClass.declarations) {
-            if (declaration is IrSimpleFunction) {
-                visitSimpleFunction(declaration)
-            }
-        }
-    }
-
-    // Functions introduced by InheritedDefaultMethodsOnClassesLowering may be inherited lower in the hierarchy.
-    // Here we use the same logic as the delegation itself (`getTargetForRedirection`) to determine
-    // if the overridden symbol has been, or will be, replaced and patch it accordingly.
-    fun visitSimpleFunction(declaration: IrSimpleFunction) {
-        declaration.overriddenSymbols = declaration.overriddenSymbols.map { symbol ->
-            if (symbol.owner.findInterfaceImplementation(context.config.jvmDefaultMode) != null)
-                context.cachedDeclarations.getDefaultImplsRedirection(symbol.owner).symbol
-            else symbol
-        }
-    }
-}
-
-@PhaseDescription(
-    name = "InterfaceSuperCalls",
-    description = "Redirect super interface calls to DefaultImpls"
-)
+/**
+ * Redirects super interface calls to DefaultImpls.
+ */
+@PhaseDescription(name = "InterfaceSuperCalls")
 internal class InterfaceSuperCallsLowering(val context: JvmBackendContext) : IrElementTransformerVoid(), FileLoweringPass {
     override fun lower(irFile: IrFile) {
         irFile.transformChildrenVoid(this)
@@ -171,7 +146,7 @@ internal class InterfaceSuperCallsLowering(val context: JvmBackendContext) : IrE
         val movedThisParameter = irCall.symbol.owner.valueParameters
             .find { it.origin == IrDeclarationOrigin.MOVED_DISPATCH_RECEIVER }
             ?: return
-        val movedThisParameterIndex = movedThisParameter.index
+        val movedThisParameterIndex = movedThisParameter.indexInOldValueParameters
         irCall.putValueArgument(
             movedThisParameterIndex,
             irCall.getValueArgument(movedThisParameterIndex)?.reinterpretAsDispatchReceiverOfType(movedThisParameter.type)
@@ -192,10 +167,10 @@ internal fun IrExpression.reinterpretAsDispatchReceiverOfType(irType: IrType): I
             this
         )
 
-@PhaseDescription(
-    name = "InterfaceDefaultCalls",
-    description = "Redirect interface calls with default arguments to DefaultImpls (except method compiled to JVM defaults)"
-)
+/**
+ * Redirects interface calls with default arguments to DefaultImpls (except methods compiled to JVM defaults).
+ */
+@PhaseDescription(name = "InterfaceDefaultCalls")
 internal class InterfaceDefaultCallsLowering(val context: JvmBackendContext) : IrElementTransformerVoidWithContext(), FileLoweringPass {
     // TODO If there are no default _implementations_ we can avoid generating defaultImpls class entirely by moving default arg dispatchers to the interface class
     override fun lower(irFile: IrFile) {
@@ -241,10 +216,10 @@ private fun IrSimpleFunction.isCloneableClone(): Boolean =
             (parent as? IrClass)?.fqNameWhenAvailable?.asString() == "kotlin.Cloneable" &&
             valueParameters.isEmpty()
 
-@PhaseDescription(
-    name = "InterfaceObjectCalls",
-    description = "Resolve calls to Object methods on interface types to virtual methods"
-)
+/**
+ * Resolves calls to Object methods on interface types to virtual methods.
+ */
+@PhaseDescription(name = "InterfaceObjectCalls")
 internal class InterfaceObjectCallsLowering(val context: JvmBackendContext) : IrElementVisitorVoid, FileLoweringPass {
     override fun lower(irFile: IrFile) = irFile.acceptChildren(this, null)
 
@@ -274,7 +249,9 @@ internal class InterfaceObjectCallsLowering(val context: JvmBackendContext) : Ir
  * interface implementation should be generated into the class containing the fake override; or null if the given function is not a fake
  * override of any interface implementation or such method was already generated into the superclass or is a method from Any.
  */
-internal fun IrSimpleFunction.findInterfaceImplementation(jvmDefaultMode: JvmDefaultMode): IrSimpleFunction? {
+internal fun IrSimpleFunction.findInterfaceImplementation(
+    jvmDefaultMode: JvmDefaultMode, allowJvmDefault: Boolean = false,
+): IrSimpleFunction? {
     if (!isFakeOverride) return null
 
     val parent = parent
@@ -284,11 +261,12 @@ internal fun IrSimpleFunction.findInterfaceImplementation(jvmDefaultMode: JvmDef
 
     if (!implementation.hasInterfaceParent()
         || DescriptorVisibilities.isPrivate(implementation.visibility)
-        || implementation.isDefinitelyNotDefaultImplsMethod(jvmDefaultMode, implementation)
         || implementation.isMethodOfAny()
     ) {
         return null
     }
+
+    if (!allowJvmDefault && implementation.isDefinitelyNotDefaultImplsMethod(jvmDefaultMode, implementation)) return null
 
     // Only generate interface delegation for functions immediately inherited from an interface.
     // (Otherwise, delegation will be present in the parent class)

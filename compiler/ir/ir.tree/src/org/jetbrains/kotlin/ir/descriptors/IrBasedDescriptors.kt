@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -46,6 +46,12 @@ import org.jetbrains.kotlin.utils.memoryOptimizedMapIndexed
 abstract class IrBasedDeclarationDescriptor<T : IrDeclaration>(val owner: T) : DeclarationDescriptor {
     override val annotations: Annotations by lazy(owner::toAnnotations)
 
+    protected fun unsupportedInIrBasedDescriptor(): Nothing {
+        irError("This operation is not supported in IR-based descriptors") {
+            withIrEntry("element", owner)
+        }
+    }
+
     @OptIn(ObsoleteDescriptorBasedAPI::class)
     protected fun IrType.toIrBasedKotlinType(): KotlinType = toIrBasedKotlinType(owner.module.builtIns)
 
@@ -85,7 +91,7 @@ abstract class IrBasedCallableDescriptor<T : IrDeclaration>(owner: T) : Callable
         throw UnsupportedOperationException("IrBased descriptors SHOULD NOT be substituted")
 
     override fun getOverriddenDescriptors(): Collection<CallableDescriptor> {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getSource() = SourceElement.NO_SOURCE
@@ -97,33 +103,33 @@ abstract class IrBasedCallableDescriptor<T : IrDeclaration>(owner: T) : Callable
     override fun getContextReceiverParameters(): List<ReceiverParameterDescriptor> = emptyList()
 
     override fun getTypeParameters(): List<TypeParameterDescriptor> {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getReturnType(): KotlinType? {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getValueParameters(): List<ValueParameterDescriptor> {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun hasStableParameterNames(): Boolean {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun hasSynthesizedParameterNames() = false
 
     override fun getVisibility(): DescriptorVisibility {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun <R : Any?, D : Any?> accept(visitor: DeclarationDescriptorVisitor<R, D>?, data: D): R {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun acceptVoid(visitor: DeclarationDescriptorVisitor<Void, Void>?) {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun <V : Any?> getUserData(key: CallableDescriptor.UserDataKey<V>?): V? = null
@@ -134,7 +140,18 @@ abstract class IrBasedCallableDescriptor<T : IrDeclaration>(owner: T) : Callable
 open class IrBasedValueParameterDescriptor(owner: IrValueParameter) : ValueParameterDescriptor,
     IrBasedCallableDescriptor<IrValueParameter>(owner) {
 
-    override val index get() = owner.index
+    override val index: Int
+        get() {
+            if (owner.indexInParameters == -1)
+                return -1
+            val function = owner._parent as? IrFunction
+                ?: return -1
+
+            // Find index in imaginary list that contains only Regular and Context parameters.
+            return function.parameters
+                .subList(0, owner.indexInParameters)
+                .count { it.kind == IrParameterKind.Context || it.kind == IrParameterKind.Regular }
+        }
     override val isCrossinline get() = owner.isCrossinline
     override val isNoinline get() = owner.isNoinline
     override val varargElementType get() = owner.varargElementType?.toIrBasedKotlinType()
@@ -148,7 +165,7 @@ open class IrBasedValueParameterDescriptor(owner: IrValueParameter) : ValueParam
     override fun getCompileTimeInitializer(): ConstantValue<*>? = null
     override fun cleanCompileTimeInitializerCache() {}
 
-    override fun copy(newOwner: CallableDescriptor, newName: Name, newIndex: Int) = TODO("not implemented")
+    override fun copy(newOwner: CallableDescriptor, newName: Name, newIndex: Int) = unsupportedInIrBasedDescriptor()
 
     override fun getOverriddenDescriptors(): Collection<ValueParameterDescriptor> = emptyList()
     override fun getTypeParameters(): List<TypeParameterDescriptor> = emptyList()
@@ -173,20 +190,20 @@ open class IrBasedReceiverParameterDescriptor(owner: IrValueParameter) : Receive
     IrBasedCallableDescriptor<IrValueParameter>(owner) {
 
     override fun getValue(): ReceiverValue {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getType() = owner.type.toIrBasedKotlinType()
     override fun getName() = owner.name
 
-    override fun copy(newOwner: DeclarationDescriptor) = TODO("not implemented")
+    override fun copy(newOwner: DeclarationDescriptor) = unsupportedInIrBasedDescriptor()
 
     override fun getOverriddenDescriptors(): Collection<ValueParameterDescriptor> = emptyList()
 
     override fun getOriginal() = this
 
     override fun substitute(substitutor: TypeSubstitutor): ReceiverParameterDescriptor {
-        TODO("")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getReturnType(): KotlinType? = owner.type.toIrBasedKotlinType()
@@ -199,11 +216,10 @@ open class IrBasedReceiverParameterDescriptor(owner: IrValueParameter) : Receive
     }
 }
 
-fun IrValueParameter.toIrBasedDescriptor() =
-    if (index < 0)
-        IrBasedReceiverParameterDescriptor(this)
-    else
-        IrBasedValueParameterDescriptor(this)
+fun IrValueParameter.toIrBasedDescriptor() = when (kind) {
+    IrParameterKind.DispatchReceiver, IrParameterKind.ExtensionReceiver -> IrBasedReceiverParameterDescriptor(this)
+    IrParameterKind.Context, IrParameterKind.Regular -> IrBasedValueParameterDescriptor(this)
+}
 
 open class IrBasedTypeParameterDescriptor(owner: IrTypeParameter) : TypeParameterDescriptor,
     IrBasedDeclarationDescriptor<IrTypeParameter>(owner) {
@@ -284,19 +300,19 @@ open class IrBasedVariableDescriptor(owner: IrVariable) : VariableDescriptor, Ir
     override fun isLateInit() = owner.isLateinit
 
     override fun getCompileTimeInitializer(): ConstantValue<*>? {
-        TODO("")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun cleanCompileTimeInitializerCache() {}
 
     override fun getOverriddenDescriptors(): Collection<VariableDescriptor> {
-        TODO("Not Implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getOriginal() = this
 
     override fun substitute(substitutor: TypeSubstitutor): VariableDescriptor {
-        TODO("")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun <R, D> accept(visitor: DeclarationDescriptorVisitor<R, D>?, data: D): R =
@@ -314,13 +330,13 @@ open class IrBasedVariableDescriptorWithAccessor(owner: IrLocalDelegatedProperty
     override fun getName(): Name = owner.name
 
     override fun substitute(substitutor: TypeSubstitutor): VariableDescriptor {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun isVar() = owner.isVar
 
     override fun getCompileTimeInitializer(): ConstantValue<*>? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun cleanCompileTimeInitializerCache() {}
@@ -334,9 +350,9 @@ open class IrBasedVariableDescriptorWithAccessor(owner: IrLocalDelegatedProperty
     override fun isLateInit(): Boolean = false
 
     override val getter: VariableAccessorDescriptor?
-        get() = TODO("not implemented")
+        get() = unsupportedInIrBasedDescriptor()
     override val setter: VariableAccessorDescriptor?
-        get() = TODO("not implemented")
+        get() = unsupportedInIrBasedDescriptor()
     override val isDelegated: Boolean = true
 }
 
@@ -344,19 +360,19 @@ fun IrLocalDelegatedProperty.toIrBasedDescriptor() = IrBasedVariableDescriptorWi
 
 abstract class IrBasedFunctionDescriptor<Function : IrFunction>(owner: Function) : IrBasedCallableDescriptor<Function>(owner) {
 
-    override fun getExtensionReceiverParameter() = owner.extensionReceiverParameter?.toIrBasedDescriptor() as? ReceiverParameterDescriptor
+    override fun getExtensionReceiverParameter() = owner.parameters
+        .firstOrNull { it.kind == IrParameterKind.ExtensionReceiver }
+        ?.toIrBasedDescriptor() as? ReceiverParameterDescriptor
 
-    override fun getContextReceiverParameters() = owner.valueParameters
-        .asSequence()
-        .take(owner.contextReceiverParametersCount)
+    override fun getContextReceiverParameters() = owner.parameters
+        .filter { it.kind == IrParameterKind.Context }
         .map(::IrBasedReceiverParameterDescriptor)
-        .toMutableList()
+        .toList()
 
-    override fun getValueParameters() = owner.valueParameters
-        .asSequence()
-        .drop(owner.contextReceiverParametersCount)
+    override fun getValueParameters() = owner.parameters
+        .filter { it.kind == IrParameterKind.Regular }
         .map(::IrBasedValueParameterDescriptor)
-        .toMutableList()
+        .toList()
 }
 
 // We make all IR-based function descriptors instances of DescriptorWithContainerSource, and use .parentClassId to
@@ -392,11 +408,11 @@ open class IrBasedSimpleFunctionDescriptor(owner: IrSimpleFunction) : SimpleFunc
 
     override fun getOriginal() = this
     override fun substitute(substitutor: TypeSubstitutor): SimpleFunctionDescriptor {
-        TODO("")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun setOverriddenDescriptors(overriddenDescriptors: MutableCollection<out CallableMemberDescriptor>) {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getKind() =
@@ -410,7 +426,7 @@ open class IrBasedSimpleFunctionDescriptor(owner: IrSimpleFunction) : SimpleFunc
         kind: CallableMemberDescriptor.Kind?,
         copyOverrides: Boolean
     ): Nothing {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun isHiddenToOvercomeSignatureClash(): Boolean = false
@@ -421,7 +437,7 @@ open class IrBasedSimpleFunctionDescriptor(owner: IrSimpleFunction) : SimpleFunc
     override fun <V : Any?> getUserData(key: CallableDescriptor.UserDataKey<V>?): V? = null
 
     override fun newCopyBuilder(): FunctionDescriptor.CopyBuilder<out SimpleFunctionDescriptor> {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun <R, D> accept(visitor: DeclarationDescriptorVisitor<R, D>?, data: D) =
@@ -453,7 +469,7 @@ open class IrBasedClassConstructorDescriptor(owner: IrConstructor) : ClassConstr
     override fun getOriginal() = this
 
     override fun substitute(substitutor: TypeSubstitutor): ClassConstructorDescriptor {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun copy(
@@ -470,7 +486,7 @@ open class IrBasedClassConstructorDescriptor(owner: IrConstructor) : ClassConstr
 
 
     override fun setOverriddenDescriptors(overriddenDescriptors: MutableCollection<out CallableMemberDescriptor>) {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getKind() = CallableMemberDescriptor.Kind.SYNTHESIZED
@@ -486,7 +502,7 @@ open class IrBasedClassConstructorDescriptor(owner: IrConstructor) : ClassConstr
     override fun getVisibility() = owner.visibility
 
     override fun isHiddenToOvercomeSignatureClash(): Boolean {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun isOperator() = false
@@ -494,7 +510,7 @@ open class IrBasedClassConstructorDescriptor(owner: IrConstructor) : ClassConstr
     override fun isInline() = owner.isInline
 
     override fun isHiddenForResolutionEverywhereBesideSupercalls(): Boolean {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getReturnType() = owner.returnType.toIrBasedKotlinType()
@@ -516,7 +532,7 @@ open class IrBasedClassConstructorDescriptor(owner: IrConstructor) : ClassConstr
     override fun isExternal() = owner.isExternal
 
     override fun newCopyBuilder(): FunctionDescriptor.CopyBuilder<out FunctionDescriptor> {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun <R, D> accept(visitor: DeclarationDescriptorVisitor<R, D>?, data: D): R =
@@ -533,7 +549,6 @@ fun IrFunction.toIrBasedDescriptor(): FunctionDescriptor =
     when (this) {
         is IrSimpleFunction -> toIrBasedDescriptor()
         is IrConstructor -> toIrBasedDescriptor()
-        else -> error("Unknown function kind")
     }
 
 open class IrBasedClassDescriptor(owner: IrClass) : ClassDescriptor, IrBasedDeclarationDescriptor<IrClass>(owner) {
@@ -582,7 +597,11 @@ open class IrBasedClassDescriptor(owner: IrClass) : ClassDescriptor, IrBasedDecl
     override fun getThisAsReceiverParameter() = owner.thisReceiver?.toIrBasedDescriptor() as ReceiverParameterDescriptor
 
     override fun getContextReceivers(): List<ReceiverParameterDescriptor> {
-        TODO("Not yet implemented")
+        return owner
+            .fields
+            .filter { it.origin == IrDeclarationOrigin.FIELD_FOR_CLASS_CONTEXT_RECEIVER }
+            .map(::IrBasedContextReceiverFieldDescriptor)
+            .toList()
     }
 
     override fun getUnsubstitutedPrimaryConstructor() =
@@ -591,7 +610,7 @@ open class IrBasedClassDescriptor(owner: IrClass) : ClassDescriptor, IrBasedDecl
     override fun getDeclaredTypeParameters() = owner.typeParameters.memoryOptimizedMap { it.toIrBasedDescriptor() }
 
     override fun getSealedSubclasses(): Collection<ClassDescriptor> {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getValueClassRepresentation(): ValueClassRepresentation<SimpleType>? =
@@ -634,11 +653,11 @@ open class IrBasedClassDescriptor(owner: IrClass) : ClassDescriptor, IrBasedDecl
     }
 
     override fun getDefaultFunctionTypeForSamInterface(): SimpleType? {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun isDefinitelyNotSamInterface(): Boolean {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 }
 
@@ -712,18 +731,18 @@ open class IrBasedEnumEntryDescriptor(owner: IrEnumEntry) : ClassDescriptor, IrB
     override fun getThisAsReceiverParameter() = (owner.parent as IrClass).toIrBasedDescriptor().thisAsReceiverParameter
 
     override fun getContextReceivers(): List<ReceiverParameterDescriptor> {
-        TODO("Not yet implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getUnsubstitutedPrimaryConstructor(): ClassConstructorDescriptor? {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getDeclaredTypeParameters(): List<TypeParameterDescriptor> = emptyList()
 
-    override fun getSealedSubclasses(): Collection<ClassDescriptor> = TODO("not implemented")
+    override fun getSealedSubclasses(): Collection<ClassDescriptor> = unsupportedInIrBasedDescriptor()
 
-    override fun getValueClassRepresentation(): ValueClassRepresentation<SimpleType>? = TODO("not implemented")
+    override fun getValueClassRepresentation(): ValueClassRepresentation<SimpleType>? = unsupportedInIrBasedDescriptor()
 
     override fun getOriginal() = this
 
@@ -768,7 +787,7 @@ open class IrBasedPropertyDescriptor(owner: IrProperty) :
     override fun getModality() = owner.modality
 
     override fun setOverriddenDescriptors(overriddenDescriptors: MutableCollection<out CallableMemberDescriptor>) {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getKind() = CallableMemberDescriptor.Kind.SYNTHESIZED
@@ -778,7 +797,7 @@ open class IrBasedPropertyDescriptor(owner: IrProperty) :
     override fun getSource() = SourceElement.NO_SOURCE
 
     override fun hasSynthesizedParameterNames(): Boolean {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getOverriddenDescriptors(): MutableCollection<out PropertyDescriptor> = mutableListOf()
@@ -790,7 +809,7 @@ open class IrBasedPropertyDescriptor(owner: IrProperty) :
         kind: CallableMemberDescriptor.Kind?,
         copyOverrides: Boolean
     ): CallableMemberDescriptor {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getValueParameters(): MutableList<ValueParameterDescriptor> = mutableListOf()
@@ -802,7 +821,7 @@ open class IrBasedPropertyDescriptor(owner: IrProperty) :
     override fun cleanCompileTimeInitializerCache() {}
 
     override fun isSetterProjectedOut(): Boolean {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getAccessors(): List<PropertyAccessorDescriptor> = listOfNotNull(getter, setter)
@@ -839,8 +858,9 @@ open class IrBasedPropertyDescriptor(owner: IrProperty) :
 
     override fun isLateInit() = owner.isLateinit
 
-    override fun getExtensionReceiverParameter() =
-        owner.getter?.extensionReceiverParameter?.toIrBasedDescriptor() as? ReceiverParameterDescriptor
+    override fun getExtensionReceiverParameter() = owner.getter?.parameters
+        ?.firstOrNull { it.kind == IrParameterKind.ExtensionReceiver }
+        ?.toIrBasedDescriptor() as? ReceiverParameterDescriptor
 
     override fun getContextReceiverParameters(): List<ReceiverParameterDescriptor> {
         return getter?.contextReceiverParameters ?: emptyList()
@@ -858,7 +878,7 @@ open class IrBasedPropertyDescriptor(owner: IrProperty) :
     override val getter: PropertyGetterDescriptor? get() = owner.getter?.toIrBasedDescriptor() as? PropertyGetterDescriptor
 
     override fun newCopyBuilder(): CallableMemberDescriptor.CopyBuilder<out PropertyDescriptor> {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override val isDelegated get() = owner.isDelegated
@@ -947,7 +967,7 @@ open class IrBasedTypeAliasDescriptor(owner: IrTypeAlias) : IrBasedDeclarationDe
         get() = owner.expandedType.toIrBasedKotlinType() as SimpleType
 
     override val classDescriptor: ClassDescriptor?
-        get() = TODO("catch type alias class descriptor") //expandedType.constructor.declarationDescriptor as ClassDescriptor?
+        get() = unsupportedInIrBasedDescriptor()
 
     override fun getOriginal(): TypeAliasDescriptor = this
 
@@ -983,7 +1003,7 @@ open class IrBasedFieldDescriptor(owner: IrField) : PropertyDescriptor, IrBasedD
     override fun getModality() = if (owner.isFinal) Modality.FINAL else Modality.OPEN
 
     override fun setOverriddenDescriptors(overriddenDescriptors: MutableCollection<out CallableMemberDescriptor>) {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getKind() = CallableMemberDescriptor.Kind.SYNTHESIZED
@@ -1003,19 +1023,19 @@ open class IrBasedFieldDescriptor(owner: IrField) : PropertyDescriptor, IrBasedD
         kind: CallableMemberDescriptor.Kind?,
         copyOverrides: Boolean
     ): CallableMemberDescriptor {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getValueParameters(): MutableList<ValueParameterDescriptor> = mutableListOf()
 
     override fun getCompileTimeInitializer(): ConstantValue<*>? {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun cleanCompileTimeInitializerCache() {}
 
     override fun isSetterProjectedOut(): Boolean {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getAccessors(): MutableList<PropertyAccessorDescriptor> = mutableListOf()
@@ -1038,7 +1058,7 @@ open class IrBasedFieldDescriptor(owner: IrField) : PropertyDescriptor, IrBasedD
     override fun getReturnType() = owner.type.toIrBasedKotlinType()
 
     override fun hasStableParameterNames(): Boolean {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override fun getType(): KotlinType = owner.type.toIrBasedKotlinType()
@@ -1071,7 +1091,7 @@ open class IrBasedFieldDescriptor(owner: IrField) : PropertyDescriptor, IrBasedD
     override val getter: PropertyGetterDescriptor? get() = null
 
     override fun newCopyBuilder(): CallableMemberDescriptor.CopyBuilder<out PropertyDescriptor> {
-        TODO("not implemented")
+        unsupportedInIrBasedDescriptor()
     }
 
     override val isDelegated get() = false
@@ -1091,10 +1111,30 @@ open class IrBasedFieldDescriptor(owner: IrField) : PropertyDescriptor, IrBasedD
 class IrBasedDelegateFieldDescriptor(owner: IrField) : IrBasedFieldDescriptor(owner), IrImplementingDelegateDescriptor {
 
     override val correspondingSuperType: KotlinType
-        get() = TODO("not implemented")
+        get() = unsupportedInIrBasedDescriptor()
 
     override val isDelegated: Boolean
         get() = true
+}
+
+class IrBasedContextReceiverFieldDescriptor(owner: IrField) : IrBasedCallableDescriptor<IrField>(owner), ReceiverParameterDescriptor {
+    override fun getOriginal() = this
+
+    override fun substitute(substitutor: TypeSubstitutor): Nothing {
+        unsupportedInIrBasedDescriptor()
+    }
+
+    override fun getName(): Name = owner.name
+
+    override fun getValue(): ReceiverValue {
+        unsupportedInIrBasedDescriptor()
+    }
+
+    override fun copy(newOwner: DeclarationDescriptor): ReceiverParameterDescriptor {
+        unsupportedInIrBasedDescriptor()
+    }
+
+    override fun getType(): KotlinType = owner.type.toIrBasedKotlinType()
 }
 
 fun IrField.toIrBasedDescriptor() = if (origin == IrDeclarationOrigin.DELEGATE) {
@@ -1151,10 +1191,8 @@ fun IrType.toIrBasedKotlinType(builtins: KotlinBuiltIns? = null): KotlinType = w
                 it
             }
         }
-    is IrDynamicType -> kotlinType ?: builtins?.let(::createDynamicType) ?: error("Couldn't instantiate DynamicType")
-    is IrErrorType -> kotlinType ?: error("Can't find KotlinType in IrErrorType: " + (this as IrType).render())
-    else ->
-        throw AssertionError("Unexpected type: $this = ${this.render()}")
+    is IrDynamicType -> originalKotlinType ?: builtins?.let(::createDynamicType) ?: error("Couldn't instantiate DynamicType")
+    is IrErrorType -> originalKotlinType ?: error("Can't find KotlinType in IrErrorType: " + (this as IrType).render())
 }
 
 private fun makeKotlinType(
@@ -1233,7 +1271,7 @@ private fun IrScript.toIrBasedDescriptor() = descriptor
 
 private fun IrElement.toConstantValue(): ConstantValue<*> {
     return when (this) {
-        is IrConst<*> -> when (kind) {
+        is IrConst -> when (kind) {
             IrConstKind.Null -> NullValue()
             IrConstKind.Boolean -> BooleanValue(value as Boolean)
             IrConstKind.Char -> CharValue(value as Char)
@@ -1268,10 +1306,10 @@ private fun IrConstructorCall.toAnnotationDescriptor(): AnnotationDescriptor {
     val annotationClass = symbol.owner.parentAsClass
 
     @OptIn(ObsoleteDescriptorBasedAPI::class)
-    if (annotationClass.symbol.descriptor == ErrorUtils.errorClass) {
-        // This should be possible only in case of KAPT3 where IR generated by psi2ir can have annotations with unresolved types.
-        // Apparently annotations with unresolved types is a useful feature for KAPT3 in the "correct error types mode", see kt32596.kt.
-        // This is a hack which should preferably be removed as soon as KAPT3 is no longer used.
+    if (annotationClass.symbol.descriptor == ErrorUtils.errorClass || type is IrErrorType) {
+        // This should be possible only in case of KAPT3 where IR generated by psi2ir/fir2ir can have annotations with unresolved types.
+        // Apparently annotations with unresolved types is a useful feature for KAPT3 in the "correct error types" mode, see kt32596.kt.
+        // This hack ensures that KAPT3 can obtain the original element (PSI or FIR) to generate the annotation name.
         return AnnotationDescriptorImpl(type.toKotlinType(), emptyMap(), source)
     }
 
@@ -1280,7 +1318,7 @@ private fun IrConstructorCall.toAnnotationDescriptor(): AnnotationDescriptor {
     }
     return AnnotationDescriptorImpl(
         annotationClass.defaultType.toIrBasedKotlinType(),
-        symbol.owner.valueParameters.memoryOptimizedMap { it.name to getValueArgument(it.index) }
+        symbol.owner.parameters.memoryOptimizedMap { it.name to arguments[it.indexInParameters] }
             .filter { it.second != null }
             .associate { it.first to it.second!!.toConstantValue() },
         source

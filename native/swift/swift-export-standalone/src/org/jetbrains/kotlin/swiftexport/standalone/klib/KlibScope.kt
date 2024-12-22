@@ -5,48 +5,48 @@
 
 package org.jetbrains.kotlin.swiftexport.standalone.klib
 
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
-import org.jetbrains.kotlin.analysis.api.lifetime.KtLifetimeToken
-import org.jetbrains.kotlin.analysis.api.scopes.KtScope
-import org.jetbrains.kotlin.analysis.api.scopes.KtScopeNameFilter
-import org.jetbrains.kotlin.analysis.api.symbols.KtCallableSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KtClassifierSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KtConstructorSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KtPackageSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.markers.KtNamedSymbol
-import org.jetbrains.kotlin.analysis.project.structure.KtLibraryModule
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeToken
+import org.jetbrains.kotlin.analysis.api.scopes.KaScope
+import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassifierSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaPackageSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.markers.KaNamedSymbol
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaLibraryModule
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.native.analysis.api.*
 
 /**
- * Top-level scope of the given [KtLibraryModule] (if it is based upon a klib).
+ * Top-level scope of the given [KaLibraryModule] (if it is based upon a klib).
  *
- * Mostly acts as a convenient wrapper around [readKlibDeclarationAddresses] for APIs built around [KtScope].
+ * Mostly acts as a convenient wrapper around [readKlibDeclarationAddresses] for APIs built around [KaScope].
  * Some methods are not implemented, and it is OK for now.
  */
 public class KlibScope(
-    private val libraryModule: KtLibraryModule,
-    private val analysisSession: KtAnalysisSession,
-) : KtScope {
+    private val libraryModule: KaLibraryModule,
+    private val analysisSession: KaSession,
+) : KaScope {
 
-    override val token: KtLifetimeToken
+    override val token: KaLifetimeToken
         get() = analysisSession.token
 
     private val addresses: Set<KlibDeclarationAddress> by lazy {
         libraryModule.readKlibDeclarationAddresses() ?: emptySet()
     }
 
-    override fun getCallableSymbols(nameFilter: KtScopeNameFilter): Sequence<KtCallableSymbol> = with(analysisSession) {
+    override fun callables(nameFilter: (Name) -> Boolean): Sequence<KaCallableSymbol> = with(analysisSession) {
         addresses.asSequence()
             .filterIsInstance<KlibCallableAddress>()
             .filter { nameFilter(it.callableName) }
             .flatMap { it.getCallableSymbols() }
     }
 
-    override fun getCallableSymbols(names: Collection<Name>): Sequence<KtCallableSymbol> =
-        getCallableSymbols { it in names }
+    override fun callables(names: Collection<Name>): Sequence<KaCallableSymbol> =
+        callables { it in names }
 
-    override fun getClassifierSymbols(nameFilter: KtScopeNameFilter): Sequence<KtClassifierSymbol> = with(analysisSession) {
+    override fun classifiers(nameFilter: (Name) -> Boolean): Sequence<KaClassifierSymbol> = with(analysisSession) {
         addresses.asSequence()
             .filterIsInstance<KlibClassifierAddress>()
             .mapNotNull {
@@ -56,21 +56,24 @@ public class KlibScope(
                 }
             }
             // We don't care about unnamed symbols from the klib.
-            .filter { it is KtNamedSymbol && nameFilter(it.name) }
+            .filter { it is KaNamedSymbol && nameFilter(it.name) }
     }
 
-    override fun getClassifierSymbols(names: Collection<Name>): Sequence<KtClassifierSymbol> =
-        getClassifierSymbols { it in names }
+    override fun classifiers(names: Collection<Name>): Sequence<KaClassifierSymbol> =
+        classifiers { it in names }
 
     // There are no constructors at the top-level scope.
-    override fun getConstructors(): Sequence<KtConstructorSymbol> = emptySequence()
+    override val constructors: Sequence<KaConstructorSymbol> get() = emptySequence()
 
-    override fun getPackageSymbols(nameFilter: KtScopeNameFilter): Sequence<KtPackageSymbol> =
+    @KaExperimentalApi
+    override fun getPackageSymbols(nameFilter: (Name) -> Boolean): Sequence<KaPackageSymbol> =
         throw NotImplementedError("Reading package symbols from ${libraryModule.libraryName} is unsupported. Please report an issue: https://kotl.in/issue")
 
+    @KaExperimentalApi
     override fun getPossibleCallableNames(): Set<Name> =
         addresses.filterIsInstance<KlibCallableAddress>().map { it.callableName }.toSet()
 
+    @KaExperimentalApi
     override fun getPossibleClassifierNames(): Set<Name> =
         addresses.filterIsInstance<KlibClassifierAddress>().map { it.classId.shortClassName }.toSet()
 }

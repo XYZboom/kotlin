@@ -122,7 +122,7 @@ internal class EnumConstructorsLowering(val context: Context) : ClassLoweringPas
                         body.setDeclarationsParent(this)
                     }
 
-            fun createSynthesizedValueParameter(index: Int, name: String, type: IrType): IrValueParameter =
+            fun createSynthesizedValueParameter(name: String, type: IrType): IrValueParameter =
                     context.irFactory.createValueParameter(
                             startOffset = startOffset,
                             endOffset = endOffset,
@@ -131,7 +131,6 @@ internal class EnumConstructorsLowering(val context: Context) : ClassLoweringPas
                             type = type,
                             isAssignable = false,
                             symbol = IrValueParameterSymbolImpl(),
-                            index = index,
                             varargElementType = null,
                             isCrossinline = false,
                             isNoinline = false,
@@ -140,10 +139,10 @@ internal class EnumConstructorsLowering(val context: Context) : ClassLoweringPas
                         parent = loweredConstructor
                     }
 
-            loweredConstructor.valueParameters += createSynthesizedValueParameter(0, "name", context.irBuiltIns.stringType)
-            loweredConstructor.valueParameters += createSynthesizedValueParameter(1, "ordinal", context.irBuiltIns.intType)
+            loweredConstructor.valueParameters += createSynthesizedValueParameter("name", context.irBuiltIns.stringType)
+            loweredConstructor.valueParameters += createSynthesizedValueParameter("ordinal", context.irBuiltIns.intType)
             loweredConstructor.valueParameters += constructor.valueParameters.map {
-                it.copyTo(loweredConstructor, index = it.loweredIndex).apply {
+                it.copyTo(loweredConstructor).apply {
                     loweredEnumConstructorParameters[it] = this
                 }
             }
@@ -216,7 +215,7 @@ internal class EnumConstructorsLowering(val context: Context) : ClassLoweringPas
                         IrGetValueImpl(startOffset, endOffset, secondParameter.type, secondParameter.symbol))
 
                 delegatingConstructor.valueParameters.forEach {
-                    result.putValueArgument(it.loweredIndex, delegatingConstructorCall.getValueArgument(it.index))
+                    result.putValueArgument(it.loweredIndex, delegatingConstructorCall.getValueArgument(it.indexInOldValueParameters))
                 }
 
                 return result
@@ -245,7 +244,7 @@ internal class EnumConstructorsLowering(val context: Context) : ClassLoweringPas
                         IrConstImpl.int(startOffset, endOffset, context.irBuiltIns.intType, ordinal))
 
                 enumConstructor.valueParameters.forEach {
-                    result.putValueArgument(it.loweredIndex, enumConstructorCall.getValueArgument(it.index))
+                    result.putValueArgument(it.loweredIndex, enumConstructorCall.getValueArgument(it.indexInOldValueParameters))
                 }
 
                 return result
@@ -261,7 +260,7 @@ internal class EnumConstructorsLowering(val context: Context) : ClassLoweringPas
         private inner class InEnumEntryClassConstructor(enumEntry: IrEnumEntry) : InEnumEntry(enumEntry) {
             override fun createConstructorCall(startOffset: Int, endOffset: Int, loweredConstructor: IrConstructorSymbol) =
                     IrDelegatingConstructorCallImpl(startOffset, endOffset, context.irBuiltIns.unitType, loweredConstructor,
-                    loweredConstructor.owner.typeParameters.size, loweredConstructor.owner.valueParameters.size)
+                    loweredConstructor.owner.typeParameters.size)
         }
 
         private inner class InEnumEntryInitializer(enumEntry: IrEnumEntry) : InEnumEntry(enumEntry) {
@@ -356,7 +355,7 @@ internal class EnumConstructorsLowering(val context: Context) : ClassLoweringPas
     }
 }
 
-private val IrValueParameter.loweredIndex: Int get() = index + 2
+private val IrValueParameter.loweredIndex: Int get() = indexInOldValueParameters + 2
 
 private class ParameterMapper(superConstructor: IrConstructor,
                               val constructor: IrConstructor,
@@ -367,7 +366,7 @@ private class ParameterMapper(superConstructor: IrConstructor,
 
         val superParameter = expression.symbol.owner as? IrValueParameter ?: return expression
         if (valueParameters.contains(superParameter)) {
-            val index = if (useLoweredIndex) superParameter.loweredIndex else superParameter.index
+            val index = if (useLoweredIndex) superParameter.loweredIndex else superParameter.indexInOldValueParameters
             val parameter = constructor.valueParameters[index]
             return IrGetValueImpl(
                     expression.startOffset, expression.endOffset,
@@ -381,7 +380,7 @@ private class ParameterMapper(superConstructor: IrConstructor,
         expression.transformChildrenVoid()
         val superParameter = expression.symbol.owner as? IrValueParameter ?: return expression
         if (valueParameters.contains(superParameter)) {
-            val index = if (useLoweredIndex) superParameter.loweredIndex else superParameter.index
+            val index = if (useLoweredIndex) superParameter.loweredIndex else superParameter.indexInOldValueParameters
             val parameter = constructor.valueParameters[index]
             return IrSetValueImpl(
                     expression.startOffset, expression.endOffset,

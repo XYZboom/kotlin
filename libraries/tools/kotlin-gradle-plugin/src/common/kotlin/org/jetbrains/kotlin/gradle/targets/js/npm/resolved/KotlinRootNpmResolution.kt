@@ -6,11 +6,9 @@
 package org.jetbrains.kotlin.gradle.targets.js.npm.resolved
 
 import org.gradle.api.logging.Logger
-import org.gradle.internal.service.ServiceRegistry
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.PackageManagerEnvironment
 import org.jetbrains.kotlin.gradle.targets.js.npm.KotlinNpmResolutionManager
 import org.jetbrains.kotlin.gradle.targets.js.npm.NodeJsEnvironment
-import org.jetbrains.kotlin.gradle.targets.js.npm.ProjectResolvedConfiguration
 import java.io.Serializable
 
 class KotlinRootNpmResolution(
@@ -28,8 +26,7 @@ class KotlinRootNpmResolution(
         nodeJsEnvironment: NodeJsEnvironment,
         packageManagerEnvironment: PackageManagerEnvironment,
         npmResolutionManager: KotlinNpmResolutionManager,
-        resolvedConfigurations: Map<String, ProjectResolvedConfiguration>,
-    ): Installation {
+    ) {
         synchronized(projects) {
             npmResolutionManager.parameters.gradleNodeModulesProvider.get().close()
 
@@ -38,8 +35,7 @@ class KotlinRootNpmResolution(
                 .map {
                     it.close(
                         npmResolutionManager,
-                        logger,
-                        resolvedConfigurations
+                        logger
                     )
                 }
 
@@ -49,31 +45,6 @@ class KotlinRootNpmResolution(
                 rootProjectName,
                 rootProjectVersion,
                 projectResolutions,
-            )
-
-            return Installation(
-                projectResolutions
-            )
-        }
-    }
-}
-
-class Installation(val compilationResolutions: Collection<PreparedKotlinCompilationNpmResolution>) {
-    internal fun install(
-        args: List<String>,
-        services: ServiceRegistry,
-        logger: Logger,
-        nodeJsEnvironment: NodeJsEnvironment,
-        packageManagerEnvironment: PackageManagerEnvironment,
-    ) {
-        synchronized(compilationResolutions) {
-            nodeJsEnvironment.packageManager.resolveRootProject(
-                services,
-                logger,
-                nodeJsEnvironment,
-                packageManagerEnvironment,
-                compilationResolutions,
-                args
             )
         }
     }

@@ -13,7 +13,6 @@ import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.backend.js.JsIrBackendContext
 import org.jetbrains.kotlin.ir.backend.js.utils.getJsNameOrKotlinName
 import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
-import org.jetbrains.kotlin.ir.builders.declarations.UNDEFINED_PARAMETER_INDEX
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.*
@@ -27,6 +26,9 @@ import org.jetbrains.kotlin.js.config.JSConfigurationKeys
 import org.jetbrains.kotlin.name.SpecialNames
 import org.jetbrains.kotlin.serialization.js.ModuleKind
 
+/**
+ * Converts global variables with invalid names access to `globalThis` member expression.
+ */
 class EscapedIdentifiersLowering(context: JsIrBackendContext) : BodyLoweringPass {
     private val transformer = ReferenceTransformer(context)
     private val moduleKind = context.configuration[JSConfigurationKeys.MODULE_KIND]!!
@@ -51,7 +53,6 @@ class EscapedIdentifiersLowering(context: JsIrBackendContext) : BodyLoweringPass
                 type = context.dynamicType,
                 symbol = context.intrinsics.globalThis.owner.getter!!.symbol,
                 typeArgumentsCount = 0,
-                valueArgumentsCount = 0,
             )
 
         private val IrFunction.dummyDispatchReceiverParameter
@@ -63,7 +64,6 @@ class EscapedIdentifiersLowering(context: JsIrBackendContext) : BodyLoweringPass
                 type = context.irBuiltIns.anyType,
                 isAssignable = false,
                 symbol = IrValueParameterSymbolImpl(),
-                index = UNDEFINED_PARAMETER_INDEX,
                 varargElementType = null,
                 isCrossinline = false,
                 isNoinline = false,
@@ -131,7 +131,9 @@ class EscapedIdentifiersLowering(context: JsIrBackendContext) : BodyLoweringPass
                 expression
             } else {
                 expression
-                    .apply { dispatchReceiver = globalThisReceiver }
+                    .apply {
+                        insertDispatchReceiver(globalThisReceiver)
+                    }
                     .also {
                         if (function.dispatchReceiverParameter == null) {
                             function.dispatchReceiverParameter = function.dummyDispatchReceiverParameter

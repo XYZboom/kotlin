@@ -1,3 +1,5 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // MODULE: m1-common
 // FILE: common.kt
 
@@ -5,9 +7,9 @@ expect class Foo1
 expect class Foo2
 expect class Foo3
 
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect class Bar1<!EXPECT_ACTUAL_MISMATCH{JVM}!>()<!><!>
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect class Bar2<!EXPECT_ACTUAL_MISMATCH{JVM}!>()<!><!>
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect class Bar3<!EXPECT_ACTUAL_MISMATCH{JVM}!>()<!><!>
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> class Bar1<!EXPECT_ACTUAL_MISMATCH{JVM}!>()<!>
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> class Bar2<!EXPECT_ACTUAL_MISMATCH{JVM}!>()<!>
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> class Bar3<!EXPECT_ACTUAL_MISMATCH{JVM}!>()<!>
 expect class Bar4()
 expect class Bar5()
 expect class Bar6()

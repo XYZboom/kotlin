@@ -5,49 +5,46 @@
 
 package org.jetbrains.sir.lightclasses
 
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.analysis.api.symbols.*
-import org.jetbrains.kotlin.analysis.project.structure.KtModule
+import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.sir.SirDeclaration
 import org.jetbrains.kotlin.sir.providers.SirDeclarationProvider
 import org.jetbrains.kotlin.sir.providers.SirSession
 import org.jetbrains.sir.lightclasses.nodes.*
 
 public class SirDeclarationFromKtSymbolProvider(
-    private val ktModule: KtModule,
+    private val ktModule: KaModule,
     private val sirSession: SirSession,
 ) : SirDeclarationProvider {
 
-    override fun KtDeclarationSymbol.sirDeclaration(): SirDeclaration {
-        return when (val ktSymbol = this@sirDeclaration) {
-            is KtNamedClassOrObjectSymbol -> {
-                SirClassFromKtSymbol(
+    public override fun KaDeclarationSymbol.sirDeclarations(): List<SirDeclaration> = listOf(
+        when (val ktSymbol = this@sirDeclarations) {
+            is KaNamedClassSymbol -> {
+                createSirClassFromKtSymbol(
                     ktSymbol = ktSymbol,
                     ktModule = ktModule,
                     sirSession = sirSession,
                 )
             }
-            is KtConstructorSymbol -> {
+            is KaConstructorSymbol -> {
                 SirInitFromKtSymbol(
                     ktSymbol = ktSymbol,
                     ktModule = ktModule,
                     sirSession = sirSession,
                 )
             }
-            is KtFunctionLikeSymbol -> {
+            is KaNamedFunctionSymbol -> {
                 SirFunctionFromKtSymbol(
                     ktSymbol = ktSymbol,
                     ktModule = ktModule,
                     sirSession = sirSession,
                 )
             }
-            is KtVariableSymbol -> {
-                SirVariableFromKtSymbol(
-                    ktSymbol = ktSymbol,
-                    ktModule = ktModule,
-                    sirSession = sirSession,
-                )
+            is KaVariableSymbol -> {
+                ktSymbol.toSirVariable()
             }
-            is KtTypeAliasSymbol -> {
+            is KaTypeAliasSymbol -> {
                 SirTypealiasFromKtSymbol(
                     ktSymbol = ktSymbol,
                     ktModule = ktModule,
@@ -56,5 +53,26 @@ public class SirDeclarationFromKtSymbolProvider(
             }
             else -> TODO("encountered unknown symbol type - $ktSymbol. Error system should be reworked KT-65980")
         }
+    )
+
+    private fun KaVariableSymbol.toSirVariable(): SirAbstractVariableFromKtSymbol = when (this) {
+        is KaEnumEntrySymbol -> SirEnumCaseFromKtSymbol(
+            ktSymbol = this,
+            ktModule = ktModule,
+            sirSession = sirSession,
+        )
+        else ->
+            if (this is KaPropertySymbol
+                && isStatic
+                && name == StandardNames.ENUM_ENTRIES
+            ) {
+                SirEnumEntriesStaticPropertyFromKtSymbol(this, ktModule, sirSession)
+            } else {
+                SirVariableFromKtSymbol(
+                    ktSymbol = this@toSirVariable,
+                    ktModule = ktModule,
+                    sirSession = sirSession,
+                )
+            }
     }
 }

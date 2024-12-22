@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrPackageFragment
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrClassifierSymbol
+import org.jetbrains.kotlin.ir.types.impl.IrCapturedType
 import org.jetbrains.kotlin.ir.util.IdSignature
 import org.jetbrains.kotlin.ir.util.hasEqualFqName
 import org.jetbrains.kotlin.ir.util.hasTopLevelEqualFqName
@@ -68,7 +69,7 @@ fun getPublicSignature(packageFqName: FqName, name: String) =
     )
 
 private fun IrType.isClassType(signature: IdSignature.CommonSignature, nullable: Boolean? = null): Boolean {
-    if (this !is IrSimpleType) return false
+    if (this !is IrSimpleType || this is IrCapturedType) return false
     if (nullable != null && this.isMarkedNullable() != nullable) return false
     return signature == classifier.signature ||
             classifier.owner.let { it is IrClass && it.hasFqNameEqualToSignature(signature) }
@@ -106,6 +107,11 @@ private val shortNameToUnsignedType: Map<Name, UnsignedType> =
 
 val primitiveArrayTypesSignatures: Map<PrimitiveType, IdSignature.CommonSignature> =
     PrimitiveType.entries.associateWith {
+        getPublicSignature(StandardNames.BUILT_INS_PACKAGE_FQ_NAME, "${it.typeName.asString()}Array")
+    }
+
+val unsignedArrayTypesSignatures: Map<UnsignedType, IdSignature.CommonSignature> =
+    UnsignedType.entries.associateWith {
         getPublicSignature(StandardNames.BUILT_INS_PACKAGE_FQ_NAME, "${it.typeName.asString()}Array")
     }
 

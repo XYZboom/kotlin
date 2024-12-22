@@ -7,6 +7,8 @@ package org.jetbrains.kotlin.backend.konan.llvm
 
 import kotlinx.cinterop.*
 import llvm.*
+import org.jetbrains.kotlin.config.LoggingContext
+import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 
 internal val LLVMValueRef.type: LLVMTypeRef
@@ -64,15 +66,18 @@ internal open class Struct(val type: LLVMTypeRef?, val elements: List<ConstValue
         } else {
             element.llvm.also {
                 assert(it.type == expectedType) {
-                    "Unexpected type at $index: expected ${LLVMPrintTypeToString(expectedType)!!.toKString()} " +
-                            "got ${LLVMPrintTypeToString(it.type)!!.toKString()}"
+                    "Unexpected type at $index: expected ${LLVMPrintTypeToString(expectedType)!!.toKString()}, " +
+                            "got ${LLVMPrintTypeToString(it.type)!!.toKString()} in ${LLVMPrintTypeToString(type)!!.toKString()}"
                 }
             }
         }
     }.toCValues(), elements.size)!!
 
     init {
-        assert(elements.size == LLVMCountStructElementTypes(type))
+        assert(elements.size == LLVMCountStructElementTypes(type)) {
+            "Should have ${LLVMCountStructElementTypes(type)} elements, have ${elements.size} " +
+                    "for type ${LLVMPrintTypeToString(type)!!.toKString()}"
+        }
     }
 }
 
@@ -97,9 +102,11 @@ internal val RuntimeAware.kTypeInfo: LLVMTypeRef
 internal val RuntimeAware.kObjHeader: LLVMTypeRef
     get() = runtime.objHeaderType
 internal val RuntimeAware.kObjHeaderPtr: LLVMTypeRef
-    get() = pointerType(kObjHeader)
+    get() = runtime.objHeaderPtrType
+internal val RuntimeAware.kObjHeaderPtrReturnType: LlvmRetType
+    get() = LlvmRetType(kObjHeaderPtr, isObjectType = true)
 internal val RuntimeAware.kObjHeaderPtrPtr: LLVMTypeRef
-    get() = pointerType(kObjHeaderPtr)
+    get() = runtime.objHeaderPtrPtrType
 internal val RuntimeAware.kArrayHeader: LLVMTypeRef
     get() = runtime.arrayHeaderType
 internal val RuntimeAware.kArrayHeaderPtr: LLVMTypeRef
@@ -120,14 +127,6 @@ internal fun pointerType(pointeeType: LLVMTypeRef) = LLVMPointerType(pointeeType
 fun extractConstUnsignedInt(value: LLVMValueRef): Long {
     assert(LLVMIsConstant(value) != 0)
     return LLVMConstIntGetZExtValue(value)
-}
-
-internal fun ContextUtils.isObjectRef(value: LLVMValueRef): Boolean {
-    return isObjectType(value.type)
-}
-
-internal fun RuntimeAware.isObjectType(type: LLVMTypeRef): Boolean {
-    return type == kObjHeaderPtr || type == kArrayHeaderPtr
 }
 
 /**
@@ -184,7 +183,7 @@ private fun CodeGenerator.replaceExternalWeakOrCommonGlobal(name: String, value:
         // When some dynamic caches are used, we consider that stdlib is in the dynamic cache as well.
         // Runtime is linked into stdlib module only, so import runtime global from it.
         val global = importGlobal(name, value.llvmType)
-        val initializerProto = LlvmFunctionSignature(LlvmRetType(llvm.voidType)).toProto(
+        val initializerProto = LlvmFunctionSignature(LlvmRetType(llvm.voidType, isObjectType = false)).toProto(
                 name = "",
                 origin = null,
                 LLVMLinkage.LLVMPrivateLinkage
@@ -235,8 +234,8 @@ internal class TLSAddressAccess(private val index: Int) : AddressAccess() {
     }
 }
 
-internal fun ContextUtils.addKotlinThreadLocal(name: String, type: LLVMTypeRef, alignment: Int): AddressAccess {
-    return if (isObjectType(type)) {
+internal fun ContextUtils.addKotlinThreadLocal(name: String, type: LLVMTypeRef, alignment: Int, isObjectType: Boolean): AddressAccess {
+    return if (isObjectType) {
         val index = llvm.tlsCount++
         require(llvm.runtime.pointerAlignment % alignment == 0)
         TLSAddressAccess(index)
@@ -286,7 +285,12 @@ fun getStructElements(type: LLVMTypeRef): List<LLVMTypeRef> {
     }
 }
 
-fun parseBitcodeFile(llvmContext: LLVMContextRef, path: String): LLVMModuleRef = memScoped {
+internal fun parseBitcodeFile(
+        loggingContext: LoggingContext,
+        messageCollector: MessageCollector,
+        llvmContext: LLVMContextRef,
+        path: String,
+): LLVMModuleRef = memScoped {
     val bufRef = alloc<LLVMMemoryBufferRefVar>()
     val errorRef = allocPointerTo<ByteVar>()
 
@@ -299,7 +303,10 @@ fun parseBitcodeFile(llvmContext: LLVMContextRef, path: String): LLVMModuleRef =
     try {
 
         val moduleRef = alloc<LLVMModuleRefVar>()
-        val parseRes = LLVMParseBitcodeInContext2(llvmContext, memoryBuffer, moduleRef.ptr)
+        val diagnosticHandler = DefaultLlvmDiagnosticHandler(loggingContext, messageCollector)
+        val parseRes = withLlvmDiagnosticHandler(llvmContext, diagnosticHandler) {
+            LLVMParseBitcodeInContext2(llvmContext, memoryBuffer, moduleRef.ptr)
+        }
         if (parseRes != 0) {
             throw Error(parseRes.toString())
         }
@@ -335,6 +342,10 @@ fun setFunctionNoReturn(function: LLVMValueRef) {
 
 fun setFunctionNoInline(function: LLVMValueRef) {
     addLlvmFunctionEnumAttribute(function, LlvmFunctionAttribute.NoInline)
+}
+
+fun setFunctionAlwaysInline(function: LLVMValueRef) {
+    addLlvmFunctionEnumAttribute(function, LlvmFunctionAttribute.AlwaysInline)
 }
 
 internal fun addLlvmFunctionEnumAttribute(function: LLVMValueRef, attrKindId: LLVMAttributeKindId, value: Long = 0) {
@@ -392,3 +403,9 @@ fun LLVMModuleRef.getName(): String = memScoped {
     val sizeVar = alloc<size_tVar>()
     LLVMGetModuleIdentifier(this@getName, sizeVar.ptr)!!.toKStringFromUtf8()
 }
+
+fun LLVMValueRef.isDefinition() = LLVMIsDeclaration(this) == 0
+
+fun LLVMValueRef.isFunctionCall() = LLVMIsACallInst(this) != null || LLVMIsAInvokeInst(this) != null
+
+fun LLVMValueRef.isExternalFunction() = LLVMGetFirstBasicBlock(this) == null

@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.mpp.*
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualCheckingCompatibility
 import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualMatchingCompatibility
@@ -27,7 +28,7 @@ interface ExpectActualMatchingContext<T : DeclarationSymbolMarker> : TypeSystemC
      *     inner class Inner<U>
      * }
      *
-     * If flag is set to `true` then `typeParameters` for class `Outer.Inner` contains both parameters: [U, R]
+     * If the flag is set to `true` then `typeParameters` for class `Outer.Inner` contains both parameters: [U, T]
      * Otherwise it contains only parameters of itself: [U]
      *
      * This flag is needed for proper calculation of substitutions for components of inner classes
@@ -35,11 +36,6 @@ interface ExpectActualMatchingContext<T : DeclarationSymbolMarker> : TypeSystemC
     val innerClassesCapturesOuterTypeParameters: Boolean
         get() = true
 
-    // Default params are not checked on backend because we want to keep "default params in actual" to be suppressible
-    // with @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS") but backend errors are not suppressible (KT-60426)
-    // Known clients that do suppress:
-    // - stdlib
-    // - coroutines
     val shouldCheckDefaultParams: Boolean
 
     val RegularClassSymbolMarker.classId: ClassId
@@ -54,8 +50,7 @@ interface ExpectActualMatchingContext<T : DeclarationSymbolMarker> : TypeSystemC
 
     val RegularClassSymbolMarker.isCompanion: Boolean
     val RegularClassSymbolMarker.isInner: Boolean
-    val RegularClassSymbolMarker.isInline: Boolean
-    val RegularClassSymbolMarker.isValue: Boolean
+    val RegularClassSymbolMarker.isInlineOrValue: Boolean
     val RegularClassSymbolMarker.isFun: Boolean
     val ClassLikeSymbolMarker.typeParameters: List<TypeParameterSymbolMarker>
 
@@ -90,7 +85,8 @@ interface ExpectActualMatchingContext<T : DeclarationSymbolMarker> : TypeSystemC
     ): TypeSubstitutorMarker
 
     fun RegularClassSymbolMarker.collectAllMembers(isActualDeclaration: Boolean): List<DeclarationSymbolMarker>
-    fun RegularClassSymbolMarker.getMembersForExpectClass(name: Name): List<DeclarationSymbolMarker>
+    fun RegularClassSymbolMarker.collectAllStaticCallables(isActualDeclaration: Boolean): List<CallableSymbolMarker>
+    fun RegularClassSymbolMarker.getCallablesForExpectClass(name: Name): List<CallableSymbolMarker>
 
     fun RegularClassSymbolMarker.collectEnumEntryNames(): List<Name>
     fun RegularClassSymbolMarker.collectEnumEntries(): List<DeclarationSymbolMarker>
@@ -136,7 +132,7 @@ interface ExpectActualMatchingContext<T : DeclarationSymbolMarker> : TypeSystemC
         subType: KotlinTypeMarker
     ): Boolean
 
-    fun RegularClassSymbolMarker.isNotSamInterface(): Boolean
+    fun RegularClassSymbolMarker.isSamInterface(): Boolean
 
     fun CallableSymbolMarker.isFakeOverride(containingExpectClass: RegularClassSymbolMarker?): Boolean
 
@@ -145,6 +141,7 @@ interface ExpectActualMatchingContext<T : DeclarationSymbolMarker> : TypeSystemC
     val CallableSymbolMarker.hasStableParameterNames: Boolean
 
     val CallableSymbolMarker.isJavaField: Boolean
+    val CallableSymbolMarker.canBeActualizedByJavaField: Boolean
 
     fun onMatchedMembers(
         expectSymbol: DeclarationSymbolMarker,
@@ -254,4 +251,12 @@ interface ExpectActualMatchingContext<T : DeclarationSymbolMarker> : TypeSystemC
         actualTypeRef: TypeRefMarker,
         checker: AnnotationsCheckerCallback,
     )
+
+    companion object {
+        @JvmStatic
+        val abstractMutableListModCountCallableId = CallableId(
+            ClassId(FqName("kotlin.collections"), Name.identifier("AbstractMutableList")),
+            Name.identifier("modCount")
+        )
+    }
 }

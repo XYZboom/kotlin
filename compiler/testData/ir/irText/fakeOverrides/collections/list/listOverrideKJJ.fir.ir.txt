@@ -4,7 +4,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.A [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java1'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:A modality:FINAL visibility:public superTypes:[<root>.Java1]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:A modality:FINAL visibility:public superTypes:[<root>.Java1]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:OPEN <> ($this:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>, p0:@[EnhancedNullability] @[FlexibleNullability] kotlin.Int?) returnType:kotlin.Boolean [fake_override]
       overridden:
         public open fun add (p0: @[EnhancedNullability] @[FlexibleNullability] kotlin.Int?): kotlin.Boolean declared in <root>.Java1
@@ -110,7 +110,7 @@ FILE fqName:<root> fileName:/1.kt
         public open fun removeAll (p0: kotlin.collections.Collection<@[EnhancedNullability] @[FlexibleNullability] kotlin.Int?>): kotlin.Boolean declared in <root>.Java1
       $this: VALUE_PARAMETER name:<this> type:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.collections.Collection<@[EnhancedNullability] @[FlexibleNullability] kotlin.Int?>
-    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>, p0:kotlin.Int) returnType:@[EnhancedNullability] @[FlexibleNullability] kotlin.Int? [fake_override,operator]
+    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>, p0:kotlin.Int) returnType:@[EnhancedNullability] @[FlexibleNullability] kotlin.Int? [fake_override]
       overridden:
         public open fun removeAt (p0: kotlin.Int): @[EnhancedNullability] @[FlexibleNullability] kotlin.Int? declared in <root>.Java1
       $this: VALUE_PARAMETER name:<this> type:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>
@@ -179,6 +179,9 @@ FILE fqName:<root> fileName:/1.kt
       overridden:
         public open fun trimToSize (): kotlin.Unit declared in <root>.Java1
       $this: VALUE_PARAMETER name:<this> type:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>
+    PROPERTY FAKE_OVERRIDE name:modCount visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final modCount: kotlin.Int declared in <root>.Java1
     PROPERTY FAKE_OVERRIDE name:size visibility:public modality:OPEN [fake_override,val]
       overridden:
         public open size: kotlin.Int declared in <root>.Java1
@@ -192,7 +195,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.B [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java1'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:B modality:FINAL visibility:public superTypes:[<root>.Java1]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:B modality:FINAL visibility:public superTypes:[<root>.Java1]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:OPEN <> ($this:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>, p0:@[EnhancedNullability] @[FlexibleNullability] kotlin.Int?) returnType:kotlin.Boolean [fake_override]
       overridden:
         public open fun add (p0: @[EnhancedNullability] @[FlexibleNullability] kotlin.Int?): kotlin.Boolean declared in <root>.Java1
@@ -365,7 +368,7 @@ FILE fqName:<root> fileName:/1.kt
       BLOCK_BODY
         RETURN type=kotlin.Nothing from='public open fun remove (element: kotlin.Int?): kotlin.Boolean declared in <root>.B'
           CONST Boolean type=kotlin.Boolean value=true
-    FUN name:removeAt visibility:public modality:OPEN <> ($this:<root>.B, index:kotlin.Int) returnType:kotlin.Int [operator]
+    FUN name:removeAt visibility:public modality:OPEN <> ($this:<root>.B, index:kotlin.Int) returnType:kotlin.Int
       overridden:
         public open fun removeAt (p0: kotlin.Int): @[EnhancedNullability] @[FlexibleNullability] kotlin.Int? declared in <root>.Java1
       $this: VALUE_PARAMETER name:<this> type:<root>.B
@@ -373,6 +376,9 @@ FILE fqName:<root> fileName:/1.kt
       BLOCK_BODY
         RETURN type=kotlin.Nothing from='public open fun removeAt (index: kotlin.Int): kotlin.Int declared in <root>.B'
           CONST Int type=kotlin.Int value=1
+    PROPERTY FAKE_OVERRIDE name:modCount visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final modCount: kotlin.Int declared in <root>.Java1
     PROPERTY name:size visibility:public modality:OPEN [val]
       overridden:
         public open size: kotlin.Int declared in <root>.Java1

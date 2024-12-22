@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.incremental;
 
 import com.intellij.testFramework.TestDataPath;
 import org.jetbrains.kotlin.test.util.KtTestUtil;
+import org.junit.jupiter.api.Tag;
 import org.jetbrains.kotlin.test.TargetBackend;
 import org.jetbrains.kotlin.test.TestMetadata;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import java.util.regex.Pattern;
 @SuppressWarnings("all")
 @TestMetadata("js/js.translator/testData/incremental/invalidation")
 @TestDataPath("$PROJECT_ROOT")
+@Tag("es6")
 public class JsFirES6InvalidationPerFileTestGenerated extends AbstractJsFirES6InvalidationPerFileTest {
   @Test
   @TestMetadata("abstractClassWithJsExport")
@@ -109,9 +111,27 @@ public class JsFirES6InvalidationPerFileTestGenerated extends AbstractJsFirES6In
   }
 
   @Test
+  @TestMetadata("crossModuleModifyClassAncestors")
+  public void testCrossModuleModifyClassAncestors() {
+    runTest("js/js.translator/testData/incremental/invalidation/crossModuleModifyClassAncestors/");
+  }
+
+  @Test
+  @TestMetadata("crossModuleObjectInitialization")
+  public void testCrossModuleObjectInitialization() {
+    runTest("js/js.translator/testData/incremental/invalidation/crossModuleObjectInitialization/");
+  }
+
+  @Test
   @TestMetadata("crossModuleReferences")
   public void testCrossModuleReferences() {
     runTest("js/js.translator/testData/incremental/invalidation/crossModuleReferences/");
+  }
+
+  @Test
+  @TestMetadata("defaultParamMethod")
+  public void testDefaultParamMethod() {
+    runTest("js/js.translator/testData/incremental/invalidation/defaultParamMethod/");
   }
 
   @Test
@@ -193,6 +213,12 @@ public class JsFirES6InvalidationPerFileTestGenerated extends AbstractJsFirES6In
   }
 
   @Test
+  @TestMetadata("fileNameCaseClash")
+  public void testFileNameCaseClash() {
+    runTest("js/js.translator/testData/incremental/invalidation/fileNameCaseClash/");
+  }
+
+  @Test
   @TestMetadata("fileNameClash")
   public void testFileNameClash() {
     runTest("js/js.translator/testData/incremental/invalidation/fileNameClash/");
@@ -268,12 +294,6 @@ public class JsFirES6InvalidationPerFileTestGenerated extends AbstractJsFirES6In
   @TestMetadata("inlineFunctionAsParam")
   public void testInlineFunctionAsParam() {
     runTest("js/js.translator/testData/incremental/invalidation/inlineFunctionAsParam/");
-  }
-
-  @Test
-  @TestMetadata("inlineFunctionCircleUsage")
-  public void testInlineFunctionCircleUsage() {
-    runTest("js/js.translator/testData/incremental/invalidation/inlineFunctionCircleUsage/");
   }
 
   @Test
@@ -406,6 +426,12 @@ public class JsFirES6InvalidationPerFileTestGenerated extends AbstractJsFirES6In
   @TestMetadata("mainModuleInvalidation")
   public void testMainModuleInvalidation() {
     runTest("js/js.translator/testData/incremental/invalidation/mainModuleInvalidation/");
+  }
+
+  @Test
+  @TestMetadata("modifyClassAncestors")
+  public void testModifyClassAncestors() {
+    runTest("js/js.translator/testData/incremental/invalidation/modifyClassAncestors/");
   }
 
   @Test

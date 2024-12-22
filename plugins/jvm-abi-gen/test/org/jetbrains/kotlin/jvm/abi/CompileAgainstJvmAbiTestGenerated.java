@@ -70,11 +70,6 @@ public class CompileAgainstJvmAbiTestGenerated extends AbstractCompileAgainstJvm
     runTest("plugins/jvm-abi-gen/testData/compile/inlineClassWithPrivateConstructor/");
   }
 
-  @TestMetadata("inlineClassWithPrivateConstructorK2")
-  public void testInlineClassWithPrivateConstructorK2() {
-    runTest("plugins/jvm-abi-gen/testData/compile/inlineClassWithPrivateConstructorK2/");
-  }
-
   @TestMetadata("inlineNoRegeneration")
   public void testInlineNoRegeneration() {
     runTest("plugins/jvm-abi-gen/testData/compile/inlineNoRegeneration/");
@@ -123,6 +118,11 @@ public class CompileAgainstJvmAbiTestGenerated extends AbstractCompileAgainstJvm
   @TestMetadata("multifileClassWithRemovePrivateOption")
   public void testMultifileClassWithRemovePrivateOption() {
     runTest("plugins/jvm-abi-gen/testData/compile/multifileClassWithRemovePrivateOption/");
+  }
+
+  @TestMetadata("nestedClassWithDollar")
+  public void testNestedClassWithDollar() {
+    runTest("plugins/jvm-abi-gen/testData/compile/nestedClassWithDollar/");
   }
 
   @TestMetadata("privateAnnotationsFromJavaApp")

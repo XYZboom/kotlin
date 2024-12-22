@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // RENDER_DIAGNOSTICS_MESSAGES
 
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.TYPE, AnnotationTarget.CLASS)
@@ -7,5 +8,5 @@ annotation class Ann(val s: String = "")
 fun foo() {}
 
 val bar = foo(
-    <!TOO_MANY_ARGUMENTS("public final fun /foo(): kotlin/Unit")!>15<!>
+    <!TOO_MANY_ARGUMENTS("fun foo(): Unit")!>15<!>
 )

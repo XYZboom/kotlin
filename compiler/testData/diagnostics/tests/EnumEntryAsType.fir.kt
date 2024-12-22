@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // DIAGNOSTICS: -UNUSED_PARAMETER
 
 enum class Color {
@@ -47,7 +48,7 @@ fun <T> bar(a: Any): T = a <!UNCHECKED_CAST!>as T<!>
 
 fun <T> foo() {
     foo<Color.<!ENUM_ENTRY_AS_TYPE!>RED<!>>()
-    foo<<!CANNOT_INFER_PARAMETER_TYPE!>RedAlias<!>>()
+    foo<RedAlias>()
     bar<Color.<!ENUM_ENTRY_AS_TYPE!>RED<!>>(<!ARGUMENT_TYPE_MISMATCH!>Color.RED<!>)
 }
 

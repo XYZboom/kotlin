@@ -7,12 +7,12 @@
 
 package org.jetbrains.kotlin.codegen.fir
 
-import org.jetbrains.kotlin.codegen.ir.*
-import org.jetbrains.kotlin.jvm.compiler.JvmIrLinkageModeTest
+import org.jetbrains.kotlin.codegen.*
+import org.jetbrains.kotlin.codegen.ir.AbstractIrCheckLocalVariablesTableTest
 import org.jetbrains.kotlin.test.FirParser
 import org.jetbrains.kotlin.test.FirParser.Psi
 
-class FirPsiPackageGenTest : IrPackageGenTest() {
+class FirPsiPackageGenTest : PackageGenTest() {
     override val useFir: Boolean
         get() = true
 
@@ -20,7 +20,7 @@ class FirPsiPackageGenTest : IrPackageGenTest() {
         get() = Psi
 }
 
-class FirPsiPrimitiveTypesTest : IrPrimitiveTypesTest() {
+class FirPsiPrimitiveTypesTest : PrimitiveTypesTest() {
     override val useFir: Boolean
         get() = true
 
@@ -28,7 +28,7 @@ class FirPsiPrimitiveTypesTest : IrPrimitiveTypesTest() {
         get() = Psi
 }
 
-class FirPsiAnnotationGenTest : IrAnnotationGenTest() {
+class FirPsiAnnotationGenTest : AnnotationGenTest() {
     override val useFir: Boolean
         get() = true
 
@@ -36,7 +36,7 @@ class FirPsiAnnotationGenTest : IrAnnotationGenTest() {
         get() = Psi
 }
 
-class FirPsiOuterClassGenTest : IrOuterClassGenTest() {
+class FirPsiOuterClassGenTest : OuterClassGenTest() {
     override val useFir: Boolean
         get() = true
 
@@ -52,7 +52,7 @@ abstract class AbstractFirPsiCheckLocalVariablesTableTest : AbstractIrCheckLocal
         get() = Psi
 }
 
-class FirPsiPropertyGenTest : IrPropertyGenTest() {
+class FirPsiPropertyGenTest : PropertyGenTest() {
     override val useFir: Boolean
         get() = true
 
@@ -60,7 +60,7 @@ class FirPsiPropertyGenTest : IrPropertyGenTest() {
         get() = Psi
 }
 
-class FirPsiKotlinSyntheticClassAnnotationTest : IrKotlinSyntheticClassAnnotationTest() {
+class FirPsiKotlinSyntheticClassAnnotationTest : KotlinSyntheticClassAnnotationTest() {
     override val useFir: Boolean
         get() = true
 
@@ -68,7 +68,7 @@ class FirPsiKotlinSyntheticClassAnnotationTest : IrKotlinSyntheticClassAnnotatio
         get() = Psi
 }
 
-class FirPsiVarArgTest : IrVarArgTest() {
+class FirPsiVarArgTest : VarArgTest() {
     override val useFir: Boolean
         get() = true
 
@@ -76,7 +76,7 @@ class FirPsiVarArgTest : IrVarArgTest() {
         get() = Psi
 }
 
-class FirPsiControlStructuresTest : IrControlStructuresTest() {
+class FirPsiControlStructuresTest : ControlStructuresTest() {
     override val useFir: Boolean
         get() = true
 
@@ -84,7 +84,7 @@ class FirPsiControlStructuresTest : IrControlStructuresTest() {
         get() = Psi
 }
 
-class FirPsiInnerClassInfoGenTest : IrInnerClassInfoGenTest() {
+class FirPsiInnerClassInfoGenTest : InnerClassInfoGenTest() {
     override val useFir: Boolean
         get() = true
 
@@ -92,38 +92,18 @@ class FirPsiInnerClassInfoGenTest : IrInnerClassInfoGenTest() {
         get() = Psi
 }
 
-class FirPsiMethodOrderTest : IrMethodOrderTest() {
+class FirPsiMethodOrderTest : MethodOrderTest() {
     override val useFir: Boolean
         get() = true
 
     override val firParser: FirParser
         get() = Psi
 
-    override fun testDelegatedMethod() {
-        doTest(
-            """
-                interface Trait {
-                    fun f0()
-                    fun f4()
-                    fun f3()
-                    fun f2()
-                    fun f1()
-                    fun f5()
-                }
-
-                val delegate: Trait = throw Error()
-
-                val obj = object : Trait by delegate {
-                    override fun f3() { }
-                }
-            """,
-            "\$obj$1",
-            listOf("<init>()V", "f0()V", "f4()V", "f2()V", "f1()V", "f5()V", "f3()V")
-        )
-    }
+    override fun delegatedMethodExpectation(): List<String> =
+        listOf("<init>()V", "f3()V", "f0()V", "f4()V", "f2()V", "f1()V", "f5()V")
 }
 
-class FirPsiReflectionClassLoaderTest : IrReflectionClassLoaderTest() {
+class FirPsiReflectionClassLoaderTest : ReflectionClassLoaderTest() {
     override val useFir: Boolean
         get() = true
 
@@ -131,7 +111,7 @@ class FirPsiReflectionClassLoaderTest : IrReflectionClassLoaderTest() {
         get() = Psi
 }
 
-class FirPsiCustomBytecodeTextTest : IrCustomBytecodeTextTest() {
+class FirPsiCustomBytecodeTextTest : CustomBytecodeTextTest() {
     override val useFir: Boolean
         get() = true
 
@@ -139,7 +119,7 @@ class FirPsiCustomBytecodeTextTest : IrCustomBytecodeTextTest() {
         get() = Psi
 }
 
-class FirPsiCustomScriptCodegenTest : IrCustomScriptCodegenTest() {
+class FirPsiGenerateNotNullAssertionsTest : GenerateNotNullAssertionsTest() {
     override val useFir: Boolean
         get() = true
 
@@ -147,23 +127,7 @@ class FirPsiCustomScriptCodegenTest : IrCustomScriptCodegenTest() {
         get() = Psi
 }
 
-class FirPsiGenerateNotNullAssertionsTest : IrGenerateNotNullAssertionsTest() {
-    override val useFir: Boolean
-        get() = true
-
-    override val firParser: FirParser
-        get() = Psi
-}
-
-class FirPsiSourceInfoGenTest : IrSourceInfoGenTest() {
-    override val useFir: Boolean
-        get() = true
-
-    override val firParser: FirParser
-        get() = Psi
-}
-
-class FirPsiLinkageModeTest : JvmIrLinkageModeTest() {
+class FirPsiSourceInfoGenTest : SourceInfoGenTest() {
     override val useFir: Boolean
         get() = true
 

@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
 import org.jetbrains.kotlin.fir.expressions.FirResolvedQualifier
 import org.jetbrains.kotlin.fir.expressions.FirStatement
 import org.jetbrains.kotlin.fir.expressions.builder.buildPropertyAccessExpression
+import org.jetbrains.kotlin.fir.expressions.unwrapSmartcastExpression
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.builder.buildErrorNamedReference
 import org.jetbrains.kotlin.fir.references.builder.buildSimpleNamedReference
@@ -27,6 +28,7 @@ import org.jetbrains.kotlin.fir.resolve.transformers.ReturnTypeCalculator
 import org.jetbrains.kotlin.fir.resolve.transformers.ReturnTypeCalculatorForFullBodyResolve
 import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.*
 import org.jetbrains.kotlin.fir.symbols.impl.FirEnumEntrySymbol
+import org.jetbrains.kotlin.fir.visitors.transformSingle
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.StandardClassIds
@@ -45,6 +47,7 @@ open class FirAnnotationArgumentsTransformer(
     scopeSession,
     outerBodyResolveContext = outerBodyResolveContext,
     returnTypeCalculator = returnTypeCalculator,
+    expandTypeAliases = true,
 ) {
     final override val expressionsTransformer: FirExpressionsResolveTransformer = FirExpressionTransformerForAnnotationArguments(this)
 
@@ -122,7 +125,7 @@ private class FirExpressionTransformerForAnnotationArguments(
             source = originalAccess.source
             typeArguments.addAll(originalAccess.typeArguments)
 
-            val originalResolvedQualifier = originalAccess.explicitReceiver
+            val originalResolvedQualifier = originalAccess.explicitReceiver?.unwrapSmartcastExpression()
             if (originalResolvedQualifier is FirResolvedQualifier) {
                 val fqName = originalResolvedQualifier.classId
                     ?.let { if (originalResolvedQualifier.isFullyQualified) it.asSingleFqName() else it.relativeClassName }
@@ -186,6 +189,9 @@ private class FirDeclarationsResolveTransformerForAnnotationArguments(
             regularClass.transformAnnotations(this, ResolutionMode.ContextIndependent)
             regularClass.transformTypeParameters(this, ResolutionMode.ContextIndependent)
             regularClass.transformSuperTypeRefs(this, ResolutionMode.ContextIndependent)
+            regularClass.contextParameters.forEach {
+                it.transformSingle(this, ResolutionMode.ContextIndependent)
+            }
         }
 
         doTransformRegularClass(regularClass, data)
@@ -229,6 +235,9 @@ private class FirDeclarationsResolveTransformerForAnnotationArguments(
                 .transformReceiverParameter(transformer, data)
                 .transformValueParameters(transformer, data)
                 .transformAnnotations(transformer, data)
+                .contextParameters.forEach {
+                    it.transformSingle(transformer, data)
+                }
         }
 
         return simpleFunction
@@ -242,6 +251,9 @@ private class FirDeclarationsResolveTransformerForAnnotationArguments(
                 .transformAnnotations(transformer, data)
                 .transformReceiverParameter(transformer, data)
                 .transformReturnTypeRef(transformer, data)
+                .contextParameters.forEach {
+                    it.transformSingle(transformer, data)
+                }
 
             context.forConstructorParameters(constructor, containingClass, components) {
                 constructor.transformValueParameters(transformer, data)
@@ -276,6 +288,7 @@ private class FirDeclarationsResolveTransformerForAnnotationArguments(
                 .transformGetter(transformer, data)
                 .transformSetter(transformer, data)
                 .transformBackingField(transformer, data)
+                .transformContextParameters(transformer, data)
         }
 
         return property
@@ -326,5 +339,9 @@ private class FirDeclarationsResolveTransformerForAnnotationArguments(
 
     override fun transformScript(script: FirScript, data: ResolutionMode): FirScript {
         return script
+    }
+
+    override fun transformReplSnippet(replSnippet: FirReplSnippet, data: ResolutionMode): FirReplSnippet {
+        return replSnippet
     }
 }

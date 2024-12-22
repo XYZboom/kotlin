@@ -20,13 +20,13 @@ import org.jetbrains.kotlin.fir.visitors.FirTransformer
 import org.jetbrains.kotlin.fir.visitors.FirVisitor
 
 /**
- * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.implicitInvokeCall]
+ * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTree.implicitInvokeCall]
  */
 abstract class FirImplicitInvokeCall : FirFunctionCall() {
     @UnresolvedExpressionTypeAccess
     abstract override val coneTypeOrNull: ConeKotlinType?
     abstract override val annotations: List<FirAnnotation>
-    abstract override val contextReceiverArguments: List<FirExpression>
+    abstract override val contextArguments: List<FirExpression>
     abstract override val typeArguments: List<FirTypeProjection>
     abstract override val explicitReceiver: FirExpression?
     abstract override val dispatchReceiver: FirExpression?
@@ -49,7 +49,7 @@ abstract class FirImplicitInvokeCall : FirFunctionCall() {
 
     abstract override fun replaceAnnotations(newAnnotations: List<FirAnnotation>)
 
-    abstract override fun replaceContextReceiverArguments(newContextReceiverArguments: List<FirExpression>)
+    abstract override fun replaceContextArguments(newContextArguments: List<FirExpression>)
 
     abstract override fun replaceTypeArguments(newTypeArguments: List<FirTypeProjection>)
 

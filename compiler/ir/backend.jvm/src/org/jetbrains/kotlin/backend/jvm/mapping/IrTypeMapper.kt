@@ -7,10 +7,12 @@ package org.jetbrains.kotlin.backend.jvm.mapping
 
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
+import org.jetbrains.kotlin.backend.jvm.classNameOverride
 import org.jetbrains.kotlin.backend.jvm.ir.representativeUpperBound
+import org.jetbrains.kotlin.backend.jvm.localClassType
 import org.jetbrains.kotlin.builtins.functions.BuiltInFunctionArity
 import org.jetbrains.kotlin.codegen.AsmUtil
-import org.jetbrains.kotlin.codegen.JvmCodegenUtil
+import org.jetbrains.kotlin.codegen.sanitizeNameIfNeeded
 import org.jetbrains.kotlin.codegen.signature.JvmSignatureWriter
 import org.jetbrains.kotlin.codegen.state.KotlinTypeMapper
 import org.jetbrains.kotlin.codegen.state.KotlinTypeMapperBase
@@ -30,7 +32,7 @@ import org.jetbrains.kotlin.types.AbstractTypeMapper
 import org.jetbrains.kotlin.types.TypeMappingContext
 import org.jetbrains.kotlin.types.TypeSystemCommonBackendContextForTypeMapping
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
-import org.jetbrains.kotlin.types.model.SimpleTypeMarker
+import org.jetbrains.kotlin.types.model.RigidTypeMarker
 import org.jetbrains.kotlin.types.model.TypeConstructorMarker
 import org.jetbrains.kotlin.types.model.TypeParameterMarker
 import org.jetbrains.org.objectweb.asm.Type
@@ -56,7 +58,7 @@ open class IrTypeMapper(private val context: JvmBackendContext) : KotlinTypeMapp
         mapType(type as IrType, mode)
 
     private fun computeClassInternalNameAsString(irClass: IrClass): String {
-        context.getLocalClassType(irClass)?.internalName?.let {
+        irClass.localClassType?.internalName?.let {
             return it
         }
 
@@ -64,7 +66,7 @@ open class IrTypeMapper(private val context: JvmBackendContext) : KotlinTypeMapp
     }
 
     private fun computeClassInternalName(irClass: IrClass, capacity: Int): StringBuilder {
-        context.getLocalClassType(irClass)?.internalName?.let {
+        irClass.localClassType?.internalName?.let {
             return StringBuilder(it)
         }
 
@@ -102,13 +104,10 @@ open class IrTypeMapper(private val context: JvmBackendContext) : KotlinTypeMapp
     }
 
     fun classInternalName(irClass: IrClass): String {
-        context.getLocalClassType(irClass)?.internalName?.let { return it }
-        context.classNameOverride[irClass]?.let { return it.internalName }
+        irClass.localClassType?.internalName?.let { return it }
+        irClass.classNameOverride?.let { return it.internalName }
 
-        return JvmCodegenUtil.sanitizeNameIfNeeded(
-            computeClassInternalNameAsString(irClass),
-            context.config.languageVersionSettings
-        )
+        return sanitizeNameIfNeeded(computeClassInternalNameAsString(irClass), context.config.languageVersionSettings)
     }
 
     override fun getClassInternalName(typeConstructor: TypeConstructorMarker): String =
@@ -260,12 +259,12 @@ private class IrTypeCheckerContextForTypeMapping(
         return this is IrScriptSymbol
     }
 
-    override fun SimpleTypeMarker.isSuspendFunction(): Boolean {
+    override fun RigidTypeMarker.isSuspendFunction(): Boolean {
         if (this !is IrSimpleType) return false
         return isSuspendFunctionImpl()
     }
 
-    override fun SimpleTypeMarker.isKClass(): Boolean {
+    override fun RigidTypeMarker.isKClass(): Boolean {
         require(this is IrSimpleType)
         return isKClassImpl()
     }

@@ -10,14 +10,16 @@ enum class KotlinVersion(val version: String) {
     @Deprecated("Unsupported", level = DeprecationLevel.ERROR) KOTLIN_1_1("1.1"),
     @Deprecated("Unsupported", level = DeprecationLevel.ERROR) KOTLIN_1_2("1.2"),
     @Deprecated("Unsupported", level = DeprecationLevel.ERROR) KOTLIN_1_3("1.3"),
-    @Deprecated("Will be removed soon") KOTLIN_1_4("1.4"),
-    @Deprecated("Will be removed soon") KOTLIN_1_5("1.5"),
+    @Deprecated("Unsupported", level = DeprecationLevel.ERROR) KOTLIN_1_4("1.4"),
+    @Deprecated("Unsupported", level = DeprecationLevel.ERROR) KOTLIN_1_5("1.5"),
     @Deprecated("Will be removed soon") KOTLIN_1_6("1.6"),
-    KOTLIN_1_7("1.7"),
+    @Deprecated("Will be removed soon") KOTLIN_1_7("1.7"),
     KOTLIN_1_8("1.8"),
     KOTLIN_1_9("1.9"),
     KOTLIN_2_0("2.0"),
     KOTLIN_2_1("2.1"),
+    KOTLIN_2_2("2.2"),
+    KOTLIN_2_3("2.3"),
     ;
 
     companion object {
@@ -27,6 +29,6 @@ enum class KotlinVersion(val version: String) {
                 ?: throw IllegalArgumentException("Unknown Kotlin version: $version")
 
         @JvmStatic
-        val DEFAULT = KOTLIN_2_0
+        val DEFAULT = KOTLIN_2_1
     }
 }

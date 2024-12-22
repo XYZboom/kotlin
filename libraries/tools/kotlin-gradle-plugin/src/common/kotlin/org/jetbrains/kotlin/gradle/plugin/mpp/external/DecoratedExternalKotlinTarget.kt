@@ -99,12 +99,5 @@ abstract class DecoratedExternalKotlinTarget internal constructor(
      *
      * @since 2.0.0
      */
-    @ExperimentalKotlinGradlePluginApi
     open val compilerOptions: KotlinCommonCompilerOptions = delegate.compilerOptions
 }
-
-internal val ExternalKotlinTargetImpl.decoratedInstance: DecoratedExternalKotlinTarget
-    get() = project.multiplatformExtension.targets.getByName(name) as DecoratedExternalKotlinTarget
-
-internal val ExternalKotlinTargetImpl.decoratedInstanceOrNull: DecoratedExternalKotlinTarget?
-    get() = project.multiplatformExtensionOrNull?.targets?.findByName(name) as? DecoratedExternalKotlinTarget

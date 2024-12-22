@@ -7,30 +7,30 @@ package org.jetbrains.kotlin.backend.common.actualizer.checker
 
 import org.jetbrains.kotlin.ir.IrDiagnosticReporter
 import org.jetbrains.kotlin.backend.common.actualizer.ClassActualizationInfo
+import org.jetbrains.kotlin.backend.common.actualizer.IrExpectActualMap
 import org.jetbrains.kotlin.backend.common.actualizer.IrExpectActualMatchingContext
-import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.types.IrTypeSystemContext
+import org.jetbrains.kotlin.utils.addToStdlib.shouldNotBeCalled
 
 internal class IrExpectActualCheckers(
-    override val matchedExpectToActual: Map<IrSymbol, IrSymbol>,
+    override val expectActualMap: IrExpectActualMap,
     override val classActualizationInfo: ClassActualizationInfo,
     override val typeSystemContext: IrTypeSystemContext,
     override val diagnosticsReporter: IrDiagnosticReporter,
 ) : IrExpectActualChecker.Context {
 
     private val checkers: Set<IrExpectActualChecker> = setOf(
-        IrExpectActualAnnotationMatchingChecker,
-        IrExpectActualAnnotationConflictingDefaultArgumentValueChecker,
+        IrAnnotationMatchingKmpChecker,
+        IrAnnotationConflictingDefaultArgumentValueKmpChecker,
+        IrKotlinActualAnnotationOnJavaKmpChecker,
+        IrJavaDirectActualizationDefaultParametersInExpectKmpChecker,
+        IrJavaDirectActualizationDefaultParametersInActualKmpChecker,
     )
 
     override val matchingContext = object : IrExpectActualMatchingContext(typeSystemContext, classActualizationInfo.actualClasses) {
-        override fun onMatchedClasses(expectClassSymbol: IrClassSymbol, actualClassSymbol: IrClassSymbol) {
-            error("Must not be called")
-        }
-
-        override fun onMatchedCallables(expectSymbol: IrSymbol, actualSymbol: IrSymbol) {
-            error("Must not be called")
+        override fun onMatchedDeclarations(expectSymbol: IrSymbol, actualSymbol: IrSymbol) {
+            shouldNotBeCalled()
         }
     }
 

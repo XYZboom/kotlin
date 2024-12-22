@@ -29,6 +29,7 @@ import org.jetbrains.kotlin.ir.types.isPrimitiveType
 import org.jetbrains.kotlin.ir.types.makeNullable
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.*
+import org.jetbrains.kotlin.js.common.isValidES5Identifier
 import org.jetbrains.kotlin.name.Name
 
 /**
@@ -45,9 +46,6 @@ class ComplexExternalDeclarationsToTopLevelFunctionsLowering(val context: WasmBa
 
     val externalFunToTopLevelMapping =
         context.mapping.wasmNestedExternalToNewTopLevelFunction
-
-    val externalObjectToGetInstanceFunction =
-        context.mapping.wasmExternalObjectToGetInstanceFunction
 
     override fun lower(irFile: IrFile) {
         currentFile = irFile
@@ -74,19 +72,27 @@ class ComplexExternalDeclarationsToTopLevelFunctionsLowering(val context: WasmBa
 
             override fun visitClass(declaration: IrClass) {
                 declaration.acceptChildrenVoid(this)
-                lowerExternalClass(declaration)
+                declaration.factory.stageController.restrictTo(declaration) {
+                    lowerExternalClass(declaration)
+                }
             }
 
             override fun visitProperty(declaration: IrProperty) {
-                processExternalProperty(declaration)
+                declaration.factory.stageController.restrictTo(declaration) {
+                    processExternalProperty(declaration)
+                }
             }
 
             override fun visitConstructor(declaration: IrConstructor) {
-                processExternalConstructor(declaration)
+                declaration.factory.stageController.restrictTo(declaration) {
+                    processExternalConstructor(declaration)
+                }
             }
 
             override fun visitSimpleFunction(declaration: IrSimpleFunction) {
-                processExternalSimpleFunction(declaration)
+                declaration.factory.stageController.restrictTo(declaration) {
+                    processExternalSimpleFunction(declaration)
+                }
             }
         })
     }
@@ -114,7 +120,7 @@ class ComplexExternalDeclarationsToTopLevelFunctionsLowering(val context: WasmBa
                 if (dispatchReceiver == null)
                     "() => ${referenceTopLevelExternalDeclaration(property)}"
                 else
-                    "(_this) => _this.$propName"
+                    "(_this) => ${propName.toSavePropertyAccess("_this")}"
 
             val res = createExternalJsFunction(
                 property.name,
@@ -136,7 +142,7 @@ class ComplexExternalDeclarationsToTopLevelFunctionsLowering(val context: WasmBa
                 if (dispatchReceiver == null)
                     "(v) => ${referenceTopLevelExternalDeclaration(property)} = v"
                 else
-                    "(_this, v) => _this.$propName = v"
+                    "(_this, v) => ${propName.toSavePropertyAccess("_this")} = v"
 
             val res = createExternalJsFunction(
                 property.name,
@@ -183,12 +189,29 @@ class ComplexExternalDeclarationsToTopLevelFunctionsLowering(val context: WasmBa
                 // Reference to external companion object is reference to its parent class
                 return
             }
-            append('.')
-            append(klass.getJsNameOrKotlinName())
+
+            append(klass.getJsNameOrKotlinName().identifier.toSavePropertyAccess(isTopLevel = false))
         } else {
             append(referenceTopLevelExternalDeclaration(klass))
         }
     }
+
+    private fun String.toSavePropertyAccess(
+        receiver: String = "",
+        isTopLevel: Boolean = receiver.isEmpty(),
+    ) = StringBuilder().apply {
+        append(receiver)
+        if (isValidES5Identifier()) {
+            if (!isTopLevel) append('.')
+            append(this@toSavePropertyAccess)
+        } else {
+            if (isTopLevel) append("globalThis")
+            append("['")
+            append(replace("'", "\\'"))
+            append("']")
+        }
+
+    }.toString()
 
     fun processExternalConstructor(constructor: IrConstructor) {
         val klass = constructor.constructedClass
@@ -230,7 +253,7 @@ class ComplexExternalDeclarationsToTopLevelFunctionsLowering(val context: WasmBa
         val jsFunctionReference = when {
             jsFun != null -> "($jsFun)"
             function.isTopLevelDeclaration -> referenceTopLevelExternalDeclaration(function)
-            else -> function.getJsNameOrKotlinName().identifier
+            else -> function.getJsNameOrKotlinName().identifier.toSavePropertyAccess(isTopLevel = false)
         }
 
         processFunctionOrConstructor(
@@ -285,7 +308,7 @@ class ComplexExternalDeclarationsToTopLevelFunctionsLowering(val context: WasmBa
                 append("new ")
             }
             if (dispatchReceiver != null) {
-                append("_this.")
+                append("_this")
             }
             append(jsFunctionReference)
             append("(")
@@ -416,12 +439,14 @@ class ComplexExternalDeclarationsToTopLevelFunctionsLowering(val context: WasmBa
                 name = if (declaration is IrClass && declaration.isObject) null else "default"
             }
 
-        if (qualifier == null && module == null)
-            return name!!
+        if (qualifier == null && module == null) {
+            require(name != null) { "Unexpected null inside declaration Name identifier "}
+            return name.toSavePropertyAccess()
+        }
 
-        val qualifieReference = JsModuleAndQualifierReference(module, qualifier)
-        context.jsModuleAndQualifierReferences += qualifieReference
-        return qualifieReference.jsVariableName + name?.let { ".$it" }.orEmpty()
+        val qualifierReference = JsModuleAndQualifierReference(module, qualifier)
+        context.getFileContext(currentFile).jsModuleAndQualifierReferences += qualifierReference
+        return name?.toSavePropertyAccess(qualifierReference.jsVariableName) ?: qualifierReference.jsVariableName
     }
 }
 
@@ -472,7 +497,7 @@ class ComplexExternalDeclarationsUsageLowering(val context: WasmBackendContext) 
 
         private fun process(container: IrDeclarationContainer) {
             container.declarations.transformFlat { member ->
-                if (nestedExternalToNewTopLevelFunctions.keys.contains(member)) {
+                if (member is IrFunction && nestedExternalToNewTopLevelFunctions[member] != null) {
                     emptyList()
                 } else {
                     member.acceptVoid(this)
@@ -504,7 +529,6 @@ class ComplexExternalDeclarationsUsageLowering(val context: WasmBackendContext) 
                 endOffset = expression.endOffset,
                 type = expression.type,
                 symbol = externalGetInstance.symbol,
-                valueArgumentsCount = 0,
                 typeArgumentsCount = 0
             )
         }
@@ -557,7 +581,7 @@ private fun numDefaultParametersForExternalFunction(function: IrFunction): Int {
     }
 
     val firstDefaultParameterIndex: Int? =
-        function.valueParameters.firstOrNull { it.defaultValue != null }?.index
+        function.valueParameters.firstOrNull { it.defaultValue != null }?.indexInOldValueParameters
 
     return if (firstDefaultParameterIndex == null)
         0

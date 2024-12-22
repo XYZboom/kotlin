@@ -26,6 +26,9 @@ import org.jetbrains.kotlin.utils.memoryOptimizedMap
 
 private val SCRIPT_FUNCTION by IrDeclarationOriginImpl
 
+/**
+ * Creates functions for initializing and evaluating scripts.
+ */
 class CreateScriptFunctionsPhase(val context: CommonBackendContext) : FileLoweringPass {
     override fun lower(irFile: IrFile) {
         irFile.declarations.transformFlat { declaration ->
@@ -142,7 +145,6 @@ class CreateScriptFunctionsPhase(val context: CommonBackendContext) : FileLoweri
         return IrCallImpl(
             UNDEFINED_OFFSET, UNDEFINED_OFFSET, function.returnType,
             function.symbol,
-            valueArgumentsCount = function.valueParameters.size,
             typeArgumentsCount = function.typeParameters.size
         )
     }

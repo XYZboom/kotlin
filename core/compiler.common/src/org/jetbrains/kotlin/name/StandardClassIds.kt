@@ -11,18 +11,23 @@ object StandardClassIds {
     val BASE_KOTLIN_PACKAGE = FqName("kotlin")
     val BASE_REFLECT_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("reflect"))
     val BASE_COLLECTIONS_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("collections"))
+    val BASE_SEQUENCES_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("sequences"))
     val BASE_RANGES_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("ranges"))
     val BASE_JVM_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("jvm"))
+    val BASE_ANNOTATIONS_JVM_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("annotations")).child(Name.identifier("jvm"))
     val BASE_JVM_INTERNAL_PACKAGE = BASE_JVM_PACKAGE.child(Name.identifier("internal"))
     val BASE_JVM_FUNCTIONS_PACKAGE = BASE_JVM_PACKAGE.child(Name.identifier("functions"))
     val BASE_ANNOTATION_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("annotation"))
     val BASE_INTERNAL_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("internal"))
     val BASE_INTERNAL_IR_PACKAGE = BASE_INTERNAL_PACKAGE.child(Name.identifier("ir"))
     val BASE_COROUTINES_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("coroutines"))
+    val BASE_COROUTINES_INTRINSICS_PACKAGE = BASE_COROUTINES_PACKAGE.child(Name.identifier("intrinsics"))
     val BASE_ENUMS_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("enums"))
     val BASE_CONTRACTS_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("contracts"))
     val BASE_CONCURRENT_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("concurrent"))
+    val BASE_CONCURRENT_ATOMICS_PACKAGE = BASE_CONCURRENT_PACKAGE.child(Name.identifier("atomics"))
     val BASE_TEST_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("test"))
+    val BASE_TEXT_PACKAGE = BASE_KOTLIN_PACKAGE.child(Name.identifier("text"))
 
     val builtInsPackagesWithDefaultNamedImport = setOf(
         BASE_KOTLIN_PACKAGE,
@@ -38,7 +43,12 @@ object StandardClassIds {
         BASE_ANNOTATION_PACKAGE,
         BASE_REFLECT_PACKAGE,
         BASE_INTERNAL_PACKAGE,
-        BASE_COROUTINES_PACKAGE
+        BASE_COROUTINES_PACKAGE,
+        // TODO: atomic builtins are moving from kotlin.concurrent to kotlin.concurrent.atomics package (see KT-73816),
+        // builtins from kotlin.concurrent package are kept till Atomic API is completely moved to kotlin.concurrent.atomics
+        // and built with the new bootstrap compiler which provides builtins from the new package.
+        BASE_CONCURRENT_PACKAGE,
+        BASE_CONCURRENT_ATOMICS_PACKAGE
     )
 
     val Nothing = "Nothing".baseId()
@@ -130,6 +140,7 @@ object StandardClassIds {
     val ListIterator = "ListIterator".collectionsId()
     val Set = "Set".collectionsId()
     val Map = "Map".collectionsId()
+    val AbstractMap = "AbstractMap".collectionsId()
     val MutableIterator = "MutableIterator".collectionsId()
     val CharIterator = "CharIterator".collectionsId()
 
@@ -186,6 +197,7 @@ object StandardClassIds {
         val FlexibleMutability = "FlexibleMutability".internalIrId()
         val FlexibleArrayElementVariance = "FlexibleArrayElementVariance".internalIrId()
         val EnhancedNullability = "EnhancedNullability".jvmInternalId()
+        val NoInfer = "NoInfer".internalId()
 
         val FunctionN = "FunctionN".jvmFunctionsId()
 
@@ -201,6 +213,7 @@ object StandardClassIds {
 
         val OptionalExpectation = "OptionalExpectation".baseId()
         val ImplicitlyActualizedByJvmDeclaration = "ImplicitlyActualizedByJvmDeclaration".jvmId()
+        val KotlinActual = "KotlinActual".annotationsJvmId()
 
         val jvmStatic = "JvmStatic".jvmId()
 
@@ -210,6 +223,9 @@ object StandardClassIds {
         val associatedObjectAnnotations = hashSetOf(AssociatedObjectKey, ExperimentalAssociatedObjects)
 
         val ActualizeByJvmBuiltinProvider = "ActualizeByJvmBuiltinProvider".internalId()
+
+        val JvmBuiltin = "JvmBuiltin".internalId()
+        val SuppressBytecodeGeneration = "SuppressBytecodeGeneration".internalId()
 
         object ParameterNames {
             val value = Name.identifier("value")
@@ -270,6 +286,7 @@ private fun String.collectionsId() = ClassId(StandardClassIds.BASE_COLLECTIONS_P
 private fun String.rangesId() = ClassId(StandardClassIds.BASE_RANGES_PACKAGE, Name.identifier(this))
 private fun String.annotationId() = ClassId(StandardClassIds.BASE_ANNOTATION_PACKAGE, Name.identifier(this))
 private fun String.jvmId() = ClassId(StandardClassIds.BASE_JVM_PACKAGE, Name.identifier(this))
+private fun String.annotationsJvmId() = ClassId(StandardClassIds.BASE_ANNOTATIONS_JVM_PACKAGE, Name.identifier(this))
 private fun String.jvmInternalId() = ClassId(StandardClassIds.BASE_JVM_INTERNAL_PACKAGE, Name.identifier(this))
 private fun String.jvmFunctionsId() = ClassId(StandardClassIds.BASE_JVM_FUNCTIONS_PACKAGE, Name.identifier(this))
 private fun String.internalId() = ClassId(StandardClassIds.BASE_INTERNAL_PACKAGE, Name.identifier(this))

@@ -25,30 +25,42 @@ import com.intellij.psi.PsiJavaFile
 import org.jetbrains.kotlin.build.DEFAULT_KOTLIN_SOURCE_FILES_EXTENSIONS
 import org.jetbrains.kotlin.build.GeneratedFile
 import org.jetbrains.kotlin.build.GeneratedJvmClass
-import org.jetbrains.kotlin.build.report.*
-import org.jetbrains.kotlin.build.report.metrics.*
-import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
+import org.jetbrains.kotlin.build.report.BuildReporter
+import org.jetbrains.kotlin.build.report.debug
+import org.jetbrains.kotlin.build.report.info
+import org.jetbrains.kotlin.build.report.metrics.BuildAttribute
+import org.jetbrains.kotlin.build.report.metrics.GradleBuildPerformanceMetric
+import org.jetbrains.kotlin.build.report.metrics.GradleBuildTime
+import org.jetbrains.kotlin.build.report.metrics.measure
+import org.jetbrains.kotlin.build.report.warn
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.FilteringMessageCollector
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
+import org.jetbrains.kotlin.cli.common.messages.MessageCollectorImpl
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.config.configureJdkClasspathRoots
-import org.jetbrains.kotlin.config.*
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.Services
+import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.config.messageCollector
+import org.jetbrains.kotlin.incremental.ChangedFiles.DeterminableFiles
 import org.jetbrains.kotlin.incremental.ClasspathChanges.ClasspathSnapshotDisabled
 import org.jetbrains.kotlin.incremental.ClasspathChanges.ClasspathSnapshotEnabled.IncrementalRun.NoChanges
 import org.jetbrains.kotlin.incremental.ClasspathChanges.ClasspathSnapshotEnabled.IncrementalRun.ToBeComputedByIncrementalCompiler
 import org.jetbrains.kotlin.incremental.ClasspathChanges.ClasspathSnapshotEnabled.NotAvailableDueToMissingClasspathSnapshot
 import org.jetbrains.kotlin.incremental.ClasspathChanges.ClasspathSnapshotEnabled.NotAvailableForNonIncrementalRun
 import org.jetbrains.kotlin.incremental.ClasspathChanges.NotAvailableForJSCompiler
-import org.jetbrains.kotlin.incremental.classpathDiff.*
+import org.jetbrains.kotlin.incremental.classpathDiff.AccessibleClassSnapshot
 import org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeClasspathChanges
+import org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotBuildReporter
+import org.jetbrains.kotlin.incremental.classpathDiff.ProgramSymbolSet
+import org.jetbrains.kotlin.incremental.classpathDiff.shrinkAndSaveClasspathSnapshot
 import org.jetbrains.kotlin.incremental.components.ExpectActualTracker
 import org.jetbrains.kotlin.incremental.components.LookupTracker
 import org.jetbrains.kotlin.incremental.multiproject.ModulesApiHistory
-import org.jetbrains.kotlin.incremental.util.BufferingMessageCollector
 import org.jetbrains.kotlin.incremental.util.Either
 import org.jetbrains.kotlin.load.java.JavaClassesTracker
 import org.jetbrains.kotlin.load.kotlin.header.KotlinClassHeader
@@ -89,11 +101,11 @@ open class IncrementalJvmCompilerRunner(
     override fun destinationDir(args: K2JVMCompilerArguments): File =
         args.destinationAsFile
 
-    private val messageCollector = BufferingMessageCollector()
+    private val messageCollector = MessageCollectorImpl()
     private val compilerConfiguration: CompilerConfiguration by lazy {
         val filterMessageCollector = FilteringMessageCollector(messageCollector) { !it.isError }
         CompilerConfiguration().apply {
-            put(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, filterMessageCollector)
+            this.messageCollector = filterMessageCollector
             configureJdkClasspathRoots()
         }
     }
@@ -123,7 +135,7 @@ open class IncrementalJvmCompilerRunner(
 
     override fun calculateSourcesToCompile(
         caches: IncrementalJvmCachesManager,
-        changedFiles: ChangedFiles.Known,
+        changedFiles: DeterminableFiles.Known,
         args: K2JVMCompilerArguments,
         messageCollector: MessageCollector,
         classpathAbiSnapshots: Map<String, AbiSnapshot>
@@ -131,7 +143,7 @@ open class IncrementalJvmCompilerRunner(
         return try {
             calculateSourcesToCompileImpl(caches, changedFiles, args, messageCollector, classpathAbiSnapshots, icFeatures.withAbiSnapshot)
         } finally {
-            this.messageCollector.flush(messageCollector)
+            this.messageCollector.forward(messageCollector)
             this.messageCollector.clear()
         }
     }
@@ -170,7 +182,7 @@ open class IncrementalJvmCompilerRunner(
 
     private fun calculateSourcesToCompileImpl(
         caches: IncrementalJvmCachesManager,
-        changedFiles: ChangedFiles.Known,
+        changedFiles: DeterminableFiles.Known,
         args: K2JVMCompilerArguments,
         messageCollector: MessageCollector,
         abiSnapshots: Map<String, AbiSnapshot>,
@@ -292,7 +304,7 @@ open class IncrementalJvmCompilerRunner(
         )
     }
 
-    private fun processChangedJava(changedFiles: ChangedFiles.Known, caches: IncrementalJvmCachesManager): BuildAttribute? {
+    private fun processChangedJava(changedFiles: DeterminableFiles.Known, caches: IncrementalJvmCachesManager): BuildAttribute? {
         val javaFiles = (changedFiles.modified + changedFiles.removed).filter(File::isJavaFile)
 
         for (javaFile in javaFiles) {
@@ -333,7 +345,7 @@ open class IncrementalJvmCompilerRunner(
         }
     }
 
-    private fun processLookupSymbolsForAndroidLayouts(changedFiles: ChangedFiles.Known): Collection<LookupSymbol> {
+    private fun processLookupSymbolsForAndroidLayouts(changedFiles: DeterminableFiles.Known): Collection<LookupSymbol> {
         val result = mutableListOf<LookupSymbol>()
         for (file in changedFiles.modified + changedFiles.removed) {
             if (file.extension.lowercase() != "xml") continue

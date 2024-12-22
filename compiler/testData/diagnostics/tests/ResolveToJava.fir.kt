@@ -1,7 +1,8 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // CHECK_TYPE
 // SKIP_JAVAC
 // FULL_JDK
-// WITH_EXTENDED_CHECKERS
+// WITH_EXTRA_CHECKERS
 
 // FILE: a.kt
 
@@ -30,7 +31,7 @@ fun test(l : <!PLATFORM_CLASS_MAPPED_TO_KOTLIN!>java.util.List<Int><!>) {
   checkSubtype<Set<Int>?>(Collections.singleton<Int>(1))
   Collections.singleton<Int>(<!ARGUMENT_TYPE_MISMATCH!>1.0<!>)
 
-  <!NO_COMPANION_OBJECT!>List<Int><!>
+  <!NO_COMPANION_OBJECT, UNUSED_EXPRESSION!>List<Int><!>
 
 
   val <!UNUSED_VARIABLE!>o<!> = "sdf" as <!PLATFORM_CLASS_MAPPED_TO_KOTLIN!>Object<!>
@@ -50,6 +51,8 @@ fun test(l : <!PLATFORM_CLASS_MAPPED_TO_KOTLIN!>java.util.List<Int><!>) {
 
 //  Collections.sort<Integer>(ArrayList<Integer>())
   xxx.<!UNRESOLVED_REFERENCE!>Class<!>()
+
+  java.lang.<!PLATFORM_CLASS_MAPPED_TO_KOTLIN!>String<!>()
 }
 
 

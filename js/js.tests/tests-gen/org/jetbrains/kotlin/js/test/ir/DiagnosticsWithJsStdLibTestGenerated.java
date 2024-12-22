@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.js.test.ir;
 
 import com.intellij.testFramework.TestDataPath;
 import org.jetbrains.kotlin.test.util.KtTestUtil;
+import org.junit.jupiter.api.Tag;
 import org.jetbrains.kotlin.test.TargetBackend;
 import org.jetbrains.kotlin.test.TestMetadata;
 import org.junit.jupiter.api.Nested;
@@ -19,6 +20,7 @@ import java.util.regex.Pattern;
 @SuppressWarnings("all")
 @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib")
 @TestDataPath("$PROJECT_ROOT")
+@Tag("legacy-frontend")
 public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTestWithJsStdLib {
   @Test
   public void testAllFilesPresentInTestsWithJsStdLib() {
@@ -68,6 +70,12 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
   }
 
   @Test
+  @TestMetadata("isInitializedInInline.kt")
+  public void testIsInitializedInInline() {
+    runTest("compiler/testData/diagnostics/testsWithJsStdLib/isInitializedInInline.kt");
+  }
+
+  @Test
   @TestMetadata("jsExternalArgument.kt")
   public void testJsExternalArgument() {
     runTest("compiler/testData/diagnostics/testsWithJsStdLib/jsExternalArgument.kt");
@@ -83,6 +91,12 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
   @TestMetadata("jsExternalSuperclassWithoutArguments.kt")
   public void testJsExternalSuperclassWithoutArguments() {
     runTest("compiler/testData/diagnostics/testsWithJsStdLib/jsExternalSuperclassWithoutArguments.kt");
+  }
+
+  @Test
+  @TestMetadata("jsImplicitBoxing.kt")
+  public void testJsImplicitBoxing() {
+    runTest("compiler/testData/diagnostics/testsWithJsStdLib/jsImplicitBoxing.kt");
   }
 
   @Test
@@ -130,6 +144,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/classLiteral")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class ClassLiteral {
     @Test
     public void testAllFilesPresentInClassLiteral() {
@@ -141,17 +156,12 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
     public void testArrays_after() {
       runTest("compiler/testData/diagnostics/testsWithJsStdLib/classLiteral/arrays_after.kt");
     }
-
-    @Test
-    @TestMetadata("arrays_before.kt")
-    public void testArrays_before() {
-      runTest("compiler/testData/diagnostics/testsWithJsStdLib/classLiteral/arrays_before.kt");
-    }
   }
 
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/dynamicTypes")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class DynamicTypes {
     @Test
     public void testAllFilesPresentInDynamicTypes() {
@@ -474,6 +484,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/export")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class Export {
     @Test
     public void testAllFilesPresentInExport() {
@@ -517,6 +528,12 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
     }
 
     @Test
+    @TestMetadata("promiseUnit.kt")
+    public void testPromiseUnit() {
+      runTest("compiler/testData/diagnostics/testsWithJsStdLib/export/promiseUnit.kt");
+    }
+
+    @Test
     @TestMetadata("secondaryConstructorWithoutJsName.kt")
     public void testSecondaryConstructorWithoutJsName() {
       runTest("compiler/testData/diagnostics/testsWithJsStdLib/export/secondaryConstructorWithoutJsName.kt");
@@ -526,6 +543,12 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
     @TestMetadata("secondaryConstructorWithoutJsNameInExportedFile.kt")
     public void testSecondaryConstructorWithoutJsNameInExportedFile() {
       runTest("compiler/testData/diagnostics/testsWithJsStdLib/export/secondaryConstructorWithoutJsNameInExportedFile.kt");
+    }
+
+    @Test
+    @TestMetadata("typeAliasInValueParameter.kt")
+    public void testTypeAliasInValueParameter() {
+      runTest("compiler/testData/diagnostics/testsWithJsStdLib/export/typeAliasInValueParameter.kt");
     }
 
     @Test
@@ -562,6 +585,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/inline")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class Inline {
     @Test
     public void testAllFilesPresentInInline() {
@@ -578,6 +602,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/jvmDeclarations")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class JvmDeclarations {
     @Test
     public void testAllFilesPresentInJvmDeclarations() {
@@ -594,6 +619,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/module")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class Module {
     @Test
     public void testAllFilesPresentInModule() {
@@ -658,6 +684,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/name")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class Name {
     @Test
     public void testAllFilesPresentInName() {
@@ -905,6 +932,12 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
     }
 
     @Test
+    @TestMetadata("suspendFun.kt")
+    public void testSuspendFun() {
+      runTest("compiler/testData/diagnostics/testsWithJsStdLib/name/suspendFun.kt");
+    }
+
+    @Test
     @TestMetadata("topLevelDeclarations.kt")
     public void testTopLevelDeclarations() {
       runTest("compiler/testData/diagnostics/testsWithJsStdLib/name/topLevelDeclarations.kt");
@@ -926,6 +959,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/native")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class Native {
     @Test
     public void testAllFilesPresentInNative() {
@@ -1091,6 +1125,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
     @Nested
     @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/native/nativeGetter")
     @TestDataPath("$PROJECT_ROOT")
+    @Tag("legacy-frontend")
     public class NativeGetter {
       @Test
       public void testAllFilesPresentInNativeGetter() {
@@ -1155,6 +1190,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
     @Nested
     @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/native/nativeInvoke")
     @TestDataPath("$PROJECT_ROOT")
+    @Tag("legacy-frontend")
     public class NativeInvoke {
       @Test
       public void testAllFilesPresentInNativeInvoke() {
@@ -1219,6 +1255,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
     @Nested
     @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/native/nativeSetter")
     @TestDataPath("$PROJECT_ROOT")
+    @Tag("legacy-frontend")
     public class NativeSetter {
       @Test
       public void testAllFilesPresentInNativeSetter() {
@@ -1283,6 +1320,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
     @Nested
     @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/native/optionlBody")
     @TestDataPath("$PROJECT_ROOT")
+    @Tag("legacy-frontend")
     public class OptionlBody {
       @Test
       public void testAllFilesPresentInOptionlBody() {
@@ -1317,6 +1355,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
     @Nested
     @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/native/rtti")
     @TestDataPath("$PROJECT_ROOT")
+    @Tag("legacy-frontend")
     public class Rtti {
       @Test
       public void testAllFilesPresentInRtti() {
@@ -1357,6 +1396,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
     @Nested
     @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/native/unusedParam")
     @TestDataPath("$PROJECT_ROOT")
+    @Tag("legacy-frontend")
     public class UnusedParam {
       @Test
       public void testAllFilesPresentInUnusedParam() {
@@ -1392,6 +1432,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/qualifier")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class Qualifier {
     @Test
     public void testAllFilesPresentInQualifier() {
@@ -1414,6 +1455,7 @@ public class DiagnosticsWithJsStdLibTestGenerated extends AbstractDiagnosticsTes
   @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/reflection")
   @TestDataPath("$PROJECT_ROOT")
+  @Tag("legacy-frontend")
   public class Reflection {
     @Test
     public void testAllFilesPresentInReflection() {

@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.fir.declarations.utils.*
 import org.jetbrains.kotlin.fir.expressions.FirLiteralExpression
 import org.jetbrains.kotlin.fir.isEnumEntries
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
+import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertyAccessorSymbol
@@ -44,9 +45,9 @@ object FirJsExportDeclarationChecker : FirBasicDeclarationChecker(MppCheckerKind
                 return
             }
             for (upperBound in typeParameter.symbol.resolvedBounds) {
-                if (!upperBound.type.isExportable(context.session)) {
+                if (!upperBound.coneType.isExportable(context.session)) {
                     val source = upperBound.source ?: typeParameter.source ?: declaration.source
-                    reporter.reportOn(source, FirJsErrors.NON_EXPORTABLE_TYPE, "upper bound", upperBound.type, context)
+                    reporter.reportOn(source, FirJsErrors.NON_EXPORTABLE_TYPE, "upper bound", upperBound.coneType, context)
                 }
             }
         }
@@ -126,7 +127,7 @@ object FirJsExportDeclarationChecker : FirBasicDeclarationChecker(MppCheckerKind
                     return
                 }
 
-                val containingClass = declaration.getContainingClassSymbol(context.session) as? FirClassSymbol<*>
+                val containingClass = declaration.getContainingClassSymbol() as? FirClassSymbol<*>
                 val enumEntriesProperty = containingClass?.let(declaration::isEnumEntries) ?: false
                 val returnType = declaration.returnTypeRef.coneType
                 if (!enumEntriesProperty && !returnType.isExportable(context.session)) {
@@ -158,7 +159,7 @@ object FirJsExportDeclarationChecker : FirBasicDeclarationChecker(MppCheckerKind
                     ClassKind.ANNOTATION_CLASS -> "annotation class"
                     ClassKind.CLASS -> when {
                         context.isInsideInterface -> "nested class inside exported interface"
-                        declaration.isInline -> "value class"
+                        declaration.isInlineOrValue -> "value class"
                         else -> null
                     }
                     else -> if (context.isInsideInterface && !declaration.status.isCompanion) {
@@ -229,22 +230,25 @@ object FirJsExportDeclarationChecker : FirBasicDeclarationChecker(MppCheckerKind
             return true
         }
 
-        val isFunctionType = isBasicFunctionType(session)
-        val isExportableArgs = isExportableTypeArguments(session, currentlyProcessed, isFunctionType)
+        val expandedType = fullyExpandedType(session)
+
+        val isFunctionType = expandedType.isBasicFunctionType(session)
+        val isExportableArgs = expandedType.isExportableTypeArguments(session, currentlyProcessed, isFunctionType)
         currentlyProcessed.remove(this)
         if (isFunctionType || !isExportableArgs) {
             return isExportableArgs
         }
 
-        val nonNullable = withNullability(ConeNullability.NOT_NULL, session.typeContext)
+        val nonNullable = expandedType.withNullability(nullable = false, session.typeContext)
         val isPrimitiveExportableType = nonNullable.isAny || nonNullable.isNullableAny
                 || nonNullable is ConeDynamicType || nonNullable.isPrimitiveExportableConeKotlinType
-        val symbol = fullyExpandedType(session).toSymbol(session)
+
+        val symbol = expandedType.toSymbol(session)
 
         return when {
             isPrimitiveExportableType -> true
             symbol?.isMemberDeclaration != true -> false
-            isEnum -> true
+            expandedType.isEnum -> true
             else -> symbol.isEffectivelyExternal(session) || symbol.isExportedObject(session)
         }
     }

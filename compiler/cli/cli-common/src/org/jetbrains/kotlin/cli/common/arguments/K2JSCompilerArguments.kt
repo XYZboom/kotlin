@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -11,13 +11,20 @@ import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.config.AnalysisFlags.allowFullyQualifiedNameInKClass
 
-class K2JSCompilerArguments : CommonCompilerArguments() {
+// TODO remove inheritance from K2WasmCompilerArguments after or within extracting Wasm parts from JS CLI (KT-56850) 
+class K2JSCompilerArguments : K2WasmCompilerArguments() {
     companion object {
         @JvmStatic private val serialVersionUID = 0L
     }
 
+    // TODO: KT-70222 Remove this option in 2.2
     @Deprecated("It is senseless to use with IR compiler. Only for compatibility.")
-    @Argument(value = "-output", valueDescription = "<filepath>", description = "Destination *.js file for the compilation result.")
+    @Argument(
+        value = "-output",
+        valueDescription = "<filepath>",
+        description = """This option does nothing and is left for compatibility with the legacy backend.
+It is deprecated and will be removed in Kotlin 2.2."""
+    )
     var outputFile: String? = null
         set(value) {
             checkFrozen()
@@ -44,16 +51,21 @@ class K2JSCompilerArguments : CommonCompilerArguments() {
         }
 
     @GradleOption(
-        value = DefaultValue.BOOLEAN_TRUE_DEFAULT,
+        value = DefaultValue.BOOLEAN_FALSE_DEFAULT,
         gradleInputType = GradleInputTypes.INPUT,
         shouldGenerateDeprecatedKotlinOptions = true,
     )
     @GradleDeprecatedOption(
         message = "Only for legacy backend.",
-        level = DeprecationLevel.WARNING, // TODO: KT-65990 switch to ERROR in 2.1
-        removeAfter = LanguageVersion.KOTLIN_2_1,
+        level = DeprecationLevel.ERROR, // TODO: KT-70222 Remove completely in 2.2
+        removeAfter = LanguageVersion.KOTLIN_2_2,
     )
-    @Argument(value = "-no-stdlib", description = "Don't automatically include the default Kotlin/JS stdlib in compilation dependencies.")
+    @Deprecated("It is senseless to use with IR compiler. Only for compatibility.")
+    @Argument(
+        value = "-no-stdlib",
+        description = """This option does nothing and is left for compatibility with the legacy backend.
+It is deprecated and will be removed in Kotlin 2.2."""
+    )
     var noStdlib = false
         set(value) {
             checkFrozen()
@@ -135,7 +147,7 @@ class K2JSCompilerArguments : CommonCompilerArguments() {
     @Argument(
         value = "-source-map-names-policy",
         valueDescription = "{no|simple-names|fully-qualified-names}",
-        description = "Mode for mapping generated names to original names (IR backend only)."
+        description = "Mode for mapping generated names to original names."
     )
     var sourceMapNamesPolicy: String? = null
         set(value) {
@@ -144,17 +156,21 @@ class K2JSCompilerArguments : CommonCompilerArguments() {
         }
 
     @GradleOption(
-        value = DefaultValue.BOOLEAN_TRUE_DEFAULT,
+        value = DefaultValue.BOOLEAN_FALSE_DEFAULT,
         gradleInputType = GradleInputTypes.INPUT,
         shouldGenerateDeprecatedKotlinOptions = true,
     )
     @GradleDeprecatedOption(
         message = "Only for legacy backend.",
-        level = DeprecationLevel.WARNING, // TODO: KT-65990 switch to ERROR in 2.1
-        removeAfter = LanguageVersion.KOTLIN_2_1,
+        level = DeprecationLevel.ERROR, // TODO: KT-70222 Remove completely in 2.2
+        removeAfter = LanguageVersion.KOTLIN_2_2,
     )
     @Deprecated("It is senseless to use with IR compiler. Only for compatibility.")
-    @Argument(value = "-meta-info", description = "Generate .meta.js and .kjsm files with metadata. Use this to create a library.")
+    @Argument(
+        value = "-meta-info",
+        description = """This option does nothing and is left for compatibility with the legacy backend.
+It is deprecated and will be removed in Kotlin 2.2."""
+    )
     var metaInfo = false
         set(value) {
             checkFrozen()
@@ -220,8 +236,7 @@ class K2JSCompilerArguments : CommonCompilerArguments() {
 
     @Argument(
         value = "-Xir-produce-klib-dir",
-        description = """Generate an unpacked klib into the parent directory of the output JS file.
-In combination with '-meta-info', this generates both IR and pre-IR versions of the library."""
+        description = "Generate an unpacked klib into the parent directory of the output JS file."
     )
     var irProduceKlibDir = false
         set(value) {
@@ -231,7 +246,7 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
 
     @Argument(
         value = "-Xir-produce-klib-file",
-        description = "Generate a packed klib into the file specified by '-output'. This disables the pre-IR backend."
+        description = "Generate a packed klib into the directory specified by '-ir-output-dir'."
     )
     var irProduceKlibFile = false
         set(value) {
@@ -239,7 +254,7 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
             field = value
         }
 
-    @Argument(value = "-Xir-produce-js", description = "Generate a JS file using the IR backend. This option also disables the pre-IR backend.")
+    @Argument(value = "-Xir-produce-js", description = "Generate a JS file using the IR backend.")
     var irProduceJs = false
         set(value) {
             checkFrozen()
@@ -274,34 +289,6 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
             field = value
         }
 
-    @Argument(
-        value = "-Xir-dce-dump-reachability-info-to-file",
-        valueDescription = "<path>",
-        description = "Dump reachability information collected about declarations while performing DCE to a file. " +
-                "The format will be chosen automatically based on the file extension. " +
-                "Supported output formats include JSON for .json, a JS const initialized with a plain object containing information for .js, " +
-                "and plain text for all other file types."
-    )
-    var irDceDumpReachabilityInfoToFile: String? = null
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(
-        value = "-Xir-dump-declaration-ir-sizes-to-file",
-        valueDescription = "<path>",
-        description = "Dump the IR size of each declaration into a file. " +
-                "The format will be chosen automatically depending on the file extension. " +
-                "Supported output formats include JSON for .json, a JS const initialized with a plain object containing information for .js, " +
-                "and plain text for all other file types."
-    )
-    var irDceDumpDeclarationIrSizesToFile: String? = null
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
     @Argument(value = "-Xir-property-lazy-initialization", description = "Perform lazy initialization for properties.")
     var irPropertyLazyInitialization = true
         set(value) {
@@ -316,13 +303,6 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
             field = value
         }
 
-    @Argument(value = "-Xir-only", description = "Disable the pre-IR backend.")
-    var irOnly = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
     @Argument(
         value = "-Xir-module-name",
         valueDescription = "<name>",
@@ -332,13 +312,6 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
         set(value) {
             checkFrozen()
             field = if (value.isNullOrEmpty()) null else value
-        }
-
-    @Argument(value = "-Xir-base-class-in-metadata", description = "Write base classes into metadata.")
-    var irBaseClassInMetadata = false
-        set(value) {
-            checkFrozen()
-            field = value
         }
 
     @Argument(
@@ -378,13 +351,6 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
 
     @Argument(value = "-Xir-per-file", description = "Generate one .js file per source file.")
     var irPerFile = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(value = "-Xir-new-ir2js", description = "New fragment-based 'ir2js'.")
-    var irNewIr2Js = true
         set(value) {
             checkFrozen()
             field = value
@@ -431,7 +397,7 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
 
     @Argument(
         value = "-Xgenerate-dts",
-        description = "Generate a TypeScript declaration .d.ts file alongside the JS file. This is available only in the IR backend."
+        description = "Generate a TypeScript declaration .d.ts file alongside the JS file."
     )
     var generateDts = false
         set(value) {
@@ -451,7 +417,7 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
 
     @Argument(
         value = "-Xstrict-implicit-export-types",
-        description = "Generate strict types for implicitly exported entities inside d.ts files. This is available in the IR backend only."
+        description = "Generate strict types for implicitly exported entities inside d.ts files."
     )
     var strictImplicitExportType = false
         set(value) {
@@ -494,13 +460,34 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
             field = value
         }
 
+    @Argument(
+        value = "-Xes-arrow-functions",
+        description = "Use ES2015 arrow functions in the JavaScript code generated for Kotlin lambdas. " +
+                "Enabled by default in case of ES2015 target usage"
+    )
+    var useEsArrowFunctions: Boolean? = null
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Deprecated("It is senseless to use with IR compiler. Only for compatibility.")
     @GradleOption(
-        value = DefaultValue.BOOLEAN_TRUE_DEFAULT,
+        value = DefaultValue.BOOLEAN_FALSE_DEFAULT,
         gradleInputType = GradleInputTypes.INPUT,
         shouldGenerateDeprecatedKotlinOptions = true,
     )
-    @Argument(value = "-Xtyped-arrays", description = "Translate primitive arrays into JS typed arrays.")
-    var typedArrays = true
+    @GradleDeprecatedOption(
+        message = "Only for legacy backend.",
+        level = DeprecationLevel.WARNING, // TODO: KT-70222 Replace with ERROR in 2.2, remove completely in 2.3
+        removeAfter = LanguageVersion.KOTLIN_2_2,
+    )
+    @Argument(
+        value = "-Xtyped-arrays",
+        description = """This option does nothing and is left for compatibility with the legacy backend.
+It is deprecated and will be removed in a future release."""
+    )
+    var typedArrays = false
         set(value) {
             checkFrozen()
             field = value
@@ -539,111 +526,13 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
             field = value
         }
 
-    @Argument(value = "-Xenable-js-scripting", description = "Enable experimental support for .kts files using K/JS (with '-Xir' only).")
-    var enableJsScripting = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
     @Argument(value = "-Xfake-override-validator", description = "Enable the IR fake override validator.")
     var fakeOverrideValidator = false
         set(value) {
             checkFrozen()
             field = value
         }
-
-    @Argument(value = "-Xerror-tolerance-policy", description = "Set up an error tolerance policy (NONE, SEMANTIC, SYNTAX, ALL). " +
-            "Deprecated, will be removed in next compiler version.")
-    var errorTolerancePolicy: String? = null
-        set(value) {
-            checkFrozen()
-            field = if (value.isNullOrEmpty()) null else value
-        }
-
-    @Argument(value = "-Xpartial-linkage", valueDescription = "{enable|disable}", description = "Use partial linkage mode.")
-    var partialLinkageMode: String? = null
-        set(value) {
-            checkFrozen()
-            field = if (value.isNullOrEmpty()) null else value
-        }
-
-    @Argument(value = "-Xpartial-linkage-loglevel", valueDescription = "{info|warning|error}", description = "Define the compile-time log level for partial linkage.")
-    var partialLinkageLogLevel: String? = null
-        set(value) {
-            checkFrozen()
-            field = if (value.isNullOrEmpty()) null else value
-        }
-
-    @Argument(value = "-Xwasm", description = "Use the experimental WebAssembly compiler backend.")
-    var wasm = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(value = "-Xwasm-debug-info", description = "Add debug info to the compiled WebAssembly module.")
-    var wasmDebug = true
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(value = "-Xwasm-kclass-fqn", description = "Enable support for 'KClass.qualifiedName'.")
-    var wasmKClassFqn = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(value = "-Xwasm-enable-array-range-checks", description = "Turn on range checks for array access functions.")
-    var wasmEnableArrayRangeChecks = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(value = "-Xwasm-enable-asserts", description = "Turn on asserts.")
-    var wasmEnableAsserts = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(value = "-Xwasm-generate-wat", description = "Generate a .wat file.")
-    var wasmGenerateWat = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(value = "-Xwasm-target", description = "Set up the Wasm target (wasm-js or wasm-wasi).")
-    var wasmTarget: String? = null
-        set(value) {
-            checkFrozen()
-            field = if (value.isNullOrEmpty()) null else value
-        }
-
-    @Argument(
-        value = "-Xwasm-use-traps-instead-of-exceptions",
-        description = "Use traps instead of throwing exceptions."
-    )
-    var wasmUseTrapsInsteadOfExceptions = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(
-        value = "-Xwasm-use-new-exception-proposal",
-        description = "Use an updated version of the exception proposal with try_table."
-    )
-    var wasmUseNewExceptionProposal = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
+    
     @Argument(
         value = "-Xoptimize-generated-js",
         description = "Perform additional optimizations on the generated JS code."
@@ -661,13 +550,6 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
     }
 
     override fun configureAnalysisFlags(collector: MessageCollector, languageVersion: LanguageVersion): MutableMap<AnalysisFlag<*>, Any> {
-        // TODO: 'enableJsScripting' is used in intellij tests
-        //   Drop it after removing the usage from the intellij repository:
-        //   https://github.com/JetBrains/intellij-community/blob/master/plugins/kotlin/gradle/gradle-java/tests/test/org/jetbrains/kotlin/gradle/CompilerArgumentsCachingTest.kt#L329
-        collector.deprecationWarn(enableJsScripting, false, "-Xenable-js-scripting")
-        collector.deprecationWarn(irBaseClassInMetadata, false, "-Xir-base-class-in-metadata")
-        collector.deprecationWarn(irNewIr2Js, true, "-Xir-new-ir2js")
-
         if (irPerFile && (moduleKind != MODULE_ES && target != ES_2015)) {
             collector.report(
                 CompilerMessageSeverity.ERROR,
@@ -681,14 +563,12 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
     }
 
     override fun checkIrSupport(languageVersionSettings: LanguageVersionSettings, collector: MessageCollector) {
-        if (!isIrBackendEnabled()) return
-
         if (languageVersionSettings.languageVersion < LanguageVersion.KOTLIN_1_4
             || languageVersionSettings.apiVersion < ApiVersion.KOTLIN_1_4
         ) {
             collector.report(
                 CompilerMessageSeverity.ERROR,
-                "IR backend cannot be used with language or API version below 1.4"
+                "JS backend cannot be used with language or API version below 1.4"
             )
         }
     }
@@ -698,12 +578,7 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
             if (extensionFunctionsInExternals) {
                 this[LanguageFeature.JsEnableExtensionFunctionInExternals] = LanguageFeature.State.ENABLED
             }
-            if (!isIrBackendEnabled()) {
-                this[LanguageFeature.JsAllowInvalidCharsIdentifiersEscaping] = LanguageFeature.State.DISABLED
-            }
-            if (isIrBackendEnabled()) {
-                this[LanguageFeature.JsAllowValueClassesInExternals] = LanguageFeature.State.ENABLED
-            }
+            this[LanguageFeature.JsAllowValueClassesInExternals] = LanguageFeature.State.ENABLED
             if (wasm) {
                 this[LanguageFeature.JsAllowImplementingFunctionInterface] = LanguageFeature.State.ENABLED
             }
@@ -712,6 +587,3 @@ In combination with '-meta-info', this generates both IR and pre-IR versions of 
 
     override fun copyOf(): Freezable = copyK2JSCompilerArguments(this, K2JSCompilerArguments())
 }
-
-fun K2JSCompilerArguments.isIrBackendEnabled(): Boolean =
-    irProduceKlibDir || irProduceJs || irProduceKlibFile || wasm || irBuildCache || useK2

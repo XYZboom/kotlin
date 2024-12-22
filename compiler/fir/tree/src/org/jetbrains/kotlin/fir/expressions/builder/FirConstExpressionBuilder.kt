@@ -22,8 +22,9 @@ fun buildLiteralExpression(
     value: Any?,
     annotations: MutableList<FirAnnotation>? = null,
     setType: Boolean,
+    prefix: String? = null,
 ): FirLiteralExpression {
-    return FirLiteralExpressionImpl(source, null, annotations.toMutableOrEmpty(), kind, value).also {
+    return FirLiteralExpressionImpl(source, null, annotations.toMutableOrEmpty(), kind, value, prefix).also {
         if (setType) {
             when (kind) {
                 ConstantValueKind.Boolean -> it.coneTypeOrNull = StandardClassIds.Boolean.constructClassLikeType()
@@ -33,7 +34,7 @@ fun buildLiteralExpression(
                 ConstantValueKind.Float -> it.coneTypeOrNull = StandardClassIds.Float.constructClassLikeType()
                 ConstantValueKind.Int -> it.coneTypeOrNull = StandardClassIds.Int.constructClassLikeType()
                 ConstantValueKind.Long -> it.coneTypeOrNull = StandardClassIds.Long.constructClassLikeType()
-                ConstantValueKind.Null -> it.coneTypeOrNull = StandardClassIds.Any.constructClassLikeType(isNullable = true)
+                ConstantValueKind.Null -> it.coneTypeOrNull = StandardClassIds.Any.constructClassLikeType(isMarkedNullable = true)
                 ConstantValueKind.Short -> it.coneTypeOrNull = StandardClassIds.Short.constructClassLikeType()
                 ConstantValueKind.String -> it.coneTypeOrNull = StandardClassIds.String.constructClassLikeType()
                 ConstantValueKind.UnsignedByte -> it.coneTypeOrNull = StandardClassIds.UByte.constructClassLikeType()

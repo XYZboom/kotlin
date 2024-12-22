@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
+import org.jetbrains.kotlin.ir.backend.js.JsCommonBackendContext
 import org.jetbrains.kotlin.ir.backend.js.lower.CallableReferenceLowering
 import org.jetbrains.kotlin.ir.builders.*
 import org.jetbrains.kotlin.ir.builders.declarations.buildClass
@@ -34,15 +35,12 @@ import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.utils.atMostOne
 import org.jetbrains.kotlin.utils.memoryOptimizedMap
-import org.jetbrains.kotlin.utils.memoryOptimizedMapIndexed
 import org.jetbrains.kotlin.utils.memoryOptimizedPlus
 
-abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val context: C) : BodyLoweringPass {
-
-    private var IrFunction.coroutineConstructor by context.mapping.suspendFunctionToCoroutineConstructor
-
+abstract class AbstractSuspendFunctionsLowering<C : JsCommonBackendContext>(val context: C) : BodyLoweringPass {
     companion object {
         val DECLARATION_ORIGIN_COROUTINE_IMPL = IrDeclarationOriginImpl("COROUTINE_IMPL")
+        val DECLARATION_ORIGIN_COROUTINE_IMPL_INVOKE by IrDeclarationOriginImpl
     }
 
     protected abstract val stateMachineMethodName: Name
@@ -135,7 +133,7 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
             val functionBody = body as IrBlockBody
             functionBody.statements.clear()
             functionBody.statements.addAll(irBuilder.irBlockBody {
-                generateCoroutineStart(coroutine.stateMachineFunction, createCoroutineInstance(this@with, explicitParameters, coroutine))
+                generateCoroutineStart(coroutine.stateMachineFunction, createCoroutineInstance(this@with, parameters, coroutine))
             }.statements)
         }
 
@@ -147,7 +145,7 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
         private val endOffset = function.endOffset
         private val isSuspendLambda = function.isOperator && function.name.asString() == "invoke" && function.parentClassOrNull
             ?.let { it.origin === CallableReferenceLowering.Companion.LAMBDA_IMPL } == true
-        private val functionParameters = if (isSuspendLambda) function.valueParameters else function.explicitParameters
+        private val functionParameters = if (isSuspendLambda) function.valueParameters else function.parameters
 
         private val coroutineClass: IrClass = getCoroutineClass(function)
 
@@ -177,7 +175,7 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
                 visibility = function.visibility
             }.apply {
                 parent = function.parent
-                createParameterDeclarations()
+                createThisReceiverParameter()
                 typeParameters = function.typeParameters.memoryOptimizedMap { typeParam ->
                     // TODO: remap types
                     typeParam.copyToWithoutSuperTypes(this).apply { superTypes = superTypes memoryOptimizedPlus typeParam.superTypes }
@@ -204,13 +202,12 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
                 parent = coroutineClass
                 coroutineClass.addChild(this)
 
-                valueParameters = functionParameters.memoryOptimizedMapIndexed { index, parameter ->
-                    parameter.copyTo(this, DECLARATION_ORIGIN_COROUTINE_IMPL, index, defaultValue = null)
+                valueParameters = functionParameters.memoryOptimizedMap { parameter ->
+                    parameter.copyTo(this, DECLARATION_ORIGIN_COROUTINE_IMPL, defaultValue = null)
                 }
                 val continuationParameter = coroutineBaseClassConstructor.valueParameters[0]
                 valueParameters = valueParameters memoryOptimizedPlus continuationParameter.copyTo(
                     this, DECLARATION_ORIGIN_COROUTINE_IMPL,
-                    index = valueParameters.size,
                     startOffset = function.startOffset,
                     endOffset = function.endOffset,
                     type = continuationType,
@@ -240,7 +237,7 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
             val smFunction = context.irFactory.buildFun {
                 startOffset = function.startOffset
                 endOffset = function.endOffset
-                origin = DECLARATION_ORIGIN_COROUTINE_IMPL
+                origin = DECLARATION_ORIGIN_COROUTINE_IMPL_INVOKE
                 name = stateMachineFunction.name
                 visibility = stateMachineFunction.visibility
                 modality = Modality.FINAL
@@ -261,11 +258,12 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
                         .apply { superTypes = superTypes memoryOptimizedPlus parameter.superTypes }
                 }
 
-                valueParameters = stateMachineFunction.valueParameters.memoryOptimizedMapIndexed { index, parameter ->
-                    parameter.copyTo(this, DECLARATION_ORIGIN_COROUTINE_IMPL, index)
-                }
+                parameters += createDispatchReceiverParameterWithClassParent()
 
-                this.createDispatchReceiverParameter()
+                parameters += stateMachineFunction.nonDispatchParameters
+                    .memoryOptimizedMap { parameter ->
+                        parameter.copyTo(this, DECLARATION_ORIGIN_COROUTINE_IMPL)
+                    }
 
                 overriddenSymbols = listOf(stateMachineFunction.symbol)
             }
@@ -298,13 +296,13 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
 
                 val unboundArgs = function.valueParameters
 
-                val createValueParameters = (unboundArgs + create1CompletionParameter).memoryOptimizedMapIndexed { index, parameter ->
-                    parameter.copyTo(this, DECLARATION_ORIGIN_COROUTINE_IMPL, index)
+                val createValueParameters = (unboundArgs + create1CompletionParameter).memoryOptimizedMap { parameter ->
+                    parameter.copyTo(this, DECLARATION_ORIGIN_COROUTINE_IMPL)
                 }
 
-                valueParameters = createValueParameters
+                this.parameters += this.createDispatchReceiverParameterWithClassParent()
 
-                this.createDispatchReceiverParameter()
+                this.parameters += createValueParameters
 
                 superCreateFunction?.let {
                     overriddenSymbols = ArrayList<IrSimpleFunctionSymbol>(it.overriddenSymbols.size + 1).apply {
@@ -315,12 +313,11 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
 
                 val thisReceiver = this.dispatchReceiverParameter!!
 
-                val boundFields =
-                    context.mapping.capturedFields[coroutineClass]
-                        ?: compilationException(
-                            "No captured values",
-                            coroutineClass
-                        )
+                val boundFields = coroutineClass.capturedFields
+                    ?: compilationException(
+                        "No captured values",
+                        coroutineClass
+                    )
 
                 val irBuilder = context.createIrBuilder(symbol, startOffset, endOffset)
                 body = irBuilder.irBlockBody(startOffset, endOffset) {
@@ -546,6 +543,10 @@ fun getSuspendFunctionKind(
             else
                 null
         is IrReturn -> {
+            fun IrTypeOperatorCall.isImplicitCast(): Boolean {
+                return this.operator == IrTypeOperator.IMPLICIT_CAST || this.operator == IrTypeOperator.IMPLICIT_COERCION_TO_UNIT
+            }
+
             var value: IrElement = lastStatement
             /*
              * Check if matches this pattern:
@@ -559,6 +560,7 @@ fun getSuspendFunctionKind(
                 value = when {
                     value is IrBlock && value.statements.size == 1 -> value.statements.first()
                     value is IrReturn -> value.value
+                    value is IrTypeOperatorCall && value.isImplicitCast() -> value.argument
                     else -> break@loop
                 }
             }
@@ -577,6 +579,6 @@ fun getSuspendFunctionKind(
 
 // Suppress since it is used in native
 @Suppress("MemberVisibilityCanBePrivate")
-fun IrCall.isReturnIfSuspendedCall(context: CommonBackendContext) =
-    symbol.owner.run { fqNameWhenAvailable == context.internalPackageFqn.child(Name.identifier("returnIfSuspended")) }
+fun IrCall.isReturnIfSuspendedCall(context: JsCommonBackendContext) =
+    symbol == context.ir.symbols.returnIfSuspended
 

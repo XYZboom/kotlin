@@ -7,9 +7,10 @@ package org.jetbrains.kotlin.analysis.api.descriptors
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import org.jetbrains.kotlin.analysis.api.lifetime.KtLifetimeToken
-import org.jetbrains.kotlin.analysis.api.symbols.KtSymbolOrigin
-import org.jetbrains.kotlin.analysis.project.structure.KtModule
+import org.jetbrains.kotlin.analysis.api.KaPlatformInterface
+import org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeToken
+import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolOrigin
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.psi.KtElement
@@ -22,6 +23,7 @@ import org.jetbrains.kotlin.resolve.deprecation.DeprecationResolver
 import org.jetbrains.kotlin.resolve.lazy.ResolveSession
 import org.jetbrains.kotlin.types.checker.KotlinTypeRefiner
 
+@KaPlatformInterface
 interface Fe10AnalysisFacade {
     companion object {
         fun getInstance(project: Project): Fe10AnalysisFacade {
@@ -29,9 +31,9 @@ interface Fe10AnalysisFacade {
         }
     }
 
-    fun getAnalysisContext(element: KtElement, token: KtLifetimeToken): Fe10AnalysisContext
+    fun getAnalysisContext(element: KtElement, token: KaLifetimeToken): Fe10AnalysisContext
 
-    fun getAnalysisContext(ktModule: KtModule, token: KtLifetimeToken): Fe10AnalysisContext
+    fun getAnalysisContext(ktModule: KaModule, token: KaLifetimeToken): Fe10AnalysisContext
 
     fun analyze(elements: List<KtElement>, mode: AnalysisMode = AnalysisMode.FULL): BindingContext
 
@@ -39,7 +41,7 @@ interface Fe10AnalysisFacade {
         return analyze(listOf(element), mode)
     }
 
-    fun getOrigin(file: VirtualFile): KtSymbolOrigin
+    fun getOrigin(file: VirtualFile): KaSymbolOrigin
 
     enum class AnalysisMode {
         ALL_COMPILER_CHECKS,
@@ -49,6 +51,7 @@ interface Fe10AnalysisFacade {
     }
 }
 
+@KaPlatformInterface
 class Fe10AnalysisContext(
     facade: Fe10AnalysisFacade,
     val resolveSession: ResolveSession,
@@ -57,7 +60,7 @@ class Fe10AnalysisContext(
     val kotlinToResolvedCallTransformer: KotlinToResolvedCallTransformer,
     val overloadingConflictResolver: OverloadingConflictResolver<ResolvedCall<*>>,
     val kotlinTypeRefiner: KotlinTypeRefiner,
-    val token: KtLifetimeToken,
+    val token: KaLifetimeToken,
 ) : Fe10AnalysisFacade by facade {
     val builtIns: KotlinBuiltIns
         get() = resolveSession.moduleDescriptor.builtIns

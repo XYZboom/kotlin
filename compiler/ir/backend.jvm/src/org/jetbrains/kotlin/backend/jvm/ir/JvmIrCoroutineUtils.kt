@@ -21,7 +21,7 @@ import org.jetbrains.kotlin.ir.util.parentAsClass
 
 fun IrFunction.continuationParameter(): IrValueParameter? = when {
     isInvokeSuspendOfLambda() || isInvokeSuspendForInlineOfLambda() -> dispatchReceiverParameter
-    else -> valueParameters.singleOrNull { it.origin == JvmLoweredDeclarationOrigin.CONTINUATION_CLASS }
+    else -> parameters.singleOrNull { it.origin == JvmLoweredDeclarationOrigin.CONTINUATION_CLASS }
 }
 
 fun IrFunction.isInvokeSuspendOfLambda(): Boolean =
@@ -95,7 +95,7 @@ fun IrFunction.hasContinuation(): Boolean = isInvokeSuspendOfLambda() ||
         isSuspend && shouldContainSuspendMarkers() &&
         // These are templates for the inliner; the continuation is borrowed from the caller method.
         !isEffectivelyInlineOnly() &&
-        origin != JvmLoweredDeclarationOrigin.INLINE_LAMBDA &&
+        origin != IrDeclarationOrigin.INLINE_LAMBDA &&
         origin != JvmLoweredDeclarationOrigin.FOR_INLINE_STATE_MACHINE_TEMPLATE &&
         origin != JvmLoweredDeclarationOrigin.FOR_INLINE_STATE_MACHINE_TEMPLATE_CAPTURES_CROSSINLINE
 

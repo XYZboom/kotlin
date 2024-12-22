@@ -17,11 +17,15 @@ import org.jetbrains.kotlin.konan.test.blackbox.support.compilation.LibraryCompi
 import org.jetbrains.kotlin.konan.test.blackbox.support.compilation.ObjCFrameworkCompilation
 import org.jetbrains.kotlin.konan.test.blackbox.support.compilation.TestCompilationResult.Companion.assertSuccess
 import org.jetbrains.kotlin.konan.test.blackbox.support.group.FirPipeline
+import org.jetbrains.kotlin.konan.test.blackbox.support.runner.TestRunChecks
 import org.jetbrains.kotlin.konan.test.blackbox.support.settings.CacheMode
 import org.jetbrains.kotlin.konan.test.blackbox.support.settings.PipelineType
 import org.jetbrains.kotlin.konan.test.blackbox.support.settings.Settings
+import org.jetbrains.kotlin.konan.test.blackbox.support.settings.Timeouts
+import org.jetbrains.kotlin.konan.test.blackbox.support.util.DEFAULT_MODULE_NAME
 import org.jetbrains.kotlin.test.KotlinTestUtils
 import org.junit.jupiter.api.Assumptions
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.io.File
@@ -30,9 +34,7 @@ import kotlin.test.assertIs
 abstract class CompilerOutputTestBase : AbstractNativeSimpleTest() {
     @Test
     fun testReleaseCompilerAgainstPreReleaseLibrary() {
-        // We intentionally use JS testdata, because the compilers should behave the same way in such a test.
-        // To be refactored later, after CompileKotlinAgainstCustomBinariesTest.testReleaseCompilerAgainstPreReleaseLibraryJs is fixed.
-        val rootDir = File("compiler/testData/compileKotlinAgainstCustomBinaries/releaseCompilerAgainstPreReleaseLibraryJs")
+        val rootDir = File("native/native.tests/testData/compilerOutput/releaseCompilerAgainstPreReleaseLibrary")
 
         doTestPreReleaseKotlinLibrary(rootDir, emptyList())
     }
@@ -174,6 +176,91 @@ abstract class CompilerOutputTestBase : AbstractNativeSimpleTest() {
             expectedArtifact
         ).result
     }
+
+    private val testClashingBindClassToObjCNameRootDir = File("native/native.tests/testData/compilerOutput/clashingBindClassToObjCName")
+
+    private fun doTestClashingBindClassToObjCName(
+        name: String,
+        modules: Set<TestModule.Exclusive>,
+    ) {
+        Assumptions.assumeTrue(targets.hostTarget.family.isAppleFamily)
+        // https://youtrack.jetbrains.com/issue/KT-71097/Kotlin-Native-add-a-flag-to-catch-duplicating-symbols-in-caches
+        Assumptions.assumeFalse(testRunSettings.get<CacheMode>().useStaticCacheForUserLibraries)
+
+        val testCase = TestCase(
+            id = TestCaseId.Named(name),
+            kind = TestKind.STANDALONE_NO_TR,
+            modules = modules,
+            freeCompilerArgs = TestCompilerArgs("-opt-in=kotlin.native.internal.InternalForKotlinNative"),
+            nominalPackageName = PackageName("clashingBindClassToObjCName"),
+            checks = TestRunChecks.Default(testRunSettings.get<Timeouts>().executionTimeout),
+            extras = TestCase.NoTestRunnerExtras(),
+        ).apply {
+            initialize(null, null)
+        }
+
+        // The order of errors is not be defined.
+        val output = TestCompilationFactory().testCasesToExecutable(listOf(testCase), testRunSettings).result.toOutput()
+            .replace("file\\d+\\.kt".toRegex(), "file*.kt")
+            .replace("MyClassObjC\\d+".toRegex(), "MyClassObjC*")
+        val goldenData = testClashingBindClassToObjCNameRootDir.resolve("${name}.output.txt")
+
+        KotlinTestUtils.assertEqualsToFile(goldenData, output)
+    }
+
+    @Test
+    fun testClashingBindClassToObjCName_privateClass() = doTestClashingBindClassToObjCName("privateClass", buildSet {
+        val module = TestModule.newDefaultModule()
+        module.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("privateClass.kt"), module)
+        add(module)
+    })
+
+    @Test
+    fun testClashingBindClassToObjCName_singleLib() = doTestClashingBindClassToObjCName("singleLib", buildSet {
+        val module = TestModule.newDefaultModule()
+        module.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("class.kt"), module)
+        module.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("file1.kt"), module)
+        module.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("file2.kt"), module)
+        module.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("main.kt"), module)
+        add(module)
+    })
+
+    @Test
+    fun testClashingBindClassToObjCName_singleFile() = doTestClashingBindClassToObjCName("singleFile", buildSet {
+        val module = TestModule.newDefaultModule()
+        module.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("class.kt"), module)
+        module.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("file3.kt"), module)
+        module.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("main.kt"), module)
+        add(module)
+    })
+
+    @Test
+    fun testClashingBindClassToObjCName_classAndMain() = doTestClashingBindClassToObjCName("classAndMain", buildSet {
+        val module1 = TestModule.Exclusive("classAndMain_1", emptySet(), emptySet(), emptySet())
+        module1.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("class.kt"), module1)
+        module1.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("file1.kt"), module1)
+        add(module1)
+        val module2 = TestModule.Exclusive("classAndMain_2", setOf(module1.name), emptySet(), emptySet())
+        module2.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("file2.kt"), module2)
+        module2.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("main.kt"), module2)
+        add(module2)
+    })
+
+    @Test
+    fun testClashingBindClassToObjCName_separateLibs() = doTestClashingBindClassToObjCName("separateLibs", buildSet {
+        val module1 = TestModule.Exclusive("separateLibs_1", emptySet(), emptySet(), emptySet())
+        module1.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("class.kt"), module1)
+        add(module1)
+        val module2 = TestModule.Exclusive("separateLibs_2", setOf(module1.name), emptySet(), emptySet())
+        module2.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("file1.kt"), module2)
+        add(module2)
+        val module3 = TestModule.Exclusive("separateLibs_3", setOf(module1.name), emptySet(), emptySet())
+        module3.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("file2.kt"), module3)
+        add(module3)
+        val module4 = TestModule.Exclusive("separateLibs_4", setOf(module1.name, module2.name, module3.name), emptySet(), emptySet())
+        module4.files += TestFile.createCommitted(testClashingBindClassToObjCNameRootDir.resolve("main.kt"), module4)
+        add(module4)
+    })
 }
 
 @Suppress("JUnitTestCaseWithNoTests")
@@ -191,16 +278,12 @@ class FirCompilerOutputTest : CompilerOutputTestBase()
 internal fun TestCompilationResult<*>.toOutput(): String {
     check(this is TestCompilationResult.ImmediateResult<*>) { this }
     val loggedData = this.loggedData
-
-    // Debug output for KT-64822 investigation
-    println("Compiler logged data:\n$loggedData")
-
     check(loggedData is LoggedData.CompilationToolCall) { loggedData::class }
     return normalizeOutput(loggedData.toolOutput, loggedData.exitCode)
 }
 
 private fun normalizeOutput(output: String, exitCode: ExitCode): String {
-    val dir = "compiler/testData/compileKotlinAgainstCustomBinaries/"
+    val dir = "native/native.tests/testData/compilerOutput/"
     return AbstractCliTest.getNormalizedCompilerOutput(
         output,
         exitCode,

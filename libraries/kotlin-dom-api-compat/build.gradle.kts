@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinUsages
+import org.jetbrains.kotlin.gradle.targets.js.KotlinJsCompilerAttribute
 import plugins.configureDefaultPublishing
 import plugins.configureKotlinPomAttributes
 
@@ -7,6 +10,32 @@ plugins {
 }
 
 val jsStdlibSources = "${projectDir}/../stdlib/js/src"
+
+val kotlinStdlibJs by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+    attributes {
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(KotlinUsages.KOTLIN_API))
+        attribute(KotlinPlatformType.attribute, KotlinPlatformType.js)
+        attribute(KotlinJsCompilerAttribute.jsCompilerAttribute, KotlinJsCompilerAttribute.ir)
+        // the workaround below for KT-65266 expects a packed artifact
+        val klibPackagingAttribute = Attribute.of("org.jetbrains.kotlin.klib.packaging", String::class.java)
+        attribute(klibPackagingAttribute, "packed")
+    }
+}
+
+dependencies {
+    kotlinStdlibJs(kotlinStdlib())
+}
+
+// Workaround for #KT-65266
+val prepareFriendStdlibJs = tasks.register<Zip>("prepareFriendStdlibJs") {
+    dependsOn(kotlinStdlibJs)
+    from { zipTree(kotlinStdlibJs.singleFile).matching { exclude("META-INF/MANIFEST.MF") } }
+    destinationDirectory = layout.buildDirectory.map { it.dir("libs") }
+    archiveFileName = "friend-kotlin-stdlib-js.klib"
+}
 
 @Suppress("UNUSED_VARIABLE")
 kotlin {
@@ -39,7 +68,9 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile>().configureEa
     if (renderDiagnosticNames) {
         compilerOptions.freeCompilerArgs.add("-Xrender-internal-diagnostic-names")
     }
-    friendPaths.from(libraries)
+    dependsOn(prepareFriendStdlibJs)
+    libraries.setFrom(prepareFriendStdlibJs)
+    friendPaths.setFrom(libraries)
     compilerOptions.allWarningsAsErrors.set(true)
 }
 

@@ -261,7 +261,7 @@ internal class GradleKotlinCompilerWork @Inject constructor(
                     daemon.releaseCompileSession(sessionId)
                 }
             } catch (e: RemoteException) {
-                log.warn("Unable to release compile session, maybe daemon is already down: $e")
+                log.warn("Unable to release compile session, maybe daemon is already down", e)
             }
         }
         log.logFinish(KotlinCompilerExecutionStrategy.DAEMON)
@@ -300,12 +300,9 @@ internal class GradleKotlinCompilerWork @Inject constructor(
         bufferingMessageCollector: GradleBufferingMessageCollector
     ): CompileService.CallResult<Int> {
         val icEnv = config.incrementalCompilationEnvironment ?: error("incrementalCompilationEnvironment is null!")
-        val knownChangedFiles = icEnv.changedFiles as? SourcesChanges.Known
         val requestedCompilationResults = requestedCompilationResults()
         val compilationOptions = IncrementalCompilationOptions(
-            areFileChangesKnown = knownChangedFiles != null,
-            modifiedFiles = knownChangedFiles?.modifiedFiles,
-            deletedFiles = knownChangedFiles?.removedFiles,
+            sourceChanges = icEnv.changedFiles,
             classpathChanges = icEnv.classpathChanges,
             workingDir = icEnv.workingDir,
             reportCategories = reportCategories(config.isVerbose),
@@ -403,7 +400,7 @@ internal class GradleKotlinCompilerWork @Inject constructor(
                 dispose.invoke(null)
             }
         } catch (e: Throwable) {
-            log.warn("Unable to clear jar cache after in-process compilation: $e")
+            log.warn("Unable to clear jar cache after in-process compilation", e)
         }
         log.logFinish(KotlinCompilerExecutionStrategy.IN_PROCESS)
         return exitCode

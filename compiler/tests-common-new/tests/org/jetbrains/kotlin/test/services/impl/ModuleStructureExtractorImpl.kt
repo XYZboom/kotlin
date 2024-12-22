@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.test.services.impl
 
+import org.jetbrains.kotlin.config.JvmTarget
 import org.jetbrains.kotlin.platform.CommonPlatforms
 import org.jetbrains.kotlin.platform.TargetPlatform
 import org.jetbrains.kotlin.platform.js.JsPlatforms
@@ -97,6 +98,7 @@ class ModuleStructureExtractorImpl(
         private var filesOfCurrentModule = mutableListOf<TestFile>()
 
         private var currentFileName: String? = null
+        private var currentSnippetNumber: Int = 1
         private var firstFileInModule: Boolean = true
         private var linesOfCurrentFile = mutableListOf<String>()
         private var endLineNumberOfLastFile = -1
@@ -176,6 +178,9 @@ class ModuleStructureExtractorImpl(
                     if (currentModuleName != null) {
                         finishModule(lineNumber)
                     } else {
+                        if (currentFileName != null) {
+                            error("Defining `// FILE` before `// MODULE` is prohibited: it's unclear if the directives before the first `// FILE` are global- or module-specific")
+                        }
                         finishGlobalDirectives()
                     }
                     val (moduleName, dependencies, friends, dependsOn) = splitRawModuleStringToNameAndDependencies(
@@ -191,6 +196,26 @@ class ModuleStructureExtractorImpl(
                     }
                     dependsOn.mapTo(dependenciesOfCurrentModule) { name ->
                         DependencyDescription(name, DependencyKind.Source, DependencyRelation.DependsOnDependency)
+                    }
+                }
+                ModuleStructureDirectives.SNIPPET -> {
+                    fun snippetName() = "snippet_${"%03d".format(currentSnippetNumber)}"
+
+                    val previousModuleName = currentModuleName ?: snippetName().also {
+                        currentModuleName = it
+                        currentFileName = "$it.kts"
+                    }
+                    if (linesOfCurrentFile.all { it.isBlank() }) {
+                        finishGlobalDirectives()
+                    } else {
+                        finishModule(lineNumber)
+
+                        dependenciesOfCurrentModule.add(
+                            DependencyDescription(previousModuleName, DependencyKind.Source, DependencyRelation.FriendDependency)
+                        )
+                        currentSnippetNumber++
+                        currentModuleName = snippetName()
+                        currentFileName = "$currentModuleName.kts"
                     }
                 }
                 ModuleStructureDirectives.DEPENDENCY,
@@ -250,13 +275,9 @@ class ModuleStructureExtractorImpl(
                     currentModuleTargetPlatform = if (values.size != 1) {
                         assertions.fail { "JVM target should be single" }
                     } else {
-                        when (values.single()) {
-                            "1.6" -> JvmPlatforms.jvm6
-                            "1.8" -> JvmPlatforms.jvm8
-                            "11" -> JvmPlatforms.jvm11
-                            "17" -> JvmPlatforms.jvm17
-                            else -> assertions.fail { "Incorrect value for JVM target" }
-                        }
+                        val jvmTarget = JvmTarget.fromString(values.single().toString())
+                            ?: assertions.fail { "Unknown JVM target: ${values.single()}" }
+                        JvmPlatforms.jvmPlatformByTargetVersion(jvmTarget)
                     }
                     return false // Workaround for FE and FIR
                 }

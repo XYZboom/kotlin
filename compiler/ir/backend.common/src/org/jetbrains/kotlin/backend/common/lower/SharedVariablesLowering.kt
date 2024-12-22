@@ -16,8 +16,8 @@
 
 package org.jetbrains.kotlin.backend.common.lower
 
-import org.jetbrains.kotlin.backend.common.BackendContext
 import org.jetbrains.kotlin.backend.common.BodyLoweringPass
+import org.jetbrains.kotlin.backend.common.LoweringContext
 import org.jetbrains.kotlin.backend.common.phaser.PhaseDescription
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
@@ -31,11 +31,28 @@ import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 
-@PhaseDescription(
-    name = "SharedVariables",
-    description = "Transform shared variables"
-)
-class SharedVariablesLowering(val context: BackendContext) : BodyLoweringPass {
+/**
+ * Transforms declarations and usages of variables captured in lambdas ("shared variables") to `ObjectRef`/`IntRef`/...
+ *
+ * For example:
+ *
+ *     var x = "a"
+ *     run {
+ *         x = "b"
+ *         println(x)
+ *     }
+ *
+ * becomes
+ *
+ *     var x = ObjectRef<String>()
+ *     x.element = "a"
+ *     run {
+ *         x.element = "b"
+ *         println(x.element)
+ *     }
+ */
+@PhaseDescription(name = "SharedVariables")
+class SharedVariablesLowering(val context: LoweringContext) : BodyLoweringPass {
     override fun lower(irBody: IrBody, container: IrDeclaration) {
         SharedVariablesTransformer(irBody, container).lowerSharedVariables()
     }
@@ -69,7 +86,7 @@ class SharedVariablesLowering(val context: BackendContext) : BodyLoweringPass {
                     expression.dispatchReceiver?.accept(this, data)
                     expression.extensionReceiver?.accept(this, data)
                     for (param in callee.valueParameters) {
-                        val arg = expression.getValueArgument(param.index) ?: continue
+                        val arg = expression.getValueArgument(param.indexInOldValueParameters) ?: continue
                         if (param.isInlineParameter()
                             // This is somewhat conservative but simple.
                             // If a user put redundant <crossinline> modifier on a parameter,

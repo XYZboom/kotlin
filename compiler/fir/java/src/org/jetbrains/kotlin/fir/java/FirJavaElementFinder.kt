@@ -38,9 +38,9 @@ import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
 import org.jetbrains.kotlin.fir.resolve.providers.FirProvider
 import org.jetbrains.kotlin.fir.resolve.providers.firProvider
-import org.jetbrains.kotlin.fir.resolve.toSymbol
-import org.jetbrains.kotlin.fir.resolve.transformers.*
-import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
+import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
+import org.jetbrains.kotlin.fir.resolve.transformers.FirSupertypeResolverVisitor
+import org.jetbrains.kotlin.fir.resolve.transformers.SupertypeComputationSession
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.utils.exceptions.withConeTypeEntry
 import org.jetbrains.kotlin.load.java.JvmAnnotationNames
@@ -75,7 +75,8 @@ class FirJavaElementFinder(
         }
 
     override fun findPackage(qualifiedName: String): PsiPackage? {
-        if (firProviders.none { it.symbolProvider.getPackage(FqName(qualifiedName)) != null }) return null
+        val fqName = FqName(qualifiedName)
+        if (firProviders.none { it.symbolProvider.hasPackage(fqName) }) return null
         return FirPsiPackage(psiManager, qualifiedName)
     }
 
@@ -105,15 +106,9 @@ class FirJavaElementFinder(
             if (topLevelClass.isRoot) break
             val classId = ClassId.topLevel(topLevelClass)
 
-            // 1. We could be asked to find class of kind "...MainKt" that was created from file "main.kt"
-            val firFile = fileCache.getValue(classId.packageFqName)[classId.relativeClassName.asString()]?.singleOrNull()
-            if (firFile != null) {
-                val fileStub = createJavaFileStub(classId.packageFqName, psiManager)
-                return buildFileAsClassStub(firFile, classId, fileStub).psi
-            }
-
-            // 2. Find regular class
+            // 1. Find regular class
             val firClass = firProviders.firstNotNullOfOrNull { it.getFirClassifierByFqName(classId) as? FirRegularClass } ?: continue
+
             val fileStub = createJavaFileStub(classId.packageFqName, psiManager)
             val topLevelResult = buildStub(firClass, fileStub).psi
             val tail = fqName.tail(topLevelClass).pathSegments()
@@ -121,6 +116,15 @@ class FirJavaElementFinder(
             return tail.fold(topLevelResult) { psiClass, segment ->
                 psiClass.findInnerClassByName(segment.identifier, false) ?: return null
             }
+        }
+
+        // 2. We could be asked to find class of kind "...MainKt" that was created from file "main.kt"
+        val classId = ClassId.topLevel(fqName)
+        val firFile = fileCache.getValue(classId.packageFqName)[classId.relativeClassName.asString()]?.singleOrNull()
+
+        if (firFile != null) {
+            val fileStub = createJavaFileStub(classId.packageFqName, psiManager)
+            return buildFileAsClassStub(firFile, classId, fileStub).psi
         }
 
         return null
@@ -266,7 +270,7 @@ class FirJavaElementFinder(
 private fun FirRegularClass.resolveSupertypesOnAir(session: FirSession): List<FirTypeRef> {
     val visitor = FirSupertypeResolverVisitor(session, SupertypeComputationSession(), ScopeSession())
     return visitor.withFile(session.firProvider.getFirClassifierContainerFile(this.symbol)) {
-        visitor.resolveSpecificClassLikeSupertypes(this, superTypeRefs)
+        visitor.resolveSpecificClassLikeSupertypes(this, superTypeRefs, resolveRecursively = true)
     }
 }
 
@@ -329,7 +333,7 @@ private fun PsiClassStubImpl<*>.addSupertypesReferencesLists(
 
     for (superTypeRef in superTypeRefs) {
         val superConeType = superTypeRef.coneTypeSafe<ConeClassLikeType>() ?: continue
-        val supertypeFirClass = superConeType.toFirClass(session) ?: continue
+        val supertypeFirClass = superConeType.toRegularClassSymbol(session) ?: continue
 
         val canonicalString = superConeType.mapToCanonicalString(session)
 
@@ -385,11 +389,6 @@ private fun createJavaFileStub(packageFqName: FqName, psiManager: PsiManager): P
     return javaFileStub
 }
 
-private fun ConeClassLikeType.toFirClass(session: FirSession): FirRegularClass? {
-    val expandedType = this.fullyExpandedType(session)
-    return (expandedType.lookupTag.toSymbol(session) as? FirClassSymbol)?.fir as? FirRegularClass
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // JVM TYPE MAPPING
 // TODO: reuse other type mapping implementations when possible
@@ -425,7 +424,6 @@ private fun ConeClassLikeType.mapToCanonicalNoExpansionString(session: FirSessio
                 else
                     (typeProjection.type as ConeClassLikeType).mapToCanonicalString(session)
             }
-            else -> ERROR_TYPE_STUB
         } + "[]"
     }
 
@@ -457,6 +455,5 @@ private fun ConeTypeProjection.mapToCanonicalString(session: FirSession): String
 
             wildcard + type.mapToCanonicalString(session)
         }
-        else -> ERROR_TYPE_STUB
     }
 }

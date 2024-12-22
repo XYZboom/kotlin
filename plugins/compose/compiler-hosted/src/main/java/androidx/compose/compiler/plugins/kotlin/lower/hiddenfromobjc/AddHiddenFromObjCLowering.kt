@@ -20,18 +20,15 @@ import androidx.compose.compiler.plugins.kotlin.FeatureFlags
 import androidx.compose.compiler.plugins.kotlin.ModuleMetrics
 import androidx.compose.compiler.plugins.kotlin.analysis.StabilityInferencer
 import androidx.compose.compiler.plugins.kotlin.lower.AbstractComposeLowering
-import androidx.compose.compiler.plugins.kotlin.lower.ComposableSymbolRemapper
 import androidx.compose.compiler.plugins.kotlin.lower.containsComposableAnnotation
+import androidx.compose.compiler.plugins.kotlin.lower.hasFirDeclaration
 import androidx.compose.compiler.plugins.kotlin.lower.needsComposableRemapping
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.IrStatement
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrDeclaration
-import org.jetbrains.kotlin.ir.declarations.IrFunction
-import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
-import org.jetbrains.kotlin.ir.declarations.IrProperty
+import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolOwner
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.util.constructors
@@ -40,6 +37,8 @@ import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.platform.konan.isNative
 
+val hiddenFromObjCClassId = ClassId.fromString("kotlin/native/HiddenFromObjC")
+
 /**
  *  AddHiddenFromObjCLowering looks for functions and properties with @Composable types and
  *  adds the `kotlin.native.HiddenFromObjC` annotation to them.
@@ -47,31 +46,29 @@ import org.jetbrains.kotlin.platform.konan.isNative
  */
 class AddHiddenFromObjCLowering(
     private val pluginContext: IrPluginContext,
-    symbolRemapper: ComposableSymbolRemapper,
     metrics: ModuleMetrics,
     private val hideFromObjCDeclarationsSet: HideFromObjCDeclarationsSet?,
     stabilityInferencer: StabilityInferencer,
     featureFlags: FeatureFlags,
 ) : AbstractComposeLowering(
     pluginContext,
-    symbolRemapper,
     metrics,
     stabilityInferencer,
     featureFlags
 ) {
 
     private val hiddenFromObjCAnnotation: IrClassSymbol by lazy {
-        getTopLevelClass(ClassId.fromString("kotlin/native/HiddenFromObjC"))
+        getTopLevelClass(hiddenFromObjCClassId)
     }
 
     private var currentShouldAnnotateClass = false
 
-    override fun lower(module: IrModuleFragment) {
+    override fun lower(irModule: IrModuleFragment) {
         require(context.platform.isNative()) {
             "AddHiddenFromObjCLowering is expected to run only for k/native. " +
-                "The platform - ${context.platform}"
+                    "The platform - ${context.platform}"
         }
-        module.transformChildrenVoid(this)
+        irModule.transformChildrenVoid(this)
     }
 
     /** `visitClass` is only needed until [issue](https://youtrack.jetbrains.com/issue/KT-65288/) fix
@@ -95,11 +92,16 @@ class AddHiddenFromObjCLowering(
         return cls
     }
 
+    private fun IrFunction.isSyntheticFun(): Boolean =
+        origin == IrDeclarationOrigin.FAKE_OVERRIDE || startOffset < 0 || endOffset < 0
+
+
     override fun visitFunction(declaration: IrFunction): IrStatement {
         val f = super.visitFunction(declaration) as IrFunction
-        if (f.isLocal ||
+        if (f.isLocal || f.isSyntheticFun() ||
             !(f.visibility == DescriptorVisibilities.PUBLIC ||
-                f.visibility == DescriptorVisibilities.PROTECTED))
+                    f.visibility == DescriptorVisibilities.PROTECTED)
+        )
             return f
 
         if (f.hasComposableAnnotation() || f.needsComposableRemapping()) {
@@ -113,11 +115,11 @@ class AddHiddenFromObjCLowering(
 
     override fun visitProperty(declaration: IrProperty): IrStatement {
         val p = super.visitProperty(declaration) as IrProperty
-        if (p.isLocal || p.visibility != DescriptorVisibilities.PUBLIC) return p
+        if (p.isLocal || p.getter?.isSyntheticFun() == true || p.visibility != DescriptorVisibilities.PUBLIC) return p
 
         val shouldAdd = p.getter?.hasComposableAnnotation() ?: false ||
-            p.getter?.needsComposableRemapping() ?: false ||
-            p.backingField?.type.containsComposableAnnotation()
+                p.getter?.needsComposableRemapping() ?: false ||
+                p.backingField?.type.containsComposableAnnotation()
 
         if (shouldAdd) {
             p.addHiddenFromObjCAnnotation()
@@ -129,6 +131,9 @@ class AddHiddenFromObjCLowering(
     }
 
     private fun IrDeclaration.addHiddenFromObjCAnnotation() {
+        if (!hasFirDeclaration()) {
+            return
+        }
         val annotation = IrConstructorCallImpl.fromSymbolOwner(
             type = hiddenFromObjCAnnotation.defaultType,
             constructorSymbol = hiddenFromObjCAnnotation.constructors.first()

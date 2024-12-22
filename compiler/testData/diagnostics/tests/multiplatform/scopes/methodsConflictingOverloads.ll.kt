@@ -1,3 +1,5 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // LANGUAGE: +MultiPlatformProjects
 
 // MODULE: common
@@ -33,6 +35,6 @@ actual abstract class B() {
 actual class C : B(), I {}
 
 actual abstract class D {
-    <!CONFLICTING_OVERLOADS!>actual fun foo()<!> {}
+    actual <!CONFLICTING_OVERLOADS!>fun foo()<!> {}
     <!CONFLICTING_OVERLOADS!>fun <!ACTUAL_MISSING!>foo<!>()<!> {}
 }

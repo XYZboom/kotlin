@@ -5,11 +5,15 @@
 
 package org.jetbrains.kotlin.ir.generator.print
 
+import org.jetbrains.kotlin.CompilerVersionOfApiDeprecation
+import org.jetbrains.kotlin.DeprecatedCompilerApi
 import org.jetbrains.kotlin.generators.tree.AbstractVisitorVoidPrinter
 import org.jetbrains.kotlin.generators.tree.ClassRef
 import org.jetbrains.kotlin.generators.tree.PositionTypeParameterRef
+import org.jetbrains.kotlin.generators.tree.imports.ImportCollecting
 import org.jetbrains.kotlin.generators.tree.printer.ImportCollectingPrinter
 import org.jetbrains.kotlin.ir.generator.elementVisitorType
+import org.jetbrains.kotlin.ir.generator.irVisitorVoidType
 import org.jetbrains.kotlin.ir.generator.model.Element
 import org.jetbrains.kotlin.ir.generator.model.Field
 
@@ -29,4 +33,10 @@ internal class VisitorVoidPrinter(
 
     override val overriddenVisitMethodsAreFinal: Boolean
         get() = false
+
+    override val ImportCollecting.classKDoc: String
+        get() = deprecatedVisitorInterface(irVisitorVoidType)
+
+    override val annotations: List<Annotation>
+        get() = listOf(DeprecatedCompilerApi(CompilerVersionOfApiDeprecation._2_1_20, replaceWith = "IrVisitorVoid"))
 }

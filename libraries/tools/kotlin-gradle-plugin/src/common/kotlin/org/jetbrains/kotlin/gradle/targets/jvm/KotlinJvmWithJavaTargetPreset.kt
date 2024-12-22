@@ -15,7 +15,6 @@ import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.reportDiagnostic
 import org.jetbrains.kotlin.gradle.targets.android.internal.InternalKotlinTargetPreset
 import org.jetbrains.kotlin.gradle.tasks.KotlinTasksProvider
-import org.jetbrains.kotlin.gradle.utils.configureExperimentalTryNext
 import org.jetbrains.kotlin.gradle.utils.maybeCreateResolvable
 
 @Suppress("DEPRECATION")
@@ -31,26 +30,8 @@ class KotlinJvmWithJavaTargetPreset(
 
         project.plugins.apply(JavaPlugin::class.java)
 
-        @Suppress("UNCHECKED_CAST", "DEPRECATION", "TYPEALIAS_EXPANSION_DEPRECATION")
-        val target = (project.objects.newInstance(
-            KotlinWithJavaTarget::class.java,
-            project,
-            KotlinPlatformType.jvm,
-            name,
-            {
-                object : DeprecatedHasCompilerOptions<KotlinJvmCompilerOptions> {
-                    override val options: KotlinJvmCompilerOptions = project.objects
-                        .newInstance(KotlinJvmCompilerOptionsDefault::class.java)
-                        .configureExperimentalTryNext(project)
-                }
-            },
-            { compilerOptions: KotlinJvmCompilerOptions ->
-                object : KotlinJvmOptions {
-                    override val options: KotlinJvmCompilerOptions
-                        get() = compilerOptions
-                }
-            }
-        ) as KotlinWithJavaTarget<KotlinJvmOptions, KotlinJvmCompilerOptions>)
+        @Suppress("UNCHECKED_CAST", "TYPEALIAS_EXPANSION_DEPRECATION")
+        val target = project.objects.KotlinWithJavaTargetForJvm(project, name)
             .apply {
                 disambiguationClassifier = name
                 preset = this@KotlinJvmWithJavaTargetPreset

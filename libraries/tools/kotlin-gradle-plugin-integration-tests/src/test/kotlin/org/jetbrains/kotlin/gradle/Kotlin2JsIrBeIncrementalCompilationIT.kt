@@ -20,7 +20,6 @@ import kotlin.test.assertTrue
 
 @DisplayName("Incremental compilation tests for Kotlin JS IR backend with K1")
 @JsGradlePluginTests
-@GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
 class Kotlin2JsK1IrBeIncrementalCompilationIT : Kotlin2JsIrBeIncrementalCompilationIT() {
     override val defaultBuildOptions: BuildOptions
         get() = super.defaultBuildOptions.copyEnsuringK1()
@@ -28,7 +27,6 @@ class Kotlin2JsK1IrBeIncrementalCompilationIT : Kotlin2JsIrBeIncrementalCompilat
 
 @DisplayName("Incremental compilation tests for Kotlin JS IR backend with K2")
 @JsGradlePluginTests
-@GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
 class Kotlin2JsK2IrBeIncrementalCompilationIT : Kotlin2JsIrBeIncrementalCompilationIT() {
     override val defaultBuildOptions: BuildOptions
         get() = super.defaultBuildOptions.copyEnsuringK2()
@@ -42,7 +40,6 @@ class Kotlin2JsK2IrBeIncrementalCompilationIT : Kotlin2JsIrBeIncrementalCompilat
 
 @DisplayName("Incremental compilation tests for Kotlin JS IR backend")
 @JsGradlePluginTests
-@GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
 abstract class Kotlin2JsIrBeIncrementalCompilationIT : KGPBaseTest() {
     override val defaultBuildOptions = BuildOptions(
         jsOptions = BuildOptions.JsOptions(
@@ -125,19 +122,19 @@ abstract class Kotlin2JsIrBeIncrementalCompilationIT : KGPBaseTest() {
             }
 
             // -Xir-property-lazy-initialization default is true
-            build("nodeRun") {
+            build("nodeDevelopmentRun") {
                 assertTasksExecuted(":compileDevelopmentExecutableKotlinJs")
                 assertEquals(listOf("Hello, Gradle."), output.testScriptOutLines())
             }
 
             setLazyInitializationArg(false)
-            build("nodeRun") {
+            build("nodeDevelopmentRun") {
                 assertTasksExecuted(":compileDevelopmentExecutableKotlinJs")
                 assertEquals(listOf("TOP LEVEL!", "Hello, Gradle."), output.testScriptOutLines())
             }
 
             setLazyInitializationArg(true)
-            build("nodeRun") {
+            build("nodeDevelopmentRun") {
                 assertTasksExecuted(":compileDevelopmentExecutableKotlinJs")
                 assertEquals(listOf("Hello, Gradle."), output.testScriptOutLines())
             }
@@ -160,7 +157,9 @@ abstract class Kotlin2JsIrBeIncrementalCompilationIT : KGPBaseTest() {
                 assertEquals(5, klibCacheDirs?.size, "cache should contain 5 dirs")
 
                 val libKlibCacheDirs = klibCacheDirs?.filter { dir -> dir.startsWith("lib.klib.") }
-                assertEquals(2, libKlibCacheDirs?.size, "cache should contain 2 dirs for lib.klib")
+                assertEquals(1, libKlibCacheDirs?.size, "cache should contain 1 dirs for lib.klib")
+                val mainKlibCacheDirs = klibCacheDirs?.filter { dir -> dir.startsWith("main") }
+                assertEquals(2, mainKlibCacheDirs?.size, "cache should contain 2 dirs starting from main (1 for main of lib + 1 main of app)")
 
                 var lib = false
                 var libOther = false
@@ -172,14 +171,14 @@ abstract class Kotlin2JsIrBeIncrementalCompilationIT : KGPBaseTest() {
                             .forEach {
                                 val text = it.readText()
                                 // cache keeps the js code of compiled module, this substring from that js code
-                                if (text.contains("root['kotlin-js-ir-ic-multiple-artifacts-lib']")) {
+                                if (text.contains("globalThis['kotlin-js-ir-ic-multiple-artifacts-lib'] = ")) {
                                     if (lib) {
                                         error("lib should be only once in cache")
                                     }
                                     lib = true
                                 }
                                 // cache keeps the js code of compiled module, this substring from that js code
-                                if (text.contains("root['kotlin-js-ir-ic-multiple-artifacts-lib-other']")) {
+                                if (text.contains("globalThis['kotlin-js-ir-ic-multiple-artifacts-lib-other'] = ")) {
                                     if (libOther) {
                                         error("libOther should be only once in cache")
                                     }

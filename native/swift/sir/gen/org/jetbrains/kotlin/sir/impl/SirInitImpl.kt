@@ -16,11 +16,13 @@ internal class SirInitImpl(
     override val origin: SirOrigin,
     override val visibility: SirVisibility,
     override val documentation: String?,
-    override val kind: SirCallableKind,
+    override val attributes: MutableList<SirAttribute>,
     override var body: SirFunctionBody?,
+    override val errorType: SirType,
     override val isFailable: Boolean,
     override val parameters: MutableList<SirParameter>,
-    override val initKind: SirInitializerKind,
+    override val isConvenience: Boolean,
+    override val isRequired: Boolean,
     override val isOverride: Boolean,
 ) : SirInit() {
     override lateinit var parent: SirDeclarationParent

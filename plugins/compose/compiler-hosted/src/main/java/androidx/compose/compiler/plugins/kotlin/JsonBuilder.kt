@@ -18,7 +18,6 @@ package androidx.compose.compiler.plugins.kotlin
 
 import java.io.File
 import java.io.OutputStreamWriter
-import java.lang.Appendable
 
 /**
  * This class is a very rudimentary json serializer. It is not fully featured, and does not
@@ -30,6 +29,7 @@ import java.lang.Appendable
 class JsonBuilder(private val sb: Appendable, private val indent: Int = 0) {
     var hasEntry = false
 
+    private val spacesForIndent = 2
     private val nonWordCharRegex = Regex("\\W")
 
     private fun entryLiteral(key: String, value: String) {
@@ -37,13 +37,15 @@ class JsonBuilder(private val sb: Appendable, private val indent: Int = 0) {
             if (hasEntry) {
                 appendLine(",")
             }
-            append(" ".repeat(indent))
+            append(" ".repeat(indent * spacesForIndent))
             append("\"${key.replace(nonWordCharRegex, "")}\"")
             append(": ")
             append(value)
         }
         hasEntry = true
     }
+
+    fun entry(key: String, value: Boolean) = entryLiteral(key, "$value")
     fun entry(key: String, value: Int) = entryLiteral(key, "$value")
 
     fun entry(key: String, fn: JsonBuilder.() -> Unit) = entryLiteral(
@@ -56,6 +58,7 @@ class JsonBuilder(private val sb: Appendable, private val indent: Int = 0) {
             appendLine("{")
             fn()
             if (hasEntry) appendLine()
+            append(" ".repeat((indent - 1) * spacesForIndent)) // Close brace is one indent back
             append("}")
         }
     }
@@ -70,15 +73,18 @@ class CsvBuilder(private val writer: Appendable) {
         fn()
         appendLine()
     }
+
     fun col(value: String): Unit = with(writer) {
         require(!value.contains(',')) { "Illegal character ',' found: $value" }
         append(value)
         append(",")
     }
+
     fun col(value: Int): Unit = with(writer) {
         append("$value")
         append(",")
     }
+
     fun col(value: Boolean): Unit = with(writer) {
         append(if (value) "1" else "0")
         append(",")

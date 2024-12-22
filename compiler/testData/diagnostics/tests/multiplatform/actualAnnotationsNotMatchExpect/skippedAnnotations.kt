@@ -1,10 +1,13 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FRONTEND
 // WITH_STDLIB
+// ALLOW_KOTLIN_PACKAGE
 // MODULE: m1-common
 // FILE: common.kt
 package kotlin
 
-@OptIn(ExperimentalMultiplatform::class)
-@OptionalExpectation
+<!OPT_IN_WITHOUT_ARGUMENTS!>@OptIn(<!ANNOTATION_ARGUMENT_MUST_BE_CONST!><!UNRESOLVED_REFERENCE!>ExperimentalMultiplatform<!>::class<!>)<!>
+@<!UNRESOLVED_REFERENCE!>OptionalExpectation<!>
 expect annotation class OptionalExpectationOnExpectOnly
 
 @RequiresOptIn
@@ -16,13 +19,16 @@ annotation class MyOptIn
 @Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
 @MyOptIn
 @WasExperimental(MyOptIn::class)
-@kotlin.internal.RequireKotlin(version = "1.8")
+@kotlin.internal.<!UNRESOLVED_REFERENCE!>RequireKotlin<!>(<!DEBUG_INFO_MISSING_UNRESOLVED!>version<!> = "1.8")
 @OptIn(MyOptIn::class)
 expect fun skippedAnnotationsOnExpectOnly()
 
-@OptIn(ExperimentalMultiplatform::class)
-@kotlin.jvm.ImplicitlyActualizedByJvmDeclaration
+<!OPT_IN_WITHOUT_ARGUMENTS!>@OptIn(<!ANNOTATION_ARGUMENT_MUST_BE_CONST!><!UNRESOLVED_REFERENCE!>ExperimentalMultiplatform<!>::class<!>)<!>
+@kotlin.<!UNRESOLVED_REFERENCE!>jvm<!>.<!DEBUG_INFO_MISSING_UNRESOLVED, DEPRECATION_ERROR{JVM}!>ImplicitlyActualizedByJvmDeclaration<!>
 expect class ImplicitlyActualizedByJvmDeclarationOnExpectOnly
+
+@SubclassOptInRequired(MyOptIn::class)
+expect open class SubclassOptInRequiredOnExpectOnly
 
 // MODULE: m1-jvm()()(m1-common)
 // FILE: jvm.kt
@@ -34,3 +40,5 @@ actual annotation class OptionalExpectationOnExpectOnly
 actual fun skippedAnnotationsOnExpectOnly() {}
 
 actual class ImplicitlyActualizedByJvmDeclarationOnExpectOnly
+
+actual open class SubclassOptInRequiredOnExpectOnly

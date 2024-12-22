@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.builder.toFirOperationOrNull
 import org.jetbrains.kotlin.fir.declarations.FirTypeParameter
 import org.jetbrains.kotlin.fir.expressions.*
+import org.jetbrains.kotlin.fir.expressions.FirThisReceiverExpression
 import org.jetbrains.kotlin.fir.expressions.builder.buildLiteralExpression
 import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.references.*
@@ -122,6 +123,8 @@ internal open class FirElementsRecorder : FirVisitor<Unit, MutableMap<KtElement,
                 it is KtRealPsiSourceElement ||
                         it.kind == KtFakeSourceElementKind.ReferenceInAtomicQualifiedAccess ||
                         it.kind == KtFakeSourceElementKind.FromUseSiteTarget ||
+                        // To allow type retrieval from erroneous typealias even though it is erroneous
+                        it.kind == KtFakeSourceElementKind.ErroneousTypealiasExpansion ||
                         // For secondary constructors without explicit delegated constructor call, the PSI tree always create an empty
                         // KtConstructorDelegationCall. In this case, the source in FIR has this fake source kind.
                         it.kind == KtFakeSourceElementKind.ImplicitConstructor ||
@@ -161,10 +164,11 @@ internal open class FirElementsRecorder : FirVisitor<Unit, MutableMap<KtElement,
         }
     }
 
-    private fun KtSourceElement.isSourceForArrayAugmentedAssign(fir: FirElement) =
-        // after desugaring, we also have FirBlock with the same source element.
-        // We need to filter it out to map this source element to set/plusAssign call, so we check `is FirFunctionCall`
-        (kind is KtFakeSourceElementKind.DesugaredAugmentedAssign) && fir is FirFunctionCall
+    // After desugaring, we also have FirBlock with the same source element.
+    // We need to filter it out to map this source element to set/plusAssign call, so we check `is FirFunctionCall`
+    private fun KtSourceElement.isSourceForArrayAugmentedAssign(fir: FirElement): Boolean {
+        return kind is KtFakeSourceElementKind.DesugaredAugmentedAssign && (fir is FirFunctionCall || fir is FirThisReceiverExpression)
+    }
 
     // `FirSmartCastExpression` forward the source from the original expression,
     // and implicit receivers have fake sources pointing to a wider part of the expression.

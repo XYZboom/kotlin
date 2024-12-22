@@ -8,10 +8,10 @@ package org.jetbrains.kotlin.cfg.variable
 import org.jetbrains.kotlin.cfg.ControlFlowInfo
 import org.jetbrains.kotlin.cfg.ReadOnlyControlFlowInfo
 import org.jetbrains.kotlin.descriptors.VariableDescriptor
-import org.jetbrains.kotlin.util.javaslang.ImmutableHashMap
-import org.jetbrains.kotlin.util.javaslang.ImmutableMap
-import org.jetbrains.kotlin.util.javaslang.component1
-import org.jetbrains.kotlin.util.javaslang.component2
+import org.jetbrains.kotlin.util.vavr.ImmutableHashMap
+import org.jetbrains.kotlin.util.vavr.ImmutableMap
+import org.jetbrains.kotlin.util.vavr.component1
+import org.jetbrains.kotlin.util.vavr.component2
 
 typealias VariableUsageReadOnlyControlInfo = ReadOnlyControlFlowInfo<VariableDescriptor, VariableUseState>
 typealias VariableUsageControlFlowInfo<S, D> = ControlFlowInfo<S, VariableDescriptor, D>
@@ -21,7 +21,6 @@ interface VariableInitReadOnlyControlFlowInfo :
     fun checkDefiniteInitializationInWhen(merge: VariableInitReadOnlyControlFlowInfo): Boolean
 }
 
-@Suppress("DELEGATED_MEMBER_HIDES_SUPERTYPE_OVERRIDE") // K2 warning suppression, TODO: KT-62472
 class VariableInitControlFlowInfo(map: ImmutableMap<VariableDescriptor, VariableControlFlowState> = ImmutableHashMap.empty()) :
     VariableUsageControlFlowInfo<VariableInitControlFlowInfo, VariableControlFlowState>(map),
     VariableInitReadOnlyControlFlowInfo {
@@ -43,7 +42,6 @@ class VariableInitControlFlowInfo(map: ImmutableMap<VariableDescriptor, Variable
     }
 }
 
-@Suppress("DELEGATED_MEMBER_HIDES_SUPERTYPE_OVERRIDE") // K2 warning suppression, TODO: KT-62472
 class UsageVariableControlFlowInfo(map: ImmutableMap<VariableDescriptor, VariableUseState> = ImmutableHashMap.empty()) :
     VariableUsageControlFlowInfo<UsageVariableControlFlowInfo, VariableUseState>(map),
     VariableUsageReadOnlyControlInfo {

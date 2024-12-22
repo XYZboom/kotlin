@@ -15,6 +15,12 @@ import org.jetbrains.kotlin.utils.memoryOptimizedMap
 
 abstract class AbstractIrTypeSubstitutor : TypeSubstitutorMarker {
     abstract fun substitute(type: IrType): IrType
+
+    object Empty : AbstractIrTypeSubstitutor() {
+        override fun substitute(type: IrType): IrType {
+            return type
+        }
+    }
 }
 
 abstract class BaseIrTypeSubstitutor : AbstractIrTypeSubstitutor() {
@@ -48,7 +54,6 @@ abstract class BaseIrTypeSubstitutor : AbstractIrTypeSubstitutor() {
                 buildSimpleType()
             }
             is IrDynamicType, is IrErrorType -> makeTypeProjection(irType, Variance.INVARIANT)
-            else -> error("Unexpected type: $irType")
         }
     }
 

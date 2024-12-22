@@ -14,9 +14,11 @@ import org.jetbrains.kotlin.codegen.state.InfoForMangling
 import org.jetbrains.kotlin.codegen.state.collectFunctionSignatureForManglingSuffix
 import org.jetbrains.kotlin.codegen.state.md5base64
 import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.expressions.IrStatementOriginImpl
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.isNullable
 import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.name.FqNameUnsafe
 import org.jetbrains.kotlin.name.Name
@@ -91,12 +93,12 @@ object InlineClassAbi {
     }
 
     private fun IrFunction.isAlreadyMangledMfvcFunction(context: JvmBackendContext) =
-        context.multiFieldValueClassReplacements.bindingNewFunctionToParameterTemplateStructure[this]?.any { it is MultiFieldValueClassMapping } == true
+        this.parameterTemplateStructureOfThisNewMfvcBidingFunction?.any { it is MultiFieldValueClassMapping } == true
 
     fun hashSuffix(irFunction: IrFunction, mangleReturnTypes: Boolean, useOldMangleRules: Boolean): String? =
         hashSuffix(
             useOldMangleRules,
-            irFunction.fullValueParameterList.map { it.type },
+            irFunction.nonDispatchParameters.map { it.type },
             irFunction.returnType.takeIf { mangleReturnTypes && irFunction.hasMangledReturnType },
             irFunction.isSuspend
         )
@@ -141,15 +143,13 @@ fun IrType.getRequiresMangling(includeInline: Boolean = true, includeMFVC: Boole
     }
 }
 
-val IrFunction.fullValueParameterList: List<IrValueParameter>
-    get() = listOfNotNull(extensionReceiverParameter) + valueParameters
-
 fun IrFunction.hasMangledParameters(includeInline: Boolean = true, includeMFVC: Boolean = true): Boolean =
     (dispatchReceiverParameter != null && when {
         parentAsClass.isSingleFieldValueClass -> includeInline
         parentAsClass.isMultiFieldValueClass -> includeMFVC
         else -> false
-    }) || fullValueParameterList.any { it.type.getRequiresMangling(includeInline, includeMFVC) } || (this is IrConstructor && when {
+    }) || nonDispatchParameters.any { it.type.getRequiresMangling(includeInline, includeMFVC) }
+            || (this is IrConstructor && when {
         constructedClass.isSingleFieldValueClass -> includeInline
         constructedClass.isMultiFieldValueClass -> includeMFVC
         else -> false
@@ -162,13 +162,13 @@ val IrClass.inlineClassFieldName: Name
     get() = (inlineClassRepresentation ?: error("Not an inline class: ${render()}")).underlyingPropertyName
 
 val IrFunction.isInlineClassFieldGetter: Boolean
-    get() = (parent as? IrClass)?.isSingleFieldValueClass == true && this is IrSimpleFunction && extensionReceiverParameter == null &&
-            contextReceiverParametersCount == 0 && !isStatic &&
+    get() = (parent as? IrClass)?.isSingleFieldValueClass == true && this is IrSimpleFunction &&
+            hasShape(dispatchReceiver = true) &&
             correspondingPropertySymbol?.let { it.owner.getter == this && it.owner.name == parentAsClass.inlineClassFieldName } == true
 
 val IrFunction.isMultiFieldValueClassFieldGetter: Boolean
-    get() = (parent as? IrClass)?.isMultiFieldValueClass == true && this is IrSimpleFunction && extensionReceiverParameter == null &&
-            contextReceiverParametersCount == 0 && !isStatic &&
+    get() = (parent as? IrClass)?.isMultiFieldValueClass == true && this is IrSimpleFunction &&
+            hasShape(dispatchReceiver = true) &&
             correspondingPropertySymbol?.let {
                 val multiFieldValueClassRepresentation = parentAsClass.multiFieldValueClassRepresentation
                     ?: error("Multi-field value class must have multiFieldValueClassRepresentation: ${parentAsClass.render()}")

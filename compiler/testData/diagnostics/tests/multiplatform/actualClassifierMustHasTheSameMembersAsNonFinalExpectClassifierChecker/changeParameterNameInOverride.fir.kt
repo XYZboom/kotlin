@@ -1,3 +1,5 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FRONTEND
 // MODULE: m1-common
 // FILE: common.kt
 
@@ -15,7 +17,7 @@ expect open class Foo3 {
 // FILE: jvm.kt
 
 actual open class Foo1 : Base() {
-    override fun <!ACTUAL_WITHOUT_EXPECT!>foo<!>(paramNameChanged: Int) {}
+    override fun <!ACTUAL_WITHOUT_EXPECT!>foo<!>(<!PARAMETER_NAME_CHANGED_ON_OVERRIDE!>paramNameChanged<!>: Int) {}
 }
 
 actual typealias Foo2 = Foo2Java

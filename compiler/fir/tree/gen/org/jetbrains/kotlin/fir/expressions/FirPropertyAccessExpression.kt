@@ -19,14 +19,14 @@ import org.jetbrains.kotlin.fir.visitors.FirTransformer
 import org.jetbrains.kotlin.fir.visitors.FirVisitor
 
 /**
- * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.propertyAccessExpression]
+ * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTree.propertyAccessExpression]
  */
 abstract class FirPropertyAccessExpression : FirQualifiedAccessExpression() {
     @UnresolvedExpressionTypeAccess
     abstract override val coneTypeOrNull: ConeKotlinType?
     abstract override val annotations: List<FirAnnotation>
     abstract override val calleeReference: FirReference
-    abstract override val contextReceiverArguments: List<FirExpression>
+    abstract override val contextArguments: List<FirExpression>
     abstract override val typeArguments: List<FirTypeProjection>
     abstract override val explicitReceiver: FirExpression?
     abstract override val dispatchReceiver: FirExpression?
@@ -47,7 +47,7 @@ abstract class FirPropertyAccessExpression : FirQualifiedAccessExpression() {
 
     abstract override fun replaceCalleeReference(newCalleeReference: FirReference)
 
-    abstract override fun replaceContextReceiverArguments(newContextReceiverArguments: List<FirExpression>)
+    abstract override fun replaceContextArguments(newContextArguments: List<FirExpression>)
 
     abstract override fun replaceTypeArguments(newTypeArguments: List<FirTypeProjection>)
 

@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.analysis.low.level.api.fir.api.getOrBuildFirFile
 import org.jetbrains.kotlin.analysis.low.level.api.fir.compile.CompilationPeerCollector
 import org.jetbrains.kotlin.analysis.low.level.api.fir.test.configurators.AnalysisApiFirSourceTestConfigurator
 import org.jetbrains.kotlin.analysis.test.framework.base.AbstractAnalysisApiBasedTest
-import org.jetbrains.kotlin.analysis.test.framework.project.structure.KtTestModule
+import org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModule
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.test.services.TestServices
 import org.jetbrains.kotlin.test.services.assertions
@@ -26,7 +26,7 @@ abstract class AbstractCompilationPeerAnalysisTest : AbstractAnalysisApiBasedTes
 
         val compilationPeerData = CompilationPeerCollector.process(firFile)
 
-        val actualItems = compilationPeerData.files.map { "File " + it.name }.sorted() +
+        val actualItems = compilationPeerData.filesToCompile.map { "File " + it.name }.sorted() +
                 compilationPeerData.inlinedClasses.map { "Class " + it.name }
 
         val actualText = actualItems.joinToString(separator = "\n")

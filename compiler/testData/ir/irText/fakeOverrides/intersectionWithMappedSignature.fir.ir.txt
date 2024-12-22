@@ -5,7 +5,7 @@ FILE fqName:<root> fileName:/1.kt
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in java.util.ArrayList'
           <E>: kotlin.Int
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:B modality:ABSTRACT visibility:public superTypes:[java.util.ArrayList<kotlin.Int>; <root>.Java1]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:B modality:ABSTRACT visibility:public superTypes:[java.util.ArrayList<kotlin.Int>; <root>.Java1]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:OPEN <> ($this:java.util.ArrayList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Boolean [fake_override]
       overridden:
         public open fun add (p0: @[EnhancedNullability] E of java.util.ArrayList): kotlin.Boolean declared in java.util.ArrayList
@@ -114,7 +114,7 @@ FILE fqName:<root> fileName:/1.kt
         public open fun removeAll (p0: kotlin.collections.Collection<@[EnhancedNullability] E of java.util.ArrayList>): kotlin.Boolean declared in java.util.ArrayList
       $this: VALUE_PARAMETER name:<this> type:java.util.ArrayList<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.collections.Collection<@[EnhancedNullability] kotlin.Int>
-    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.ArrayList<kotlin.Int>, p0:kotlin.Int) returnType:@[EnhancedNullability] kotlin.Int [fake_override,operator]
+    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.ArrayList<kotlin.Int>, p0:kotlin.Int) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
         public open fun removeAt (p0: kotlin.Int): @[EnhancedNullability] E of java.util.ArrayList declared in java.util.ArrayList
       $this: VALUE_PARAMETER name:<this> type:java.util.ArrayList<kotlin.Int>
@@ -184,6 +184,9 @@ FILE fqName:<root> fileName:/1.kt
       overridden:
         public open fun trimToSize (): kotlin.Unit declared in java.util.ArrayList
       $this: VALUE_PARAMETER name:<this> type:java.util.ArrayList<kotlin.Int>
+    PROPERTY FAKE_OVERRIDE name:modCount visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final modCount: kotlin.Int declared in java.util.ArrayList
     PROPERTY FAKE_OVERRIDE name:size visibility:public modality:OPEN [fake_override,val]
       overridden:
         public open size: kotlin.Int declared in java.util.ArrayList

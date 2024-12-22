@@ -62,7 +62,7 @@ class ObjCExportTranslatorImpl(
     )
 
     override fun getClassIfExtension(receiverType: KotlinType): ClassDescriptor? =
-        mapper.getClassIfCategory(receiverType)
+        getClassIfCategory(receiverType)
 
     internal fun translateUnexposedClassAsUnavailableStub(descriptor: ClassDescriptor): ObjCInterface = objCInterface(
         namer.getClassOrProtocolName(descriptor),
@@ -411,7 +411,7 @@ class ObjCExportTranslatorImpl(
     ) = this.forEach {
         when (it) {
             is FunctionDescriptor -> methodsBuffer += it
-            is PropertyDescriptor -> if (mapper.isObjCProperty(it)) {
+            is PropertyDescriptor -> if (isObjCProperty(it)) {
                 propertiesBuffer += it
             } else {
                 methodsBuffer.addIfNotNull(it.getter)
@@ -512,7 +512,7 @@ class ObjCExportTranslatorImpl(
         objCExportScope: ObjCExportScope,
     ): ObjCProperty {
         assert(mapper.isBaseProperty(baseProperty))
-        assert(mapper.isObjCProperty(baseProperty))
+        assert(isObjCProperty(baseProperty))
 
         val getterBridge = mapper.bridgeMethod(baseProperty.getter!!)
         val type = mapReturnType(getterBridge.returnBridge, property.getter!!, objCExportScope)
@@ -1001,6 +1001,7 @@ class ObjCExportTranslatorImpl(
                 ObjCValueType.UNSIGNED_LONG_LONG -> ObjCPrimitiveType.uint64_t
                 ObjCValueType.FLOAT -> ObjCPrimitiveType.float
                 ObjCValueType.DOUBLE -> ObjCPrimitiveType.double
+                ObjCValueType.VECTOR_FLOAT_128 -> ObjCPrimitiveType.vectorFloat128
                 ObjCValueType.POINTER -> ObjCPointerType(ObjCVoidType, kotlinType.binaryRepresentationIsNullable())
             }
             // TODO: consider other namings.

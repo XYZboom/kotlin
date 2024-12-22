@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -8,7 +8,6 @@ package org.jetbrains.kotlin.fir.analysis.checkers.declaration
 import org.jetbrains.kotlin.KtFakeSourceElementKind
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.config.LanguageFeature
-import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.SourceElementPositioningStrategies
 import org.jetbrains.kotlin.diagnostics.reportOn
@@ -25,9 +24,7 @@ import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.mpp.RegularClassSymbolMarker
-import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.resolve.calls.mpp.AbstractExpectActualChecker
-import org.jetbrains.kotlin.resolve.checkers.OptInNames
 import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualCheckingCompatibility
 import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualCompatibility
 import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualMatchingCompatibility
@@ -60,7 +57,6 @@ object FirExpectActualDeclarationChecker : FirBasicDeclarationChecker(MppChecker
 
         if (declaration.isExpect) {
             checkExpectDeclarationModifiers(declaration, context, reporter)
-            checkOptInAnnotation(declaration, declaration.symbol, context, reporter)
         }
         val matchingCompatibilityToMembersMap = declaration.symbol.expectForActual.orEmpty()
         if ((ExpectActualMatchingCompatibility.MatchedSuccessfully in matchingCompatibilityToMembersMap || declaration.hasActualModifier()) &&
@@ -173,7 +169,7 @@ object FirExpectActualDeclarationChecker : FirBasicDeclarationChecker(MppChecker
 
         when {
             checkingCompatibility is ExpectActualCheckingCompatibility.ClassScopes -> {
-                reportClassScopesIncompatibility(symbol, expectedSingleCandidate, declaration, checkingCompatibility, reporter, source, context)
+                reportClassScopesIncompatibility(symbol, expectedSingleCandidate, checkingCompatibility, reporter, source, context)
             }
 
             ExpectActualMatchingCompatibility.MatchedSuccessfully !in matchingCompatibilityToMembersMap ||
@@ -204,25 +200,19 @@ object FirExpectActualDeclarationChecker : FirBasicDeclarationChecker(MppChecker
                     )
                 }
             }
-
-            else -> {}
-        }
-        if (expectedSingleCandidate != null) {
-            checkOptInAnnotation(declaration, expectedSingleCandidate, context, reporter)
         }
     }
 
     private fun reportClassScopesIncompatibility(
         symbol: FirBasedSymbol<FirDeclaration>,
         expectedSingleCandidate: FirBasedSymbol<*>?,
-        declaration: FirMemberDeclaration,
         checkingCompatibility: ExpectActualCheckingCompatibility.ClassScopes<FirBasedSymbol<*>>,
         reporter: DiagnosticReporter,
         source: KtSourceElement?,
         context: CheckerContext,
     ) {
         require((symbol is FirRegularClassSymbol || symbol is FirTypeAliasSymbol) && expectedSingleCandidate is FirRegularClassSymbol) {
-            "Incompatible.ClassScopes is only possible for a class or a typealias: $declaration"
+            "Incompatible.ClassScopes is only possible for a class or a typealias: $symbol $expectedSingleCandidate"
         }
 
         // Do not report "expected members have no actual ones" for those expected members, for which there's a clear
@@ -357,13 +347,12 @@ object FirExpectActualDeclarationChecker : FirBasicDeclarationChecker(MppChecker
 
     // Ideally, this function shouldn't exist KT-63751
     private fun FirElement.hasActualModifier(): Boolean {
-        val source = source
-        check(source != null) { "expect-actual matching is only possible for code with sources" }
-        return when (source.kind) {
+        return when (source?.kind) {
+            null -> false
             KtFakeSourceElementKind.DataClassGeneratedMembers -> false
             KtFakeSourceElementKind.EnumGeneratedDeclaration -> false
             KtFakeSourceElementKind.ImplicitConstructor -> false
-            else -> hasModifier(KtTokens.ACTUAL_KEYWORD) || hasModifier(KtTokens.IMPL_KEYWORD)
+            else -> hasModifier(KtTokens.ACTUAL_KEYWORD)
         }
     }
 
@@ -371,24 +360,8 @@ object FirExpectActualDeclarationChecker : FirBasicDeclarationChecker(MppChecker
         symbol: FirBasedSymbol<*>,
         actualContainingClass: FirRegularClassSymbol,
         platformSession: FirSession
-    ): Boolean = actualContainingClass.isInline &&
+    ): Boolean = (actualContainingClass.isInlineOrValue) &&
             symbol is FirPropertySymbol &&
             symbol.receiverParameter == null &&
             actualContainingClass.primaryConstructorSymbol(platformSession)?.valueParameterSymbols?.singleOrNull()?.name == symbol.name
-
-    private fun checkOptInAnnotation(
-        declaration: FirMemberDeclaration,
-        expectDeclarationSymbol: FirBasedSymbol<*>,
-        context: CheckerContext,
-        reporter: DiagnosticReporter,
-    ) {
-        if (context.languageVersionSettings.supportsFeature(LanguageFeature.MultiplatformRestrictions) &&
-            declaration is FirClass &&
-            declaration.classKind == ClassKind.ANNOTATION_CLASS &&
-            !expectDeclarationSymbol.hasAnnotation(StandardClassIds.Annotations.OptionalExpectation, context.session) &&
-            declaration.hasAnnotation(OptInNames.REQUIRES_OPT_IN_CLASS_ID, context.session)
-        ) {
-            reporter.reportOn(declaration.source, FirErrors.EXPECT_ACTUAL_OPT_IN_ANNOTATION, context)
-        }
-    }
 }

@@ -11,9 +11,6 @@ import org.jetbrains.kotlin.backend.jvm.ir.hasPlatformDependent
 import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
-import org.jetbrains.kotlin.fir.backend.FirMangler
-import org.jetbrains.kotlin.fir.backend.FirMetadataSource
-import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
@@ -34,6 +31,7 @@ import org.jetbrains.kotlin.test.directives.CodegenTestDirectives.DUMP_SIGNATURE
 import org.jetbrains.kotlin.test.directives.CodegenTestDirectives.MUTE_SIGNATURE_COMPARISON_K2
 import org.jetbrains.kotlin.test.directives.CodegenTestDirectives.SEPARATE_SIGNATURE_DUMP_FOR_K2
 import org.jetbrains.kotlin.test.directives.FirDiagnosticsDirectives.FIR_IDENTICAL
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives.LINK_VIA_SIGNATURES_K1
 import org.jetbrains.kotlin.test.model.AfterAnalysisChecker
 import org.jetbrains.kotlin.test.model.BackendKind
 import org.jetbrains.kotlin.test.model.FrontendKinds
@@ -52,6 +50,11 @@ import java.io.FileNotFoundException
 private const val CHECK_MARKER = "// CHECK"
 
 /**
+ * Note: This handler has a limited usage.
+ * -  It does not make sense for Kotlin/JVM with exception for a special experimental mode in K1
+ *  where the linkage is performed by signatures. See also [LINK_VIA_SIGNATURES_K1].
+ * - For KLIB-based backends, it has been superseded by [KlibAbiDumpHandler].
+ *
  * Prints a mangled name and an [IdSignature] for each declaration and compares the result with
  * an expected output in a `*.sig.kt.txt` file located next to the test file.
  *
@@ -173,14 +176,15 @@ class IrMangledNameAndSignatureDumpHandler(
                     module,
                     info.irMangler,
                     info.descriptorMangler,
-                    info.firMangler,
-                    info.irModuleFragment.irBuiltins,
+                    info.irPluginContext.irBuiltIns,
                 ),
                 printFilePath = false,
                 printFakeOverridesStrategy = FakeOverridesStrategy.ALL_EXCEPT_ANY,
                 bodyPrintingStrategy = BodyPrintingStrategy.NO_BODIES,
                 printUnitReturnType = true,
                 stableOrder = true,
+                // Expect declarations exist in K1 IR just before serialization, but won't be serialized. Though, dumps should be same before and after
+                printExpectDeclarations = module.languageVersionSettings.languageVersion.usesK2,
             ),
         )
     }
@@ -203,7 +207,6 @@ class IrMangledNameAndSignatureDumpHandler(
         val module: TestModule,
         val irMangler: KotlinMangler.IrMangler,
         val descriptorMangler: KotlinMangler.DescriptorMangler?,
-        val firMangler: FirMangler?,
         val irBuiltIns: IrBuiltIns,
     ) : CustomKotlinLikeDumpStrategy {
 
@@ -262,13 +265,7 @@ class IrMangledNameAndSignatureDumpHandler(
                 addSignatureTo(signatures, symbol.signature, ComputedBy.FE, isPublic = true)
                 addSignatureTo(signatures, symbol.privateSignature, ComputedBy.FE, isPublic = false)
 
-                val firDeclaration: FirDeclaration? = ((declaration as? IrMetadataSourceOwner)?.metadata as? FirMetadataSource)?.fir
-                if (firDeclaration != null) {
-                    // Dump only FIR-based signature mangled names if there is FIR available. In this mode no descriptors are used
-                    // for computing signature mangled names.
-                    firMangler?.addSignatureMangledNameTo(signatureMangledNames, firDeclaration, ComputedBy.FE)
-                } else
-                    descriptorMangler?.addSignatureMangledNameTo(signatureMangledNames, symbol.descriptor, ComputedBy.FE)
+                descriptorMangler?.addSignatureMangledNameTo(signatureMangledNames, symbol.descriptor, ComputedBy.FE)
             }
 
             fun printActualMangledNamesAndSignatures() {
@@ -318,9 +315,11 @@ class IrMangledNameAndSignatureDumpHandler(
             }
         }
 
-        override fun willPrintElement(element: IrElement, container: IrDeclaration?, printer: Printer): Boolean {
+        override fun willPrintElement(element: IrElement, container: IrDeclaration?, printer: Printer, options: KotlinLikeDumpOptions): Boolean {
             if (element !is IrDeclaration) return true
             if (element is IrAnonymousInitializer) return false
+
+            if (element.isExpect && !options.printExpectDeclarations) return false
 
             // Don't print synthetic property-less fields for delegates and context receivers. Ex:
             // class Foo {

@@ -8,9 +8,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilerExecutionStrategy
 import org.jetbrains.kotlin.gradle.testbase.*
 import org.jetbrains.kotlin.gradle.util.checkedReplace
 import org.junit.jupiter.api.DisplayName
+import kotlin.io.path.appendText
 
 @DisplayName("Kotlin JS compile execution strategy")
-@GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
 class ExecutionStrategyJsIT : ExecutionStrategyIT() {
     override fun setupProject(project: TestProject) {
         super.setupProject(project)
@@ -180,6 +180,7 @@ abstract class ExecutionStrategyIT : KGPDaemonsBaseTest() {
                 }
                 """.trimIndent()
             )
+
         }
     }
 
@@ -231,6 +232,13 @@ abstract class ExecutionStrategyIT : KGPDaemonsBaseTest() {
         ) {
             setupProject(this)
             additionalProjectConfiguration()
+
+            gradleProperties.appendText(
+                """
+                |
+                |kotlin.jvm.target.validation.mode=ignore
+                """.trimMargin()
+            )
 
             val args = if (testFallbackStrategy) {
                 arrayOf("-Pkotlin.daemon.jvmargs=-Xmxqwerty")

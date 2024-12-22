@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.konan.test.blackbox
 
 import com.intellij.testFramework.TestDataFile
 import org.jetbrains.kotlin.konan.target.Family
+import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.test.blackbox.support.*
 import org.jetbrains.kotlin.konan.test.blackbox.support.PackageName
 import org.jetbrains.kotlin.konan.test.blackbox.support.TestCase
@@ -38,48 +39,25 @@ import java.io.File
 @Tag("cexport")
 abstract class AbstractNativeCExportTest() : AbstractNativeSimpleTest() {
 
-    private val libraryKind: BinaryLibraryKind by lazy {
-        testRunSettings.get<BinaryLibraryKind>()
-    }
-
-    private fun getKindSpecificClangFlags(binaryLibrary: TestCompilationArtifact.BinaryLibrary): List<String> = when (libraryKind) {
-        BinaryLibraryKind.STATIC -> {
-            val flags = testRunSettings.configurables.linkerKonanFlags
-            flags.filterIndexed { index, value ->
-                // Filter out linker option that defines __cxa_demangle because Konan_cxa_demangle is not defined in tests.
-                if (value == "__cxa_demangle=Konan_cxa_demangle" && flags[index - 1] == "--defsym") {
-                    false
-                } else if (value == "--defsym" && flags[index + 1] == "__cxa_demangle=Konan_cxa_demangle") {
-                    false
-                } else {
-                    true
-                }
-            }.flatMap { listOf("-Xlinker", it) }
-        }
-        BinaryLibraryKind.DYNAMIC -> {
-            if (testRunSettings.get<KotlinNativeTargets>().testTarget.family != Family.MINGW) {
-                listOf("-rpath", binaryLibrary.libraryFile.parentFile.absolutePath)
-            } else {
-                // --allow-multiple-definition is needed because finalLinkCommands statically links a lot of MinGW-specific libraries,
-                // that are already included in DLL produced by Kotlin/Native.
-                listOf("-Wl,--allow-multiple-definition")
-            }
-        }
-    }
-
     internal open fun checkTestPrerequisites() {
-        when (libraryKind) {
-            BinaryLibraryKind.STATIC -> if (targets.testTarget.family == Family.MINGW) {
-                Assumptions.abort<Nothing>("Testing of static libraries is not supported for MinGW targets.")
-            }
-            BinaryLibraryKind.DYNAMIC -> {}
-        }
+        testRunSettings.assumeLibraryKindSupported()
     }
 
     private val testCompilationFactory = TestCompilationFactory()
 
     protected fun runTest(@TestDataFile testDir: String) {
         checkTestPrerequisites()
+
+        // https://youtrack.jetbrains.com/issue/KT-69303
+        if (testDir == "native/native.tests/testData/CExport/InterfaceV1/concurrentTerminate/" && HostManager.hostIsMac) {
+            Assumptions.abort<Nothing>("concurrentTerminate flaks on Mac, see KT-69303")
+        }
+
+        // https://youtrack.jetbrains.com/issue/KT-69663
+        if (testDir == "native/native.tests/testData/CExport/InterfaceV1/unhandledExceptionThroughBridge/" && HostManager.hostIsMingw) {
+            Assumptions.abort<Nothing>("unhandledExceptionThroughBridge flaks on Windows, see KT-69663")
+        }
+
         val testPathFull = getAbsoluteFile(testDir)
         val ktSources = testPathFull.list()!!
             .filter { it.endsWith(".kt") }
@@ -122,7 +100,7 @@ abstract class AbstractNativeCExportTest() : AbstractNativeSimpleTest() {
         val binaryLibrary = testCompilationFactory.testCaseToBinaryLibrary(
             testCase,
             testRunSettings,
-            kind = libraryKind,
+            kind = testRunSettings.get<BinaryLibraryKind>(),
         ).result.assertSuccess().resultingArtifact
 
         val clangExecutableName = "clangMain"
@@ -133,14 +111,13 @@ abstract class AbstractNativeCExportTest() : AbstractNativeSimpleTest() {
         val includeDirectories = binaryLibrary.headerFile?.let { listOf(it.parentFile) } ?: emptyList()
         val libraryName = binaryLibrary.libraryFile.nameWithoutExtension.substringAfter("lib")
         val clangResult = compileWithClang(
-            clangDistribution = ClangDistribution.Llvm,
             clangMode = clangMode,
             sourceFiles = cSources,
             includeDirectories = includeDirectories,
             outputFile = executableFile,
             libraryDirectories = listOf(binaryLibrary.libraryFile.parentFile),
             libraries = listOf(libraryName),
-            additionalClangFlags = getKindSpecificClangFlags(binaryLibrary) + listOf("-Wall", "-Werror"),
+            additionalClangFlags = testRunSettings.getKindSpecificClangFlags(binaryLibrary) + listOf("-Wall", "-Werror"),
         ).assertSuccess()
 
         val testExecutable = TestExecutable(
@@ -154,7 +131,7 @@ abstract class AbstractNativeCExportTest() : AbstractNativeSimpleTest() {
 
     private fun generateCExportTestCase(testPathFull: File, sources: List<File>, goldenData: File? = null, regexes: File? = null, exitCode: String? = null): TestCase {
         val moduleName: String = testPathFull.name
-        val module = TestModule.Exclusive(DEFAULT_MODULE_NAME, emptySet(), emptySet(), emptySet())
+        val module = TestModule.Exclusive(moduleName, emptySet(), emptySet(), emptySet())
         sources.forEach { module.files += TestFile.createCommitted(it, module) }
 
         return TestCase(
@@ -164,6 +141,7 @@ abstract class AbstractNativeCExportTest() : AbstractNativeSimpleTest() {
             freeCompilerArgs = TestCompilerArgs(listOf(
                 "-opt-in", "kotlin.experimental.ExperimentalNativeApi",
                 "-opt-in", "kotlinx.cinterop.ExperimentalForeignApi",
+                "-opt-in", "kotlin.native.internal.InternalForKotlinNative",
             )),
             nominalPackageName = PackageName(moduleName),
             checks = TestRunChecks.Default(testRunSettings.get<Timeouts>().executionTimeout).run {

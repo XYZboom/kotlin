@@ -33,6 +33,7 @@ import org.jetbrains.kotlin.resolve.calls.model.ResolvedValueArgument
 import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
 import org.jetbrains.kotlin.resolve.calls.util.getEffectiveExpectedType
 import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
+import org.jetbrains.kotlin.resolve.checkers.ExperimentalUnsignedLiteralsDiagnosticMessageProvider
 import org.jetbrains.kotlin.resolve.checkers.OptInUsageChecker
 import org.jetbrains.kotlin.resolve.constants.*
 import org.jetbrains.kotlin.resolve.constants.evaluate.CompileTimeType.*
@@ -51,6 +52,7 @@ import org.jetbrains.kotlin.types.typeUtil.isBoolean
 import org.jetbrains.kotlin.types.typeUtil.isGenericArrayOfTypeParameter
 import org.jetbrains.kotlin.types.typeUtil.isSubtypeOf
 import org.jetbrains.kotlin.util.OperatorNameConventions
+import org.jetbrains.kotlin.utils.exceptions.rethrowIntellijPlatformExceptionIfNeeded
 import java.math.BigInteger
 
 class ConstantExpressionEvaluator(
@@ -330,19 +332,20 @@ class ConstantExpressionEvaluator(
     companion object {
         private class ExperimentalityDiagnostic1(
             val factory: DiagnosticFactory1<PsiElement, String>,
-            val verb: String
+            val verb: String,
         ) : OptInUsageChecker.OptInDiagnosticReporter {
             override fun report(trace: BindingTrace, element: PsiElement, fqName: FqName, message: String?) {
                 val defaultMessage = OptInUsageChecker.getDefaultDiagnosticMessage(
-                    "Unsigned literals are experimental and their usages $verb be marked"
+                    ExperimentalUnsignedLiteralsDiagnosticMessageProvider,
+                    verb
                 )
                 trace.reportDiagnosticOnce(factory.on(element, defaultMessage(fqName)))
             }
         }
 
         private val EXPERIMENTAL_UNSIGNED_LITERALS_DIAGNOSTICS = OptInUsageChecker.OptInReporterMultiplexer(
-            warning = ExperimentalityDiagnostic1(Errors.EXPERIMENTAL_UNSIGNED_LITERALS, "should"),
-            error = ExperimentalityDiagnostic1(Errors.EXPERIMENTAL_UNSIGNED_LITERALS_ERROR, "must"),
+            warning = { ExperimentalityDiagnostic1(Errors.EXPERIMENTAL_UNSIGNED_LITERALS, "should") },
+            error = { ExperimentalityDiagnostic1(Errors.EXPERIMENTAL_UNSIGNED_LITERALS_ERROR, "must") },
             futureError = ExperimentalityDiagnostic1(Errors.EXPERIMENTAL_UNSIGNED_LITERALS_ERROR, "must"),
         )
 
@@ -378,7 +381,7 @@ class ConstantExpressionEvaluator(
 }
 
 private val DIVISION_OPERATION_NAMES =
-    listOf(OperatorNameConventions.DIV, OperatorNameConventions.REM, OperatorNameConventions.MOD)
+    listOf(OperatorNameConventions.DIV, OperatorNameConventions.REM)
         .map(Name::asString)
         .toSet()
 
@@ -972,7 +975,7 @@ private class ConstantExpressionEvaluatorVisitor(
     }
 
     override fun visitClassLiteralExpression(expression: KtClassLiteralExpression, expectedType: KotlinType?): CompileTimeConstant<*>? {
-        val kClassType = trace.getType(expression)!!
+        val kClassType = trace.getType(expression) ?: return null
         if (kClassType.isError) return null
         val descriptor = kClassType.constructor.declarationDescriptor
         if (descriptor !is ClassDescriptor || !KotlinBuiltIns.isKClass(descriptor)) return null
@@ -1197,7 +1200,6 @@ private fun getReceiverExpressionType(resolvedCall: ResolvedCall<*>): KotlinType
         ExplicitReceiverKind.EXTENSION_RECEIVER -> resolvedCall.extensionReceiver!!.type
         ExplicitReceiverKind.NO_EXPLICIT_RECEIVER -> null
         ExplicitReceiverKind.BOTH_RECEIVERS -> null
-        else -> null
     }
 }
 
@@ -1257,6 +1259,7 @@ fun evaluateBinary(
     return try {
         evalBinaryOp(name, receiverType, receiverValue, parameterType, parameterValue)
     } catch (e: Exception) {
+        rethrowIntellijPlatformExceptionIfNeeded(e)
         null
     }
 }
@@ -1272,6 +1275,7 @@ private fun evaluateBinaryAndCheck(
     val actualResult = try {
         evalBinaryOp(name, receiverType, receiverValue, parameterType, parameterValue)
     } catch (e: Exception) {
+        rethrowIntellijPlatformExceptionIfNeeded(e)
         null
     }
 

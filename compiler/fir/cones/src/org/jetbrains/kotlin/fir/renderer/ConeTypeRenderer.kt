@@ -6,7 +6,9 @@
 package org.jetbrains.kotlin.fir.renderer
 
 import org.jetbrains.kotlin.builtins.functions.FunctionTypeKind
+import org.jetbrains.kotlin.fir.types.ConeClassifierLookupTag
 import org.jetbrains.kotlin.fir.types.*
+import org.jetbrains.kotlin.types.model.TypeConstructorMarker
 import org.jetbrains.kotlin.utils.addToStdlib.ifNotEmpty
 
 open class ConeTypeRenderer(
@@ -62,40 +64,22 @@ open class ConeTypeRenderer(
         }
     }
 
-    fun render(type: ConeKotlinType) {
+    fun render(
+        type: ConeKotlinType,
+        nullabilityMarker: String = if (type !is ConeFlexibleType && type !is ConeErrorType && type.isMarkedNullable) "?" else "",
+    ) {
         if (type !is ConeFlexibleType && type !is ConeDefinitelyNotNullType) {
             // We don't render attributes for flexible/definitely not null types here,
             // because bounds duplicate these attributes often
             type.renderAttributes()
         }
         when (type) {
-            is ConeTypeVariableType -> {
-                builder.append("TypeVariable(")
-                builder.append(type.typeConstructor.name)
-                builder.append(")")
-            }
-
             is ConeDefinitelyNotNullType -> {
-                render(type.original)
-                builder.append(" & Any")
+                render(type)
             }
 
-            is ConeErrorType -> {
-                builder.append("ERROR CLASS: ${type.diagnostic.reason}")
-            }
-
-            is ConeCapturedType -> {
-                builder.append("CapturedType(")
-                type.constructor.projection.render()
-                builder.append(")")
-            }
-
-            is ConeClassLikeType -> {
-                type.render()
-            }
-
-            is ConeLookupTagBasedType -> {
-                builder.append(type.lookupTag.name.asString())
+            is ConeIntersectionType -> {
+                render(type)
             }
 
             is ConeDynamicType -> {
@@ -106,32 +90,51 @@ open class ConeTypeRenderer(
                 render(type)
             }
 
-            is ConeIntersectionType -> {
-                builder.append("it(")
-                for ((index, intersected) in type.intersectedTypes.withIndex()) {
-                    if (index > 0) {
-                        builder.append(" & ")
-                    }
-                    render(intersected)
+            is ConeErrorType -> builder.append("ERROR CLASS: ${type.diagnostic.reason}")
+
+            is ConeSimpleKotlinType -> {
+                val hasTypeArguments = type is ConeClassLikeType && type.typeArguments.isNotEmpty()
+                renderConstructor(type.getConstructor(), nullabilityMarker = nullabilityMarker.takeIf { !hasTypeArguments } ?: "")
+                if (hasTypeArguments) {
+                    type.renderTypeArguments()
+                    builder.append(nullabilityMarker)
                 }
+                return
+            }
+        }
+        builder.append(nullabilityMarker)
+    }
+
+    open fun renderConstructor(constructor: TypeConstructorMarker, nullabilityMarker: String = "") {
+        require(constructor is ConeTypeConstructorMarker)
+        when (constructor) {
+            is ConeTypeVariableTypeConstructor -> {
+                builder.append("TypeVariable(")
+                builder.append(constructor.name)
                 builder.append(")")
             }
 
-            is ConeStubType -> {
-                builder.append("Stub (subtyping): ${type.constructor.variable}")
+            is ConeCapturedTypeConstructor -> {
+                builder.append("CapturedType(")
+                constructor.projection.render()
+                builder.append(")")
             }
 
-            is ConeIntegerLiteralType -> {
-                render(type)
-            }
+            is ConeClassLikeLookupTag -> idRenderer.renderClassId(constructor.classId)
+            is ConeClassifierLookupTag -> builder.append(constructor.name.asString())
+
+            is ConeStubTypeConstructor -> builder.append("Stub (subtyping): ${constructor.variable}")
+            is ConeIntegerLiteralType -> render(constructor)
+
+            is ConeIntersectionType -> error(
+                "`renderConstructor` mustn't be called with an intersection type argument. " +
+                        "Call `render` to simply render the type or filter out intersection types on the call-site."
+            )
         }
-        if (type !is ConeFlexibleType && type !is ConeErrorType) {
-            builder.append(type.nullability.suffix)
-        }
+        builder.append(nullabilityMarker)
     }
 
-    private fun ConeClassLikeType.render() {
-        idRenderer.renderClassId(lookupTag.classId)
+    private fun ConeClassLikeType.renderTypeArguments() {
         if (typeArguments.isEmpty()) return
         builder.append("<")
         for ((index, typeArgument) in typeArguments.withIndex()) {
@@ -146,12 +149,11 @@ open class ConeTypeRenderer(
     private fun ConeFlexibleType.renderForSameLookupTags(): Boolean {
         if (lowerBound is ConeLookupTagBasedType && upperBound is ConeLookupTagBasedType &&
             lowerBound.lookupTag == upperBound.lookupTag &&
-            lowerBound.nullability == ConeNullability.NOT_NULL && upperBound.nullability == ConeNullability.NULLABLE
+            !lowerBound.isMarkedNullable && upperBound.isMarkedNullable
         ) {
             if (lowerBound !is ConeClassLikeType || lowerBound.typeArguments.isEmpty()) {
                 if (upperBound !is ConeClassLikeType || upperBound.typeArguments.isEmpty()) {
-                    render(lowerBound)
-                    builder.append("!")
+                    render(lowerBound, nullabilityMarker = "!")
                     return true
                 }
             }
@@ -219,5 +221,21 @@ open class ConeTypeRenderer(
                 builder.append("IOT")
             }
         }
+    }
+
+    protected open fun render(type: ConeDefinitelyNotNullType) {
+        this.render(type.original)
+        builder.append(" & Any")
+    }
+
+    protected open fun render(type: ConeIntersectionType) {
+        builder.append("it(")
+        for ((index, intersected) in type.intersectedTypes.withIndex()) {
+            if (index > 0) {
+                builder.append(" & ")
+            }
+            this.render(intersected)
+        }
+        builder.append(")")
     }
 }

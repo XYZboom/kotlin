@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // CHECK_TYPE
 
 package foo
@@ -80,7 +81,7 @@ fun test() {
     "sd".<!UNRESOLVED_REFERENCE_WRONG_RECEIVER!>(fun Int.() = 1)<!>()
     val i : Int? = null
     i.<!UNSAFE_IMPLICIT_INVOKE_CALL!>(fun Int.() = 1)<!>();
-    <!INAPPLICABLE_CANDIDATE!>{}<!><Int>()
+    {}<!WRONG_NUMBER_OF_TYPE_ARGUMENTS!><Int><!>()
     1<!UNNECESSARY_SAFE_CALL!>?.<!>(fun Int.() = 1)()
     1.<!NO_RECEIVER_ALLOWED!>{}<!>()
 }

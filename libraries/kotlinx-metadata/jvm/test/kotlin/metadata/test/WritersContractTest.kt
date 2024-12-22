@@ -5,6 +5,7 @@
 
 package kotlin.metadata.test
 
+import org.junit.Ignore
 import kotlin.metadata.jvm.JvmMetadataVersion
 import kotlin.metadata.jvm.KotlinClassMetadata
 import kotlin.metadata.jvm.Metadata
@@ -21,7 +22,11 @@ class WritersContractTest {
     val multiFileFacadeMd = Class.forName("kotlin.metadata.test.testdata.MultiFileClassFacade").getMetadata()
     val multiFilePartMd = Class.forName("kotlin.metadata.test.testdata.MultiFileClassFacade__MultiFileClassFacade1Kt").getMetadata()
 
-    val unknown = Metadata(99, metadataVersion = intArrayOf(2, 0, 0), extraString = "blabla")
+    val unknown = Metadata(
+        99,
+        metadataVersion = with(JvmMetadataVersion.LATEST_STABLE_SUPPORTED) { intArrayOf(major, minor, patch) },
+        extraString = "blabla"
+    )
 
     val everyType = listOf(classMd, fileFacadeMd, lambdaMd, multiFileFacadeMd, multiFilePartMd, unknown)
 

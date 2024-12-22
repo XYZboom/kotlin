@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.backend.common.push
 import org.jetbrains.kotlin.backend.jvm.*
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.transformStatement
 import org.jetbrains.kotlin.ir.util.*
@@ -73,7 +74,6 @@ internal abstract class JvmValueClassAbstractLowering(
         return when (function) {
             is IrSimpleFunction -> transformSimpleFunctionFlat(function, replacement)
             is IrConstructor -> transformSecondaryConstructorFlat(function, replacement)
-            else -> throw IllegalStateException()
         }
     }
 
@@ -221,14 +221,14 @@ internal abstract class JvmValueClassAbstractLowering(
     }
 
     private fun IrSimpleFunction.signatureRequiresMangling(includeInline: Boolean = true, includeMFVC: Boolean = true) =
-        fullValueParameterList.any { it.type.getRequiresMangling(includeInline, includeMFVC) } ||
+        nonDispatchParameters.any { it.type.getRequiresMangling(includeInline, includeMFVC) } ||
                 context.config.functionsWithInlineClassReturnTypesMangled &&
                 returnType.getRequiresMangling(includeInline = includeInline, includeMFVC = false)
 
     protected fun typedArgumentList(function: IrFunction, expression: IrMemberAccessExpression<*>) = listOfNotNull(
         function.dispatchReceiverParameter?.let { it to expression.dispatchReceiver },
         function.extensionReceiverParameter?.let { it to expression.extensionReceiver }
-    ) + function.valueParameters.map { it to expression.getValueArgument(it.index) }
+    ) + function.valueParameters.map { it to expression.getValueArgument(it.indexInOldValueParameters) }
 
 
     // We may need to add a bridge method for inline class methods with static replacements. Ideally, we'd do this in BridgeLowering,
@@ -261,7 +261,7 @@ internal abstract class JvmValueClassAbstractLowering(
     final override fun visitSuspendableExpression(expression: IrSuspendableExpression) = super.visitSuspendableExpression(expression)
     final override fun visitSuspensionPoint(expression: IrSuspensionPoint) = super.visitSuspensionPoint(expression)
     final override fun visitExpression(expression: IrExpression): IrExpression = super.visitExpression(expression)
-    final override fun visitConst(expression: IrConst<*>) = super.visitConst(expression)
+    final override fun visitConst(expression: IrConst) = super.visitConst(expression)
     final override fun visitConstantValue(expression: IrConstantValue): IrConstantValue = super.visitConstantValue(expression)
     final override fun visitConstantObject(expression: IrConstantObject) = super.visitConstantObject(expression)
     final override fun visitConstantPrimitive(expression: IrConstantPrimitive) = super.visitConstantPrimitive(expression)

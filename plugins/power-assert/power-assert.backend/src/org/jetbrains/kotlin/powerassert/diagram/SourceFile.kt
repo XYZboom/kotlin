@@ -20,52 +20,41 @@
 package org.jetbrains.kotlin.powerassert.diagram
 
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
+import org.jetbrains.kotlin.fir.backend.FirMetadataSource
 import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.PsiIrFileEntry
 import org.jetbrains.kotlin.ir.SourceRangeInfo
 import org.jetbrains.kotlin.ir.declarations.IrFile
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.path
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.powerassert.earliestStartOffset
-import java.io.File
 
 data class SourceFile(
-    private val irFile: IrFile,
+    val irFile: IrFile,
 ) {
-    companion object {
-        private val KOTLIN_POWER_ASSERT_ADD_SRC_ROOTS = System.getProperty("KOTLIN_POWER_ASSERT_ADD_SRC_ROOTS") ?: ""
-        private val sourceRoots = listOf(".") + KOTLIN_POWER_ASSERT_ADD_SRC_ROOTS.split(",").map { it.trim() }
-    }
-
-    private val source: String = run {
-        File(irFile.path).also { file ->
-            if (file.exists()) {
-                return@run file.readText()
-            }
-        }
-
-        for (root in sourceRoots) {
-            val file = File(root, irFile.path)
-            if (file.exists()) {
-                return@run file.readText()
-            }
-        }
-        throw IllegalArgumentException("Unable to find source for IrFile: ${irFile.path}")
-    }
-        .replace("\r\n", "\n") // https://youtrack.jetbrains.com/issue/KT-41888
+    private val source = irFile.readSourceText()
+        .replace("\r\n", "\n") // Normalize line endings in the same way the compiler does.
 
     fun getSourceRangeInfo(element: IrElement): SourceRangeInfo {
+        return irFile.fileEntry.getSourceRangeInfo(element.startOffset, element.endOffset)
+    }
+
+    fun getCompleteSourceRangeInfo(element: IrElement): SourceRangeInfo {
         var range = element.startOffset..element.endOffset
         when (element) {
             is IrCall -> {
-                val receiver = element.extensionReceiver ?: element.dispatchReceiver
-                if (element.symbol.owner.isInfix && receiver != null) {
-                    // When an infix function is called *not* with infix notation, the startOffset will not include the receiver.
-                    // Force the range to include the receiver, so it is always present.
+                val receiverArgument = element.symbol.owner.parameters
+                    .lastOrNull { it.kind == IrParameterKind.DispatchReceiver || it.kind == IrParameterKind.ExtensionReceiver }
+                    ?.let { element.arguments[it] }
+                if (receiverArgument != null) {
+                    // When a function is called *not* with infix notation, the startOffset will not include the receiver.
+                    // Force the range to include the receiver, so it is visible.
                     range = element.earliestStartOffset..element.endOffset
 
-                    // The offsets of the receiver will *not* include surrounding parentheses so these need to be checked for
-                    // manually.
-                    val substring = safeSubstring(range.first - 1, receiver.endOffset + 1)
+                    // The offsets of the receiver will *not* include surrounding parentheses,
+                    // so these need to be checked for manually.
+                    val substring = getText(range.first - 1, receiverArgument.endOffset + 1)
                     if (substring.startsWith('(') && substring.endsWith(')')) {
                         range = (range.first - 1)..range.last
                     }
@@ -76,15 +65,31 @@ data class SourceFile(
     }
 
     fun getText(info: SourceRangeInfo): String {
-        return safeSubstring(info.startOffset, info.endOffset)
+        return getText(info.startOffset, info.endOffset)
     }
 
-    private fun safeSubstring(start: Int, end: Int): String =
-        source.substring(maxOf(start, 0), minOf(end, source.length))
+    fun getText(start: Int, end: Int): String {
+        return source.substring(maxOf(start, 0), minOf(end, source.length))
+    }
 
     fun getCompilerMessageLocation(element: IrElement): CompilerMessageLocation {
         val info = getSourceRangeInfo(element)
         val lineContent = getText(info)
         return CompilerMessageLocation.create(irFile.path, info.startLineNumber, info.startColumnNumber, lineContent)!!
     }
+}
+
+private fun IrFile.readSourceText(): String {
+    // Try and access the source text via FIR metadata.
+    val sourceFile = (metadata as? FirMetadataSource.File)?.fir?.sourceFile
+    if (sourceFile != null) {
+        return sourceFile.getContentsAsStream().use { it.reader().readText() }
+    }
+
+    // If FIR metadata isn't available, try and get source text via PSI.
+    when (val entry = fileEntry) {
+        is PsiIrFileEntry -> return entry.psiFile.text
+    }
+
+    error("Unable to find source for IrFile: $path")
 }

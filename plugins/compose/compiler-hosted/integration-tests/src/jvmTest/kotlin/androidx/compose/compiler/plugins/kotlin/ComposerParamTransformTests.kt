@@ -37,7 +37,7 @@ class ComposerParamTransformTests(useFir: Boolean) : AbstractIrTransformTest(use
         @Language("kotlin")
         source: String,
         validator: (element: IrElement) -> Unit = { },
-        dumpTree: Boolean = false
+        dumpTree: Boolean = false,
     ) = verifyGoldenComposeIrTransform(
         """
             @file:OptIn(
@@ -251,7 +251,7 @@ class ComposerParamTransformTests(useFir: Boolean) : AbstractIrTransformTest(use
                     object : IrElementVisitorVoid {
                         override fun visitSimpleFunction(declaration: IrSimpleFunction) {
                             val composer = declaration.valueParameters.firstOrNull {
-                                it.name == KtxNameConventions.COMPOSER_PARAMETER
+                                it.name == ComposeNames.COMPOSER_PARAMETER
                             }
                             val oldComposer = currentComposer
                             if (composer != null) currentComposer = composer
@@ -268,7 +268,7 @@ class ComposerParamTransformTests(useFir: Boolean) : AbstractIrTransformTest(use
                             val value = expression.symbol.owner
                             if (
                                 value is IrValueParameter && value.name ==
-                                KtxNameConventions.COMPOSER_PARAMETER
+                                ComposeNames.COMPOSER_PARAMETER
                             ) {
                                 assertEquals(
                                     "Composer unexpectedly captured",
@@ -407,7 +407,8 @@ class ComposerParamTransformTests(useFir: Boolean) : AbstractIrTransformTest(use
                     if (expression.symbol.owner.name.asString() == "hashCode") {
                         assertEquals(
                             "kotlin.Function${expectedArity[i]}.hashCode",
-                            expression.symbol.owner.fqNameForIrSerialization.asString())
+                            expression.symbol.owner.fqNameForIrSerialization.asString()
+                        )
                         i++
                     }
                 }

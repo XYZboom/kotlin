@@ -15,6 +15,9 @@ import org.jetbrains.kotlin.ir.expressions.IrStatementContainer
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.util.*
 
+/**
+ * Invokes companion object's initializers from companion object in object constructor.
+ */
 class InvokeStaticInitializersLowering(val context: JsCommonBackendContext) : BodyLoweringPass {
     override fun lower(irBody: IrBody, container: IrDeclaration) {
         if (container !is IrConstructor) return
@@ -34,9 +37,8 @@ class InvokeStaticInitializersLowering(val context: JsCommonBackendContext) : Bo
             irClass.endOffset,
             context.irBuiltIns.unitType,
             instance.symbol,
-            0,
-            0,
-            JsStatementOrigins.SYNTHESIZED_STATEMENT
+            typeArgumentsCount = 0,
+            origin = JsStatementOrigins.SYNTHESIZED_STATEMENT
         )
 
         (irBody as IrStatementContainer).statements.add(0, getInstanceCall)

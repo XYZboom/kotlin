@@ -24,55 +24,14 @@ import androidx.compose.compiler.plugins.kotlin.lower.isSyntheticComposableFunct
 import org.jetbrains.kotlin.backend.jvm.ir.isInlineClassType
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
-import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrDeclaration
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
-import org.jetbrains.kotlin.ir.declarations.IrField
-import org.jetbrains.kotlin.ir.declarations.IrProperty
-import org.jetbrains.kotlin.ir.declarations.IrTypeParameter
-import org.jetbrains.kotlin.ir.declarations.IrVariable
-import org.jetbrains.kotlin.ir.expressions.IrCall
-import org.jetbrains.kotlin.ir.expressions.IrComposite
-import org.jetbrains.kotlin.ir.expressions.IrConst
-import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
-import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.ir.expressions.IrGetValue
-import org.jetbrains.kotlin.ir.expressions.IrLocalDelegatedPropertyReference
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.IrClassifierSymbol
 import org.jetbrains.kotlin.ir.symbols.IrTypeParameterSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
-import org.jetbrains.kotlin.ir.types.IrDynamicType
-import org.jetbrains.kotlin.ir.types.IrErrorType
-import org.jetbrains.kotlin.ir.types.IrSimpleType
-import org.jetbrains.kotlin.ir.types.IrStarProjection
-import org.jetbrains.kotlin.ir.types.IrType
-import org.jetbrains.kotlin.ir.types.IrTypeAbbreviation
-import org.jetbrains.kotlin.ir.types.IrTypeArgument
-import org.jetbrains.kotlin.ir.types.IrTypeProjection
-import org.jetbrains.kotlin.ir.types.classOrNull
-import org.jetbrains.kotlin.ir.types.classifierOrFail
-import org.jetbrains.kotlin.ir.types.classifierOrNull
-import org.jetbrains.kotlin.ir.types.getClass
-import org.jetbrains.kotlin.ir.types.isAny
-import org.jetbrains.kotlin.ir.types.isNullable
-import org.jetbrains.kotlin.ir.types.isPrimitiveType
-import org.jetbrains.kotlin.ir.types.isString
-import org.jetbrains.kotlin.ir.types.isUnit
-import org.jetbrains.kotlin.ir.types.makeNotNull
-import org.jetbrains.kotlin.ir.util.defaultType
-import org.jetbrains.kotlin.ir.util.findAnnotation
-import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
-import org.jetbrains.kotlin.ir.util.getInlineClassUnderlyingType
-import org.jetbrains.kotlin.ir.util.hasAnnotation
-import org.jetbrains.kotlin.ir.util.isEnumClass
-import org.jetbrains.kotlin.ir.util.isEnumEntry
-import org.jetbrains.kotlin.ir.util.isFinalClass
-import org.jetbrains.kotlin.ir.util.isFunctionOrKFunction
-import org.jetbrains.kotlin.ir.util.isInterface
-import org.jetbrains.kotlin.ir.util.isTypeParameter
-import org.jetbrains.kotlin.ir.util.kotlinFqName
-import org.jetbrains.kotlin.ir.util.module
+import org.jetbrains.kotlin.ir.types.*
+import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.isNullable
 
 sealed class Stability {
     // class Foo(val bar: Int)
@@ -168,7 +127,8 @@ fun Stability.normalize(): Stability {
         is Stability.Certain,
         is Stability.Parameter,
         is Stability.Runtime,
-        is Stability.Unknown -> return this
+        is Stability.Unknown,
+        -> return this
 
         is Stability.Combined -> {
             // if combined, we perform the more expensive normalization process
@@ -227,17 +187,17 @@ private fun IrClass.hasStableMarkedDescendant(): Boolean {
 
 private fun IrAnnotationContainer.stabilityParamBitmask(): Int? =
     (annotations.findAnnotation(ComposeFqNames.StabilityInferred)
-        ?.getValueArgument(0) as? IrConst<*>
-        )?.value as? Int
+        ?.getValueArgument(0) as? IrConst
+            )?.value as? Int
 
 private data class SymbolForAnalysis(
     val symbol: IrClassifierSymbol,
-    val typeParameters: List<IrTypeArgument?>
+    val typeParameters: List<IrTypeArgument?>,
 )
 
 class StabilityInferencer(
     private val currentModule: ModuleDescriptor,
-    externalStableTypeMatchers: Set<FqNameMatcher>
+    externalStableTypeMatchers: Set<FqNameMatcher>,
 ) {
     private val externalTypeMatcherCollection = FqNameMatcherCollection(externalStableTypeMatchers)
 
@@ -247,7 +207,7 @@ class StabilityInferencer(
     private fun stabilityOf(
         declaration: IrClass,
         substitutions: Map<IrTypeParameterSymbol, IrTypeArgument>,
-        currentlyAnalyzing: Set<SymbolForAnalysis>
+        currentlyAnalyzing: Set<SymbolForAnalysis>,
     ): Stability {
         val symbol = declaration.symbol
         val typeArguments = declaration.typeParameters.map { substitutions[it.symbol] }
@@ -277,6 +237,10 @@ class StabilityInferencer(
                 mask = externalTypeMatcherCollection
                     .maskForName(declaration.fqNameWhenAvailable) ?: 0
                 stability = Stability.Stable
+            } else if (declaration.isInterface && declaration.isInCurrentModule()) {
+                // trying to avoid extracting stability bitmask for interfaces in current module
+                // to support incremental compilation
+                return Stability.Unknown(declaration)
             } else {
                 val bitmask = declaration.stabilityParamBitmask() ?: return Stability.Unstable
 
@@ -347,7 +311,7 @@ class StabilityInferencer(
             superTypes.lastOrNull { !it.isInterface() }
                 ?.classOrNull?.owner?.fqNameWhenAvailable?.toString()
         return directParentClassName == "com.google.protobuf.GeneratedMessageLite" ||
-            directParentClassName == "com.google.protobuf.GeneratedMessage"
+                directParentClassName == "com.google.protobuf.GeneratedMessage"
     }
 
     private fun IrClass.isExternalStableType(): Boolean {
@@ -357,19 +321,20 @@ class StabilityInferencer(
     private fun canInferStability(declaration: IrClass): Boolean {
         val fqName = declaration.fqNameWhenAvailable?.toString() ?: ""
         return KnownStableConstructs.stableTypes.contains(fqName) ||
-            declaration.origin == IrDeclarationOrigin.IR_EXTERNAL_DECLARATION_STUB
+                declaration.origin == IrDeclarationOrigin.IR_EXTERNAL_DECLARATION_STUB
     }
 
     private fun stabilityOf(
         classifier: IrClassifierSymbol,
         substitutions: Map<IrTypeParameterSymbol, IrTypeArgument>,
-        currentlyAnalyzing: Set<SymbolForAnalysis>
+        currentlyAnalyzing: Set<SymbolForAnalysis>,
     ): Stability {
         // if isEnum, return true
         // class hasStableAnnotation()
         return when (val owner = classifier.owner) {
             is IrClass -> stabilityOf(owner, substitutions, currentlyAnalyzing)
             is IrTypeParameter -> Stability.Unstable
+            is IrScript -> Stability.Stable
             else -> error("Unexpected IrClassifier: $owner")
         }
     }
@@ -377,37 +342,38 @@ class StabilityInferencer(
     private fun stabilityOf(
         argument: IrTypeArgument,
         substitutions: Map<IrTypeParameterSymbol, IrTypeArgument>,
-        currentlyAnalyzing: Set<SymbolForAnalysis>
+        currentlyAnalyzing: Set<SymbolForAnalysis>,
     ): Stability {
         return when (argument) {
             is IrStarProjection -> Stability.Unstable
             is IrTypeProjection -> stabilityOf(argument.type, substitutions, currentlyAnalyzing)
-            else -> error("Unexpected IrTypeArgument: $argument")
         }
     }
 
     private fun stabilityOf(
         type: IrType,
         substitutions: Map<IrTypeParameterSymbol, IrTypeArgument>,
-        currentlyAnalyzing: Set<SymbolForAnalysis>
+        currentlyAnalyzing: Set<SymbolForAnalysis>,
     ): Stability {
         return when {
             type is IrErrorType -> Stability.Unstable
             type is IrDynamicType -> Stability.Unstable
 
             type.isUnit() ||
-                type.isPrimitiveType() ||
-                type.isFunctionOrKFunction() ||
-                type.isSyntheticComposableFunction() ||
-                type.isString() -> Stability.Stable
+                    type.isPrimitiveType() ||
+                    type.isFunctionOrKFunction() ||
+                    type.isSyntheticComposableFunction() ||
+                    type.isString() -> Stability.Stable
 
             type.isTypeParameter() -> {
-                val arg = substitutions[type.classifierOrNull as IrTypeParameterSymbol]
-                if (arg != null) {
-                    stabilityOf(arg, substitutions, currentlyAnalyzing)
+                val classifier = type.classifierOrFail
+                val arg = substitutions[classifier]
+                val symbol = SymbolForAnalysis(classifier, emptyList())
+                if (arg != null && symbol !in currentlyAnalyzing) {
+                    stabilityOf(arg, substitutions, currentlyAnalyzing + symbol)
                 } else {
                     Stability.Parameter(
-                        type.classifierOrFail.owner as IrTypeParameter
+                        classifier.owner as IrTypeParameter
                     )
                 }
             }
@@ -468,9 +434,9 @@ class StabilityInferencer(
             null -> baseStability
             0 -> Stability.Stable
             else -> Stability.Combined(
-                (0 until expr.typeArgumentsCount).mapNotNull { index ->
+                expr.typeArguments.indices.mapNotNull { index ->
                     if (mask and (0b1 shl index) != 0) {
-                        val sub = expr.getTypeArgument(index)
+                        val sub = expr.typeArguments[index]
                         if (sub != null)
                             stabilityOf(sub)
                         else
@@ -486,7 +452,7 @@ class StabilityInferencer(
         val stability = stabilityOf(expr.type)
         if (stability.knownStable()) return stability
         return when (expr) {
-            is IrConst<*> -> Stability.Stable
+            is IrConst -> Stability.Stable
             is IrCall -> stabilityOf(expr, stability)
             is IrGetValue -> {
                 val owner = expr.symbol.owner

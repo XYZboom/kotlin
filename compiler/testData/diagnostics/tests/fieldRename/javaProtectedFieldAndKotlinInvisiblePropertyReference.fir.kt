@@ -1,4 +1,5 @@
-// FILE: BaseJava.java
+// RUN_PIPELINE_TILL: FRONTEND
+// FILE: base/BaseJava.java
 
 package base;
 
@@ -7,6 +8,10 @@ public class BaseJava {
 
     String b = "";
 }
+
+// FILE: base/DerivedJava.java
+
+package base;
 
 class DerivedJava extends BaseKotlin {
     protected String a = "";
@@ -19,7 +24,7 @@ package base
 abstract class BaseKotlin
 
 open class Intermediate : BaseJava() {
-    private val a = ""
+    private val <!PROPERTY_HIDES_JAVA_FIELD!>a<!> = ""
 }
 
 class Derived : Intermediate() {
@@ -37,17 +42,17 @@ package derived
 import base.BaseJava
 
 open class Intermediate : BaseJava() {
-    private val a = ""
+    private val <!PROPERTY_HIDES_JAVA_FIELD!>a<!> = ""
 
     private val b = ""
 }
 
 open class IntermediateWithoutField : BaseJava() {
-    private val a get() = ""
+    private val <!PROPERTY_HIDES_JAVA_FIELD!>a<!> get() = ""
 }
 
 open class IntermediatePublic : BaseJava() {
-    val a = ""
+    val <!PROPERTY_HIDES_JAVA_FIELD!>a<!> = ""
 }
 
 class Derived : Intermediate() {
@@ -68,7 +73,7 @@ class DerivedAlias : Alias() {
 
 fun local() {
     open class LocalIntermediate : BaseJava() {
-        private val a = ""
+        private val <!PROPERTY_HIDES_JAVA_FIELD!>a<!> = ""
     }
 
     class LocalDerived : LocalIntermediate() {

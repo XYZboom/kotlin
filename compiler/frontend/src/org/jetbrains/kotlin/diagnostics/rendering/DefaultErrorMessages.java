@@ -27,8 +27,8 @@ import java.util.*;
 
 import static org.jetbrains.kotlin.diagnostics.Errors.*;
 import static org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers.*;
-import static org.jetbrains.kotlin.diagnostics.rendering.Renderers.*;
 import static org.jetbrains.kotlin.diagnostics.rendering.Renderers.NAME;
+import static org.jetbrains.kotlin.diagnostics.rendering.Renderers.*;
 import static org.jetbrains.kotlin.diagnostics.rendering.RenderingContext.of;
 
 public class DefaultErrorMessages {
@@ -197,6 +197,9 @@ public class DefaultErrorMessages {
         MAP.put(OPT_IN_USAGE_ERROR, "{1}", TO_STRING, STRING);
         MAP.put(OPT_IN_USAGE_FUTURE_ERROR, "{1}", TO_STRING, STRING);
 
+        MAP.put(OPT_IN_TO_INHERITANCE, "{1}", TO_STRING, STRING);
+        MAP.put(OPT_IN_TO_INHERITANCE_ERROR, "{1}", TO_STRING, STRING);
+
         MAP.put(OPT_IN_OVERRIDE, "{1}", TO_STRING, STRING);
         MAP.put(OPT_IN_OVERRIDE_ERROR, "{1}", TO_STRING, STRING);
 
@@ -214,6 +217,7 @@ public class DefaultErrorMessages {
         MAP.put(OPT_IN_MARKER_ON_OVERRIDE_WARNING, "Opt-in requirement marker annotation on override makes no sense without the same marker on base declaration");
 
         MAP.put(SUBCLASS_OPT_IN_INAPPLICABLE, "@SubclassOptInRequired is inapplicable on {0}", STRING);
+        MAP.put(SUBCLASS_OPT_IN_ARGUMENT_IS_NOT_MARKER, "Annotation ''{0}'' is not annotated with ''@RequiresOptIn''.", TO_STRING);
 
         MAP.put(EXPERIMENTAL_UNSIGNED_LITERALS, "{0}", STRING);
         MAP.put(EXPERIMENTAL_UNSIGNED_LITERALS_ERROR, "{0}", STRING);
@@ -369,10 +373,6 @@ public class DefaultErrorMessages {
                 "Default argument values inside expect declaration ''{0}'' are not allowed if it is actualized via typealias. " +
                 "Possible fix is to remove default argument values in members:{1}",
                 NAME, DESCRIPTORS_ON_NEWLINE_WITH_INDENT);
-
-        MAP.put(EXPECTED_FUNCTION_SOURCE_WITH_DEFAULT_ARGUMENTS_NOT_FOUND,
-                "Expected function source is not found, therefore it's impossible to generate default argument values declared there. " +
-                "Please add the corresponding file to compilation sources");
 
         MAP.put(NO_ACTUAL_FOR_EXPECT, "Expected {0} has no actual declaration in module {1}{2}", DECLARATION_NAME_WITH_KIND,
                 MODULE_WITH_PLATFORM, adaptGenerics1(PlatformIncompatibilityDiagnosticRenderer.TEXT));
@@ -621,11 +621,6 @@ public class DefaultErrorMessages {
         MAP.put(IMPLICIT_BOXING_IN_IDENTITY_EQUALS, "Identity equality for arguments of types {0} and {1} can be unstable because of implicit boxing", RENDER_TYPE, RENDER_TYPE);
         MAP.put(FORBIDDEN_IDENTITY_EQUALS, "Identity equality for arguments of types {0} and {1} is forbidden", RENDER_TYPE, RENDER_TYPE);
         MAP.put(FORBIDDEN_SYNCHRONIZED_BY_VALUE_CLASSES_OR_PRIMITIVES, "Synchronizing by {0} is forbidden", RENDER_TYPE);
-
-        MAP.put(DEPRECATED_BINARY_MOD, "Deprecated convention for ''{0}''. Use ''{1}''", NAME, STRING);
-        MAP.put(FORBIDDEN_BINARY_MOD, "Convention for ''{0}'' is forbidden. Use ''{1}''", NAME, STRING);
-        MAP.put(DEPRECATED_BINARY_MOD_AS_REM, "''%'' is resolved to deprecated ''{0}'' operator. Replace with ''.{0}'' or add operator ''{1}''", NAME, STRING);
-        MAP.put(FORBIDDEN_BINARY_MOD_AS_REM, "''%'' is resolved to forbidden ''{0}'' operator. Replace with ''.{0}'' or add operator ''{1}''", NAME, STRING);
 
         MAP.put(NO_GET_METHOD, "No get method providing array access");
         MAP.put(NO_SET_METHOD, "No set method providing array access");
@@ -1275,8 +1270,6 @@ public class DefaultErrorMessages {
         MAP.put(PRIVATE_INLINE_FUNCTIONS_RETURNING_ANONYMOUS_OBJECTS, "Return type of the private inline function can't be anonymous. It will be approximated to Any in a future release. See KT-33917 for more details");
         //Inline non locals
         MAP.put(NON_LOCAL_RETURN_NOT_ALLOWED, "Can''t inline ''{0}'' here: it may contain non-local returns. Add ''crossinline'' modifier to parameter declaration ''{0}''", ELEMENT_TEXT);
-        MAP.put(INLINE_CALL_CYCLE, "The ''{0}'' invocation is a part of inline cycle", NAME);
-        MAP.put(NON_LOCAL_RETURN_IN_DISABLED_INLINE, "Non-local returns are not allowed with inlining disabled");
         MAP.put(NON_LOCAL_SUSPENSION_POINT, "Suspension functions can be called only within coroutine body");
         MAP.put(ILLEGAL_SUSPEND_FUNCTION_CALL, "Suspend function ''{0}'' should be called only from a coroutine or another suspend function", NAME);
         MAP.put(ILLEGAL_SUSPEND_PROPERTY_ACCESS, "Suspend property ''{0}'' should be accessed only from a coroutine or suspend function", NAME);
@@ -1303,6 +1296,7 @@ public class DefaultErrorMessages {
         MAP.put(AMBIGUOUS_CALL_WITH_IMPLICIT_CONTEXT_RECEIVER, "With implicit context receiver, call is ambiguous. Specify the receiver explicitly");
         MAP.put(UNSUPPORTED_CONTEXTUAL_DECLARATION_CALL, "To use contextual declarations, specify the `-Xcontext-receivers` compiler option");
         MAP.put(SUBTYPING_BETWEEN_CONTEXT_RECEIVERS, "Subtyping relation between context receivers is prohibited");
+        MAP.put(CONTEXT_PARAMETERS_UNSUPPORTED, "Context parameters are not supported in K1 mode. Consider using a more recent language version and switching to K2 mode.");
 
         MAP.put(VOLATILE_ON_VALUE, "'@Volatile' annotation cannot be used on immutable properties");
         MAP.put(VOLATILE_ON_DELEGATE, "'@Volatile' annotation cannot be used on delegated properties");

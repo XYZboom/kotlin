@@ -7,10 +7,7 @@ fun interface Foo {
 
 fun baz(x: Any): Int = x.hashCode()
 
-// CHECK-LABEL: define %struct.ObjHeader* @"kfun:#box(){}kotlin.String"
-// Boxing needs to be used now due to non-devirtualized call
-// CHECK-OPT: Int-box
-
+// CHECK-LABEL: define ptr @"kfun:#box(){}kotlin.String"
 // CHECK-NOT: Int-box
 // CHECK-NOT: Int-unbox
 // CHECK-LABEL: epilogue:

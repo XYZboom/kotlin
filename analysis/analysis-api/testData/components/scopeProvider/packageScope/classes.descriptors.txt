@@ -1,8 +1,9 @@
-KtNamedClassOrObjectSymbol:
-  annotationsList: []
-  classIdIfNonLocal: test/A
+KaNamedClassSymbol:
+  annotations: []
+  classId: test/A
   classKind: CLASS
-  companionObject: KtNamedClassOrObjectSymbol(test/A.Companion)
+  companionObject: KaNamedClassSymbol(test/A.Companion)
+  compilerVisibility: Public
   contextReceivers: []
   isActual: false
   isData: false
@@ -11,32 +12,33 @@ KtNamedClassOrObjectSymbol:
   isFun: false
   isInline: false
   isInner: false
+  location: TOP_LEVEL
   modality: ABSTRACT
   name: A
   origin: SOURCE
   superTypes: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: kotlin/Any
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: test/api/I
   ]
-  symbolKind: TOP_LEVEL
   typeParameters: []
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(A.kt)
-  getContainingModule: KtSourceModule "Sources of main"
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(A.kt)
+  getContainingModule: KaSourceModule "Sources of main"
   annotationApplicableTargets: null
   deprecationStatus: null
 
-KtNamedClassOrObjectSymbol:
-  annotationsList: []
-  classIdIfNonLocal: test/InternalA
+KaNamedClassSymbol:
+  annotations: []
+  classId: test/InternalA
   classKind: CLASS
   companionObject: null
+  compilerVisibility: Internal
   contextReceivers: []
   isActual: false
   isData: false
@@ -45,32 +47,33 @@ KtNamedClassOrObjectSymbol:
   isFun: false
   isInline: false
   isInner: false
+  location: TOP_LEVEL
   modality: ABSTRACT
   name: InternalA
   origin: SOURCE
   superTypes: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: kotlin/Any
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: test/api/InternalI
   ]
-  symbolKind: TOP_LEVEL
   typeParameters: []
-  visibility: Internal
-  getContainingFileSymbol: KtFileSymbol(A.kt)
-  getContainingModule: KtSourceModule "Sources of main"
+  visibility: INTERNAL
+  getContainingFileSymbol: KaFileSymbol(A.kt)
+  getContainingModule: KaSourceModule "Sources of main"
   annotationApplicableTargets: null
   deprecationStatus: null
 
-KtNamedClassOrObjectSymbol:
-  annotationsList: []
-  classIdIfNonLocal: test/PrivateA
+KaNamedClassSymbol:
+  annotations: []
+  classId: test/PrivateA
   classKind: CLASS
   companionObject: null
+  compilerVisibility: Private
   contextReceivers: []
   isActual: false
   isData: false
@@ -79,32 +82,33 @@ KtNamedClassOrObjectSymbol:
   isFun: false
   isInline: false
   isInner: false
+  location: TOP_LEVEL
   modality: ABSTRACT
   name: PrivateA
   origin: SOURCE
   superTypes: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: kotlin/Any
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: test/api/I
   ]
-  symbolKind: TOP_LEVEL
   typeParameters: []
-  visibility: Private
-  getContainingFileSymbol: KtFileSymbol(A.kt)
-  getContainingModule: KtSourceModule "Sources of main"
+  visibility: PRIVATE
+  getContainingFileSymbol: KaFileSymbol(A.kt)
+  getContainingModule: KaSourceModule "Sources of main"
   annotationApplicableTargets: null
   deprecationStatus: null
 
-KtNamedClassOrObjectSymbol:
-  annotationsList: []
-  classIdIfNonLocal: test/B
+KaNamedClassSymbol:
+  annotations: []
+  classId: test/B
   classKind: CLASS
-  companionObject: KtNamedClassOrObjectSymbol(test/B.Companion)
+  companionObject: KaNamedClassSymbol(test/B.Companion)
+  compilerVisibility: Public
   contextReceivers: []
   isActual: false
   isData: false
@@ -113,28 +117,29 @@ KtNamedClassOrObjectSymbol:
   isFun: false
   isInline: false
   isInner: false
+  location: TOP_LEVEL
   modality: FINAL
   name: B
   origin: SOURCE
   superTypes: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: test/A
   ]
-  symbolKind: TOP_LEVEL
   typeParameters: []
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(B.kt)
-  getContainingModule: KtSourceModule "Sources of main"
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(B.kt)
+  getContainingModule: KaSourceModule "Sources of main"
   annotationApplicableTargets: null
   deprecationStatus: null
 
-KtNamedClassOrObjectSymbol:
-  annotationsList: []
-  classIdIfNonLocal: test/InternalB
+KaNamedClassSymbol:
+  annotations: []
+  classId: test/InternalB
   classKind: CLASS
   companionObject: null
+  compilerVisibility: Internal
   contextReceivers: []
   isActual: false
   isData: false
@@ -143,28 +148,29 @@ KtNamedClassOrObjectSymbol:
   isFun: false
   isInline: false
   isInner: false
+  location: TOP_LEVEL
   modality: FINAL
   name: InternalB
   origin: SOURCE
   superTypes: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: test/InternalA
   ]
-  symbolKind: TOP_LEVEL
   typeParameters: []
-  visibility: Internal
-  getContainingFileSymbol: KtFileSymbol(B.kt)
-  getContainingModule: KtSourceModule "Sources of main"
+  visibility: INTERNAL
+  getContainingFileSymbol: KaFileSymbol(B.kt)
+  getContainingModule: KaSourceModule "Sources of main"
   annotationApplicableTargets: null
   deprecationStatus: null
 
-KtNamedClassOrObjectSymbol:
-  annotationsList: []
-  classIdIfNonLocal: test/PrivateB
+KaNamedClassSymbol:
+  annotations: []
+  classId: test/PrivateB
   classKind: CLASS
   companionObject: null
+  compilerVisibility: Private
   contextReceivers: []
   isActual: false
   isData: false
@@ -173,19 +179,19 @@ KtNamedClassOrObjectSymbol:
   isFun: false
   isInline: false
   isInner: false
+  location: TOP_LEVEL
   modality: FINAL
   name: PrivateB
   origin: SOURCE
   superTypes: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: test/A
   ]
-  symbolKind: TOP_LEVEL
   typeParameters: []
-  visibility: Private
-  getContainingFileSymbol: KtFileSymbol(B.kt)
-  getContainingModule: KtSourceModule "Sources of main"
+  visibility: PRIVATE
+  getContainingFileSymbol: KaFileSymbol(B.kt)
+  getContainingModule: KaSourceModule "Sources of main"
   annotationApplicableTargets: null
   deprecationStatus: null

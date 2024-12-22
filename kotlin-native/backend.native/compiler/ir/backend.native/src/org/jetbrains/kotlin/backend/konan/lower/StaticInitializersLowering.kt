@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.backend.common.FileLoweringPass
 import org.jetbrains.kotlin.backend.common.lower.createIrBuilder
 import org.jetbrains.kotlin.backend.konan.ConfigChecks
 import org.jetbrains.kotlin.backend.konan.Context
+import org.jetbrains.kotlin.backend.konan.ir.hasNonConstInitializer
 import org.jetbrains.kotlin.backend.konan.DECLARATION_ORIGIN_ENTRY_POINT
 import org.jetbrains.kotlin.backend.konan.KonanFqNames
 import org.jetbrains.kotlin.backend.konan.llvm.*
@@ -69,7 +70,7 @@ internal class StaticInitializersLowering(val context: Context) : FileLoweringPa
         for (declaration in container.declarations) {
             val irField = (declaration as? IrField) ?: (declaration as? IrProperty)?.backingField
             if (irField == null || !irField.isStatic || !irField.needsInitializationAtRuntime || context.shouldBeInitializedEagerly(irField)) continue
-            if (irField.storageKind(context) != FieldStorageKind.THREAD_LOCAL) {
+            if (irField.storageKind != FieldStorageKind.THREAD_LOCAL) {
                 requireGlobalInitializer = true
             } else {
                 requireThreadLocalInitializer = true // Either marked with thread local or only main thread visible.
@@ -124,6 +125,6 @@ internal class StaticInitializersLowering(val context: Context) : FileLoweringPa
     }
 
     private val IrField.needsInitializationAtRuntime: Boolean
-        get() = hasNonConstInitializer || needsGCRegistration(context)
+        get() = hasNonConstInitializer || needsGCRegistration
 
 }

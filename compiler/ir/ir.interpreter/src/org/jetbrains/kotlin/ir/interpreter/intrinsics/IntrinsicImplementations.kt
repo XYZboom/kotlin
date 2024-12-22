@@ -236,7 +236,7 @@ internal object ArrayConstructor : IntrinsicBase() {
 
         val initSymbol = irFunction.valueParameters[1].symbol
         val state = callStack.loadState(initSymbol).let {
-            (it as? KFunctionState) ?: (it as KPropertyState).convertGetterToKFunctionState(environment)
+            (it as? KFunctionState) ?: (it as KPropertyState).getterState!!
         }
         // if property was converted, then we must replace symbol in memory to get correct receiver later
         callStack.rewriteState(initSymbol, state)
@@ -268,7 +268,7 @@ internal object ArrayConstructor : IntrinsicBase() {
                     // TODO may be use wrap
                     when (it) {
                         is Wrapper -> it.value
-                        is Primitive<*> -> if (it.type.isArray() || it.type.isPrimitiveArray()) it else it.value
+                        is Primitive -> if (it.type.isArray() || it.type.isPrimitiveArray()) it else it.value
                         else -> it
                     }
                 }
@@ -338,7 +338,7 @@ internal object DataClassArrayToString : IntrinsicBase() {
     }
 
     override fun evaluate(irFunction: IrFunction, environment: IrInterpreterEnvironment) {
-        val array = environment.callStack.loadState(irFunction.valueParameters.single().symbol) as Primitive<*>
+        val array = environment.callStack.loadState(irFunction.valueParameters.single().symbol) as Primitive
         environment.callStack.pushState(environment.convertToState(arrayToString(array.value), irFunction.returnType))
     }
 }

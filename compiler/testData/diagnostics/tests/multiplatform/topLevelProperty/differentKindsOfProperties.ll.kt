@@ -1,3 +1,5 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // LANGUAGE: +LateinitTopLevelProperties
 // MODULE: m1-common
 // FILE: common.kt
@@ -21,10 +23,10 @@ expect val backingFieldVal: String = <!EXPECTED_PROPERTY_INITIALIZER!>"no"<!>
 expect var backingFieldVar: String = <!EXPECTED_PROPERTY_INITIALIZER!>"no"<!>
 
 expect val customAccessorVal: String
-    get() = "no"
+    <!EXPECTED_DECLARATION_WITH_BODY!>get()<!> = "no"
 expect var customAccessorVar: String
-    get() = "no"
-    set(value) {}
+    <!EXPECTED_DECLARATION_WITH_BODY!>get()<!> = "no"
+    <!EXPECTED_DECLARATION_WITH_BODY!>set(value)<!> {}
 
 expect <!CONST_VAL_WITHOUT_INITIALIZER!>const<!> val constVal: Int
 

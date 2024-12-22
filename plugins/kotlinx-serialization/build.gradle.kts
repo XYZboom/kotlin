@@ -6,6 +6,7 @@ description = "Kotlin Serialization Compiler Plugin"
 plugins {
     kotlin("jvm")
     id("jps-compatible")
+    id("d8-configuration")
 }
 
 val jsonJsIrRuntimeForTests: Configuration by configurations.creating {
@@ -40,21 +41,25 @@ dependencies {
     testApi(project(":compiler:fir:plugin-utils"))
     testImplementation(projectTests(":generators:test-generator"))
     testImplementation(projectTests(":js:js.tests"))
+    testImplementation(projectTests(":analysis:analysis-api-fir"))
+    testImplementation(projectTests(":analysis:analysis-api-impl-base"))
+    testImplementation(projectTests(":analysis:low-level-api-fir"))
+
     testApi(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
 
-    testImplementation(project(":kotlinx-serialization-compiler-plugin.common"))
-    testImplementation(project(":kotlinx-serialization-compiler-plugin.k1"))
-    testImplementation(project(":kotlinx-serialization-compiler-plugin.k2"))
-    testImplementation(project(":kotlinx-serialization-compiler-plugin.backend"))
-    testImplementation(project(":kotlinx-serialization-compiler-plugin.cli"))
+    testApi(project(":kotlinx-serialization-compiler-plugin.common"))
+    testApi(project(":kotlinx-serialization-compiler-plugin.k1"))
+    testApi(project(":kotlinx-serialization-compiler-plugin.k2"))
+    testApi(project(":kotlinx-serialization-compiler-plugin.backend"))
+    testApi(project(":kotlinx-serialization-compiler-plugin.cli"))
 
-    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    testApi("org.jetbrains.kotlinx:kotlinx-serialization-core:1.7.0")
+    testApi("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.0")
 
-    coreJsIrRuntimeForTests("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.0") { isTransitive = false }
-    jsonJsIrRuntimeForTests("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0") { isTransitive = false }
+    coreJsIrRuntimeForTests("org.jetbrains.kotlinx:kotlinx-serialization-core:1.7.0") { isTransitive = false }
+    jsonJsIrRuntimeForTests("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.0") { isTransitive = false }
 
     testRuntimeOnly(intellijCore())
     testRuntimeOnly(commonDependency("org.jetbrains.kotlin:kotlin-reflect")) { isTransitive = false }
@@ -88,7 +93,6 @@ val runtimeJar = runtimeJar {
 sourcesJar()
 javadocJar()
 testsJar()
-useD8Plugin()
 
 val distCompat by configurations.creating {
     isCanBeResolved = false
@@ -110,6 +114,7 @@ artifacts {
 }
 
 projectTest(parallel = true, jUnitMode = JUnitMode.JUnit5) {
+    dependsOn(":dist")
     workingDir = rootDir
     useJUnitPlatform()
     setUpJsIrBoxTests()

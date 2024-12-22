@@ -22,29 +22,18 @@ Tower Data Context:
             Properties:
                 FirPropertySymbol public final val one: R|kotlin/Int|
                     public get(): R|kotlin/Int|
-                FirPropertySymbol public final val two: R|kotlin/Int|
-                    public get(): R|kotlin/Int|
+                FirPropertySymbol public final val two: <implicit>
+                    public get(): <implicit>
     Element 9
         Scope: FirLocalScope
     Element 10
-        Context receivers:
-            FirScriptSymbol context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
-            SCRIPT: <script-topLevelDestructuring_subProperty.kts>
-                lval args: R|kotlin/Array<kotlin/String>|
-            
-                public final data class TwoValues : R|kotlin/Any|
-                lval <destruct>: R|TwoValues|
-                public final val one: R|kotlin/Int|
-                    public get(): R|kotlin/Int|
-            
-                public final val two: R|kotlin/Int|
-                    public get(): R|kotlin/Int|
+        Implicit receiver:
+            FirReceiverParameterSymbol <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
                 Type: kotlin.script.templates.standard.ScriptTemplateWithArgs
-                Label: <script>
 
-FILE: [ResolvedTo(IMPORTS)] topLevelDestructuring_subProperty.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
+FILE: [ResolvedTo(RAW_FIR)] topLevelDestructuring_subProperty.kts
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-topLevelDestructuring_subProperty.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
         public final? data [ResolvedTo(RAW_FIR)] class TwoValues : R|kotlin/Any| {
@@ -66,9 +55,9 @@ FILE: [ResolvedTo(IMPORTS)] topLevelDestructuring_subProperty.kts
 
         }
 
-        [ResolvedTo(ANNOTATION_ARGUMENTS)] lval <destruct>: R|TwoValues| = R|/TwoValues.TwoValues|(Int(1), Int(2))
-        public final [ResolvedTo(BODY_RESOLVE)] val one: R|kotlin/Int| = R|<local>/<destruct>|.R|/TwoValues.component1|()
-            public [ResolvedTo(BODY_RESOLVE)] get(): R|kotlin/Int|
+        [ResolvedTo(RAW_FIR)] lval <destruct>: <implicit> = LAZY_EXPRESSION
+        public final [ResolvedTo(RAW_FIR)] val one: <implicit> = LAZY_EXPRESSION
+            public [ResolvedTo(RAW_FIR)] get(): <implicit>
 
         public final [ResolvedTo(RAW_FIR)] val two: <implicit> = LAZY_EXPRESSION
             public [ResolvedTo(RAW_FIR)] get(): <implicit>

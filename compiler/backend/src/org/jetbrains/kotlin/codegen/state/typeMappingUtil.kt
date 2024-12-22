@@ -34,20 +34,14 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.propertyIfAccessor
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.TypeSystemCommonBackendContext
 import org.jetbrains.kotlin.types.Variance
-import org.jetbrains.kotlin.types.suppressWildcardsMode
 import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext
 import org.jetbrains.kotlin.types.checker.convertVariance
 import org.jetbrains.kotlin.types.getEffectiveVariance
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
-import org.jetbrains.kotlin.types.model.TypeParameterMarker
+import org.jetbrains.kotlin.types.suppressWildcardsMode
 
 fun TypeSystemCommonBackendContext.isMostPreciseContravariantArgument(type: KotlinTypeMarker): Boolean =
     type.typeConstructor().isAnyConstructor()
-
-@Suppress("UNUSED_PARAMETER")
-@Deprecated("This method is needed for binary compatibility. See KT-56033", level = DeprecationLevel.HIDDEN)
-fun TypeSystemCommonBackendContext.isMostPreciseContravariantArgument(type: KotlinTypeMarker, parameter: TypeParameterMarker): Boolean =
-    isMostPreciseCovariantArgument(type)
 
 fun TypeSystemCommonBackendContext.isMostPreciseCovariantArgument(type: KotlinTypeMarker): Boolean =
     !canHaveSubtypesIgnoringNullability(type)
@@ -60,10 +54,9 @@ private fun TypeSystemCommonBackendContext.canHaveSubtypesIgnoringNullability(ko
     for (i in 0 until constructor.parametersCount()) {
         val parameter = constructor.getParameter(i)
         val argument = kotlinType.getArgument(i)
-        if (argument.isStarProjection()) return true
 
+        val type = argument.getType() ?: return true
         val projectionKind = argument.getVariance().convertVariance()
-        val type = argument.getType()
 
         val effectiveVariance = getEffectiveVariance(parameter.getVariance().convertVariance(), projectionKind)
         if (effectiveVariance == Variance.OUT_VARIANCE && !isMostPreciseCovariantArgument(type)) return true

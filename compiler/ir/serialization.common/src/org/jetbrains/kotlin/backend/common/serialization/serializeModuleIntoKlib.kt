@@ -10,17 +10,20 @@ import org.jetbrains.kotlin.KtIoFileSourceFile
 import org.jetbrains.kotlin.KtPsiSourceFile
 import org.jetbrains.kotlin.KtSourceFile
 import org.jetbrains.kotlin.KtVirtualFileSourceFile
+import org.jetbrains.kotlin.backend.common.checkers.IrInlineDeclarationChecker
 import org.jetbrains.kotlin.backend.common.serialization.metadata.KlibSingleFileMetadataSerializer
 import org.jetbrains.kotlin.backend.common.serialization.metadata.serializeKlibHeader
-import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.KlibConfigurationKeys
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
+import org.jetbrains.kotlin.diagnostics.impl.deduplicating
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.IrDiagnosticReporter
 import org.jetbrains.kotlin.ir.KtDiagnosticReporterWithImplicitIrBasedContext
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
 import org.jetbrains.kotlin.library.KotlinLibrary
 import org.jetbrains.kotlin.library.SerializedIrFile
 import org.jetbrains.kotlin.library.SerializedIrModule
@@ -63,7 +66,6 @@ class KotlinFileSerializedData private constructor(
 class SerializerOutput<Dependency : KotlinLibrary>(
     val serializedMetadata: SerializedMetadata?,
     val serializedIr: SerializedIrModule?,
-    val dataFlowGraph: ByteArray?, // TODO (KT-66218): remove this property
     val neededLibraries: List<Dependency>,
 )
 
@@ -83,6 +85,7 @@ fun KtSourceFile.toIoFileOrNull(): File? = when (this) {
  *
  * @param moduleName The name of the module being serialized to be written into the KLIB header.
  * @param irModuleFragment The IR to be serialized into the KLIB being produced, or `null` if this is going to be a metadata-only KLIB.
+ * @param irBuiltins IR builtins for `irModuleFragment`, or `null` if this is going to be a metadata-only KLIB.
  * @param configuration Used to determine certain serialization parameters and enable/disable serialization diagnostics.
  * @param diagnosticReporter Used for reporting serialization-time diagnostics, for example, about clashing IR signatures.
  * @param compatibilityMode The information about KLIB ABI.
@@ -91,14 +94,15 @@ fun KtSourceFile.toIoFileOrNull(): File? = when (this) {
  * @param dependencies The list of KLIBs that the KLIB being produced depends on.
  * @param createModuleSerializer Used for creating a backend-specific instance of [IrModuleSerializer].
  * @param metadataSerializer Something capable of serializing the metadata of the source files. See the corresponding interface KDoc.
- * @param runKlibCheckers Additional checks to be run before serializing [irModuleFragment]. Can be used to report serialization-time
- *     diagnostics.
+ * @param platformKlibCheckers Additional checks to be run before serializing [irModuleFragment].
+ *     Can be used to report serialization-time diagnostics.
  * @param processCompiledFileData Called for each newly serialized file. Useful for incremental compilation.
  * @param processKlibHeader Called after serializing the KLIB header. Useful for incremental compilation.
  */
 fun <Dependency : KotlinLibrary, SourceFile> serializeModuleIntoKlib(
     moduleName: String,
     irModuleFragment: IrModuleFragment?,
+    irBuiltins: IrBuiltIns?,
     configuration: CompilerConfiguration,
     diagnosticReporter: DiagnosticReporter,
     compatibilityMode: CompatibilityMode,
@@ -114,7 +118,7 @@ fun <Dependency : KotlinLibrary, SourceFile> serializeModuleIntoKlib(
         shouldCheckSignaturesOnUniqueness: Boolean,
     ) -> IrModuleSerializer<*>,
     metadataSerializer: KlibSingleFileMetadataSerializer<SourceFile>,
-    runKlibCheckers: (IrModuleFragment, IrDiagnosticReporter, CompilerConfiguration) -> Unit = { _, _, _ -> },
+    platformKlibCheckers: List<(IrDiagnosticReporter) -> IrElementVisitor<*, Nothing?>> = emptyList(),
     processCompiledFileData: ((File, KotlinFileSerializedData) -> Unit)? = null,
     processKlibHeader: (ByteArray) -> Unit = {},
 ): SerializerOutput<Dependency> {
@@ -124,21 +128,29 @@ fun <Dependency : KotlinLibrary, SourceFile> serializeModuleIntoKlib(
         }
     }
 
-    val sourceBaseDirs = configuration[CommonConfigurationKeys.KLIB_RELATIVE_PATH_BASES] ?: emptyList()
-    val normalizeAbsolutePath = configuration.getBoolean(CommonConfigurationKeys.KLIB_NORMALIZE_ABSOLUTE_PATH)
-    val signatureClashChecks = configuration[CommonConfigurationKeys.PRODUCE_KLIB_SIGNATURES_CLASH_CHECKS] ?: true
-
     val serializedIr = irModuleFragment?.let {
-        val irDiagnosticReporter = KtDiagnosticReporterWithImplicitIrBasedContext(diagnosticReporter, configuration.languageVersionSettings)
-        runKlibCheckers(it, irDiagnosticReporter, configuration)
+        val irDiagnosticReporter =
+            KtDiagnosticReporterWithImplicitIrBasedContext(diagnosticReporter.deduplicating(), configuration.languageVersionSettings)
+
+        it.runIrLevelCheckers(
+            irDiagnosticReporter,
+            *platformKlibCheckers.toTypedArray(),
+        )
+
+        // TODO(KT-71416): Move this after the first phase of KLIB inlining.
+        it.runIrLevelCheckers(
+            irDiagnosticReporter,
+            ::IrInlineDeclarationChecker,
+        )
+
         createModuleSerializer(
             irDiagnosticReporter,
-            it.irBuiltins,
+            irBuiltins!!,
             compatibilityMode,
-            normalizeAbsolutePath,
-            sourceBaseDirs,
+            configuration.getBoolean(KlibConfigurationKeys.KLIB_NORMALIZE_ABSOLUTE_PATH),
+            configuration.getList(KlibConfigurationKeys.KLIB_RELATIVE_PATH_BASES),
             configuration.languageVersionSettings,
-            signatureClashChecks,
+            configuration.get(KlibConfigurationKeys.PRODUCE_KLIB_SIGNATURES_CLASH_CHECKS, true),
         ).serializedIrModule(it)
     }
 
@@ -197,7 +209,15 @@ fun <Dependency : KotlinLibrary, SourceFile> serializeModuleIntoKlib(
     return SerializerOutput(
         serializedMetadata = serializedMetadata,
         serializedIr = if (serializedIr == null) null else SerializedIrModule(compiledKotlinFiles.mapNotNull { it.irData }),
-        dataFlowGraph = null,
         neededLibraries = dependencies,
     )
+}
+
+private fun IrModuleFragment.runIrLevelCheckers(
+    diagnosticReporter: IrDiagnosticReporter,
+    vararg checkers: (IrDiagnosticReporter) -> IrElementVisitor<*, Nothing?>,
+) {
+    for (checker in checkers) {
+        accept(checker(diagnosticReporter), null)
+    }
 }

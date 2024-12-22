@@ -18,14 +18,15 @@ import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.dump
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isConstantLike
+import org.jetbrains.kotlin.ir.util.isNullable
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.load.java.JvmAnnotationNames
 
-@PhaseDescription(
-    name = "JvmSafeCallChainFoldingLowering",
-    description = "Fold safe call chains to more compact forms"
-)
+/**
+ * Folds safe call chains to more compact forms.
+ */
+@PhaseDescription(name = "JvmSafeCallChainFoldingLowering")
 internal class JvmSafeCallChainFoldingLowering(val context: JvmBackendContext) : FileLoweringPass {
     // Overall idea here is to represent (possibly chained) safe calls as an if-expression in the form:
     //      when {
@@ -462,9 +463,9 @@ internal fun IrBlock.parseSafeCall(irBuiltIns: IrBuiltIns): SafeCallInfo? {
     val arg0 = ifNullBranchCondition.getValueArgument(0)
     if (arg0 !is IrGetValue || arg0.symbol != tmpVal.symbol) return null
     val arg1 = ifNullBranchCondition.getValueArgument(1)
-    if (arg1 !is IrConst<*> || arg1.value != null) return null
+    if (arg1 !is IrConst || arg1.value != null) return null
     val ifNullBranchResult = ifNullBranch.result
-    if (ifNullBranchResult !is IrConst<*> || ifNullBranchResult.value != null) return null
+    if (ifNullBranchResult !is IrConst || ifNullBranchResult.value != null) return null
 
     val ifNotNullBranch = whenExpr.branches[1]
     return SafeCallInfo(this, tmpVal, ifNullBranch, ifNotNullBranch)
@@ -500,7 +501,7 @@ internal fun IrBlock.parseElvis(irBuiltIns: IrBuiltIns): ElvisInfo? {
     val arg0 = ifNullBranchCondition.getValueArgument(0)
     if (arg0 !is IrGetValue || arg0.symbol != tmpVal.symbol) return null
     val arg1 = ifNullBranchCondition.getValueArgument(1)
-    if (arg1 !is IrConst<*> || arg1.value != null) return null
+    if (arg1 !is IrConst || arg1.value != null) return null
     val elvisRhs = ifNullBranch.result
 
     val ifNonNullBranch = whenExpr.branches[1]

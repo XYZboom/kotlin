@@ -42,7 +42,6 @@ open class BasicTestIncrementalCompilationIT : KmpIncrementalITBase() {
 
     @DisplayName("KMP tests are rebuilt when affected")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     @TestMetadata("generic-kmp-app-plus-lib-with-tests")
     fun testAffectingTestDependencies(gradleVersion: GradleVersion): Unit = withProject(gradleVersion) {
         build("build")
@@ -88,7 +87,7 @@ open class BasicTestIncrementalCompilationIT : KmpIncrementalITBase() {
                 ":app:jvmTest",
             ),
         ) {
-            assertCompiledKotlinSources(listOf(touchedAppJvm).relativizeTo(projectPath), output) //KT-63476
+            assertIncrementalCompilation(listOf(touchedAppJvm).relativizeTo(projectPath))
         }
 
         /**

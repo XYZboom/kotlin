@@ -67,15 +67,15 @@ sealed class FirValueClassDeclarationChecker(mppKind: MppCheckerKind) : FirRegul
             reporter.reportOn(declaration.source, FirErrors.VALUE_CLASS_NOT_FINAL, context)
         }
 
-        if (declaration.contextReceivers.isNotEmpty()) {
+        if (declaration.contextParameters.isNotEmpty() && context.languageVersionSettings.supportsFeature(LanguageFeature.ContextReceivers)) {
             reporter.reportOn(declaration.source, FirErrors.VALUE_CLASS_CANNOT_HAVE_CONTEXT_RECEIVERS, context)
         }
 
 
         for (supertypeEntry in declaration.superTypeRefs) {
-            if (supertypeEntry !is FirImplicitAnyTypeRef && supertypeEntry.toRegularClassSymbol(context.session)?.isInterface != true) {
-                reporter.reportOn(supertypeEntry.source, FirErrors.VALUE_CLASS_CANNOT_EXTEND_CLASSES, context)
-            }
+            if (supertypeEntry is FirImplicitAnyTypeRef || supertypeEntry is FirErrorTypeRef) continue
+            if (supertypeEntry.toRegularClassSymbol(context.session)?.isInterface == true) continue
+            reporter.reportOn(supertypeEntry.source, FirErrors.VALUE_CLASS_CANNOT_EXTEND_CLASSES, context)
         }
 
         if (declaration.isSubtypeOfCloneable(context.session)) {
@@ -164,7 +164,7 @@ sealed class FirValueClassDeclarationChecker(mppKind: MppCheckerKind) : FirRegul
             classScope.processFunctionsByName(Name.identifier(reservedName)) {
                 val functionSymbol = it.unwrapFakeOverrides()
                 if (functionSymbol.isAbstract) return@processFunctionsByName
-                val containingClassSymbol = functionSymbol.getContainingClassSymbol(context.session) ?: return@processFunctionsByName
+                val containingClassSymbol = functionSymbol.getContainingClassSymbol() ?: return@processFunctionsByName
                 if (containingClassSymbol == declaration.symbol) {
                     if (functionSymbol.source?.kind is KtRealSourceElementKind) {
                         reporter.reportOn(
@@ -305,7 +305,7 @@ sealed class FirValueClassDeclarationChecker(mppKind: MppCheckerKind) : FirRegul
         if (this.typeArguments.firstOrNull() is ConeStarProjection || !isPotentiallyArray())
             return false
 
-        val arrayElementType = arrayElementType()?.type ?: return false
+        val arrayElementType = arrayElementType() ?: return false
         return arrayElementType is ConeTypeParameterType ||
                 arrayElementType.isGenericArrayOfTypeParameter()
     }

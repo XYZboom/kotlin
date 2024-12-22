@@ -41,6 +41,7 @@ void gc::mark::ConcurrentMark::endMarkingEpoch() {
 }
 
 void gc::mark::ConcurrentMark::runMainInSTW() {
+    std::unique_lock markLock(markMutex_);
     ParallelProcessor::Worker mainWorker(*parallelProcessor_);
     GCLogDebug(gcHandle().getEpoch(), "Creating main (#0) mark worker");
 
@@ -71,7 +72,6 @@ void gc::mark::ConcurrentMark::runMainInSTW() {
         RuntimeCheck(iter <= compiler::concurrentMarkMaxIterations(), "Failed to terminate mark in STW in a single iteration");
         ++iter;
         if (iter == compiler::concurrentMarkMaxIterations()) {
-            fprintf(stderr, "EMERGENCY MARK TERMINATION\n");
             GCLogWarning(gcHandle().getEpoch(), "Finishing mark closure in STW after (%zu concurrent attempts)", iter);
             stopTheWorld(gcHandle(), "GC stop the world #2: concurrent mark took too long");
             terminateInSTW = true;
@@ -85,9 +85,6 @@ void gc::mark::ConcurrentMark::runMainInSTW() {
     gc::processWeaks<DefaultProcessWeaksTraits>(gcHandle(), mm::SpecialRefRegistry::instance());
 
     if (!terminateInSTW) {
-        // Mutator threads execute weak barrier in "native" state. This hack maes them stop with the rest of the world.
-        std::unique_lock markTerminationGuard(markTerminationMutex_);
-
         stopTheWorld(gcHandle(), "GC stop the world #2: prepare to sweep");
     }
 
@@ -119,7 +116,7 @@ void gc::mark::ConcurrentMark::tryCollectRootSet(mm::ThreadData& thread, MarkTra
     auto& gcData = thread.gc().impl().gc();
     if (!gcData.tryLockRootSet()) return;
 
-    GCLogDebug(gcHandle().getEpoch(), "Root set collection on thread %d for thread %d", konan::currentThreadId(), thread.threadId());
+    GCLogDebug(gcHandle().getEpoch(), "Root set collection on thread %" PRIuPTR " for thread %" PRIuPTR, konan::currentThreadId(), thread.threadId());
     gcData.publish();
     collectRootSetForThread<MarkTraits>(gcHandle(), markQueue, thread);
 }

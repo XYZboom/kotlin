@@ -5,7 +5,7 @@ FILE fqName:<root> fileName:/1.kt
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in java.util.LinkedList'
           <E>: kotlin.Int
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:A modality:ABSTRACT visibility:public superTypes:[java.util.LinkedList<kotlin.Int>; <root>.Java2; kotlin.collections.MutableCollection<kotlin.Int>]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:A modality:ABSTRACT visibility:public superTypes:[java.util.LinkedList<kotlin.Int>; <root>.Java2; kotlin.collections.MutableCollection<kotlin.Int>]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Boolean [fake_override]
       overridden:
         public open fun add (p0: @[EnhancedNullability] E of java.util.LinkedList): kotlin.Boolean declared in java.util.LinkedList
@@ -30,16 +30,16 @@ FILE fqName:<root> fileName:/1.kt
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.Int
       VALUE_PARAMETER name:p1 index:1 type:@[EnhancedNullability] kotlin.collections.Collection<out @[EnhancedNullability] kotlin.Int>
-    FUN FAKE_OVERRIDE name:addFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Int?) returnType:kotlin.Unit [fake_override]
+    FUN FAKE_OVERRIDE name:addFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Unit [fake_override]
       overridden:
-        public open fun addFirst (p0: @[FlexibleNullability] E of java.util.LinkedList?): kotlin.Unit declared in java.util.LinkedList
+        public open fun addFirst (p0: @[EnhancedNullability] E of java.util.LinkedList): kotlin.Unit declared in java.util.LinkedList
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
-      VALUE_PARAMETER name:p0 index:0 type:@[FlexibleNullability] kotlin.Int?
-    FUN FAKE_OVERRIDE name:addLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Int?) returnType:kotlin.Unit [fake_override]
+      VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] kotlin.Int
+    FUN FAKE_OVERRIDE name:addLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Unit [fake_override]
       overridden:
-        public open fun addLast (p0: @[FlexibleNullability] E of java.util.LinkedList?): kotlin.Unit declared in java.util.LinkedList
+        public open fun addLast (p0: @[EnhancedNullability] E of java.util.LinkedList): kotlin.Unit declared in java.util.LinkedList
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
-      VALUE_PARAMETER name:p0 index:0 type:@[FlexibleNullability] kotlin.Int?
+      VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] kotlin.Int
     FUN FAKE_OVERRIDE name:clear visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:kotlin.Unit [fake_override]
       overridden:
         public open fun clear (): kotlin.Unit declared in java.util.LinkedList
@@ -204,14 +204,14 @@ FILE fqName:<root> fileName:/1.kt
         public abstract fun removeAll (elements: kotlin.collections.Collection<E of kotlin.collections.MutableCollection>): kotlin.Boolean declared in kotlin.collections.MutableCollection
       $this: VALUE_PARAMETER name:<this> type:java.util.AbstractCollection<@[FlexibleNullability] kotlin.Int?>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.collections.Collection<@[EnhancedNullability] kotlin.Int>
-    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:kotlin.Int) returnType:@[EnhancedNullability] kotlin.Int [fake_override,operator]
+    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:kotlin.Int) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
         public open fun removeAt (p0: kotlin.Int): @[EnhancedNullability] E of java.util.LinkedList declared in java.util.LinkedList
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.Int
-    FUN FAKE_OVERRIDE name:removeFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[FlexibleNullability] kotlin.Int? [fake_override]
+    FUN FAKE_OVERRIDE name:removeFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
-        public open fun removeFirst (): @[FlexibleNullability] E of java.util.LinkedList? declared in java.util.LinkedList
+        public open fun removeFirst (): @[EnhancedNullability] E of java.util.LinkedList declared in java.util.LinkedList
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
     FUN FAKE_OVERRIDE name:removeFirstOccurrence visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Any?) returnType:kotlin.Boolean [fake_override]
       overridden:
@@ -224,9 +224,9 @@ FILE fqName:<root> fileName:/1.kt
         public open fun removeIf (p0: @[EnhancedNullability] java.util.function.Predicate<in @[EnhancedNullability] E of kotlin.collections.MutableCollection>): kotlin.Boolean declared in kotlin.collections.MutableCollection
       $this: VALUE_PARAMETER name:<this> type:kotlin.collections.MutableCollection<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] java.util.function.Predicate<in @[FlexibleNullability] @[EnhancedNullability] kotlin.Int?>
-    FUN FAKE_OVERRIDE name:removeLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[FlexibleNullability] kotlin.Int? [fake_override]
+    FUN FAKE_OVERRIDE name:removeLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
-        public open fun removeLast (): @[FlexibleNullability] E of java.util.LinkedList? declared in java.util.LinkedList
+        public open fun removeLast (): @[EnhancedNullability] E of java.util.LinkedList declared in java.util.LinkedList
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
     FUN FAKE_OVERRIDE name:removeLastOccurrence visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Any?) returnType:kotlin.Boolean [fake_override]
       overridden:
@@ -293,6 +293,9 @@ FILE fqName:<root> fileName:/1.kt
         public open fun toString (): kotlin.String declared in <root>.Java2
         public open fun toString (): kotlin.String declared in kotlin.collections.MutableCollection
       $this: VALUE_PARAMETER name:<this> type:java.util.AbstractCollection<@[FlexibleNullability] kotlin.Int?>
+    PROPERTY FAKE_OVERRIDE name:modCount visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final modCount: kotlin.Int declared in java.util.LinkedList
     PROPERTY FAKE_OVERRIDE name:size visibility:public modality:OPEN [fake_override,val]
       overridden:
         public open size: kotlin.Int declared in java.util.LinkedList
@@ -308,7 +311,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.B [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.A'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:B modality:FINAL visibility:public superTypes:[<root>.A]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:B modality:FINAL visibility:public superTypes:[<root>.A]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Boolean [fake_override]
       overridden:
         public open fun add (p0: @[EnhancedNullability] kotlin.Int): kotlin.Boolean declared in <root>.A
@@ -331,16 +334,16 @@ FILE fqName:<root> fileName:/1.kt
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.Int
       VALUE_PARAMETER name:p1 index:1 type:@[EnhancedNullability] kotlin.collections.Collection<out @[EnhancedNullability] kotlin.Int>
-    FUN FAKE_OVERRIDE name:addFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Int?) returnType:kotlin.Unit [fake_override]
+    FUN FAKE_OVERRIDE name:addFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Unit [fake_override]
       overridden:
-        public open fun addFirst (p0: @[FlexibleNullability] kotlin.Int?): kotlin.Unit declared in <root>.A
+        public open fun addFirst (p0: @[EnhancedNullability] kotlin.Int): kotlin.Unit declared in <root>.A
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
-      VALUE_PARAMETER name:p0 index:0 type:@[FlexibleNullability] kotlin.Int?
-    FUN FAKE_OVERRIDE name:addLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Int?) returnType:kotlin.Unit [fake_override]
+      VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] kotlin.Int
+    FUN FAKE_OVERRIDE name:addLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Unit [fake_override]
       overridden:
-        public open fun addLast (p0: @[FlexibleNullability] kotlin.Int?): kotlin.Unit declared in <root>.A
+        public open fun addLast (p0: @[EnhancedNullability] kotlin.Int): kotlin.Unit declared in <root>.A
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
-      VALUE_PARAMETER name:p0 index:0 type:@[FlexibleNullability] kotlin.Int?
+      VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] kotlin.Int
     FUN FAKE_OVERRIDE name:clear visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:kotlin.Unit [fake_override]
       overridden:
         public open fun clear (): kotlin.Unit declared in <root>.A
@@ -482,14 +485,14 @@ FILE fqName:<root> fileName:/1.kt
         public open fun removeAll (p0: kotlin.collections.Collection<@[EnhancedNullability] kotlin.Int>): kotlin.Boolean declared in <root>.A
       $this: VALUE_PARAMETER name:<this> type:java.util.AbstractCollection<@[FlexibleNullability] kotlin.Int?>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.collections.Collection<@[EnhancedNullability] kotlin.Int>
-    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:kotlin.Int) returnType:@[EnhancedNullability] kotlin.Int [fake_override,operator]
+    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:kotlin.Int) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
         public open fun removeAt (p0: kotlin.Int): @[EnhancedNullability] kotlin.Int declared in <root>.A
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.Int
-    FUN FAKE_OVERRIDE name:removeFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[FlexibleNullability] kotlin.Int? [fake_override]
+    FUN FAKE_OVERRIDE name:removeFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
-        public open fun removeFirst (): @[FlexibleNullability] kotlin.Int? declared in <root>.A
+        public open fun removeFirst (): @[EnhancedNullability] kotlin.Int declared in <root>.A
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
     FUN FAKE_OVERRIDE name:removeFirstOccurrence visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Any?) returnType:kotlin.Boolean [fake_override]
       overridden:
@@ -501,9 +504,9 @@ FILE fqName:<root> fileName:/1.kt
         public open fun removeIf (p0: @[EnhancedNullability] java.util.function.Predicate<in @[FlexibleNullability] @[EnhancedNullability] kotlin.Int?>): kotlin.Boolean declared in <root>.A
       $this: VALUE_PARAMETER name:<this> type:kotlin.collections.MutableCollection<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] java.util.function.Predicate<in @[FlexibleNullability] @[EnhancedNullability] kotlin.Int?>
-    FUN FAKE_OVERRIDE name:removeLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[FlexibleNullability] kotlin.Int? [fake_override]
+    FUN FAKE_OVERRIDE name:removeLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
-        public open fun removeLast (): @[FlexibleNullability] kotlin.Int? declared in <root>.A
+        public open fun removeLast (): @[EnhancedNullability] kotlin.Int declared in <root>.A
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
     FUN FAKE_OVERRIDE name:removeLastOccurrence visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Any?) returnType:kotlin.Boolean [fake_override]
       overridden:
@@ -574,6 +577,9 @@ FILE fqName:<root> fileName:/1.kt
       BLOCK_BODY
         RETURN type=kotlin.Nothing from='public open fun remove (element: kotlin.Int): kotlin.Boolean declared in <root>.B'
           CONST Boolean type=kotlin.Boolean value=true
+    PROPERTY FAKE_OVERRIDE name:modCount visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final modCount declared in <root>.A
     PROPERTY FAKE_OVERRIDE name:size visibility:public modality:OPEN [fake_override,val]
       overridden:
         public open size: kotlin.Int declared in <root>.A
@@ -588,7 +594,7 @@ FILE fqName:<root> fileName:/1.kt
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in java.util.LinkedList'
           <E>: kotlin.Int
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:C modality:ABSTRACT visibility:public superTypes:[java.util.LinkedList<kotlin.Int>; <root>.KotlinInterface; kotlin.collections.MutableCollection<kotlin.Int>]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:C modality:ABSTRACT visibility:public superTypes:[java.util.LinkedList<kotlin.Int>; <root>.KotlinInterface; kotlin.collections.MutableCollection<kotlin.Int>]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Boolean [fake_override]
       overridden:
         public open fun add (p0: @[EnhancedNullability] E of java.util.LinkedList): kotlin.Boolean declared in java.util.LinkedList
@@ -613,16 +619,16 @@ FILE fqName:<root> fileName:/1.kt
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.Int
       VALUE_PARAMETER name:p1 index:1 type:@[EnhancedNullability] kotlin.collections.Collection<out @[EnhancedNullability] kotlin.Int>
-    FUN FAKE_OVERRIDE name:addFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Int?) returnType:kotlin.Unit [fake_override]
+    FUN FAKE_OVERRIDE name:addFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Unit [fake_override]
       overridden:
-        public open fun addFirst (p0: @[FlexibleNullability] E of java.util.LinkedList?): kotlin.Unit declared in java.util.LinkedList
+        public open fun addFirst (p0: @[EnhancedNullability] E of java.util.LinkedList): kotlin.Unit declared in java.util.LinkedList
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
-      VALUE_PARAMETER name:p0 index:0 type:@[FlexibleNullability] kotlin.Int?
-    FUN FAKE_OVERRIDE name:addLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Int?) returnType:kotlin.Unit [fake_override]
+      VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] kotlin.Int
+    FUN FAKE_OVERRIDE name:addLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Unit [fake_override]
       overridden:
-        public open fun addLast (p0: @[FlexibleNullability] E of java.util.LinkedList?): kotlin.Unit declared in java.util.LinkedList
+        public open fun addLast (p0: @[EnhancedNullability] E of java.util.LinkedList): kotlin.Unit declared in java.util.LinkedList
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
-      VALUE_PARAMETER name:p0 index:0 type:@[FlexibleNullability] kotlin.Int?
+      VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] kotlin.Int
     FUN FAKE_OVERRIDE name:clear visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:kotlin.Unit [fake_override]
       overridden:
         public open fun clear (): kotlin.Unit declared in java.util.LinkedList
@@ -787,14 +793,14 @@ FILE fqName:<root> fileName:/1.kt
         public abstract fun removeAll (elements: kotlin.collections.Collection<E of kotlin.collections.MutableCollection>): kotlin.Boolean declared in kotlin.collections.MutableCollection
       $this: VALUE_PARAMETER name:<this> type:java.util.AbstractCollection<@[FlexibleNullability] kotlin.Int?>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.collections.Collection<@[EnhancedNullability] kotlin.Int>
-    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:kotlin.Int) returnType:@[EnhancedNullability] kotlin.Int [fake_override,operator]
+    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:kotlin.Int) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
         public open fun removeAt (p0: kotlin.Int): @[EnhancedNullability] E of java.util.LinkedList declared in java.util.LinkedList
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.Int
-    FUN FAKE_OVERRIDE name:removeFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[FlexibleNullability] kotlin.Int? [fake_override]
+    FUN FAKE_OVERRIDE name:removeFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
-        public open fun removeFirst (): @[FlexibleNullability] E of java.util.LinkedList? declared in java.util.LinkedList
+        public open fun removeFirst (): @[EnhancedNullability] E of java.util.LinkedList declared in java.util.LinkedList
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
     FUN FAKE_OVERRIDE name:removeFirstOccurrence visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Any?) returnType:kotlin.Boolean [fake_override]
       overridden:
@@ -807,9 +813,9 @@ FILE fqName:<root> fileName:/1.kt
         public open fun removeIf (p0: @[EnhancedNullability] java.util.function.Predicate<in @[EnhancedNullability] E of kotlin.collections.MutableCollection>): kotlin.Boolean declared in kotlin.collections.MutableCollection
       $this: VALUE_PARAMETER name:<this> type:kotlin.collections.MutableCollection<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] java.util.function.Predicate<in @[FlexibleNullability] @[EnhancedNullability] kotlin.Int?>
-    FUN FAKE_OVERRIDE name:removeLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[FlexibleNullability] kotlin.Int? [fake_override]
+    FUN FAKE_OVERRIDE name:removeLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
-        public open fun removeLast (): @[FlexibleNullability] E of java.util.LinkedList? declared in java.util.LinkedList
+        public open fun removeLast (): @[EnhancedNullability] E of java.util.LinkedList declared in java.util.LinkedList
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
     FUN FAKE_OVERRIDE name:removeLastOccurrence visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Any?) returnType:kotlin.Boolean [fake_override]
       overridden:
@@ -876,6 +882,9 @@ FILE fqName:<root> fileName:/1.kt
         public open fun toString (): kotlin.String declared in <root>.KotlinInterface
         public open fun toString (): kotlin.String declared in kotlin.collections.MutableCollection
       $this: VALUE_PARAMETER name:<this> type:java.util.AbstractCollection<@[FlexibleNullability] kotlin.Int?>
+    PROPERTY FAKE_OVERRIDE name:modCount visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final modCount: kotlin.Int declared in java.util.LinkedList
     PROPERTY FAKE_OVERRIDE name:size visibility:public modality:OPEN [fake_override,val]
       overridden:
         public open size: kotlin.Int declared in java.util.LinkedList
@@ -891,7 +900,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.D [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.C'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:D modality:FINAL visibility:public superTypes:[<root>.C]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:D modality:FINAL visibility:public superTypes:[<root>.C]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Boolean [fake_override]
       overridden:
         public open fun add (p0: @[EnhancedNullability] kotlin.Int): kotlin.Boolean declared in <root>.C
@@ -914,16 +923,16 @@ FILE fqName:<root> fileName:/1.kt
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.Int
       VALUE_PARAMETER name:p1 index:1 type:@[EnhancedNullability] kotlin.collections.Collection<out @[EnhancedNullability] kotlin.Int>
-    FUN FAKE_OVERRIDE name:addFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Int?) returnType:kotlin.Unit [fake_override]
+    FUN FAKE_OVERRIDE name:addFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Unit [fake_override]
       overridden:
-        public open fun addFirst (p0: @[FlexibleNullability] kotlin.Int?): kotlin.Unit declared in <root>.C
+        public open fun addFirst (p0: @[EnhancedNullability] kotlin.Int): kotlin.Unit declared in <root>.C
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
-      VALUE_PARAMETER name:p0 index:0 type:@[FlexibleNullability] kotlin.Int?
-    FUN FAKE_OVERRIDE name:addLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Int?) returnType:kotlin.Unit [fake_override]
+      VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] kotlin.Int
+    FUN FAKE_OVERRIDE name:addLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[EnhancedNullability] kotlin.Int) returnType:kotlin.Unit [fake_override]
       overridden:
-        public open fun addLast (p0: @[FlexibleNullability] kotlin.Int?): kotlin.Unit declared in <root>.C
+        public open fun addLast (p0: @[EnhancedNullability] kotlin.Int): kotlin.Unit declared in <root>.C
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
-      VALUE_PARAMETER name:p0 index:0 type:@[FlexibleNullability] kotlin.Int?
+      VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] kotlin.Int
     FUN FAKE_OVERRIDE name:clear visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:kotlin.Unit [fake_override]
       overridden:
         public open fun clear (): kotlin.Unit declared in <root>.C
@@ -1065,14 +1074,14 @@ FILE fqName:<root> fileName:/1.kt
         public open fun removeAll (p0: kotlin.collections.Collection<@[EnhancedNullability] kotlin.Int>): kotlin.Boolean declared in <root>.C
       $this: VALUE_PARAMETER name:<this> type:java.util.AbstractCollection<@[FlexibleNullability] kotlin.Int?>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.collections.Collection<@[EnhancedNullability] kotlin.Int>
-    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:kotlin.Int) returnType:@[EnhancedNullability] kotlin.Int [fake_override,operator]
+    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:kotlin.Int) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
         public open fun removeAt (p0: kotlin.Int): @[EnhancedNullability] kotlin.Int declared in <root>.C
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.Int
-    FUN FAKE_OVERRIDE name:removeFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[FlexibleNullability] kotlin.Int? [fake_override]
+    FUN FAKE_OVERRIDE name:removeFirst visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
-        public open fun removeFirst (): @[FlexibleNullability] kotlin.Int? declared in <root>.C
+        public open fun removeFirst (): @[EnhancedNullability] kotlin.Int declared in <root>.C
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
     FUN FAKE_OVERRIDE name:removeFirstOccurrence visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Any?) returnType:kotlin.Boolean [fake_override]
       overridden:
@@ -1084,9 +1093,9 @@ FILE fqName:<root> fileName:/1.kt
         public open fun removeIf (p0: @[EnhancedNullability] java.util.function.Predicate<in @[FlexibleNullability] @[EnhancedNullability] kotlin.Int?>): kotlin.Boolean declared in <root>.C
       $this: VALUE_PARAMETER name:<this> type:kotlin.collections.MutableCollection<kotlin.Int>
       VALUE_PARAMETER name:p0 index:0 type:@[EnhancedNullability] java.util.function.Predicate<in @[FlexibleNullability] @[EnhancedNullability] kotlin.Int?>
-    FUN FAKE_OVERRIDE name:removeLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[FlexibleNullability] kotlin.Int? [fake_override]
+    FUN FAKE_OVERRIDE name:removeLast visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>) returnType:@[EnhancedNullability] kotlin.Int [fake_override]
       overridden:
-        public open fun removeLast (): @[FlexibleNullability] kotlin.Int? declared in <root>.C
+        public open fun removeLast (): @[EnhancedNullability] kotlin.Int declared in <root>.C
       $this: VALUE_PARAMETER name:<this> type:java.util.LinkedList<kotlin.Int>
     FUN FAKE_OVERRIDE name:removeLastOccurrence visibility:public modality:OPEN <> ($this:java.util.LinkedList<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Any?) returnType:kotlin.Boolean [fake_override]
       overridden:
@@ -1157,6 +1166,9 @@ FILE fqName:<root> fileName:/1.kt
       BLOCK_BODY
         RETURN type=kotlin.Nothing from='public open fun remove (element: kotlin.Int): kotlin.Boolean declared in <root>.D'
           CONST Boolean type=kotlin.Boolean value=true
+    PROPERTY FAKE_OVERRIDE name:modCount visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final modCount declared in <root>.C
     PROPERTY FAKE_OVERRIDE name:size visibility:public modality:OPEN [fake_override,val]
       overridden:
         public open size: kotlin.Int declared in <root>.C
@@ -1170,7 +1182,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.E [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java1'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:E modality:ABSTRACT visibility:public superTypes:[<root>.Java1; <root>.Java2]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:E modality:ABSTRACT visibility:public superTypes:[<root>.Java1; <root>.Java2]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:ABSTRACT <> ($this:kotlin.collections.AbstractMutableList<kotlin.Any?>, index:kotlin.Int, element:kotlin.Any?) returnType:kotlin.Unit [fake_override]
       overridden:
         public abstract fun add (index: kotlin.Int, element: kotlin.Any?): kotlin.Unit declared in <root>.Java1
@@ -1340,6 +1352,9 @@ FILE fqName:<root> fileName:/1.kt
         public open fun toString (): kotlin.String declared in <root>.Java1
         public open fun toString (): kotlin.String declared in <root>.Java2
       $this: VALUE_PARAMETER name:<this> type:kotlin.Any
+    PROPERTY FAKE_OVERRIDE name:modCount visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final modCount: kotlin.Int declared in <root>.Java1
     PROPERTY FAKE_OVERRIDE name:size visibility:public modality:ABSTRACT [fake_override,val]
       overridden:
         public abstract size: kotlin.Int declared in <root>.Java1
@@ -1353,7 +1368,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.F [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.E'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:F modality:ABSTRACT visibility:public superTypes:[<root>.E]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:F modality:ABSTRACT visibility:public superTypes:[<root>.E]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:ABSTRACT <> ($this:kotlin.collections.AbstractMutableList<kotlin.Any?>, index:kotlin.Int, element:kotlin.Any?) returnType:kotlin.Unit [fake_override]
       overridden:
         public abstract fun add (index: kotlin.Int, element: kotlin.Any?): kotlin.Unit declared in <root>.E
@@ -1523,6 +1538,9 @@ FILE fqName:<root> fileName:/1.kt
       BLOCK_BODY
         RETURN type=kotlin.Nothing from='public open fun remove (element: kotlin.Int): kotlin.Boolean declared in <root>.F'
           CONST Boolean type=kotlin.Boolean value=false
+    PROPERTY FAKE_OVERRIDE name:modCount visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final modCount declared in <root>.E
     PROPERTY FAKE_OVERRIDE name:size visibility:public modality:ABSTRACT [fake_override,val]
       overridden:
         public abstract size: kotlin.Int declared in <root>.E
@@ -1536,7 +1554,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.G [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in kotlin.Any'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:G modality:ABSTRACT visibility:public superTypes:[<root>.KotlinInterface2; <root>.Java2]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:G modality:ABSTRACT visibility:public superTypes:[<root>.KotlinInterface2; <root>.Java2]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:ABSTRACT <> ($this:kotlin.collections.MutableCollection<kotlin.Int>, element:kotlin.Int) returnType:kotlin.Boolean [fake_override]
       overridden:
         public abstract fun add (element: kotlin.Int): kotlin.Boolean declared in <root>.KotlinInterface2
@@ -1656,7 +1674,7 @@ FILE fqName:<root> fileName:/1.kt
       VALUE_PARAMETER name:size index:0 type:kotlin.Int
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.G'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:H modality:ABSTRACT visibility:public superTypes:[<root>.G]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:H modality:ABSTRACT visibility:public superTypes:[<root>.G]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:ABSTRACT <> ($this:kotlin.collections.MutableCollection<kotlin.Int>, element:kotlin.Int) returnType:kotlin.Boolean [fake_override]
       overridden:
         public abstract fun add (element: kotlin.Int): kotlin.Boolean declared in <root>.G
@@ -1751,7 +1769,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.I [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in kotlin.Any'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:I modality:ABSTRACT visibility:public superTypes:[<root>.KotlinInterface3; <root>.Java3]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:I modality:ABSTRACT visibility:public superTypes:[<root>.KotlinInterface3; <root>.Java3]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:ABSTRACT <> ($this:java.util.List<kotlin.Int>, p0:@[FlexibleNullability] kotlin.Int?) returnType:kotlin.Boolean [fake_override]
       overridden:
         public abstract fun add (p0: @[FlexibleNullability] kotlin.Int?): kotlin.Boolean declared in <root>.KotlinInterface3
@@ -1924,7 +1942,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.J [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java4'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:J modality:ABSTRACT visibility:public superTypes:[<root>.Java3; <root>.Java4]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:J modality:ABSTRACT visibility:public superTypes:[<root>.Java3; <root>.Java4]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:add visibility:public modality:OPEN <> ($this:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>, p0:@[EnhancedNullability] @[FlexibleNullability] kotlin.Int?) returnType:kotlin.Boolean [fake_override]
       overridden:
         public open fun add (p0: @[EnhancedNullability] @[FlexibleNullability] kotlin.Int?): kotlin.Boolean declared in <root>.Java4
@@ -2037,7 +2055,7 @@ FILE fqName:<root> fileName:/1.kt
         public open fun removeAll (p0: kotlin.collections.Collection<@[EnhancedNullability] @[FlexibleNullability] kotlin.Int?>): kotlin.Boolean declared in <root>.Java4
       $this: VALUE_PARAMETER name:<this> type:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>
       VALUE_PARAMETER name:p0 index:0 type:kotlin.collections.Collection<@[EnhancedNullability] @[FlexibleNullability] kotlin.Int?>
-    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>, p0:kotlin.Int) returnType:@[EnhancedNullability] @[FlexibleNullability] kotlin.Int? [fake_override,operator]
+    FUN FAKE_OVERRIDE name:removeAt visibility:public modality:OPEN <> ($this:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>, p0:kotlin.Int) returnType:@[EnhancedNullability] @[FlexibleNullability] kotlin.Int? [fake_override]
       overridden:
         public open fun removeAt (p0: kotlin.Int): @[EnhancedNullability] @[FlexibleNullability] kotlin.Int? declared in <root>.Java4
       $this: VALUE_PARAMETER name:<this> type:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>
@@ -2107,6 +2125,9 @@ FILE fqName:<root> fileName:/1.kt
       overridden:
         public open fun trimToSize (): kotlin.Unit declared in <root>.Java4
       $this: VALUE_PARAMETER name:<this> type:java.util.ArrayList<@[FlexibleNullability] kotlin.Int?>
+    PROPERTY FAKE_OVERRIDE name:modCount visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final modCount: kotlin.Int declared in <root>.Java4
     PROPERTY FAKE_OVERRIDE name:size visibility:public modality:OPEN [fake_override,val]
       overridden:
         public open size: kotlin.Int declared in <root>.Java4

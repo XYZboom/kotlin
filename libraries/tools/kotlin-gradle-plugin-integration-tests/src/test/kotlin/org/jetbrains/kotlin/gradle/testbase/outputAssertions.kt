@@ -38,30 +38,6 @@ fun BuildResult.assertOutputContainsAny(
 }
 
 /**
- * Asserts Gradle output contains [expectedSubString] string exact times.
- */
-fun BuildResult.assertOutputContainsExactTimes(
-    expectedSubString: String,
-    expectedRepetitionTimes: Int = 1,
-) {
-    var currentOffset = 0
-    var count = 0
-    var nextIndex = output.indexOf(expectedSubString, currentOffset)
-
-    while (nextIndex != -1 && count < expectedRepetitionTimes + 1) {
-        count++
-        currentOffset = nextIndex + expectedSubString.length
-        nextIndex = output.indexOf(expectedSubString, currentOffset)
-    }
-
-    assert(count == expectedRepetitionTimes) {
-        printBuildOutput()
-        "Build output contains \"$expectedSubString\" $count times"
-    }
-}
-
-
-/**
  * Asserts Gradle output does not contain [notExpectedSubString] string.
  *
  * @param wrappingCharsCount amount of chars to include before and after [notExpectedSubString] occurrence
@@ -162,7 +138,10 @@ fun BuildResult.assertNoBuildWarnings(
     additionalExpectedWarnings: Set<String> = emptySet(),
 ) {
     val expectedWarnings = setOf(
-        "w: [InternalKotlinGradlePluginPropertiesUsed | WARNING] ATTENTION! This build uses the following Kotlin Gradle Plugin properties:"
+        "w: [InternalKotlinGradlePluginPropertiesUsed | WARNING] ATTENTION! This build uses the following Kotlin Gradle Plugin properties:",
+        // An (KTI-1928) issue prevents us from using a snapshot version of Kotlin Native during testing. This results in a diagnostic warning.
+        // Diagnostic warnings concern outdated Kotlin Native versions should be ignored in test environments.
+        "w: [OldNativeVersionDiagnostic | WARNING]"
     )
     val cleanedOutput = (expectedWarnings + additionalExpectedWarnings).fold(output) { acc, s ->
         acc.replace(s, "")
@@ -178,10 +157,6 @@ fun BuildResult.assertNoBuildWarnings(
         "Build contains following warnings:\n ${warnings.joinToString(separator = "\n")}"
     }
 }
-
-val expectedK2KaptWarnings = setOf(
-    "w: Kapt currently doesn't support language version 2.0+. Falling back to 1.9."
-)
 
 /**
  * Asserts compilation is running via Kotlin daemon with given jvm arguments.
@@ -312,6 +287,14 @@ fun BuildResult.extractTaskCompilerArguments(
     }.substringAfter("Kotlin compiler args:")
 }
 
+fun BuildResult.extractNativeCompilerTaskArguments(
+    taskPath: String
+): String {
+    val taskOutput = getOutputForTask(taskPath, LogLevel.INFO)
+    return taskOutput.substringAfter("Arguments = [\n").substringBefore("]\n")
+}
+
+
 fun BuildResult.assertNoCompilerArgument(
     taskPath: String,
     notExpectedArgument: String,
@@ -387,7 +370,7 @@ fun CommandLineArguments.assertCommandLineArgumentsContainSequentially(
     expectedArgs.forEach {
         assert(expectedArgs.isNotEmpty() && Collections.indexOfSubList(args, expectedArgs.toList()) != -1) {
             this.buildResult.printBuildOutput()
-            "There is no sequential arguments ${it} in actual command line arguments are: ${args}"
+            "There is no sequential arguments $it in actual command line arguments are: $args"
         }
     }
 }
@@ -401,19 +384,10 @@ fun CommandLineArguments.assertCommandLineArgumentsContainSequentially(
  */
 
 fun BuildResult.assertOutputContainsNativeFrameworkVariant(variantName: String, gradleVersion: GradleVersion) {
-    val isAtLeastGradle75 = gradleVersion >= GradleVersion.version(TestVersions.Gradle.G_7_5)
     try {
-        assertOutputContains(
-            if (isAtLeastGradle75)
-                "Variant $variantName"
-            else "variant \"$variantName\" ["
-        )
+        assertOutputContains("Variant $variantName")
     } catch (originalError: AssertionError) {
-        val regexPattern = if (isAtLeastGradle75) {
-            "Variant (.*?):"
-        } else {
-            "variant \"(.*?)\" \\["
-        }
+        val regexPattern = "Variant (.*?):"
         val matchedVariants = Regex(regexPattern).findAll(output).toList()
         throw AssertionError(
             "Expected variant $variantName. " +
@@ -444,4 +418,3 @@ private fun BuildResult.extractNativeCustomEnvironment(taskPath: String, toolNam
         val (key, value) = it.split("=")
         key.trim() to value.trim()
     }.toMap()
-

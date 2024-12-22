@@ -1,11 +1,12 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.backend.jvm.lower
 
 import org.jetbrains.kotlin.backend.common.ClassLoweringPass
+import org.jetbrains.kotlin.backend.common.defaultArgumentsOriginalFunction
 import org.jetbrains.kotlin.backend.common.ir.moveBodyTo
 import org.jetbrains.kotlin.backend.common.phaser.PhaseDescription
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
@@ -24,6 +25,7 @@ import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrFunctionReferenceImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrReturnImpl
+import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolOwner
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.util.functions
@@ -34,14 +36,11 @@ import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 
 /**
- * This phase moves interface members with default implementations to the
- * associated companion DefaultImpls with bridges, as appropriate. It then
- * performs a traversal of any other code in this interface and redirects calls
- * to the interface to the companion, if functions were moved completely.
+ * Moves interface members with default implementations to the associated DefaultImpls classes with bridges. It then performs a traversal
+ * of any other code in this interface and redirects calls to the interface to the DefaultImpls, if functions were moved completely.
  */
 @PhaseDescription(
     name = "Interface",
-    description = "Move default implementations of interface members to DefaultImpls class",
     prerequisite = [JvmDefaultParameterInjector::class]
 )
 internal class InterfaceLowering(val context: JvmBackendContext) : IrElementTransformerVoid(), ClassLoweringPass {
@@ -139,7 +138,7 @@ internal class InterfaceLowering(val context: JvmBackendContext) : IrElementTran
                         || function.origin == JvmLoweredDeclarationOrigin.SYNTHETIC_METHOD_FOR_PROPERTY_OR_TYPEALIAS_ANNOTATIONS)) ||
                         (function.origin == JvmLoweredDeclarationOrigin.SYNTHETIC_METHOD_FOR_PROPERTY_OR_TYPEALIAS_ANNOTATIONS &&
                                 isCompatibilityMode && function.isCompiledToJvmDefault(jvmDefaultMode)) -> {
-                    if (function.origin == JvmLoweredDeclarationOrigin.INLINE_LAMBDA) {
+                    if (function.origin == IrDeclarationOrigin.INLINE_LAMBDA) {
                         //move as is
                         val defaultImplsClass = context.cachedDeclarations.getDefaultImplsClass(irClass)
                         defaultImplsClass.declarations.add(function)
@@ -169,7 +168,7 @@ internal class InterfaceLowering(val context: JvmBackendContext) : IrElementTran
                 isCompatibilityMode -> {
                     val visibility =
                         if (function.origin == IrDeclarationOrigin.FUNCTION_FOR_DEFAULT_PARAMETER)
-                            context.mapping.defaultArgumentsOriginalFunction[function]!!.visibility
+                            function.defaultArgumentsOriginalFunction!!.visibility
                         else function.visibility
                     if (!DescriptorVisibilities.isPrivate(visibility)) {
                         createJvmDefaultCompatibilityDelegate(function)
@@ -225,7 +224,7 @@ internal class InterfaceLowering(val context: JvmBackendContext) : IrElementTran
             IrCallImpl.fromSymbolOwner(startOffset, endOffset, returnType, callTarget.symbol).also { call ->
 
                 callTarget.typeParameters.forEachIndexed { i, _ ->
-                    call.putTypeArgument(i, createPlaceholderAnyNType(context.irBuiltIns))
+                    call.typeArguments[i] = createPlaceholderAnyNType(context.irBuiltIns)
                 }
 
                 valueParameters.forEachIndexed { i, it ->
@@ -247,7 +246,7 @@ internal class InterfaceLowering(val context: JvmBackendContext) : IrElementTran
                 superQualifierSymbol = callTarget.parentAsClass.symbol
             ).also { call ->
                 this.typeParameters.drop(callTarget.parentAsClass.typeParameters.size).forEachIndexed { i, typeParameter ->
-                    call.putTypeArgument(i, typeParameter.defaultType)
+                    call.typeArguments[i] = typeParameter.defaultType
                 }
 
                 var offset = 0
@@ -295,7 +294,7 @@ internal class InterfaceLowering(val context: JvmBackendContext) : IrElementTran
             if (newFunction != null) {
                 with(expression) {
                     IrFunctionReferenceImpl(
-                        startOffset, endOffset, type, newFunction.symbol, newFunction.typeParameters.size, newFunction.valueParameters.size,
+                        startOffset, endOffset, type, newFunction.symbol, newFunction.typeParameters.size,
                         expression.reflectionTarget, origin
                     ).apply {
                         copyFromWithPlaceholderTypeArguments(expression, context.irBuiltIns)

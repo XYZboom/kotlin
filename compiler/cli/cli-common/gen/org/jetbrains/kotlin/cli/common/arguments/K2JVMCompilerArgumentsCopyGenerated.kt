@@ -28,6 +28,7 @@ fun copyK2JVMCompilerArguments(from: K2JVMCompilerArguments, to: K2JVMCompilerAr
     to.enableIrInliner = from.enableIrInliner
     to.enableJvmPreview = from.enableJvmPreview
     to.enhanceTypeParameterTypesToDefNotNull = from.enhanceTypeParameterTypesToDefNotNull
+    to.expectBuiltinsAsPartOfStdlib = from.expectBuiltinsAsPartOfStdlib
     to.expression = from.expression
     to.friendPaths = from.friendPaths?.copyOf()
     to.includeRuntime = from.includeRuntime
@@ -49,10 +50,8 @@ fun copyK2JVMCompilerArguments(from: K2JVMCompilerArguments, to: K2JVMCompilerAr
     to.moduleName = from.moduleName
     to.noCallAssertions = from.noCallAssertions
     to.noJdk = from.noJdk
-    to.noKotlinNothingValueException = from.noKotlinNothingValueException
     to.noNewJavaAnnotationTargets = from.noNewJavaAnnotationTargets
     to.noOptimize = from.noOptimize
-    to.noOptimizedCallableReferences = from.noOptimizedCallableReferences
     to.noParamAssertions = from.noParamAssertions
     to.noReceiverAssertions = from.noReceiverAssertions
     to.noReflect = from.noReflect
@@ -62,6 +61,7 @@ fun copyK2JVMCompilerArguments(from: K2JVMCompilerArguments, to: K2JVMCompilerAr
     to.noUnifiedNullChecks = from.noUnifiedNullChecks
     to.nullabilityAnnotations = from.nullabilityAnnotations?.copyOf()
     to.oldInnerClassesLogic = from.oldInnerClassesLogic
+    to.outputBuiltinsMetadata = from.outputBuiltinsMetadata
     to.profileCompilerCommand = from.profileCompilerCommand
     to.samConversions = from.samConversions
     to.sanitizeParentheses = from.sanitizeParentheses
@@ -77,13 +77,12 @@ fun copyK2JVMCompilerArguments(from: K2JVMCompilerArguments, to: K2JVMCompilerAr
     to.useFastJarFileSystem = from.useFastJarFileSystem
     to.useInlineScopesNumbers = from.useInlineScopesNumbers
     to.useJavac = from.useJavac
-    to.useKapt4 = from.useKapt4
+    to.useK2Kapt = from.useK2Kapt
     to.useOldBackend = from.useOldBackend
     to.useOldClassFilesReading = from.useOldClassFilesReading
     to.useOldInlineClassesManglingScheme = from.useOldInlineClassesManglingScheme
     to.useTypeTable = from.useTypeTable
     to.validateBytecode = from.validateBytecode
-    to.validateIr = from.validateIr
     to.valueClasses = from.valueClasses
 
     return to

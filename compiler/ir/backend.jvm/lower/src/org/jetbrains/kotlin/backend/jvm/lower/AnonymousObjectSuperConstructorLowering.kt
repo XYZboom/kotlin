@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -22,38 +22,38 @@ import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrTypeOperatorCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolOwner
 import org.jetbrains.kotlin.ir.util.patchDeclarationParents
 import org.jetbrains.kotlin.ir.util.transformInPlace
 
-// Transform code like this:
-//
-//      object : SuperType(complexExpression) {}
-//
-// which looks like this in the IR:
-//
-//      run {
-//          class _anonymous : SuperType(complexExpression) {}
-//          _anonymous()
-//      }
-//
-// into this:
-//
-//      run {
-//          class _anonymous(arg: T) : SuperType(arg) {}
-//          _anonymous(complexExpression)
-//      }
-//
-// The reason for doing such a transformation is the inliner: if the object is declared
-// in an inline function, `complexExpression` may be a call to a lambda, which will be
-// inlined into regenerated copies of the object. Unfortunately, if that lambda captures
-// some values, the inliner does not notice that `this` is not yet initialized, and
-// attempts to read them from fields, causing a bytecode validation error.
-//
-// (TODO fix the inliner instead. Then keep this code for one more version for backwards compatibility.)
-@PhaseDescription(
-    name = "AnonymousObjectSuperConstructor",
-    description = "Move evaluation of anonymous object super constructor arguments to call site"
-)
+/**
+ * Moves evaluation of anonymous object super constructor arguments to call site. Specifically, transforms code like this:
+ *
+ *      object : SuperType(complexExpression) {}
+ *
+ * which looks like this in the IR:
+ *
+ *      run {
+ *          class _anonymous : SuperType(complexExpression) {}
+ *          _anonymous()
+ *      }
+ *
+ * into this:
+ *
+ *      run {
+ *          class _anonymous(arg: T) : SuperType(arg) {}
+ *          _anonymous(complexExpression)
+ *      }
+ *
+ * The reason for doing such a transformation is the inliner: if the object is declared
+ * in an inline function, `complexExpression` may be a call to a lambda, which will be
+ * inlined into regenerated copies of the object. Unfortunately, if that lambda captures
+ * some values, the inliner does not notice that `this` is not yet initialized, and
+ * attempts to read them from fields, causing a bytecode validation error.
+ *
+ * (TODO fix the inliner instead. Then keep this code for one more version for backwards compatibility.)
+ */
+@PhaseDescription(name = "AnonymousObjectSuperConstructor")
 internal class AnonymousObjectSuperConstructorLowering(val context: JvmBackendContext) : IrElementTransformerVoidWithContext(),
     FileLoweringPass {
     override fun lower(irFile: IrFile) {
@@ -80,7 +80,7 @@ internal class AnonymousObjectSuperConstructorLowering(val context: JvmBackendCo
 
         fun IrExpression.transform(remapping: Map<IrVariable, IrValueParameter>): IrExpression =
             when (this) {
-                is IrConst<*> -> this
+                is IrConst -> this
                 is IrGetValue -> IrGetValueImpl(startOffset, endOffset, remapping[symbol.owner]?.symbol ?: symbol)
                 is IrTypeOperatorCall ->
                     IrTypeOperatorCallImpl(startOffset, endOffset, type, operator, typeOperand, argument.transform(remapping))
@@ -111,7 +111,7 @@ internal class AnonymousObjectSuperConstructorLowering(val context: JvmBackendCo
             }
         }
 
-        val classTypeParametersCount = objectConstructorCall.typeArgumentsCount - objectConstructorCall.symbol.owner.typeParameters.size
+        val classTypeParametersCount = objectConstructorCall.typeArguments.size - objectConstructorCall.symbol.owner.typeParameters.size
         context.createIrBuilder(currentScope!!.scope.scopeOwnerSymbol).run {
             expression.statements[expression.statements.size - 1] = irBlock(objectConstructorCall) {
                 +IrConstructorCallImpl.fromSymbolOwner(

@@ -11,14 +11,14 @@ import org.jetbrains.kotlin.gradle.DeprecatedTargetPresetApi
 import org.jetbrains.kotlin.gradle.InternalKotlinGradlePluginApi
 
 /**
- * @suppress TODO: KT-58858 add documentation
+ * @suppress
  */
 @OptIn(InternalKotlinGradlePluginApi::class)
 @DeprecatedTargetPresetApi
 interface KotlinTargetPreset<T: KotlinTarget> : Named {
     @Deprecated(
         "The KotlinTargetPreset.createTarget() $PRESETS_DEPRECATION_MESSAGE_SUFFIX",
-        level = DeprecationLevel.WARNING,
+        level = DeprecationLevel.ERROR,
     )
     fun createTarget(name: String): T
 }

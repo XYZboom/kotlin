@@ -1,10 +1,7 @@
 @file:Suppress("UnstableApiUsage")
 
-import org.gradle.jvm.tasks.Jar
 import org.jetbrains.gradle.ext.ActionDelegationConfig
 import org.jetbrains.gradle.ext.JUnit
-import org.jetbrains.gradle.ext.RecursiveArtifact
-import org.jetbrains.gradle.ext.TopLevelArtifact
 import org.jetbrains.kotlin.ideaExt.*
 
 
@@ -17,6 +14,8 @@ fun updateCompilerXml() {
     val modulesExcludedFromJps = listOf(
         "buildSrc",
         "compiler/build-tools/kotlin-build-tools-api-tests",
+        "jps/jps-plugin/jps-tests",
+        "generators/sir-tests-generator",
         "libraries/examples",
         "libraries/scripting/dependencies-maven-all",
         "libraries/tools/atomicfu",
@@ -50,10 +49,12 @@ fun updateCompilerXml() {
         "libraries/tools/kotlin-maven-noarg",
         "libraries/tools/kotlin-maven-plugin",
         "libraries/tools/kotlin-maven-plugin-test",
+        "libraries/tools/kotlin-maven-power-assert",
         "libraries/tools/kotlin-maven-sam-with-receiver",
         "libraries/tools/kotlin-maven-serialization",
         "libraries/tools/kotlin-noarg",
         "libraries/tools/kotlin-osgi-bundle",
+        "libraries/tools/kotlin-privacy-manifests-plugin",
         "libraries/tools/kotlin-power-assert",
         "libraries/tools/kotlin-prepush-hook",
         "libraries/tools/kotlin-sam-with-receiver",
@@ -61,7 +62,6 @@ fun updateCompilerXml() {
         "libraries/tools/kotlin-serialization-unshaded",
         "libraries/tools/kotlin-stdlib-docs",
         "libraries/tools/kotlin-stdlib-gen",
-        "libraries/tools/kotlin-test-js-runner",
         "libraries/tools/kotlin-tooling-metadata",
         "libraries/tools/maven-archetypes",
         "libraries/tools/mutability-annotations-compat",
@@ -73,7 +73,7 @@ fun updateCompilerXml() {
         "native/swift/swift-export-standalone/tests-gen",
         "plugins/atomicfu/atomicfu-compiler/test/org/jetbrains/kotlin/konan/test/blackbox",
         "plugins/atomicfu/atomicfu-runtime",
-        "plugins/fir-plugin-prototype/plugin-annotations",
+        "plugins/plugin-sandbox/plugin-annotations",
         "repo/gradle-settings-conventions",
         "repo/gradle-build-conventions",
     )
@@ -89,7 +89,7 @@ fun updateCompilerXml() {
       <component name="CompilerConfiguration">
         <option name="BUILD_PROCESS_HEAP_SIZE" value="2000" />
         <excludeFromCompile>
-          ${excludeEntries}
+          $excludeEntries
         </excludeFromCompile>
       </component>
     </project>
@@ -113,7 +113,8 @@ fun JUnit.configureForKotlin(xmx: String = "1600m") {
         "-Didea.use.native.fs.for.win=false",
         "-Djps.kotlin.home=${File(distKotlinHomeDir).absolutePath}",
         "-Duse.jps=true",
-        "-Djava.awt.headless=true"
+        "-Djava.awt.headless=true",
+        "-Dkotlin.test.default.jvm.version=1.8",
     ).joinToString(" ")
 
     envs = mapOf(
@@ -138,22 +139,36 @@ fun setupGenerateAllTestsRunConfiguration() {
         |    </method>
         |  </configuration>
         |</component>
-    """.trimMargin())
+    """.trimMargin()
+    )
+}
+
+fun setupTestRunConfigurations() {
+    createTestRunConfigurationWithPattern(
+        name = "[JPS] Fast FIR PSI tests",
+        fileName = "JPS__Fast_FIR_PSI_tests.xml",
+        pattern = """^.*\.FirPsi\w+Test\w*Generated$"""
+    )
+
+    createTestRunConfigurationWithPattern(
+        name = "[JPS] Tiered (diagnostic) tests",
+        fileName = "JPS__Tiered_LT_JVM_tests.xml",
+        pattern = """^.*\.Tiered\w*JvmLightTreeTestGenerated$"""
+    )
 }
 
 // Needed because of idea.ext plugin doesn't allow to set TEST_SEARCH_SCOPE = moduleWithDependencies
-fun setupFirRunConfiguration() {
-
+fun createTestRunConfigurationWithPattern(name: String, fileName: String, pattern: String) {
     val junit = JUnit("_stub").apply { configureForKotlin("4096m") }
     junit.moduleName = "kotlin.compiler.fir.fir2ir.test"
-    junit.pattern = """^.*\.FirPsi\w+Test\w*Generated$"""
+    junit.pattern = pattern
     junit.vmParameters = junit.vmParameters.replace(rootDir.absolutePath, "\$PROJECT_DIR\$")
     junit.workingDirectory = junit.workingDirectory.replace(rootDir.absolutePath, "\$PROJECT_DIR\$")
 
-    rootDir.resolve(".idea/runConfigurations/JPS__Fast_FIR_PSI_tests.xml").writeText(
+    rootDir.resolve(".idea/runConfigurations/$fileName").writeText(
         """
             |<component name="ProjectRunConfigurationManager">
-            |  <configuration default="false" name="[JPS] Fast FIR PSI tests" type="JUnit" factoryName="JUnit">
+            |  <configuration default="false" name="$name" type="JUnit" factoryName="JUnit">
             |    <module name="${junit.moduleName}" />
             |    <option name="MAIN_CLASS_NAME" value="" />
             |    <option name="METHOD_NAME" value="" />
@@ -207,10 +222,10 @@ if (kotlinBuildProperties.isInJpsBuildIdeaSync) {
 
                 val dependencyProjects = configuration
                     ?.dependencies
-                    ?.mapNotNull { (it as? ProjectDependency)?.dependencyProject }
+                    ?.mapNotNull { (it as? ProjectDependency)?.let { project.project(it.path)} }
 
                 dependencies {
-                    dependencyProjects?.forEach {dependencyProject ->
+                    dependencyProjects?.forEach { dependencyProject ->
                         add(jpsBuildTestDependencies.name, project(dependencyProject.path))
                     }
                 }
@@ -219,10 +234,9 @@ if (kotlinBuildProperties.isInJpsBuildIdeaSync) {
     }
 
     rootProject.afterEvaluate {
-
         writeIdeaBuildNumberForTests()
 
-        setupFirRunConfiguration()
+        setupTestRunConfigurations()
         setupGenerateAllTestsRunConfiguration()
         updateCompilerXml()
 
@@ -241,24 +255,6 @@ if (kotlinBuildProperties.isInJpsBuildIdeaSync) {
         rootProject.idea {
             project {
                 settings {
-                    ideArtifacts {
-                        kotlinCompilerJar()
-
-                        kotlinReflectJar()
-
-                        kotlinCompilerClientEmbeddableJar()
-
-                        kotlinMainKtsJar()
-
-                        kotlinImportsDumperCompilerPluginJar()
-
-                        kotlinDaemonClientJar()
-
-                        kotlinc()
-
-                        dist()
-                    }
-
                     compiler {
                         processHeapSize = 2000
                         addNotNullAssertions = true
@@ -273,13 +269,6 @@ if (kotlinBuildProperties.isInJpsBuildIdeaSync) {
                     runConfigurations {
 
                         defaults<JUnit> {
-                            configureForKotlin()
-                        }
-
-                        // todo: replace `pattern` with `package`, when `com.intellij.execution.junit.JUnitRunConfigurationImporter#process` will be fixed
-                        junit("[JPS] All IDEA Plugin Tests") {
-                            moduleName = "kotlin.idea.test"
-                            pattern = "org.jetbrains.kotlin.*"
                             configureForKotlin()
                         }
 
@@ -311,275 +300,4 @@ if (kotlinBuildProperties.isInJpsBuildIdeaSync) {
             }
         }
     }
-}
-
-val jarArtifactProjects = listOf(
-    "kotlin-compiler-client-embeddable",
-    "kotlin-compiler",
-    "kotlin-daemon-client",
-    "kotlin-imports-dumper-compiler-plugin",
-    "kotlin-jps-plugin",
-    "kotlin-main-kts",
-    "kotlin-reflect"
-)
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.kotlinCompilerJar() =
-    jarFromProject(project(":kotlin-compiler"), "kotlin-compiler.jar")
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.kotlinReflectJar() =
-    jarFromProject(project(":kotlin-reflect"))
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.kotlinCompilerClientEmbeddableJar() =
-    jarFromProject(project(":kotlin-compiler-client-embeddable"))
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.kotlinMainKtsJar() {
-    val mainKtsProject = project(":kotlin-main-kts")
-    jarFromProject(mainKtsProject) {
-        directoryContent("${mainKtsProject.rootDir}/jar-resources")
-    }
-}
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.kotlinPluginJar() =
-    jarFromProject(project(":prepare:idea-plugin"), "kotlin-plugin.jar")
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.kotlinImportsDumperCompilerPluginJar() =
-    jarFromProject(project(":kotlin-imports-dumper-compiler-plugin"))
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.kotlinDaemonClientJar() =
-    jarFromProject(project(":kotlin-daemon-client"))
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.kotlinJpsPluginJar() {
-    val jpsPluginProject = project(":kotlin-jps-plugin")
-    jarFromProject(jpsPluginProject) {
-        file("${jpsPluginProject.rootDir}/resources/kotlinManifest.properties")
-    }
-}
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.dist() {
-    val distLibrariesProject = project(":kotlin-stdlib:jps-build")
-    val stdlibMinimal by distLibrariesProject.configurations
-    val commonStdlib by distLibrariesProject.configurations
-    val commonStdlibSources by distLibrariesProject.configurations
-    val stdlibSources by distLibrariesProject.configurations
-
-    create("dist") {
-        file("$rootDir/build/build.txt")
-
-        // Use output-file-name when fixed https://github.com/JetBrains/gradle-idea-ext-plugin/issues/63
-        archive("kotlin-stdlib-jvm-minimal-for-test.jar") {
-            extractedDirectory(stdlibMinimal.singleFile)
-        }
-
-        directory("artifacts") {
-            directory("ideaPlugin") {
-                artifact("ideaPlugin")
-            }
-        }
-
-        directory("common") {
-            // Use output-file-name when fixed https://github.com/JetBrains/gradle-idea-ext-plugin/issues/63
-            archive("kotlin-stdlib-common.jar") {
-                extractedDirectory(commonStdlib.filter {
-                    it.name.contains("stdlib")
-                }.singleFile)
-            }
-
-            // Use output-file-name when fixed https://github.com/JetBrains/gradle-idea-ext-plugin/issues/63
-            archive("kotlin-stdlib-common-sources.jar") {
-                extractedDirectory(commonStdlibSources.filter {
-                    it.name.contains("stdlib")
-                }.singleFile)
-            }
-        }
-
-        directory("kotlinc") {
-            artifact("kotlinc")
-        }
-
-        directory("maven") {
-            // Use output-file-name when fixed https://github.com/JetBrains/gradle-idea-ext-plugin/issues/63
-            archive("kotlin-stdlib-sources.jar") {
-                extractedDirectory(stdlibSources.singleFile)
-            }
-        }
-    }
-}
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.kotlinc() {
-    val kotlinCompilerProject = project(":kotlin-compiler")
-    val libraries by kotlinCompilerProject.configurations
-    val compilerPlugins by kotlinCompilerProject.configurations
-    val sources by kotlinCompilerProject.configurations
-
-    create("kotlinc") {
-        directory("bin") {
-            directoryContent("$rootDir/compiler/cli/bin")
-        }
-
-        directory("lib") {
-            artifact("kotlin-compiler.jar")
-            jarsFromConfiguration(libraries) { it.replace("-$bootstrapKotlinVersion", "") }
-            jarsFromConfiguration(compilerPlugins) { it.removePrefix("kotlin-") }
-            sourceJarsFromConfiguration(sources) { it.replace("-$bootstrapKotlinVersion", "") }
-        }
-
-        directory("license") {
-            directoryContent("$rootDir/license")
-        }
-
-        file("$rootDir/bootstrap/build.txt")
-    }
-}
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.ideaPlugin() {
-    val ideaPluginProject = project(":prepare:idea-plugin")
-    val libraries by ideaPluginProject.configurations
-    val jpsPlugin by ideaPluginProject.configurations
-
-    create("ideaPlugin") {
-        directory("Kotlin") {
-            directory("kotlinc") {
-                artifact("kotlinc")
-            }
-
-            directory("lib") {
-                artifact("kotlin-plugin.jar")
-
-                jarsFromConfiguration(libraries) { it.replace("-$bootstrapKotlinVersion", "") }
-
-                directory("jps") {
-                    jarsFromConfiguration(jpsPlugin)
-                }
-            }
-        }
-    }
-}
-
-fun NamedDomainObjectContainer<TopLevelArtifact>.jarFromProject(project: Project, name: String? = null, configureAction: RecursiveArtifact.() -> Unit = {}) {
-    val jarName = name ?: project.name + ".jar"
-    create(jarName) {
-        archiveFromProject(project, jarName, configureAction)
-    }
-}
-
-fun RecursiveArtifact.archiveFromProject(project: Project, name: String? = null, configureAction: RecursiveArtifact.() -> Unit = {}) {
-    val jarName = name ?: project.name + ".jar"
-    archive(jarName) {
-
-        var foundManifest = false
-        fun extractManifest(jar: Jar) {
-            if (jar.enabled && !foundManifest) {
-                val manifestPath = jar.temporaryDir.resolve("MANIFEST.MF")
-                jar.manifest.writeTo(manifestPath)
-                directory("META-INF") {
-                    file(manifestPath)
-                }
-                foundManifest = true
-            }
-        }
-
-
-        (project.tasks.findByName("modularJar") as? Jar)?.let(::extractManifest)
-        (project.tasks.findByName("resultJar") as? Jar)?.let(::extractManifest)
-        (project.tasks.findByName("result") as? Jar)?.let(::extractManifest)
-        (project.tasks.findByName("shadowJar") as? Jar)?.let(::extractManifest)
-        (project.tasks["jar"] as? Jar)?.let(::extractManifest)
-
-        if (!foundManifest) error("No manifest found for jar: $jarName in ${project.name}")
-
-        if (project.sourceSets.names.contains("main")) {
-            moduleOutput(moduleName(project.path))
-        }
-
-        jarContentsFromEmbeddedConfiguration(project)
-
-        configureAction()
-    }
-}
-
-fun moduleName(projectPath: String) = rootProject.name + projectPath.replace(':', '.') + ".main"
-
-fun RecursiveArtifact.jarContentsFromEmbeddedConfiguration(project: Project) {
-    val embedded = project.configurations.findByName("embedded") ?: return
-    jarContentsFromConfiguration(embedded)
-}
-
-fun RecursiveArtifact.jarContentsFromConfiguration(configuration: Configuration) {
-    val resolvedArtifacts = configuration
-        .resolvedConfiguration
-        .resolvedArtifacts
-
-    resolvedArtifacts.filter { it.id.componentIdentifier is ModuleComponentIdentifier }
-        .map { it.file }
-        .forEach { extractedDirectory(it) }
-
-    resolvedArtifacts
-        .map { it.id.componentIdentifier }
-        .filterIsInstance<ProjectComponentIdentifier>()
-        .forEach {
-            moduleOutput(moduleName(it.projectPath))
-            jarContentsFromEmbeddedConfiguration(project(it.projectPath))
-        }
-}
-
-fun RecursiveArtifact.sourceJarsFromConfiguration(configuration: Configuration, renamer: (String) -> String = { it }) {
-    val resolvedArtifacts = configuration
-        .resolvedConfiguration
-        .resolvedArtifacts
-
-    jarsFromExternalModules(resolvedArtifacts, renamer)
-
-    resolvedArtifacts
-        .map { it.id.componentIdentifier }
-        .filterIsInstance<ProjectComponentIdentifier>()
-        .forEach {
-            val jarBaseName = project(it.projectPath).the<BasePluginExtension>().archivesName.get()
-            val renamed = renamer("$jarBaseName-sources") + ".jar"
-            archive(renamed) {
-                project(it.projectPath)
-                    .mainSourceSet
-                    .allSource
-                    .sourceDirectories
-                    .forEach {sourceDirectory ->
-                    directoryContent(sourceDirectory)
-                }
-            }
-        }
-}
-
-fun RecursiveArtifact.jarsFromConfiguration(configuration: Configuration, renamer: (String) -> String = { it }) {
-    val resolvedArtifacts = configuration
-        .resolvedConfiguration
-        .resolvedArtifacts
-
-    jarsFromExternalModules(resolvedArtifacts, renamer)
-
-    resolvedArtifacts
-        .map { it.id.componentIdentifier }
-        .filterIsInstance<ProjectComponentIdentifier>()
-        .forEach {
-            val jarBaseName = project(it.projectPath).the<BasePluginExtension>().archivesName.get()
-            val artifactName = renamer(jarBaseName) + ".jar"
-            if (it.projectName in jarArtifactProjects) {
-                artifact(artifactName)
-            } else {
-                archiveFromProject(project(it.projectPath), artifactName)
-            }
-        }
-}
-
-fun RecursiveArtifact.jarsFromExternalModules(resolvedArtifacts: Iterable<ResolvedArtifact>, renamer: (String) -> String = { it }) {
-    // Use output-file-name property when fixed https://github.com/JetBrains/gradle-idea-ext-plugin/issues/63
-    resolvedArtifacts.filter { it.id.componentIdentifier is ModuleComponentIdentifier }
-        .forEach {
-            val baseName = it.file.nameWithoutExtension
-            val renamed = renamer(baseName)
-            if (it.file.extension == "jar" && renamed != baseName) {
-                archive("$renamed.jar") {
-                    extractedDirectory(it.file)
-                }
-            } else {
-                file(it.file)
-            }
-        }
 }

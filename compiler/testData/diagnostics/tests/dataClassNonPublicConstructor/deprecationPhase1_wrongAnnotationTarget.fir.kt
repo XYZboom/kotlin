@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // WITH_STDLIB
 // LANGUAGE: -ErrorAboutDataClassCopyVisibilityChange, -DataClassCopyRespectsConstructorVisibility
 <!DATA_CLASS_CONSISTENT_COPY_WRONG_ANNOTATION_TARGET!>@kotlin.ConsistentCopyVisibility<!>
@@ -7,4 +8,7 @@ class Foo
 class Bar
 
 <!REDUNDANT_ANNOTATION!>@kotlin.ConsistentCopyVisibility<!>
-data class Data(val x: Int)
+data class DataA(val x: Int)
+
+<!REDUNDANT_ANNOTATION!>@kotlin.ExposedCopyVisibility<!>
+data class DataB(val x: Int)

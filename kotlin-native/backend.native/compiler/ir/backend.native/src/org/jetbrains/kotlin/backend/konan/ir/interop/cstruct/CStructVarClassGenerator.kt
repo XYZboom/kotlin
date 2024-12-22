@@ -1,6 +1,6 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license
- * that can be found in the LICENSE file.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 package org.jetbrains.kotlin.backend.konan.ir.interop.cstruct
 
@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.IrDelegatingConstructorCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrFunctionExpressionImpl
+import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolOwner
 import org.jetbrains.kotlin.ir.util.toIrConst
 import org.jetbrains.kotlin.ir.symbols.impl.IrFieldSymbolImpl
 import org.jetbrains.kotlin.ir.types.classOrNull
@@ -196,7 +197,6 @@ internal class CStructVarClassGenerator(
                             buildValueParameter(this) {
                                 origin = IrDeclarationOrigin.DEFINED
                                 name = Name.identifier("field")
-                                index = 0
                                 type = cppType
                             }
                     )
@@ -245,18 +245,20 @@ internal class CStructVarClassGenerator(
                 }
                 val callCreateCleaner = irCall(symbols.createCleaner).apply {
                     dispatchReceiver = null
-                    putTypeArgument(0, cppType)
-                    putValueArgument(0,
-                            irGet(irClass.primaryConstructor!!.valueParameters[0])
+                    typeArguments[0] = cppType
+                    putValueArgument(
+                        0,
+                        irGet(irClass.primaryConstructor!!.valueParameters[0])
                     )
-                    putValueArgument(1,
-                            IrFunctionExpressionImpl(
-                                    startOffset = SYNTHETIC_OFFSET,
-                                    endOffset = SYNTHETIC_OFFSET,
-                                    type = irBuiltIns.functionN(1).typeWith(cppType, irBuiltIns.unitType),
-                                    origin = IrStatementOrigin.LAMBDA,
-                                    function = lambda
-                            )
+                    putValueArgument(
+                        1,
+                        IrFunctionExpressionImpl(
+                            startOffset = SYNTHETIC_OFFSET,
+                            endOffset = SYNTHETIC_OFFSET,
+                            type = irBuiltIns.functionN(1).typeWith(cppType, irBuiltIns.unitType),
+                            origin = IrStatementOrigin.LAMBDA,
+                            function = lambda
+                        )
                     )
                 }
                 irExprBody(irIfThenElse(callCreateCleaner.type.makeNullable(), irGet(irClass.primaryConstructor!!.valueParameters[1]), callCreateCleaner, irNull()))
@@ -288,8 +290,8 @@ internal class CStructVarClassGenerator(
                                 startOffset, endOffset,
                                 context.irBuiltIns.unitType, symbols.managedTypeConstructor
                         ).also {
-                                it.putTypeArgument(0, irConstructor.valueParameters[0].type)
-                                it.putValueArgument(0, irGet(irConstructor.valueParameters[0]))
+                            it.typeArguments[0] = irConstructor.valueParameters[0].type
+                            it.putValueArgument(0, irGet(irConstructor.valueParameters[0]))
                         }
                         +irInstanceInitializer(symbolTable.descriptorExtension.referenceClass(irClass.descriptor))
                     }

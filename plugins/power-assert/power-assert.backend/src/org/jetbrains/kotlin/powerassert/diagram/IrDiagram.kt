@@ -24,7 +24,7 @@ import org.jetbrains.kotlin.ir.SourceRangeInfo
 import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
 import org.jetbrains.kotlin.ir.builders.irConcat
 import org.jetbrains.kotlin.ir.builders.irGet
-import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.lexer.KotlinLexer
@@ -37,35 +37,60 @@ fun IrBuilderWithScope.irDiagramString(
     call: IrCall,
     variables: List<IrTemporaryVariable>,
 ): IrExpression {
-    val callInfo = sourceFile.getSourceRangeInfo(call)
-    val callIndent = callInfo.startColumnNumber
+    val callInfo = sourceFile.getCompleteSourceRangeInfo(call)
 
-    val stackValues = variables.map { it.toValueDisplay(callIndent, callInfo) }
-
-    val valuesByRow = stackValues.groupBy { it.row }
-    val rows = sourceFile.getText(callInfo)
-        .replace("\n" + " ".repeat(callIndent), "\n") // Remove additional indentation
+    // Get call source string starting at the very beginning of the first line.
+    // This is so multiline calls all start from the same column offset.
+    val rows = sourceFile.getText(callInfo.startOffset - callInfo.startColumnNumber, callInfo.endOffset)
+        .clearSourcePrefix(callInfo.startColumnNumber)
         .split("\n")
+
+    val minSourceIndent = rows.minOf { line ->
+        // Find index of first non-whitespace character.
+        val indent = line.indexOfFirst { !it.isWhitespace() }
+        if (indent == -1) Int.MAX_VALUE else indent
+    }
+
+    val valuesByRow = variables
+        .map { it.toValueDisplay(callInfo) }
+        .sortedBy { it.indent }
+        .groupBy { it.row }
 
     return irConcat().apply {
         if (prefix != null) addArgument(prefix)
 
         for ((row, rowSource) in rows.withIndex()) {
-            val rowValues = valuesByRow[row]?.let { values -> values.sortedBy { it.indent } } ?: emptyList()
-            val indentations = rowValues.map { it.indent }
+            addArgument(
+                irString {
+                    appendLine()
+                    val sourceLine = rowSource.substring(minOf(minSourceIndent, rowSource.length))
+                    if (sourceLine.isNotBlank() && valuesByRow[row - 1] != null) appendLine() // Add an extra line after displayed values.
+                    append(sourceLine)
+                },
+            )
+
+            val rowValues = valuesByRow[row] ?: continue
+
+            val lineTemplate = buildString {
+                val indentations = rowValues.mapTo(hashSetOf()) { it.indent }
+                val lastIndent = rowValues.last().indent
+                for ((i, c) in rowSource.withIndex()) {
+                    when {
+                        i in indentations -> {
+                            // Add bar at indents for value display.
+                            append('|')
+                            if (i == lastIndent) break // Do not add trailing whitespace.
+                        }
+                        c == '\t' -> append('\t') // Preserve tabs in source code.
+                        else -> append(' ')
+                    }
+                }
+            }
 
             addArgument(
                 irString {
-                    if (row != 0 || prefix != null) appendLine()
-                    append(rowSource)
-                    if (indentations.isNotEmpty()) {
-                        appendLine()
-                        var last = -1
-                        for (i in indentations) {
-                            if (i > last) indent(i - last - 1).append("|")
-                            last = i
-                        }
-                    }
+                    appendLine()
+                    append(lineTemplate.substring(minSourceIndent))
                 },
             )
 
@@ -73,17 +98,31 @@ fun IrBuilderWithScope.irDiagramString(
                 addArgument(
                     irString {
                         appendLine()
-                        var last = -1
-                        for (i in indentations) {
-                            if (i == tmp.indent) break
-                            if (i > last) indent(i - last - 1).append("|")
-                            last = i
-                        }
-                        indent(tmp.indent - last - 1)
+                        append(lineTemplate.substring(minSourceIndent, tmp.indent))
                     },
                 )
                 addArgument(irGet(tmp.value))
             }
+        }
+
+        addArgument(
+            irString {
+                appendLine()
+            }
+        )
+    }
+}
+
+private fun String.clearSourcePrefix(offset: Int): String = buildString {
+    for ((i, c) in this@clearSourcePrefix.withIndex()) {
+        when {
+            i >= offset -> {
+                // Append the remaining characters and exit.
+                append(this@clearSourcePrefix.substring(i))
+                break
+            }
+            c == '\t' -> append('\t') // Preserve tabs.
+            else -> append(' ') // Replace all other characters with spaces.
         }
     }
 }
@@ -92,17 +131,15 @@ private data class ValueDisplay(
     val value: IrVariable,
     val indent: Int,
     val row: Int,
-    val source: String,
 )
 
 private fun IrTemporaryVariable.toValueDisplay(
-    callIndent: Int,
     originalInfo: SourceRangeInfo,
 ): ValueDisplay {
-    var indent = sourceRangeInfo.startColumnNumber - callIndent
+    var indent = sourceRangeInfo.startColumnNumber
     var row = sourceRangeInfo.startLineNumber - originalInfo.startLineNumber
 
-    val source = text.replace("\n" + " ".repeat(callIndent), "\n") // Remove additional indentation
+    val source = text
     val columnOffset = findDisplayOffset(original, sourceRangeInfo, source)
 
     val prefix = source.substring(0, columnOffset)
@@ -114,7 +151,7 @@ private fun IrTemporaryVariable.toValueDisplay(
         indent = columnOffset - (prefix.lastIndexOf('\n') + 1)
     }
 
-    return ValueDisplay(temporary, indent, row, source)
+    return ValueDisplay(temporary, indent, row)
 }
 
 /**
@@ -166,12 +203,14 @@ private fun memberAccessOffset(
     sourceRangeInfo: SourceRangeInfo,
     source: String,
 ): Int {
+    if (expression !is IrCall) return 0
     val owner = expression.symbol.owner
-    if (owner !is IrSimpleFunction) return 0
-
     if (owner.isInfix || owner.isOperator || owner.origin == IrBuiltIns.BUILTIN_OPERATOR) {
         val lhs = expression.binaryOperatorLhs() ?: return 0
-        return binaryOperatorOffset(lhs, sourceRangeInfo, source)
+        return when (expression.origin) {
+            IrStatementOrigin.GET_ARRAY_ELEMENT -> lhs.endOffset - sourceRangeInfo.startOffset
+            else -> binaryOperatorOffset(lhs, sourceRangeInfo, source)
+        }
     }
 
     return 0
@@ -183,7 +222,11 @@ private fun typeOperatorOffset(
     source: String,
 ): Int {
     return when (expression.operator) {
-        IrTypeOperator.INSTANCEOF, IrTypeOperator.NOT_INSTANCEOF -> binaryOperatorOffset(expression.argument, sourceRangeInfo, source)
+        IrTypeOperator.INSTANCEOF,
+        IrTypeOperator.NOT_INSTANCEOF,
+        IrTypeOperator.SAFE_CAST,
+            -> binaryOperatorOffset(expression.argument, sourceRangeInfo, source)
+
         else -> 0
     }
 }
@@ -213,22 +256,22 @@ private fun binaryOperatorOffset(lhs: IrExpression, wholeOperatorSourceRangeInfo
  * The left-hand side expression of an infix operator/function that takes into account special cases like `in`, `!in` and `!=` operators
  * that have a more complex structure than just a single call with two arguments.
  */
-private fun IrMemberAccessExpression<*>.binaryOperatorLhs(): IrExpression? = when (origin) {
+private fun IrCall.binaryOperatorLhs(): IrExpression? = when (origin) {
     IrStatementOrigin.EXCLEQ -> {
         // The `!=` operator call is actually a sugar for `lhs.equals(rhs).not()`.
-        (dispatchReceiver as? IrCall)?.simpleBinaryOperatorLhs()
+        (arguments[0] as? IrCall)?.simpleBinaryOperatorLhs()
     }
     IrStatementOrigin.EXCLEQEQ -> {
         // The `!==` operator call is actually a sugar for `(lhs === rhs).not()`.
-        (dispatchReceiver as? IrCall)?.simpleBinaryOperatorLhs()
+        (arguments[0] as? IrCall)?.simpleBinaryOperatorLhs()
     }
     IrStatementOrigin.IN -> {
         // The `in` operator call is actually a sugar for `rhs.contains(lhs)`.
-        getValueArgument(0)
+        arguments[1]
     }
     IrStatementOrigin.NOT_IN -> {
         // The `!in` operator call is actually a sugar for `rhs.contains(lhs).not()`.
-        (dispatchReceiver as? IrCall)?.getValueArgument(0)
+        (arguments[0] as? IrCall)?.arguments?.get(1)
     }
     else -> simpleBinaryOperatorLhs()
 }
@@ -237,18 +280,15 @@ private fun IrMemberAccessExpression<*>.binaryOperatorLhs(): IrExpression? = whe
  * The left-hand side expression of an infix operator/function.
  * For single-value operators returns `null`, for all other infix operators/functions, returns the receiver or the first value argument.
  */
-private fun IrMemberAccessExpression<*>.simpleBinaryOperatorLhs(): IrExpression? {
-    val singleReceiver = (dispatchReceiver != null) xor (extensionReceiver != null)
-    return if (singleReceiver && valueArgumentsCount == 0) {
+private fun IrCall.simpleBinaryOperatorLhs(): IrExpression? {
+    val parameters = symbol.owner.parameters
+    val singleReceiver =
+        1 == parameters.count { it.kind == IrParameterKind.DispatchReceiver || it.kind == IrParameterKind.ExtensionReceiver }
+    return if (singleReceiver && parameters.none { it.kind == IrParameterKind.Regular }) {
         null
     } else {
-        dispatchReceiver
-            ?: extensionReceiver
-            ?: getValueArgument(0).takeIf { (symbol.owner as? IrSimpleFunction)?.origin == IrBuiltIns.BUILTIN_OPERATOR }
+        return parameters.firstOrNull { it.kind != IrParameterKind.Context }
+            ?.takeIf { it.kind != IrParameterKind.Regular || symbol.owner.origin == IrBuiltIns.BUILTIN_OPERATOR }
+            ?.let { arguments[it] }
     }
-}
-
-fun StringBuilder.indent(indentation: Int): StringBuilder {
-    repeat(indentation) { append(" ") }
-    return this
 }

@@ -7,16 +7,16 @@ String()
 
 FIR FILE:
 FILE: [ResolvedTo(IMPORTS)] assignment.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-assignment.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] class Builder : R|kotlin/Any| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol <script-assignment.kts>] class Builder : R|kotlin/Any| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=Builder] constructor(): R|Builder| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final [ResolvedTo(CONTRACTS)] var version: R|kotlin/String| = String()
+            public final [ResolvedTo(CONTRACTS)] var version: R|kotlin/String| = LAZY_EXPRESSION
                 public [ResolvedTo(CONTRACTS)] [ContainingClassKey=Builder] get(): R|kotlin/String|
                 public [ResolvedTo(CONTRACTS)] [ContainingClassKey=Builder] set([ResolvedTo(CONTRACTS)] value: R|kotlin/String|): R|kotlin/Unit|
 
@@ -30,7 +30,7 @@ FILE: [ResolvedTo(IMPORTS)] assignment.kts
 
         [ResolvedTo(RAW_FIR)] init { LAZY_BLOCK }
 
-        public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] val builder: R|Builder| = R|/build|(<L> = [ResolvedTo(RAW_FIR)] [MatchingParameterFunctionTypeKey=@ExtensionFunctionType kotlin/Function1<Builder, kotlin/Unit>] build@fun R|Builder|.<anonymous>(): R|kotlin/Unit| <inline=NoInline>  {
+        public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] val builder: R|Builder| = R|/build|(<L> = [ResolvedTo(RAW_FIR)] [MatchingParameterFunctionTypeKey=@ExtensionFunctionType kotlin/Function1<Builder, kotlin/Unit>] build@fun [ResolvedTo(RAW_FIR)] R|Builder|.<anonymous>(): R|kotlin/Unit| <inline=NoInline>  {
             this@R|special/anonymous|.R|/Builder.version| = String(321)
         }
         )

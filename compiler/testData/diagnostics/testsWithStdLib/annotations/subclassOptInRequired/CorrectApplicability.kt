@@ -1,5 +1,5 @@
+// RUN_PIPELINE_TILL: BACKEND
 // FIR_IDENTICAL
-@file:OptIn(ExperimentalSubclassOptIn::class)
 
 @RequiresOptIn
 annotation class ApiMarker

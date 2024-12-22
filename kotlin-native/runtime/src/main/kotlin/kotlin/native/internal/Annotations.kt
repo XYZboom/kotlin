@@ -45,23 +45,6 @@ internal annotation class Intrinsic
 internal annotation class ExportForCompiler
 
 /**
- * Class is frozen by default. Also this annotation is (ab)used for marking objects
- * where mutability checks are not needed, and they are shared, such as atomics.
- */
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.BINARY)
-@FreezingIsDeprecated
-internal annotation class Frozen
-
-/**
- * Similar to `@Frozen`, but works only for legacy MM. On the new MM this has no effect.
- */
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.BINARY)
-@FreezingIsDeprecated
-internal annotation class FrozenLegacyMM
-
-/**
  * Fields of annotated class won't be sorted.
  */
 @Target(AnnotationTarget.CLASS)
@@ -82,19 +65,6 @@ internal annotation class ExportTypeInfo(val name: String)
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.BINARY)
 internal annotation class VolatileLambda
-
-/**
- * Escape analysis annotations.
- */
-@Target(AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.BINARY)
-internal annotation class Escapes(val who: Int)
-
-// Decyphering of binary values can be found in EscapeAnalysis.kt
-@Target(AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.BINARY)
-internal annotation class PointsTo(vararg val onWhom: Int)
-
 
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.BINARY)
@@ -130,14 +100,14 @@ internal annotation class Independent
 @PublishedApi internal annotation class LeakDetectorCandidate
 
 /**
- * Indicates that given top level signleton object can be created in compile time and thus
+ * Indicates that given top level singleton object can be created in compile time and thus
  * members access doesn't need to use an init barrier and allow better optimizations for
  * field access, such as constant folding.
  */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.SOURCE)
 @PublishedApi
-internal annotation class CanBePrecreated
+internal actual annotation class CanBePrecreated
 
 /**
  * Marks a class that has a finalizer.
@@ -148,16 +118,22 @@ internal annotation class HasFinalizer
 /**
  * Marks a declaration that is internal for Kotlin/Native and shouldn't be used externally.
  */
+@Target(
+        AnnotationTarget.CLASS,
+        AnnotationTarget.ANNOTATION_CLASS,
+        AnnotationTarget.PROPERTY,
+        AnnotationTarget.FIELD,
+        AnnotationTarget.LOCAL_VARIABLE,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.CONSTRUCTOR,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.TYPEALIAS
+)
 @RequiresOptIn(level = RequiresOptIn.Level.ERROR)
 @Retention(value = AnnotationRetention.BINARY)
 internal annotation class InternalForKotlinNative
-
-/**
- * Marks a class that has a freeze hook.
- */
-@Target(AnnotationTarget.CLASS)
-@FreezingIsDeprecated
-internal annotation class HasFreezeHook
 
 /**
  * Indicates that calls of this function will be replaced with calls to the

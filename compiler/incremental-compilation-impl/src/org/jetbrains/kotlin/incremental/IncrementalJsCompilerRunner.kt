@@ -1,17 +1,6 @@
 /*
- * Copyright 2010-2017 JetBrains s.r.o.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.incremental
@@ -28,7 +17,6 @@ import org.jetbrains.kotlin.build.report.metrics.GradleBuildTime
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
-import org.jetbrains.kotlin.cli.common.arguments.isIrBackendEnabled
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.jetbrains.kotlin.config.IncrementalCompilation
@@ -39,7 +27,6 @@ import org.jetbrains.kotlin.incremental.js.*
 import org.jetbrains.kotlin.incremental.multiproject.EmptyModulesApiHistory
 import org.jetbrains.kotlin.incremental.multiproject.ModulesApiHistory
 import org.jetbrains.kotlin.library.metadata.KlibMetadataSerializerProtocol
-import org.jetbrains.kotlin.serialization.js.JsSerializerProtocol
 import java.io.File
 
 fun makeJsIncrementally(
@@ -64,7 +51,7 @@ fun makeJsIncrementally(
             modulesApiHistory = modulesApiHistory,
             scopeExpansion = scopeExpansion
         )
-        compiler.compile(allKotlinFiles, args, messageCollector, providedChangedFiles)
+        compiler.compile(allKotlinFiles, args, messageCollector, providedChangedFiles ?: ChangedFiles.DeterminableFiles.ToBeComputed)
     }
 }
 
@@ -105,7 +92,7 @@ class IncrementalJsCompilerRunner(
         get() = icFeatures.withAbiSnapshot
 
     override fun createCacheManager(icContext: IncrementalCompilationContext, args: K2JSCompilerArguments) =
-        IncrementalJsCachesManager(icContext, if (!args.isIrBackendEnabled()) JsSerializerProtocol else KlibMetadataSerializerProtocol, cacheDirectory)
+        IncrementalJsCachesManager(icContext, KlibMetadataSerializerProtocol, cacheDirectory)
 
     override fun destinationDir(args: K2JSCompilerArguments): File {
         return File(args.outputDir!!)
@@ -113,7 +100,7 @@ class IncrementalJsCompilerRunner(
 
     override fun calculateSourcesToCompile(
         caches: IncrementalJsCachesManager,
-        changedFiles: ChangedFiles.Known,
+        changedFiles: ChangedFiles.DeterminableFiles.Known,
         args: K2JSCompilerArguments,
         messageCollector: MessageCollector,
         classpathAbiSnapshots: Map<String, AbiSnapshot> //Ignore for now

@@ -5,11 +5,14 @@
 
 package org.jetbrains.kotlin.ir.declarations
 
+import com.intellij.psi.PsiElement
+import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.name.Name
 
 interface MetadataSource {
     val name: Name?
+    val source: KtSourceElement? get() = null
 
     interface File : MetadataSource {
         var serializedIr: ByteArray?
@@ -22,6 +25,7 @@ interface MetadataSource {
     interface Function : MetadataSource
     interface Property : MetadataSource {
         val isConst: Boolean
+        val psi: PsiElement?
     }
 }
 
@@ -46,10 +50,12 @@ sealed class DescriptorMetadataSource : MetadataSource {
 
     class Property(override val descriptor: PropertyDescriptor) : DescriptorMetadataSource(), MetadataSource.Property {
         override val isConst: Boolean get() = descriptor.isConst
+        override val psi: PsiElement? get() = null
     }
 
     class LocalDelegatedProperty(override val descriptor: VariableDescriptorWithAccessors) : DescriptorMetadataSource(),
         MetadataSource.Property {
         override val isConst: Boolean get() = descriptor.isConst
+        override val psi: PsiElement? get() = null
     }
 }

@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // FILE: 1.kt
 package objectProperties
 
@@ -8,4 +9,4 @@ object A {
 }
 
 // FILE: 2.kt
-import objectProperties.<!TYPEALIAS_AS_CALLABLE_QUALIFIER_IN_IMPORT_WARNING("ObjectWithProps; A")!>ObjectWithProps<!>.a
+import objectProperties.<!TYPEALIAS_AS_CALLABLE_QUALIFIER_IN_IMPORT_ERROR("ObjectWithProps; A")!>ObjectWithProps<!>.a

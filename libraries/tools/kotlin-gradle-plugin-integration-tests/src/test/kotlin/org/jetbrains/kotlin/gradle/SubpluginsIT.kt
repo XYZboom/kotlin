@@ -207,7 +207,7 @@ class SubpuginsIT : KGPBaseTest() {
             ).forEach { buildGradle ->
                 buildGradle.modify {
                     val freefairLombokVersion = if (gradleVersion < GradleVersion.version(TestVersions.Gradle.G_8_0)) {
-                        "5.3.0"
+                        "5.3.3.3"
                     } else {
                         "8.4"
                     }
@@ -220,12 +220,22 @@ class SubpuginsIT : KGPBaseTest() {
 
     @OtherGradlePluginTests
     @DisplayName("KT-51378: Using 'kotlin-dsl' with latest plugin version in buildSrc module")
-    @GradleTestVersions(
-        minVersion = TestVersions.Gradle.G_7_0 // Kotlin compiler 1.9 throws error on 1.3 language level (Gradle 6)
-    )
     @GradleTest
     fun testBuildSrcKotlinDSL(gradleVersion: GradleVersion) {
         project("buildSrcUsingKotlinCompilationAndKotlinPlugin", gradleVersion) {
+            val languageVersionConfiguration = if (gradleVersion == GradleVersion.version(TestVersions.Gradle.G_7_6)) {
+                """
+                afterEvaluate {
+                    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+                        // aligned with embedded Kotlin compiler: https://docs.gradle.org/current/userguide/compatibility.html#kotlin
+                        compilerOptions.apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_7)
+                        compilerOptions.languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_7)
+                    }
+                }
+                """.trimIndent()
+            } else {
+                ""
+            }
             subProject("buildSrc").buildGradleKts.modify {
                 //language=kts
                 """
@@ -242,6 +252,8 @@ class SubpuginsIT : KGPBaseTest() {
                         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${'$'}kotlin_version")
                     }
                 }
+                
+                $languageVersionConfiguration
                 
                 ${it.substringAfter("}")}
                 """.trimIndent()

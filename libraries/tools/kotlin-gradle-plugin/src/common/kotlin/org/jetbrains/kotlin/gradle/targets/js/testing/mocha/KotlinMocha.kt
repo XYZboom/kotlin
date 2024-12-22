@@ -11,30 +11,34 @@ import org.gradle.api.provider.Provider
 import org.gradle.process.ProcessForkOptions
 import org.jetbrains.kotlin.gradle.internal.testing.TCServiceMessagesClientSettings
 import org.jetbrains.kotlin.gradle.internal.testing.TCServiceMessagesTestExecutionSpec
-import org.jetbrains.kotlin.gradle.internal.testing.TCServiceMessagesTestExecutor
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.targets.js.RequiredKotlinJsDependency
 import org.jetbrains.kotlin.gradle.targets.js.internal.parseNodeJsStackTraceAsJvm
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrCompilation
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsExtension
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsPlugin.Companion.kotlinNodeJsEnvSpec
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsRootExtension
 import org.jetbrains.kotlin.gradle.targets.js.npm.npmProject
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTestFramework
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinTestRunnerCliArgs
 import org.jetbrains.kotlin.gradle.utils.getFile
 import org.jetbrains.kotlin.gradle.utils.getValue
-import java.nio.file.Path
 
 class KotlinMocha(@Transient override val compilation: KotlinJsIrCompilation, private val basePath: String) :
     KotlinJsTestFramework {
     @Transient
     private val project: Project = compilation.target.project
     private val npmProject = compilation.npmProject
-    private val versions = project.rootProject.kotlinNodeJsExtension.versions
+    private val versions = project.rootProject.kotlinNodeJsRootExtension.versions
     private val npmProjectDir by project.provider { npmProject.dir }
+
+    @Transient
+    private val nodeJs = project.kotlinNodeJsEnvSpec
 
     override val workingDir: Provider<Directory>
         get() = npmProjectDir
+
+    override val executable: Provider<String> = nodeJs.executable
 
     override val settingsState: String
         get() = "mocha"
@@ -43,6 +47,7 @@ class KotlinMocha(@Transient override val compilation: KotlinJsIrCompilation, pr
         get() = setOf(
             versions.mocha,
             versions.sourceMapSupport,
+            versions.kotlinWebHelpers,
         )
 
     override fun getPath() = "$basePath:kotlinMocha"
@@ -85,8 +90,8 @@ class KotlinMocha(@Transient override val compilation: KotlinJsIrCompilation, pr
             add(mocha)
             add(file)
             addAll(cliArgs.toList())
-            addAll(cliArg("--reporter", "kotlin-test-js-runner/mocha-kotlin-reporter.js"))
-            addAll(cliArg("--require", npmProject.require("kotlin-test-js-runner/kotlin-test-nodejs-runner.js")))
+            addAll(cliArg("--reporter", "kotlin-web-helpers/dist/mocha-kotlin-reporter.js"))
+            addAll(cliArg("--require", npmProject.require("kotlin-web-helpers/dist/kotlin-test-nodejs-runner.js")))
             if (debug) {
                 add(NO_TIMEOUT_ARG)
             } else {
@@ -104,7 +109,7 @@ class KotlinMocha(@Transient override val compilation: KotlinJsIrCompilation, pr
                 add(mocha)
                 add(file)
                 addAll(cliArgs.toList())
-                addAll(cliArg("--require", npmProject.require("kotlin-test-js-runner/kotlin-test-nodejs-empty-runner.js")))
+                addAll(cliArg("--require", npmProject.require("kotlin-web-helpers/dist/kotlin-test-nodejs-empty-runner.js")))
             }
         }
 

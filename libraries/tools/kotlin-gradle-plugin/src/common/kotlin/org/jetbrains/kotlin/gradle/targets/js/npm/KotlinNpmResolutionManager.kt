@@ -17,7 +17,6 @@ import org.gradle.api.services.BuildServiceParameters
 import org.gradle.api.tasks.Internal
 import org.gradle.internal.service.ServiceRegistry
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.PackageManagerEnvironment
-import org.jetbrains.kotlin.gradle.targets.js.npm.resolved.Installation
 import org.jetbrains.kotlin.gradle.targets.js.npm.resolved.KotlinRootNpmResolution
 import org.jetbrains.kotlin.gradle.targets.js.npm.resolver.KotlinCompilationNpmResolver
 import org.jetbrains.kotlin.gradle.targets.js.npm.resolver.KotlinProjectNpmResolver
@@ -50,7 +49,7 @@ internal interface UsesKotlinNpmResolutionManager : Task {
  */
 abstract class KotlinNpmResolutionManager : BuildService<KotlinNpmResolutionManager.Parameters> {
 
-    internal interface Parameters : BuildServiceParameters {
+    interface Parameters : BuildServiceParameters {
         val resolution: Property<KotlinRootNpmResolution>
 
         val gradleNodeModulesProvider: Property<GradleNodeModulesCache>
@@ -69,11 +68,11 @@ abstract class KotlinNpmResolutionManager : BuildService<KotlinNpmResolutionMana
 
     sealed class ResolutionState {
 
-        internal class Configuring(val resolution: KotlinRootNpmResolution) : ResolutionState()
+        class Configuring(val resolution: KotlinRootNpmResolution) : ResolutionState()
 
-        open class Prepared(val preparedInstallation: Installation) : ResolutionState()
+        class Prepared : ResolutionState()
 
-        class Installed() : ResolutionState()
+        class Installed : ResolutionState()
 
         class Error(val wrappedException: Throwable) : ResolutionState()
     }
@@ -85,8 +84,7 @@ abstract class KotlinNpmResolutionManager : BuildService<KotlinNpmResolutionMana
         logger: Logger,
         nodeJsEnvironment: NodeJsEnvironment,
         environment: PackageManagerEnvironment,
-        resolvedConfigurations: Map<String, ProjectResolvedConfiguration>,
-    ) = prepareIfNeeded(logger = logger, nodeJsEnvironment, environment, resolvedConfigurations)
+    ) = prepareIfNeeded(logger = logger, nodeJsEnvironment, environment)
 
     internal fun installIfNeeded(
         args: List<String> = emptyList(),
@@ -94,7 +92,6 @@ abstract class KotlinNpmResolutionManager : BuildService<KotlinNpmResolutionMana
         logger: Logger,
         nodeJsEnvironment: NodeJsEnvironment,
         packageManagerEnvironment: PackageManagerEnvironment,
-        resolvedConfigurations: Map<String, ProjectResolvedConfiguration>,
     ): Unit? {
         synchronized(this) {
             if (state is ResolutionState.Installed) {
@@ -106,8 +103,13 @@ abstract class KotlinNpmResolutionManager : BuildService<KotlinNpmResolutionMana
             }
 
             return try {
-                val installation: Installation = prepareIfNeeded(logger = logger, nodeJsEnvironment, packageManagerEnvironment, resolvedConfigurations)
-                installation.install(args, services, logger, nodeJsEnvironment, packageManagerEnvironment)
+                nodeJsEnvironment.packageManager.resolveRootProject(
+                    services,
+                    logger,
+                    nodeJsEnvironment,
+                    packageManagerEnvironment,
+                    args
+                )
                 state = ResolutionState.Installed()
             } catch (e: Exception) {
                 state = ResolutionState.Error(e)
@@ -120,29 +122,26 @@ abstract class KotlinNpmResolutionManager : BuildService<KotlinNpmResolutionMana
         logger: Logger,
         nodeJsEnvironment: NodeJsEnvironment,
         packageManagerEnvironment: PackageManagerEnvironment,
-        resolvedConfigurations: Map<String, ProjectResolvedConfiguration>,
-    ): Installation {
+    ) {
         val state0 = this.state
-        return when (state0) {
+        when (state0) {
             is ResolutionState.Prepared -> {
-                state0.preparedInstallation
+                return
             }
 
             is ResolutionState.Configuring -> {
                 synchronized(this) {
                     val state1 = this.state
                     when (state1) {
-                        is ResolutionState.Prepared -> state1.preparedInstallation
+                        is ResolutionState.Prepared -> return
                         is ResolutionState.Configuring -> {
                             state1.resolution.prepareInstallation(
                                 logger,
                                 nodeJsEnvironment,
                                 packageManagerEnvironment,
-                                this,
-                                resolvedConfigurations
-                            ).also {
-                                this.state = ResolutionState.Prepared(it)
-                            }
+                                this
+                            )
+                            this.state = ResolutionState.Prepared()
                         }
 
                         is ResolutionState.Installed -> error("Project already installed")
@@ -187,7 +186,7 @@ abstract class KotlinNpmResolutionManager : BuildService<KotlinNpmResolutionMana
             }
         }
 
-        internal fun registerIfAbsent(
+        fun registerIfAbsent(
             project: Project,
             resolution: Provider<KotlinRootNpmResolution>?,
             gradleNodeModulesProvider: Provider<GradleNodeModulesCache>?,

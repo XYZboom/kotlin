@@ -42,11 +42,11 @@ interface KotlinJsOptions : org.jetbrains.kotlin.gradle.dsl.KotlinCommonOptions 
         set(value) = options.main.set(value.mainCompilerOption)
 
     /**
-     * Generate .meta.js and .kjsm files with metadata. Use this to create a library.
+     * This option does nothing and is left for compatibility with the legacy backend. It is deprecated and will be removed in Kotlin 2.2.
      *
-     * Default value: true
+     * Default value: false
      */
-    @Deprecated(message = "Only for legacy backend.", level = DeprecationLevel.WARNING)
+    @Deprecated(message = "Only for legacy backend.", level = DeprecationLevel.ERROR)
     var metaInfo: kotlin.Boolean
         get() = options.metaInfo.get()
         set(value) = options.metaInfo.set(value)
@@ -76,11 +76,11 @@ interface KotlinJsOptions : org.jetbrains.kotlin.gradle.dsl.KotlinCommonOptions 
         set(value) = options.moduleName.set(value)
 
     /**
-     * Don't automatically include the default Kotlin/JS stdlib in compilation dependencies.
+     * This option does nothing and is left for compatibility with the legacy backend. It is deprecated and will be removed in Kotlin 2.2.
      *
-     * Default value: true
+     * Default value: false
      */
-    @Deprecated(message = "Only for legacy backend.", level = DeprecationLevel.WARNING)
+    @Deprecated(message = "Only for legacy backend.", level = DeprecationLevel.ERROR)
     var noStdlib: kotlin.Boolean
         get() = options.noStdlib.get()
         set(value) = options.noStdlib.set(value)
@@ -114,7 +114,7 @@ interface KotlinJsOptions : org.jetbrains.kotlin.gradle.dsl.KotlinCommonOptions 
     private val org.jetbrains.kotlin.gradle.dsl.JsSourceMapNamesPolicy?.sourceMapNamesPolicyKotlinOption get() = this?.policy
 
     /**
-     * Mode for mapping generated names to original names (IR backend only).
+     * Mode for mapping generated names to original names.
      *
      * Possible values: "no", "simple-names", "fully-qualified-names"
      *
@@ -145,10 +145,11 @@ interface KotlinJsOptions : org.jetbrains.kotlin.gradle.dsl.KotlinCommonOptions 
         set(value) = options.target.set(value)
 
     /**
-     * Translate primitive arrays into JS typed arrays.
+     * This option does nothing and is left for compatibility with the legacy backend. It is deprecated and will be removed in a future release.
      *
-     * Default value: true
+     * Default value: false
      */
+    @Deprecated(message = "Only for legacy backend.", level = DeprecationLevel.WARNING)
     var typedArrays: kotlin.Boolean
         get() = options.typedArrays.get()
         set(value) = options.typedArrays.set(value)

@@ -53,7 +53,7 @@ class FirExtensionDeclarationsSymbolProvider private constructor(
     }
 
     private val packageCache: FirCache<FqName, Boolean, Nothing?> = cachesFactory.createCache { packageFqName, _ ->
-        hasPackage(packageFqName)
+        extensions.any { it.hasPackage(packageFqName) }
     }
 
     private val callableNamesInPackageCache: FirLazyValue<Map<FqName, Set<Name>>> =
@@ -102,6 +102,7 @@ class FirExtensionDeclarationsSymbolProvider private constructor(
         return when {
             classId.isLocal -> null
             classId.isNestedClass -> {
+                // Note: session.symbolProvider is important here, as we need a full composite provider and not only this extension provider
                 val owner = session.symbolProvider.getClassLikeSymbolByClassId(classId.outerClassId!!) as? FirClassSymbol<*> ?: return null
                 val nestedClassifierScope = session.nestedClassifierScope(owner.fir) ?: return null
                 var result: FirClassLikeSymbol<*>? = null
@@ -142,16 +143,15 @@ class FirExtensionDeclarationsSymbolProvider private constructor(
             .onEach { it.fir.validate() }
     }
 
-    private fun hasPackage(packageFqName: FqName): Boolean {
-        return extensions.any { it.hasPackage(packageFqName) }
-    }
-
     // ------------------------------------------ provider methods ------------------------------------------
 
     override val symbolNamesProvider: FirSymbolNamesProvider = object : FirSymbolNamesProvider() {
         override val hasSpecificClassifierPackageNamesComputation: Boolean get() = true
 
-        override fun getPackageNamesWithTopLevelClassifiers(): Set<String>? =
+        override fun getPackageNames(): Set<String> =
+            getPackageNamesWithTopLevelClassifiers() + getPackageNamesWithTopLevelCallables()
+
+        override fun getPackageNamesWithTopLevelClassifiers(): Set<String> =
             buildSet {
                 extensions.forEach { extension ->
                     extension.topLevelClassIdsCache.getValue().mapTo(this) { it.packageFqName.asString() }
@@ -195,7 +195,7 @@ class FirExtensionDeclarationsSymbolProvider private constructor(
         destination += propertyCache.getValue(CallableId(packageFqName, name))
     }
 
-    override fun getPackage(fqName: FqName): FqName? {
-        return fqName.takeIf { packageCache.getValue(fqName, null) }
+    override fun hasPackage(fqName: FqName): Boolean {
+        return packageCache.getValue(fqName, null)
     }
 }

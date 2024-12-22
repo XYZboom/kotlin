@@ -40,7 +40,7 @@ class MetadataSymbolProvider(
 
     private val annotationDeserializer = MetadataBasedAnnotationDeserializer(session)
 
-    private val constDeserializer = FirConstDeserializer(session, BuiltInSerializerProtocol)
+    private val constDeserializer = FirConstDeserializer(BuiltInSerializerProtocol)
 
     private val metadataTopLevelClassesInPackageCache = session.firCachesFactory.createCache(::findMetadataTopLevelClassesInPackage)
 
@@ -90,8 +90,8 @@ class MetadataSymbolProvider(
 
     override fun isNewPlaceForBodyGeneration(classProto: ProtoBuf.Class): Boolean = false
 
-    override fun getPackage(fqName: FqName): FqName? =
-        runIf(metadataTopLevelClassesInPackageCache.getValue(fqName)?.isNotEmpty() == true) { fqName }
+    override fun hasPackage(fqName: FqName): Boolean =
+        metadataTopLevelClassesInPackageCache.getValue(fqName)?.isNotEmpty() == true
 
     private fun findMetadataTopLevelClassesInPackage(packageFqName: FqName): Set<String>? =
         kotlinClassFinder.findMetadataTopLevelClassesInPackage(packageFqName)

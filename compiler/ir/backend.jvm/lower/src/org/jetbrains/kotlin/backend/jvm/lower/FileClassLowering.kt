@@ -19,6 +19,7 @@ package org.jetbrains.kotlin.backend.jvm.lower
 import org.jetbrains.kotlin.backend.common.FileLoweringPass
 import org.jetbrains.kotlin.backend.common.phaser.PhaseDescription
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
+import org.jetbrains.kotlin.backend.jvm.classNameOverride
 import org.jetbrains.kotlin.codegen.AsmUtil
 import org.jetbrains.kotlin.config.JvmAnalysisFlags
 import org.jetbrains.kotlin.config.LanguageFeature
@@ -50,10 +51,10 @@ import org.jetbrains.kotlin.resolve.inline.INLINE_ONLY_ANNOTATION_FQ_NAME
 import org.jetbrains.kotlin.resolve.jvm.JvmClassName
 import java.io.File
 
-@PhaseDescription(
-    name = "FileClass",
-    description = "Put file level function and property declaration into a class",
-)
+/**
+ * Puts file-level function and property declaration into a class.
+ */
+@PhaseDescription(name = "FileClass")
 internal class FileClassLowering(val context: JvmBackendContext) : FileLoweringPass {
     override fun lower(irFile: IrFile) {
         val classes = ArrayList<IrClass>()
@@ -112,7 +113,7 @@ internal class FileClassLowering(val context: JvmBackendContext) : FileLoweringP
             superTypes = listOf(context.irBuiltIns.anyType)
             parent = irFile
             declarations.addAll(fileClassMembers)
-            createImplicitParameterDeclarationWithWrappedDescriptor()
+            createThisReceiverParameter()
             for (member in fileClassMembers) {
                 member.parent = this
                 if (member is IrProperty) {
@@ -137,7 +138,7 @@ internal class FileClassLowering(val context: JvmBackendContext) : FileLoweringP
             context.state.factory.packagePartRegistry.addPart(irFile.packageFqName, partClassType.internalName, facadeClassType?.internalName)
 
             if (fileClassInfo.fileClassFqName != fqNameWhenAvailable) {
-                context.classNameOverride[this] = JvmClassName.byInternalName(partClassType.internalName)
+                this.classNameOverride = JvmClassName.byInternalName(partClassType.internalName)
             }
 
             if (facadeClassType != null) {
@@ -201,7 +202,7 @@ private fun getLiteralStringFromAnnotation(annotationCall: IrConstructorCall): S
     if (annotationCall.valueArgumentsCount < 1) return null
     return annotationCall.getValueArgument(0)?.let {
         when {
-            it is IrConst<*> && it.kind == IrConstKind.String -> it.value as String
+            it is IrConst && it.kind == IrConstKind.String -> it.value as String
             else -> null // TODO: getArgumentExpression().safeAs<KtStringTemplateExpression>()
         }
     }

@@ -24,14 +24,12 @@ import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
 import org.jetbrains.kotlin.ir.symbols.impl.IrVariableSymbolImpl
 import org.jetbrains.kotlin.ir.util.dump
-import org.jetbrains.kotlin.ir.util.explicitParameters
-import org.jetbrains.kotlin.ir.util.render
 import org.jetbrains.kotlin.util.OperatorNameConventions
 
-@PhaseDescription(
-    name = "DirectInvokes",
-    description = "Inline directly invoked lambdas and replace invoked function references with calls"
-)
+/**
+ * Inlines directly invoked lambdas and replaces invoked function references with calls.
+ */
+@PhaseDescription(name = "DirectInvokes")
 internal class DirectInvokeLowering(private val context: JvmBackendContext) : FileLoweringPass, IrElementTransformerVoidWithContext() {
     override fun lower(irFile: IrFile) = irFile.transformChildrenVoid()
 
@@ -71,7 +69,7 @@ internal class DirectInvokeLowering(private val context: JvmBackendContext) : Fi
         return context.createIrBuilder(scope.scopeOwnerSymbol).run {
             at(expression)
             irBlock {
-                val arguments = function.explicitParameters.mapIndexed { index, parameter ->
+                val arguments = function.parameters.mapIndexed { index, parameter ->
                     val argument = expression.getValueArgument(index)!!
                     IrVariableImpl(
                         argument.startOffset, argument.endOffset, IrDeclarationOrigin.DEFINED, IrVariableSymbolImpl(), parameter.name,
@@ -92,7 +90,7 @@ internal class DirectInvokeLowering(private val context: JvmBackendContext) : Fi
             is IrSimpleFunction ->
                 IrCallImpl(
                     expression.startOffset, expression.endOffset, expression.type, irFun.symbol,
-                    typeArgumentsCount = irFun.typeParameters.size, valueArgumentsCount = irFun.valueParameters.size
+                    typeArgumentsCount = irFun.typeParameters.size
                 ).apply {
                     copyReceiverAndValueArgumentsForDirectInvoke(receiver, expression)
                 }
@@ -101,14 +99,10 @@ internal class DirectInvokeLowering(private val context: JvmBackendContext) : Fi
                 IrConstructorCallImpl(
                     expression.startOffset, expression.endOffset, expression.type, irFun.symbol,
                     typeArgumentsCount = irFun.typeParameters.size,
-                    constructorTypeArgumentsCount = 0,
-                    valueArgumentsCount = irFun.valueParameters.size
+                    constructorTypeArgumentsCount = 0
                 ).apply {
                     copyReceiverAndValueArgumentsForDirectInvoke(receiver, expression)
                 }
-
-            else ->
-                throw AssertionError("Simple function or constructor expected: ${irFun.render()}")
         }
 
     private fun IrFunctionAccessExpression.copyReceiverAndValueArgumentsForDirectInvoke(

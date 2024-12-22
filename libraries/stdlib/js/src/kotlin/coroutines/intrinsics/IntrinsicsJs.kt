@@ -69,10 +69,20 @@ internal fun <R, P, T> (suspend R.(P) -> T).invokeSuspendSuperTypeWithReceiverAn
 @InlineOnly
 public actual inline fun <T> (suspend () -> T).startCoroutineUninterceptedOrReturn(
     completion: Continuation<T>
+): Any? = startCoroutineUninterceptedOrReturnNonGeneratorVersion(completion)
+
+@PublishedApi
+internal fun <T> (suspend () -> T).startCoroutineUninterceptedOrReturnNonGeneratorVersion(
+    completion: Continuation<T>
 ): Any? {
+    // Wrap with CoroutineImpl, otherwise the coroutine will not be interceptable. See KT-55869
+    val wrappedCompletion = if (completion !is InterceptedCoroutine)
+        createSimpleCoroutineForSuspendFunction(completion)
+    else
+        completion
     val a = this.asDynamic()
-    return if (jsTypeOf(a) == "function") a(completion)
-    else this.invokeSuspendSuperType(completion)
+    return if (jsTypeOf(a) == "function") a(wrappedCompletion)
+    else this.invokeSuspendSuperType(wrappedCompletion)
 }
 
 /**
@@ -92,10 +102,21 @@ public actual inline fun <T> (suspend () -> T).startCoroutineUninterceptedOrRetu
 public actual inline fun <R, T> (suspend R.() -> T).startCoroutineUninterceptedOrReturn(
     receiver: R,
     completion: Continuation<T>
+): Any? = startCoroutineUninterceptedOrReturnNonGeneratorVersion(receiver, completion)
+
+@PublishedApi
+internal fun <R, T> (suspend R.() -> T).startCoroutineUninterceptedOrReturnNonGeneratorVersion(
+    receiver: R,
+    completion: Continuation<T>
 ): Any? {
+    // Wrap with CoroutineImpl, otherwise the coroutine will not be interceptable. See KT-55869
+    val wrappedCompletion = if (completion !is InterceptedCoroutine)
+        createSimpleCoroutineForSuspendFunction(completion)
+    else
+        completion
     val a = this.asDynamic()
-    return if (jsTypeOf(a) == "function") a(receiver, completion)
-    else this.invokeSuspendSuperTypeWithReceiver(receiver, completion)
+    return if (jsTypeOf(a) == "function") a(receiver, wrappedCompletion)
+    else this.invokeSuspendSuperTypeWithReceiver(receiver, wrappedCompletion)
 }
 
 @InlineOnly
@@ -103,10 +124,22 @@ internal actual inline fun <R, P, T> (suspend R.(P) -> T).startCoroutineUninterc
     receiver: R,
     param: P,
     completion: Continuation<T>
+): Any? = startCoroutineUninterceptedOrReturnNonGeneratorVersion(receiver, param, completion)
+
+@PublishedApi
+internal fun <R, P, T> (suspend R.(P) -> T).startCoroutineUninterceptedOrReturnNonGeneratorVersion(
+    receiver: R,
+    param: P,
+    completion: Continuation<T>
 ): Any? {
+    // Wrap with CoroutineImpl, otherwise the coroutine will not be interceptable. See KT-55869
+    val wrappedCompletion = if (completion !is InterceptedCoroutine)
+        createSimpleCoroutineForSuspendFunction(completion)
+    else
+        completion
     val a = this.asDynamic()
-    return if (jsTypeOf(a) == "function") a(receiver, param, completion)
-    else this.invokeSuspendSuperTypeWithReceiverAndParam(receiver, param, completion)
+    return if (jsTypeOf(a) == "function") a(receiver, param, wrappedCompletion)
+    else this.invokeSuspendSuperTypeWithReceiverAndParam(receiver, param, wrappedCompletion)
 }
 
 /**
@@ -177,6 +210,18 @@ private inline fun <T> createCoroutineFromSuspendFunction(
         override fun doResume(): Any? {
             if (exception != null) throw exception
             return block()
+        }
+    }
+}
+
+private fun <T> createSimpleCoroutineForSuspendFunction(
+    completion: Continuation<T>,
+): Continuation<T> {
+    return object : CoroutineImpl(completion as Continuation<Any?>) {
+        override fun doResume(): Any? {
+            @Suppress("UnsafeCastFromDynamic")
+            if (exception != null) throw exception
+            return result
         }
     }
 }
@@ -263,16 +308,18 @@ internal fun <R, T, P> (suspend R.(P) -> T).createCoroutineUninterceptedGenerato
     }
 
 
-internal fun suspendOrReturn(value: Any?, continuation: Continuation<Any?>): Any? {
+internal fun suspendOrReturn(generator: (continuation: Continuation<Any?>) -> dynamic, continuation: Continuation<Any?>): Any? {
+    val generatorCoroutineImpl = if (continuation.asDynamic().constructor === GeneratorCoroutineImpl::class.js) {
+        continuation.unsafeCast<GeneratorCoroutineImpl>()
+    } else {
+        GeneratorCoroutineImpl(continuation)
+    }
+
+    val value = generator(generatorCoroutineImpl)
+
     if (!isGeneratorSuspendStep(value)) return value
 
     val iterator = value.unsafeCast<JsIterator<Any?>>()
-
-    if (continuation.asDynamic().constructor !== GeneratorCoroutineImpl::class.js) {
-        return iterator.next().value
-    }
-
-    val generatorCoroutineImpl = continuation.unsafeCast<GeneratorCoroutineImpl>()
 
     generatorCoroutineImpl.addNewIterator(iterator)
     try {

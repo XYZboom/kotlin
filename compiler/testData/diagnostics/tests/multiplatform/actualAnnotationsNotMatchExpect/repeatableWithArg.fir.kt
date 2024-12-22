@@ -1,3 +1,5 @@
+// LATEST_LV_DIFFERENCE
+// RUN_PIPELINE_TILL: BACKEND
 // WITH_STDLIB
 // MODULE: m1-common
 // FILE: common.kt
@@ -27,9 +29,9 @@ expect fun withSameArgLessOnActual()
 @AnnWithArg(s = "2")
 actual fun diffentOrder() {}
 
-<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>@AnnWithArg(s = "1")
+@AnnWithArg(s = "1")
 @AnnWithArg(s = "3")
-actual fun withDifferentArgLessOnActual() {}<!>
+<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT, ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>actual<!> fun withDifferentArgLessOnActual() {}
 
 @AnnWithArg(s = "1")
 @AnnWithArg(s = "2")

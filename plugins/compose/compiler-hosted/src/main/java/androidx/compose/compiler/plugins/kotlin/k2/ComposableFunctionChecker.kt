@@ -24,7 +24,6 @@ import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirFunctionChecker
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.getSingleMatchedExpectForActualOrNull
-import org.jetbrains.kotlin.fir.declarations.utils.isAbstract
 import org.jetbrains.kotlin.fir.declarations.utils.isOpen
 import org.jetbrains.kotlin.fir.declarations.utils.isOperator
 import org.jetbrains.kotlin.fir.declarations.utils.isSuspend
@@ -35,7 +34,7 @@ object ComposableFunctionChecker : FirFunctionChecker(MppCheckerKind.Common) {
     override fun check(
         declaration: FirFunction,
         context: CheckerContext,
-        reporter: DiagnosticReporter
+        reporter: DiagnosticReporter,
     ) {
         val isComposable = declaration.hasComposableAnnotation(context.session)
 
@@ -72,7 +71,7 @@ object ComposableFunctionChecker : FirFunctionChecker(MppCheckerKind.Common) {
         }
 
         // Check that there are no default arguments in abstract composable functions
-        if (declaration.isAbstract || declaration.isOpen) {
+        if (declaration.isOpen) {
             for (valueParameter in declaration.valueParameters) {
                 val defaultValue = valueParameter.defaultValue ?: continue
                 reporter.reportOn(

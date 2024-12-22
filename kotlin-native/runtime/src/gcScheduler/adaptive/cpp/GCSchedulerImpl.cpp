@@ -29,37 +29,34 @@ gcScheduler::GCScheduler::GCScheduler() noexcept : impl_(std::make_unique<Impl>(
 
 gcScheduler::GCScheduler::~GCScheduler() = default;
 
-ALWAYS_INLINE void gcScheduler::GCScheduler::ThreadData::safePoint() noexcept {
+PERFORMANCE_INLINE void gcScheduler::GCScheduler::ThreadData::safePoint() noexcept {
     impl().mutatorAssists().safePoint();
 }
 
 void gcScheduler::GCScheduler::schedule() noexcept {
-    RuntimeLogInfo({kTagGC}, "Scheduling GC manually");
-    impl().impl().schedule();
+    impl().impl().scheduleManually();
 }
 
 void gcScheduler::GCScheduler::scheduleAndWaitFinished() noexcept {
-    RuntimeLogInfo({kTagGC}, "Scheduling GC manually");
-    auto epoch = impl().impl().schedule();
+    auto epoch = impl().impl().scheduleManually();
     NativeOrUnregisteredThreadGuard guard(/* reentrant = */ true);
     mm::GlobalData::Instance().gc().WaitFinished(epoch);
 }
 
 void gcScheduler::GCScheduler::scheduleAndWaitFinalized() noexcept {
-    RuntimeLogInfo({kTagGC}, "Scheduling GC manually");
-    auto epoch = impl().impl().schedule();
+    auto epoch = impl().impl().scheduleManually();
     NativeOrUnregisteredThreadGuard guard(/* reentrant = */ true);
     mm::GlobalData::Instance().gc().WaitFinalizers(epoch);
 }
 
-ALWAYS_INLINE void gcScheduler::GCScheduler::setAllocatedBytes(size_t bytes) noexcept {
+PERFORMANCE_INLINE void gcScheduler::GCScheduler::setAllocatedBytes(size_t bytes) noexcept {
     impl().impl().setAllocatedBytes(bytes);
 }
 
-ALWAYS_INLINE void gcScheduler::GCScheduler::onGCStart() noexcept {
+PERFORMANCE_INLINE void gcScheduler::GCScheduler::onGCStart() noexcept {
     impl().impl().onGCStart();
 }
 
-ALWAYS_INLINE void gcScheduler::GCScheduler::onGCFinish(int64_t epoch, size_t aliveBytes) noexcept {
+PERFORMANCE_INLINE void gcScheduler::GCScheduler::onGCFinish(int64_t epoch, size_t aliveBytes) noexcept {
     impl().impl().onGCFinish(epoch, aliveBytes);
 }

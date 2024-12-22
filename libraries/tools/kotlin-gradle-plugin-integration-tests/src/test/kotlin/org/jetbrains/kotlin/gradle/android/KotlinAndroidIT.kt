@@ -29,8 +29,8 @@ class KotlinAndroidIT : KGPBaseTest() {
         jdkVersion: JdkVersions.ProvidedJdk,
     ) {
         fun BuildResult.assertKotlinGradleBuildServicesAreInitialized() {
-            assertOutputContainsExactTimes("Initialized KotlinGradleBuildServices", expectedRepetitionTimes = 1)
-            assertOutputContainsExactTimes("Disposed KotlinGradleBuildServices", expectedRepetitionTimes = 1)
+            assertOutputContainsExactlyTimes("Initialized KotlinGradleBuildServices", expectedCount = 1)
+            assertOutputContainsExactlyTimes("Disposed KotlinGradleBuildServices", expectedCount = 1)
         }
 
         project(
@@ -241,15 +241,16 @@ class KotlinAndroidIT : KGPBaseTest() {
             buildJdk = jdkVersion.location
         ) {
             subProject("Lib").buildGradle.modify {
-                it.checkedReplace(
-                    "kotlin-stdlib:\$kotlin_version",
-                    "kotlin-stdlib"
-                ) +
+                it +
                         //language=Gradle
                         """
-
+                        
                         apply plugin: 'maven-publish'
-        
+                            
+                        dependencies {
+                             implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+                        }
+                        
                         android {
                             defaultPublishConfig 'flavor1Debug'
                         }

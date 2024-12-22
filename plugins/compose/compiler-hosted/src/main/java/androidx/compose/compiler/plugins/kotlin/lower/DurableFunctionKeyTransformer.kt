@@ -43,11 +43,7 @@ import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.defaultType
-import org.jetbrains.kotlin.ir.util.DeepCopySymbolRemapper
-import org.jetbrains.kotlin.ir.util.addChild
-import org.jetbrains.kotlin.ir.util.constructors
-import org.jetbrains.kotlin.ir.util.createParameterDeclarations
-import org.jetbrains.kotlin.ir.util.primaryConstructor
+import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.load.kotlin.PackagePartClassUtils
@@ -106,14 +102,12 @@ class KeyInfo(
  */
 class DurableFunctionKeyTransformer(
     context: IrPluginContext,
-    symbolRemapper: DeepCopySymbolRemapper,
     metrics: ModuleMetrics,
     stabilityInferencer: StabilityInferencer,
     featureFlags: FeatureFlags,
 ) : DurableKeyTransformer(
     DurableKeyVisitor(),
     context,
-    symbolRemapper,
     stabilityInferencer,
     metrics,
     featureFlags,
@@ -165,15 +159,14 @@ class DurableFunctionKeyTransformer(
         getTopLevelClassOrNull(ComposeClassIds.FunctionKeyMetaClass)
 
     private fun irKeyMetaAnnotation(
-        key: KeyInfo
+        key: KeyInfo,
     ): IrConstructorCall = IrConstructorCallImpl(
         UNDEFINED_OFFSET,
         UNDEFINED_OFFSET,
         keyMetaAnnotation!!.defaultType,
         keyMetaAnnotation.constructors.single(),
-        0,
-        0,
-        3
+        typeArgumentsCount = 0,
+        constructorTypeArgumentsCount = 0,
     ).apply {
         putValueArgument(0, irConst(key.key.hashCode()))
         putValueArgument(1, irConst(key.startOffset))
@@ -181,15 +174,14 @@ class DurableFunctionKeyTransformer(
     }
 
     private fun irMetaClassAnnotation(
-        file: String
+        file: String,
     ): IrConstructorCall = IrConstructorCallImpl(
         UNDEFINED_OFFSET,
         UNDEFINED_OFFSET,
         metaClassAnnotation!!.defaultType,
         metaClassAnnotation.constructors.single(),
-        0,
-        0,
-        1
+        typeArgumentsCount = 0,
+        constructorTypeArgumentsCount = 0,
     ).apply {
         putValueArgument(0, irConst(file))
     }
@@ -204,7 +196,7 @@ class DurableFunctionKeyTransformer(
             // the kotlin file class lowering produces, prefixed with `LiveLiterals$`.
             name = Name.identifier("$shortName\$KeyMeta")
         }.also {
-            it.createParameterDeclarations()
+            it.createThisReceiverParameter()
 
             // store the full file path to the file that this class is associated with in an
             // annotation on the class. This will be used by tooling to associate the keys

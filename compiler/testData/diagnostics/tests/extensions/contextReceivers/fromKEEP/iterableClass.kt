@@ -1,3 +1,5 @@
+// RUN_PIPELINE_TILL: FRONTEND
+// DIAGNOSTICS: -CONTEXT_RECEIVERS_DEPRECATED
 // LANGUAGE: +ContextReceivers
 
 typealias IterableClass<C, T> = (C) -> Iterator<T>

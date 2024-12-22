@@ -20,8 +20,6 @@
 package org.jetbrains.kotlin.powerassert
 
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
-import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
-import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.CompilerConfigurationKey
@@ -41,7 +39,13 @@ class PowerAssertCompilerPluginRegistrar(
         val functions = configuration[KEY_FUNCTIONS]?.map { FqName(it) } ?: functions
         if (functions.isEmpty()) return
 
-        val messageCollector = configuration.get(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, MessageCollector.NONE)
-        IrGenerationExtension.registerExtension(PowerAssertIrGenerationExtension(messageCollector, functions.toSet()))
+        IrGenerationExtension.registerExtension(
+            PowerAssertIrGenerationExtension(
+                PowerAssertConfiguration(
+                    configuration,
+                    functions.toSet()
+                )
+            )
+        )
     }
 }

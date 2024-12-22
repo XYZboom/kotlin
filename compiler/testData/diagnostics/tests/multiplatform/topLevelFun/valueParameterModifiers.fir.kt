@@ -1,17 +1,19 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // DIAGNOSTICS: -NOTHING_TO_INLINE
 // MODULE: m1-common
 // FILE: common.kt
 
 expect fun f1(s: () -> String)
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect inline fun f2(s: () -> String)<!>
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> inline fun f2(s: () -> String)
 expect inline fun f3(noinline s: () -> String)
 
 expect fun f4(s: () -> String)
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect inline fun f5(s: () -> String)<!>
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> inline fun f5(s: () -> String)
 expect inline fun f6(crossinline s: () -> String)
 
-<!EXPECT_ACTUAL_MISMATCH{JVM}!>expect fun f7(x: Any)<!>
-<!EXPECT_ACTUAL_MISMATCH{JVM}!>expect fun f8(vararg x: Any)<!>
+<!EXPECT_ACTUAL_MISMATCH{JVM}!>expect<!> fun f7(x: Any)
+<!EXPECT_ACTUAL_MISMATCH{JVM}!>expect<!> fun f8(vararg x: Any)
 
 // MODULE: m2-jvm()()(m1-common)
 // FILE: jvm.kt

@@ -40,15 +40,20 @@ val projectsUsedInIntelliJKotlinPlugin: Array<String> by rootProject.extra
 val kotlinApiVersionForProjectsUsedInIntelliJKotlinPlugin: String by rootProject.extra
 
 tasks.withType<JavaExec> {
+    notCompatibleWithConfigurationCache("Uses project in task action")
     workingDir = rootProject.projectDir
 
     doFirst {
-        args = projectsUsedInIntelliJKotlinPlugin.flatMap {
+        val srcDirsOfProjectsUsedInIntelliJKotlinPlugin = projectsUsedInIntelliJKotlinPlugin.flatMap {
             project(it).extensions
                 .findByType(JavaPluginExtension::class.java)
                 ?.sourceSets?.flatMap { sourceSet ->
                     sourceSet.allSource.srcDirs.map { it.path }
                 }.orEmpty()
+        }
+        args = buildList {
+            add(project(":kotlin-stdlib").projectDir.path)
+            addAll(srcDirsOfProjectsUsedInIntelliJKotlinPlugin)
         }
     }
 }
@@ -68,7 +73,7 @@ fun Project.checkIdeDependencyConfiguration() {
         val projectApiVersion = compileTask.compilerOptions.apiVersion.get()
         check(projectApiVersion <= expectedApiVersion) {
             "Expected the API Version to be less or equal to `$kotlinApiVersionForProjectsUsedInIntelliJKotlinPlugin`" +
-                    " for the project `$name`, " +
+                    " for the project `$path`, " +
                     "but `$projectApiVersion` found. The project is used in the IntelliJ, so it should use the same API version" +
                     "for binary compatibility with Kotlin stdlib . " +
                     "See KT-62510 for details."
@@ -78,7 +83,7 @@ fun Project.checkIdeDependencyConfiguration() {
             ExperimentalAnnotationsCollector().getUsedExperimentalAnnotations(compileTask.compilerOptions.freeCompilerArgs.get())
 
         check(enabledExperimentalAnnotations.isEmpty()) {
-            "`$name` allows using experimental kotlin stdlib API marked with ${enabledExperimentalAnnotations.joinToString()}. " +
+            "`$path` allows using experimental kotlin stdlib API marked with ${enabledExperimentalAnnotations.joinToString()}. " +
                     "The project is used in the IntelliJ Kotlin Plugin, so it cannot use experimental Kotlin stdlib API " +
                     "for binary compatibility with Kotlin stdlib . " +
                     "See KT-62510 for details."

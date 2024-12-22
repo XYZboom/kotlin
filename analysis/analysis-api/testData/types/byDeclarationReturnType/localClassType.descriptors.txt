@@ -1,16 +1,16 @@
-KtUsualClassType:
-  abbreviatedType: null
-  annotationsList: []
+KaUsualClassType:
+  abbreviation: null
+  annotations: []
   classId: B
-  classSymbol: KtNamedClassOrObjectSymbol(<local>/B)
   nullability: NON_NULLABLE
-  ownTypeArguments: []
   qualifiers: [
     qualifier:
       name: B
-      symbol: KtNamedClassOrObjectSymbol(<local>/B)
+      symbol: KaNamedClassSymbol(<local>/B)
       typeArguments: []
   ]
+  symbol: KaNamedClassSymbol(<local>/B)
+  typeArguments: []
 
 Rendered type:
 B

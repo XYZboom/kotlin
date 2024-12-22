@@ -18,12 +18,14 @@ import kotlin.io.path.*
 import kotlin.test.assertTrue
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
+import org.jetbrains.kotlin.gradle.testbase.BuildOptions.IsolatedProjectsMode
 import org.jetbrains.kotlin.gradle.testbase.TestVersions.ThirdPartyDependencies.GRADLE_ENTERPRISE_PLUGIN_VERSION
 import org.jetbrains.kotlin.gradle.util.BuildOperationRecordImpl
 import org.jetbrains.kotlin.gradle.util.readJsonReport
 import java.nio.file.Files
 import kotlin.streams.asSequence
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @DisplayName("Build reports")
 @JvmGradlePluginTests
@@ -38,7 +40,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("Build report is created")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testBuildReportSmokeTest(gradleVersion: GradleVersion) {
@@ -55,7 +57,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("Build report output property accepts only certain values")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testBuildReportOutputProperty(gradleVersion: GradleVersion) {
@@ -68,7 +70,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("Build metrics produces valid report")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testBuildMetricsSmokeTest(gradleVersion: GradleVersion) {
@@ -77,7 +79,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("Build metrics produces valid report for mpp-jvm")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testBuildMetricsForMppJvm(gradleVersion: GradleVersion) {
@@ -86,8 +88,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("Build metrics produces valid report for mpp-js")
     @GradleTestVersions(
-        minVersion = TestVersions.Gradle.G_7_4,
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testBuildMetricsForMppJs(gradleVersion: GradleVersion) {
@@ -96,8 +97,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("Build metrics produces valid report for JS project")
     @GradleTestVersions(
-        minVersion = TestVersions.Gradle.G_7_4,
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testBuildMetricsForJsProject(gradleVersion: GradleVersion) {
@@ -187,7 +187,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("Compiler build metrics report is produced")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testCompilerBuildMetricsSmokeTest(gradleVersion: GradleVersion) {
@@ -212,7 +212,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("with no kotlin task executed")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testFileReportWithoutKotlinTask(gradleVersion: GradleVersion) {
@@ -229,14 +229,15 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("validation")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testSingleBuildMetricsFileValidation(gradleVersion: GradleVersion) {
-        project("simpleProject", gradleVersion) {
-            buildAndFail(
-                "compileKotlin", "-Pkotlin.build.report.output=SINGLE_FILE",
-            ) {
+        project(
+            "simpleProject", gradleVersion,
+            buildOptions = defaultBuildOptions.copy(buildReport = listOf(BuildReportType.SINGLE_FILE))
+        ) {
+            buildAndFail("compileKotlin") {
                 assertOutputContains("Can't configure single file report: 'kotlin.build.report.single_file' property is mandatory")
             }
         }
@@ -244,15 +245,17 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("single build report output")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testSingleBuildMetricsFile(gradleVersion: GradleVersion) {
-        project("simpleProject", gradleVersion) {
+        project(
+            "simpleProject", gradleVersion,
+            buildOptions = defaultBuildOptions.copy(buildReport = listOf(BuildReportType.SINGLE_FILE))
+        ) {
             val newMetricsPath = projectPath.resolve("metrics.bin")
             build(
                 "compileKotlin", "-Pkotlin.build.report.single_file=${newMetricsPath.pathString}",
-                "-Pkotlin.build.report.output=single_file"
             )
             assertTrue { newMetricsPath.exists() }
         }
@@ -260,7 +263,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("deprecated properties")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testDeprecatedReportProperties(gradleVersion: GradleVersion) {
@@ -278,15 +281,17 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("smoke")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testSingleBuildMetricsFileSmoke(gradleVersion: GradleVersion) {
-        project("simpleProject", gradleVersion) {
+        project(
+            "simpleProject", gradleVersion,
+            buildOptions = defaultBuildOptions.copy(buildReport = listOf(BuildReportType.SINGLE_FILE))
+        ) {
             val metricsFile = projectPath.resolve("metrics.bin").toFile()
             build(
                 "compileKotlin",
-                "-Pkotlin.build.report.output=SINGLE_FILE",
                 "-Pkotlin.build.report.single_file=${metricsFile.absolutePath}"
             )
 
@@ -300,42 +305,74 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("custom value limit")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testCustomValueLimitForBuildScan(gradleVersion: GradleVersion) {
-        project("simpleProject", gradleVersion, buildOptions = defaultBuildOptions.copy(logLevel = LogLevel.DEBUG)) {
+        project(
+            "simpleProject",
+            gradleVersion,
+            buildOptions = defaultBuildOptions.copy(logLevel = LogLevel.DEBUG, buildReport = listOf(BuildReportType.BUILD_SCAN))
+        ) {
             build(
                 "compileKotlin",
-                "-Pkotlin.build.report.output=BUILD_SCAN",
                 "-Pkotlin.build.report.build_scan.custom_values_limit=0",
                 "--scan"
             ) {
-                assertOutputContains("Can't add any more custom values into build scan")
+                assertOutputContains(CAN_NOT_ADD_CUSTOM_VALUES_TO_BUILD_SCAN_MESSAGE)
             }
         }
     }
 
     @DisplayName("build scan listener lazy initialisation")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testBuildScanListenerLazyInitialisation(gradleVersion: GradleVersion) {
-        project("simpleProject", gradleVersion, buildOptions = defaultBuildOptions.copy(logLevel = LogLevel.DEBUG)) {
+        project(
+            "simpleProject",
+            gradleVersion,
+            buildOptions = defaultBuildOptions.copy(logLevel = LogLevel.DEBUG, buildReport = listOf(BuildReportType.BUILD_SCAN))
+        ) {
             build(
                 "compileKotlin",
-                "-Pkotlin.build.report.output=BUILD_SCAN",
                 "-Pkotlin.build.report.build_scan.custom_values_limit=0",
             ) {
-                assertOutputDoesNotContain("Can't add any more custom values into build scan")
+                assertOutputDoesNotContain(CAN_NOT_ADD_CUSTOM_VALUES_TO_BUILD_SCAN_MESSAGE)
+            }
+        }
+    }
+
+    @DisplayName("build scan with project isolation")
+    @GradleTestVersions(
+        additionalVersions = [TestVersions.Gradle.G_8_0],
+    )
+    @GradleTest
+    fun testBuildReportWithProjectIsolation(gradleVersion: GradleVersion) {
+        project(
+            "simpleProject", gradleVersion,
+            buildOptions = defaultBuildOptions.copy(
+                logLevel = LogLevel.DEBUG,
+                isolatedProjects = IsolatedProjectsMode.ENABLED,
+                configurationCache = BuildOptions.ConfigurationCacheValue.UNSPECIFIED,
+                buildReport = listOf(BuildReportType.FILE, BuildReportType.JSON)
+            )
+        ) {
+            build(
+                "compileKotlin", "-Pkotlin.build.report.json.directory=${projectPath.resolve("report").pathString}"
+            ) {
+                val jsonReportFile = projectPath.getSingleFileInDir("report")
+                assertTrue { jsonReportFile.exists() }
+                val jsonReport = readJsonReport(jsonReportFile)
+                assertNotNull(jsonReport)
             }
         }
     }
 
     @DisplayName("Error file is created")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testErrorsFileSmokeTest(
@@ -392,7 +429,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("Error file should not contain compilation exceptions")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testErrorsFileWithCompilationError(
@@ -474,13 +511,16 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("build scan metrics validation")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testBuildScanMetricsValidation(gradleVersion: GradleVersion) {
-        project("simpleProject", gradleVersion) {
+        project(
+            "simpleProject", gradleVersion,
+            buildOptions = defaultBuildOptions.copy(buildReport = listOf(BuildReportType.BUILD_SCAN))
+        ) {
             buildAndFail(
-                "compileKotlin", "-Pkotlin.build.report.output=BUILD_SCAN", "-Pkotlin.build.report.build_scan.metrics=unknown_prop"
+                "compileKotlin", "-Pkotlin.build.report.build_scan.metrics=unknown_prop"
             ) {
                 assertOutputContains("Unknown metric: 'unknown_prop', list of available metrics")
             }
@@ -489,7 +529,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("build reports work with init script")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testBuildReportsWithInitScript(gradleVersion: GradleVersion) {
@@ -530,7 +570,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("json validation")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testJsonBuildMetricsFileValidation(gradleVersion: GradleVersion) {
@@ -548,7 +588,7 @@ class BuildReportsIT : KGPBaseTest() {
 
     @DisplayName("json report")
     @GradleTestVersions(
-        additionalVersions = [TestVersions.Gradle.G_7_6, TestVersions.Gradle.G_8_0],
+        additionalVersions = [TestVersions.Gradle.G_8_0],
     )
     @GradleTest
     fun testJsonBuildReport(gradleVersion: GradleVersion) {
@@ -562,7 +602,8 @@ class BuildReportsIT : KGPBaseTest() {
             ) {
                 val jsonReport = projectPath.getSingleFileInDir("report")
                 val buildExecutionData = readJsonReport(jsonReport)
-                val buildOperationRecords = buildExecutionData.buildOperationRecord.first { it.path == ":compileKotlin" } as BuildOperationRecordImpl
+                val buildOperationRecords =
+                    buildExecutionData.buildOperationRecord.first { it.path == ":compileKotlin" } as BuildOperationRecordImpl
                 assertEquals(KotlinVersion.DEFAULT, buildOperationRecords.kotlinLanguageVersion)
                 jsonReport.deleteExisting()
             }
@@ -582,7 +623,8 @@ class BuildReportsIT : KGPBaseTest() {
             ) {
                 val jsonReport = projectPath.getSingleFileInDir("report")
                 val buildExecutionData = readJsonReport(jsonReport)
-                val buildOperationRecords = buildExecutionData.buildOperationRecord.first { it.path == ":compileKotlin" } as BuildOperationRecordImpl
+                val buildOperationRecords =
+                    buildExecutionData.buildOperationRecord.first { it.path == ":compileKotlin" } as BuildOperationRecordImpl
                 assertEquals(KotlinVersion.DEFAULT, buildOperationRecords.kotlinLanguageVersion)
             }
         }
@@ -607,6 +649,82 @@ class BuildReportsIT : KGPBaseTest() {
             }
             assertEquals(10, reportFolder.listFiles()?.size)
         }
+    }
+
+    @DisplayName("build scan with project isolation")
+    @GradleTestVersions(
+        minVersion = TestVersions.Gradle.G_8_0,
+        //There is an exception for gradle 7.6 with project isolation:
+        //Plugin 'com.gradle.enterprise': Cannot access project ':app' from project ':'
+    )
+    @GradleTest
+    fun testBuildScanReportWithProjectIsolation(gradleVersion: GradleVersion) {
+        project(
+            "incrementalMultiproject", gradleVersion,
+            buildOptions = defaultBuildOptions.copy(
+                logLevel = LogLevel.DEBUG,
+                isolatedProjects = IsolatedProjectsMode.ENABLED,
+                configurationCache = BuildOptions.ConfigurationCacheValue.UNSPECIFIED,
+                buildReport = listOf(BuildReportType.BUILD_SCAN)
+            )
+        ) {
+            build(
+                "compileKotlin", "--scan"
+            ) {
+                assertOutputContains("Build report creation in the build scan format is not yet supported when the isolated projects feature is enabled.")
+            }
+        }
+    }
+
+    @DisplayName("for build scan with develocity plugin")
+    @GradleTestVersions(
+        minVersion = TestVersions.Gradle.G_8_4
+    )
+    @GradleTest
+    fun testBuildScanReportWithDevelocityPlugin(gradleVersion: GradleVersion) {
+        project(
+            "incrementalMultiproject", gradleVersion,
+            buildOptions = defaultBuildOptions.copy(
+                logLevel = LogLevel.DEBUG,
+                configurationCache = BuildOptions.ConfigurationCacheValue.UNSPECIFIED,
+                buildReport = listOf(BuildReportType.BUILD_SCAN)
+            )
+        ) {
+            settingsGradle.modify {
+                """
+                ${
+                    it.replace(
+                        "id(\"org.jetbrains.kotlin.test.gradle-warnings-detector\")",
+                        """
+                               id("org.jetbrains.kotlin.test.gradle-warnings-detector")
+                               id "com.gradle.develocity" version "${TestVersions.ThirdPartyDependencies.GRADLE_DEVELOCITY_PLUGIN_VERSION}"
+                        """.trimIndent()
+                    )
+                }
+                        
+                develocity {
+                    buildScan {
+                        termsOfUseAgree = "yes"
+                        termsOfUseUrl = "https://gradle.com/terms-of-service"
+
+                        tag "test"
+                    }
+                }
+                """.trimIndent()
+            }
+            build(
+                "compileKotlin", "--scan"
+            ) {
+                assertOutputDoesNotContain("The build scan was not published due to a configuration problem.")
+                assertOutputDoesNotContain("The following functionality has been deprecated and will be removed in the next major release of the Develocity Gradle plugin.")
+                assertOutputContains("Build metrics are stored into build scan for")
+                assertOutputContains("[com.gradle.develocity.agent.gradle.DevelocityPlugin] Publishing build scan...")
+            }
+        }
+    }
+
+    companion object {
+        private const val CAN_NOT_ADD_CUSTOM_VALUES_TO_BUILD_SCAN_MESSAGE = "Can't add any more custom values into build scan"
     }
 
 }

@@ -46,8 +46,6 @@ abstract class KotlinNativeTarget @Inject constructor(
         attributes.setAttribute(konanTargetAttribute, konanTarget.name)
     }
 
-    private val hostSpecificMetadataJarTaskName get() = disambiguateName("MetadataJar")
-
     internal val hostSpecificMetadataElementsConfigurationName get() = disambiguateName("MetadataElements")
 
     override val kotlinComponents: Set<KotlinTargetComponent> by lazy {
@@ -108,7 +106,6 @@ abstract class KotlinNativeTarget @Inject constructor(
     override val publishable: Boolean
         get() = konanTarget.enabledOnCurrentHostForKlibCompilation(project.kotlinPropertiesProvider)
 
-    @ExperimentalKotlinGradlePluginApi
     override val compilerOptions: KotlinNativeCompilerOptions = project.objects
         .newInstance<KotlinNativeCompilerOptionsDefault>()
         .apply {

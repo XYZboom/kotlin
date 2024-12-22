@@ -4,11 +4,12 @@ scopes:
   ExplicitSimpleImportingScope, index = 0
     packages: 0
     classifiers: 1
-      KtNamedClassOrObjectSymbol:
-        annotationsList: []
-        classIdIfNonLocal: pkg/A
+      KaNamedClassSymbol:
+        annotations: []
+        classId: pkg/A
         classKind: CLASS
         companionObject: null
+        compilerVisibility: Public
         contextReceivers: []
         isActual: false
         isData: false
@@ -17,50 +18,58 @@ scopes:
         isFun: false
         isInline: false
         isInner: false
+        location: TOP_LEVEL
         modality: FINAL
         name: A
         origin: SOURCE
         superTypes: [
-          KtUsualClassType:
-            annotationsList: []
-            ownTypeArguments: []
+          KaUsualClassType:
+            annotations: []
+            typeArguments: []
             type: kotlin/Any
         ]
-        symbolKind: TOP_LEVEL
         typeParameters: []
-        visibility: Public
+        visibility: PUBLIC
     callables: 0
     constructors: 0
 
   PackageMemberScope, index = 1
     packages: 7
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: META-INF
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: java
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: javax
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: kotlin
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: org
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: pkg
+        location: TOP_LEVEL
         origin: SOURCE
-      KtPackageSymbol:
+      KaPackageSymbol:
         fqName: sun
+        location: TOP_LEVEL
         origin: SOURCE
     classifiers: 1
-      KtNamedClassOrObjectSymbol:
-        annotationsList: []
-        classIdIfNonLocal: B
+      KaNamedClassSymbol:
+        annotations: []
+        classId: B
         classKind: CLASS
         companionObject: null
+        compilerVisibility: Public
         contextReceivers: []
         isActual: false
         isData: false
@@ -69,18 +78,18 @@ scopes:
         isFun: false
         isInline: false
         isInner: false
+        location: TOP_LEVEL
         modality: FINAL
         name: B
         origin: SOURCE
         superTypes: [
-          KtUsualClassType:
-            annotationsList: []
-            ownTypeArguments: []
+          KaUsualClassType:
+            annotations: []
+            typeArguments: []
             type: kotlin/Any
         ]
-        symbolKind: TOP_LEVEL
         typeParameters: []
-        visibility: Public
+        visibility: PUBLIC
     callables: 0
     constructors: 0
 

@@ -5,8 +5,9 @@
 
 package org.jetbrains.kotlin.analysis.api.fir.types.qualifiers
 
-import org.jetbrains.kotlin.analysis.api.fir.KtSymbolByFirBuilder
-import org.jetbrains.kotlin.analysis.api.types.KtClassTypeQualifier
+import org.jetbrains.kotlin.analysis.api.fir.KaSymbolByFirBuilder
+import org.jetbrains.kotlin.analysis.api.impl.base.types.KaBaseResolvedClassTypeQualifier
+import org.jetbrains.kotlin.analysis.api.types.KaResolvedClassTypeQualifier
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.toSequence
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.tryCollectDesignationWithOptionalFile
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.errorWithFirSpecificEntries
@@ -14,20 +15,20 @@ import org.jetbrains.kotlin.fir.containingClassForLocal
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.isInner
 import org.jetbrains.kotlin.fir.declarations.utils.isLocal
-import org.jetbrains.kotlin.fir.resolve.toFirRegularClass
+import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.LookupTagInternals
 import org.jetbrains.kotlin.fir.types.impl.ConeClassLikeTypeImpl
+import org.jetbrains.kotlin.fir.utils.exceptions.withConeTypeEntry
 import org.jetbrains.kotlin.fir.utils.exceptions.withFirEntry
 import org.jetbrains.kotlin.utils.exceptions.checkWithAttachment
-import org.jetbrains.kotlin.utils.exceptions.errorWithAttachment
 
 internal object UsualClassTypeQualifierBuilder {
     fun buildQualifiers(
         coneType: ConeClassLikeTypeImpl,
-        builder: KtSymbolByFirBuilder
-    ): List<KtClassTypeQualifier.KtResolvedClassTypeQualifier> {
+        builder: KaSymbolByFirBuilder
+    ): List<KaResolvedClassTypeQualifier> {
 
         val classSymbolToRender = coneType.lookupTag.toSymbol(builder.rootSession)
             ?: errorWithFirSpecificEntries("ConeClassLikeTypeImpl is not resolved to symbol for on-error type", coneType = coneType) {
@@ -37,10 +38,9 @@ internal object UsualClassTypeQualifierBuilder {
 
         if (classSymbolToRender !is FirRegularClassSymbol) {
             return listOf(
-                KtClassTypeQualifier.KtResolvedClassTypeQualifier(
+                KaBaseResolvedClassTypeQualifier(
                     builder.classifierBuilder.buildClassifierSymbol(classSymbolToRender),
                     coneType.typeArguments.map { builder.typeBuilder.buildTypeProjection(it) },
-                    builder.token
                 )
             )
         }
@@ -57,20 +57,24 @@ internal object UsualClassTypeQualifierBuilder {
             return index == designation.lastIndex || designation[index].isInner || designation[index + 1].isInner
         }
 
-        val result = mutableListOf<KtClassTypeQualifier.KtResolvedClassTypeQualifier>()
+        val result = mutableListOf<KaResolvedClassTypeQualifier>()
         designation.forEachIndexed { index, currentClass ->
             val typeParameters = if (needToRenderTypeParameters(index)) {
                 val typeParametersCount = currentClass.typeParameters.count { it is FirTypeParameter }
                 val begin = typeParametersLeft - typeParametersCount
                 val end = typeParametersLeft
-                check(begin >= 0)
+                checkWithAttachment(begin >= 0, { "Unexpected number of type parameters" }) {
+                    withEntry("designation", designation.toString())
+                    withFirEntry("currentClass", currentClass)
+                    withConeTypeEntry("coneType", coneType)
+                }
+
                 typeParametersLeft -= typeParametersCount
                 coneType.typeArguments.slice(begin until end).map { builder.typeBuilder.buildTypeProjection(it) }
             } else emptyList()
-            result += KtClassTypeQualifier.KtResolvedClassTypeQualifier(
+            result += KaBaseResolvedClassTypeQualifier(
                 builder.classifierBuilder.buildClassifierSymbol(currentClass.symbol),
                 typeParameters,
-                builder.token
             )
         }
         return result
@@ -82,7 +86,7 @@ internal object UsualClassTypeQualifierBuilder {
         val designation = mutableListOf<FirClassLikeDeclaration>(this)
         @OptIn(LookupTagInternals::class)
         while (containingClassLookUp != null && containingClassLookUp.classId.isLocal) {
-            val currentClass = containingClassLookUp.toFirRegularClass(moduleData.session) ?: break
+            val currentClass = containingClassLookUp.toRegularClassSymbol(moduleData.session)?.fir ?: break
             designation.add(currentClass)
             containingClassLookUp = currentClass.containingClassForLocal()
         }
@@ -100,9 +104,6 @@ internal object UsualClassTypeQualifierBuilder {
             is FirAnonymousObject -> listOf(declaration)
             is FirRegularClass -> declaration.collectForLocal()
             is FirTypeAlias -> listOf(declaration) // TODO: handle type aliases
-            else -> errorWithAttachment("Invalid declaration ${declaration::class}") {
-                withFirEntry("declaration", declaration)
-            }
         }
     }
 }

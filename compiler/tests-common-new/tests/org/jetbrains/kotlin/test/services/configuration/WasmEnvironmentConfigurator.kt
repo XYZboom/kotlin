@@ -19,7 +19,10 @@ import org.jetbrains.kotlin.test.directives.JsEnvironmentConfigurationDirectives
 import org.jetbrains.kotlin.test.directives.JsEnvironmentConfigurationDirectives.SOURCE_MAP_EMBED_SOURCES
 import org.jetbrains.kotlin.test.directives.WasmEnvironmentConfigurationDirectives
 import org.jetbrains.kotlin.test.directives.WasmEnvironmentConfigurationDirectives.DISABLE_WASM_EXCEPTION_HANDLING
+import org.jetbrains.kotlin.test.directives.WasmEnvironmentConfigurationDirectives.USE_JS_TAG
+import org.jetbrains.kotlin.test.directives.WasmEnvironmentConfigurationDirectives.SOURCE_MAP_INCLUDE_MAPPINGS_FROM_UNAVAILABLE_FILES
 import org.jetbrains.kotlin.test.directives.WasmEnvironmentConfigurationDirectives.USE_NEW_EXCEPTION_HANDLING_PROPOSAL
+import org.jetbrains.kotlin.test.directives.WasmEnvironmentConfigurationDirectives.WASM_ALLOW_FQNAME_IN_KCLASS
 import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
 import org.jetbrains.kotlin.test.directives.model.RegisteredDirectives
 import org.jetbrains.kotlin.test.model.TestModule
@@ -49,7 +52,6 @@ abstract class WasmEnvironmentConfigurator(testServices: TestServices) : Environ
             val suffix = when (target) {
                 WasmTarget.JS -> "-js"
                 WasmTarget.WASI -> "-wasi"
-                else -> error("Unexpected wasi target")
             }
             return listOf(System.getProperty("kotlin.wasm$suffix.stdlib.path")!!, System.getProperty("kotlin.wasm$suffix.kotlin.test.path")!!)
         }
@@ -74,7 +76,7 @@ abstract class WasmEnvironmentConfigurator(testServices: TestServices) : Environ
         languageVersion: LanguageVersion
     ): Map<AnalysisFlag<*>, Any?> {
         return super.provideAdditionalAnalysisFlags(directives, languageVersion).toMutableMap().also {
-            it[allowFullyQualifiedNameInKClass] = false
+            it[allowFullyQualifiedNameInKClass] = WASM_ALLOW_FQNAME_IN_KCLASS in directives
         }
     }
 
@@ -93,11 +95,13 @@ abstract class WasmEnvironmentConfigurator(testServices: TestServices) : Environ
         val sourceDirs = module.files.map { it.originalFile.parent }.distinct()
         configuration.put(JSConfigurationKeys.SOURCE_MAP_SOURCE_ROOTS, sourceDirs)
         configuration.put(JSConfigurationKeys.SOURCE_MAP, true)
+        configuration.put(JSConfigurationKeys.SOURCE_MAP_INCLUDE_MAPPINGS_FROM_UNAVAILABLE_FILES, SOURCE_MAP_INCLUDE_MAPPINGS_FROM_UNAVAILABLE_FILES in registeredDirectives)
 
         val sourceMapSourceEmbedding = registeredDirectives[SOURCE_MAP_EMBED_SOURCES].singleOrNull() ?: SourceMapSourceEmbedding.NEVER
         configuration.put(JSConfigurationKeys.SOURCE_MAP_EMBED_SOURCES, sourceMapSourceEmbedding)
 
         configuration.put(WasmConfigurationKeys.WASM_USE_TRAPS_INSTEAD_OF_EXCEPTIONS, DISABLE_WASM_EXCEPTION_HANDLING in registeredDirectives)
         configuration.put(WasmConfigurationKeys.WASM_USE_NEW_EXCEPTION_PROPOSAL, USE_NEW_EXCEPTION_HANDLING_PROPOSAL in registeredDirectives)
+        configuration.put(WasmConfigurationKeys.WASM_USE_JS_TAG, USE_JS_TAG in registeredDirectives)
     }
 }

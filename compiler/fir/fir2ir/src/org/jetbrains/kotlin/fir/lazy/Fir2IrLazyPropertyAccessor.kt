@@ -7,7 +7,7 @@ package org.jetbrains.kotlin.fir.lazy
 
 import org.jetbrains.kotlin.fir.backend.*
 import org.jetbrains.kotlin.fir.backend.utils.ConversionTypeOrigin
-import org.jetbrains.kotlin.fir.backend.utils.contextReceiversForFunctionOrContainingProperty
+import org.jetbrains.kotlin.fir.backend.utils.contextParametersForFunctionOrContainingProperty
 import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirPropertyAccessor
@@ -21,18 +21,16 @@ import org.jetbrains.kotlin.ir.symbols.IrPropertySymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.IrType
-import org.jetbrains.kotlin.ir.util.isFacadeClass
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedContainerSource
 
-@Suppress("DELEGATED_MEMBER_HIDES_SUPERTYPE_OVERRIDE") // K2 warning suppression, TODO: KT-62472
 class Fir2IrLazyPropertyAccessor(
     c: Fir2IrComponents,
     startOffset: Int,
     endOffset: Int,
     origin: IrDeclarationOrigin,
     private val firAccessor: FirPropertyAccessor?,
-    private val isSetter: Boolean,
+    val isSetter: Boolean,
     private val firParentProperty: FirProperty,
     firParentClass: FirRegularClass?,
     symbol: IrSimpleFunctionSymbol,
@@ -42,6 +40,7 @@ class Fir2IrLazyPropertyAccessor(
 ) : AbstractFir2IrLazyFunction<FirCallableDeclaration>(c, startOffset, endOffset, origin, symbol, parent, isFakeOverride) {
     init {
         symbol.bind(this)
+        this.contextReceiverParametersCount = fir.contextParametersForFunctionOrContainingProperty().size
     }
 
     override val fir: FirCallableDeclaration
@@ -62,56 +61,7 @@ class Fir2IrLazyPropertyAccessor(
         set(_) = mutationNotSupported()
 
     override var returnType: IrType by lazyVar(lock) {
-        if (isSetter) irBuiltIns.unitType else firParentProperty.returnTypeRef.toIrType(typeConverter, conversionTypeContext)
-    }
-
-    override var dispatchReceiverParameter: IrValueParameter? by lazyVar(lock) {
-        val containingClass = (parent as? IrClass)?.takeUnless { it.isFacadeClass }
-        if (containingClass != null && shouldHaveDispatchReceiver(containingClass)) {
-            createThisReceiverParameter(thisType = containingClass.thisReceiver?.type ?: error("No this receiver for containing class"))
-        } else null
-    }
-
-    override var extensionReceiverParameter: IrValueParameter? by lazyVar(lock) {
-        firParentProperty.receiverParameter?.let {
-            createThisReceiverParameter(it.typeRef.toIrType(typeConverter, conversionTypeContext), it)
-        }
-    }
-
-    override var contextReceiverParametersCount: Int = fir.contextReceiversForFunctionOrContainingProperty().size
-
-    override var valueParameters: List<IrValueParameter> by lazyVar(lock) {
-        if (!isSetter && contextReceiverParametersCount == 0) emptyList()
-        else {
-            declarationStorage.enterScope(this.symbol)
-
-            buildList {
-                callablesGenerator.addContextReceiverParametersTo(
-                    fir.contextReceiversForFunctionOrContainingProperty(),
-                    this@Fir2IrLazyPropertyAccessor,
-                    this@buildList
-                )
-
-                if (isSetter) {
-                    val valueParameter = firAccessor?.valueParameters?.firstOrNull()
-                    add(
-                        callablesGenerator.createDefaultSetterParameter(
-                            startOffset, endOffset,
-                            (valueParameter?.returnTypeRef ?: firParentProperty.returnTypeRef).toIrType(
-                                typeConverter, conversionTypeContext
-                            ),
-                            parent = this@Fir2IrLazyPropertyAccessor,
-                            firValueParameter = valueParameter,
-                            name = valueParameter?.name,
-                            isCrossinline = valueParameter?.isCrossinline == true,
-                            isNoinline = valueParameter?.isNoinline == true
-                        )
-                    )
-                }
-            }.apply {
-                declarationStorage.leaveScope(this@Fir2IrLazyPropertyAccessor.symbol)
-            }
-        }
+        if (isSetter) builtins.unitType else firParentProperty.returnTypeRef.toIrType(typeConverter, conversionTypeContext)
     }
 
     override var overriddenSymbols: List<IrSimpleFunctionSymbol> by symbolsMappingForLazyClasses.lazyMappedFunctionListVar(lock) {

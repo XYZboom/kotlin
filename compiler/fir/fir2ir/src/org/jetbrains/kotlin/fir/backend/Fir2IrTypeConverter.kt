@@ -7,13 +7,16 @@ package org.jetbrains.kotlin.fir.backend
 
 import org.jetbrains.kotlin.fir.backend.utils.ConversionTypeOrigin
 import org.jetbrains.kotlin.fir.backend.utils.toIrSymbol
+import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.getAnnotationsByClassId
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.expressions.unexpandedConeClassLikeType
+import org.jetbrains.kotlin.fir.resolve.dfa.cfg.isLocalClassOrAnonymousObject
+import org.jetbrains.kotlin.fir.resolve.diagnostics.ConeUnresolvedError
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
-import org.jetbrains.kotlin.fir.resolve.substitution.AbstractConeSubstitutor
 import org.jetbrains.kotlin.fir.resolve.toSymbol
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag
+import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirClassifierSymbol
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.impl.*
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
@@ -23,9 +26,12 @@ import org.jetbrains.kotlin.ir.types.impl.*
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.name.StandardClassIds.Annotations.ExtensionFunctionType
+import org.jetbrains.kotlin.name.StandardClassIds.Annotations.NoInfer
 import org.jetbrains.kotlin.types.CommonFlexibleTypeBoundsChecker
 import org.jetbrains.kotlin.types.TypeApproximatorConfiguration
 import org.jetbrains.kotlin.types.Variance
+import org.jetbrains.kotlin.types.error.ErrorTypeKind
+import org.jetbrains.kotlin.types.error.ErrorUtils
 
 class Fir2IrTypeConverter(
     private val c: Fir2IrComponents,
@@ -35,39 +41,38 @@ class Fir2IrTypeConverter(
     internal val classIdToSymbolMap by lazy {
         // Note: this map must include all base classes, and they should be before derived classes!
         mapOf(
-            StandardClassIds.Nothing to irBuiltIns.nothingClass,
-            StandardClassIds.Any to irBuiltIns.anyClass,
-            StandardClassIds.Unit to irBuiltIns.unitClass,
-            StandardClassIds.Boolean to irBuiltIns.booleanClass,
-            StandardClassIds.CharSequence to irBuiltIns.charSequenceClass,
-            StandardClassIds.String to irBuiltIns.stringClass,
-            StandardClassIds.Number to irBuiltIns.numberClass,
-            StandardClassIds.Long to irBuiltIns.longClass,
-            StandardClassIds.Int to irBuiltIns.intClass,
-            StandardClassIds.Short to irBuiltIns.shortClass,
-            StandardClassIds.Byte to irBuiltIns.byteClass,
-            StandardClassIds.Float to irBuiltIns.floatClass,
-            StandardClassIds.Double to irBuiltIns.doubleClass,
-            StandardClassIds.Char to irBuiltIns.charClass,
-            StandardClassIds.Array to irBuiltIns.arrayClass,
-            StandardClassIds.Annotations.IntrinsicConstEvaluation to irBuiltIns.intrinsicConstSymbol
+            StandardClassIds.Nothing to builtins.nothingClass,
+            StandardClassIds.Any to builtins.anyClass,
+            StandardClassIds.Unit to builtins.unitClass,
+            StandardClassIds.Boolean to builtins.booleanClass,
+            StandardClassIds.CharSequence to builtins.charSequenceClass,
+            StandardClassIds.String to builtins.stringClass,
+            StandardClassIds.Number to builtins.numberClass,
+            StandardClassIds.Long to builtins.longClass,
+            StandardClassIds.Int to builtins.intClass,
+            StandardClassIds.Short to builtins.shortClass,
+            StandardClassIds.Byte to builtins.byteClass,
+            StandardClassIds.Float to builtins.floatClass,
+            StandardClassIds.Double to builtins.doubleClass,
+            StandardClassIds.Char to builtins.charClass,
+            StandardClassIds.Array to builtins.arrayClass,
         )
     }
 
     internal val classIdToTypeMap by lazy {
         mapOf(
-            StandardClassIds.Nothing to irBuiltIns.nothingType,
-            StandardClassIds.Unit to irBuiltIns.unitType,
-            StandardClassIds.Boolean to irBuiltIns.booleanType,
-            StandardClassIds.String to irBuiltIns.stringType,
-            StandardClassIds.Any to irBuiltIns.anyType,
-            StandardClassIds.Long to irBuiltIns.longType,
-            StandardClassIds.Int to irBuiltIns.intType,
-            StandardClassIds.Short to irBuiltIns.shortType,
-            StandardClassIds.Byte to irBuiltIns.byteType,
-            StandardClassIds.Float to irBuiltIns.floatType,
-            StandardClassIds.Double to irBuiltIns.doubleType,
-            StandardClassIds.Char to irBuiltIns.charType
+            StandardClassIds.Nothing to builtins.nothingType,
+            StandardClassIds.Unit to builtins.unitType,
+            StandardClassIds.Boolean to builtins.booleanType,
+            StandardClassIds.String to builtins.stringType,
+            StandardClassIds.Any to builtins.anyType,
+            StandardClassIds.Long to builtins.longType,
+            StandardClassIds.Int to builtins.intType,
+            StandardClassIds.Short to builtins.shortType,
+            StandardClassIds.Byte to builtins.byteType,
+            StandardClassIds.Float to builtins.floatType,
+            StandardClassIds.Double to builtins.doubleType,
+            StandardClassIds.Char to builtins.charType
         )
     }
 
@@ -78,16 +83,16 @@ class Fir2IrTypeConverter(
         capturedTypeCache.clear()
         return when (this) {
             !is FirResolvedTypeRef -> createErrorType()
-            !is FirImplicitBuiltinTypeRef -> type.toIrType(typeOrigin, annotations)
-            is FirImplicitNothingTypeRef -> irBuiltIns.nothingType
-            is FirImplicitUnitTypeRef -> irBuiltIns.unitType
-            is FirImplicitBooleanTypeRef -> irBuiltIns.booleanType
-            is FirImplicitStringTypeRef -> irBuiltIns.stringType
-            is FirImplicitAnyTypeRef -> irBuiltIns.anyType
-            is FirImplicitIntTypeRef -> irBuiltIns.intType
-            is FirImplicitNullableAnyTypeRef -> irBuiltIns.anyNType
-            is FirImplicitNullableNothingTypeRef -> irBuiltIns.nothingNType
-            else -> type.toIrType(typeOrigin, annotations)
+            !is FirImplicitBuiltinTypeRef -> coneType.toIrType(typeOrigin, annotations)
+            is FirImplicitNothingTypeRef -> builtins.nothingType
+            is FirImplicitUnitTypeRef -> builtins.unitType
+            is FirImplicitBooleanTypeRef -> builtins.booleanType
+            is FirImplicitStringTypeRef -> builtins.stringType
+            is FirImplicitAnyTypeRef -> builtins.anyType
+            is FirImplicitIntTypeRef -> builtins.intType
+            is FirImplicitNullableAnyTypeRef -> builtins.anyNType
+            is FirImplicitNullableNothingTypeRef -> builtins.nothingNType
+            else -> coneType.toIrType(typeOrigin, annotations)
         }
     }
 
@@ -100,19 +105,28 @@ class Fir2IrTypeConverter(
         addRawTypeAnnotation: Boolean = false
     ): IrType {
         return when (this) {
-            is ConeErrorType -> createErrorType()
+            is ConeErrorType -> {
+                when (val diagnostic = diagnostic) {
+                    is ConeUnresolvedError -> createErrorType(diagnostic.qualifier, isMarkedNullable)
+                    else -> createErrorType(diagnostic.reason, isMarkedNullable)
+                }
+            }
             is ConeLookupTagBasedType -> {
                 val typeAnnotations = mutableListOf<IrConstructorCall>()
                 typeAnnotations += with(annotationGenerator) { annotations.toIrAnnotations() }
 
                 val irSymbol =
                     getBuiltInClassSymbol(classId)
-                        ?: lookupTag.toSymbol(session)?.toIrSymbol(c, typeOrigin) {
-                            typeAnnotations += with(annotationGenerator) { it.toIrAnnotations() }
+                        ?: lookupTag.toSymbol(session)?.let { firSymbol ->
+                            approximateTypeForLocalClassIfNeeded(firSymbol)?.let { return it }
+                            firSymbol.toIrSymbol(c, typeOrigin) {
+                                typeAnnotations += with(annotationGenerator) { it.toIrAnnotations() }
+                            }
                         }
-                        ?: (lookupTag as? ConeClassLikeLookupTag)?.let(classifiersGenerator::createIrClassForNotFoundClass)?.symbol
+                        ?: (lookupTag as? ConeClassLikeLookupTag)?.let(classifierStorage::getIrClassForNotFoundClass)?.symbol
                         ?: return createErrorType()
 
+                val specialAnnotationsProvider = specialAnnotationsProvider
                 if (specialAnnotationsProvider != null) {
                     if (hasEnhancedNullability) {
                         typeAnnotations += specialAnnotationsProvider.generateEnhancedNullabilityAnnotationCall()
@@ -132,12 +146,18 @@ class Fir2IrTypeConverter(
                 }
 
                 if (isExtensionFunctionType && annotations.getAnnotationsByClassId(ExtensionFunctionType, session).isEmpty()) {
-                    irBuiltIns.extensionFunctionTypeAnnotationCall?.let {
+                    builtins.extensionFunctionTypeAnnotationCall?.let {
                         typeAnnotations += it
                     }
                 }
 
-                for (attributeAnnotation in attributes.customAnnotations) {
+                if (hasNoInfer && annotations.getAnnotationsByClassId(NoInfer, session).isEmpty()) {
+                    builtins.noInferAnnotationCall?.let {
+                        typeAnnotations += it
+                    }
+                }
+
+                for (attributeAnnotation in this.typeAnnotations) {
                     val isAlreadyPresentInAnnotations = annotations.any {
                         it.unexpandedConeClassLikeType == attributeAnnotation.unexpandedConeClassLikeType
                     }
@@ -145,7 +165,7 @@ class Fir2IrTypeConverter(
                     typeAnnotations += callGenerator.convertToIrConstructorCall(attributeAnnotation) as? IrConstructorCall ?: continue
                 }
                 val expandedType = fullyExpandedType(session)
-                val approximatedType = approximateType(expandedType)
+                val approximatedType = expandedType.approximateForIrOrSelf(c)
 
                 if (approximatedType is ConeTypeParameterType && conversionScope.shouldEraseType(approximatedType)) {
                     // This hack is about type parameter leak in case of generic delegated property
@@ -164,10 +184,10 @@ class Fir2IrTypeConverter(
             is ConeRawType -> {
                 // Upper bound has star projections here, so we take lower one
                 // (some reflection tests rely on this)
-                lowerBound.withNullability(upperBound.nullability, session.typeContext).toIrType(
+                lowerBound.withNullabilityOf(upperBound, session.typeContext).toIrType(
                     typeOrigin,
                     annotations,
-                    hasFlexibleNullability = lowerBound.nullability != upperBound.nullability,
+                    hasFlexibleNullability = lowerBound.isMarkedNullable != upperBound.isMarkedNullable,
                     hasFlexibleMutability = isMutabilityFlexible(),
                     hasFlexibleArrayElementVariance = false,
                     addRawTypeAnnotation = true
@@ -175,7 +195,7 @@ class Fir2IrTypeConverter(
             }
             is ConeDynamicType -> {
                 val typeAnnotations = with(annotationGenerator) { annotations.toIrAnnotations() }
-                return IrDynamicTypeImpl(null, typeAnnotations, Variance.INVARIANT)
+                return IrDynamicTypeImpl(typeAnnotations, Variance.INVARIANT)
             }
             is ConeFlexibleType -> with(session.typeContext) {
                 if (upperBound is ConeClassLikeType) {
@@ -185,12 +205,12 @@ class Fir2IrTypeConverter(
                     val intermediate = if (lower is ConeClassLikeType && lower.lookupTag == upper.lookupTag && !isRaw) {
                         lower.replaceArguments(upper.getArguments())
                     } else lower
-                    (intermediate.withNullability(upper.isNullable) as ConeKotlinType)
+                    (intermediate.withNullability(upper.isMarkedNullable) as ConeKotlinType)
                         .withAttributes(lower.attributes)
                         .toIrType(
                             typeOrigin,
                             annotations,
-                            hasFlexibleNullability = lower.nullability != upper.nullability,
+                            hasFlexibleNullability = lower.isMarkedNullable != upper.isMarkedNullable,
                             hasFlexibleMutability = isMutabilityFlexible(),
                             hasFlexibleArrayElementVariance = hasFlexibleArrayElementVariance(),
                             addRawTypeAnnotation = isRaw,
@@ -199,7 +219,7 @@ class Fir2IrTypeConverter(
                     upperBound.toIrType(
                         typeOrigin,
                         annotations,
-                        hasFlexibleNullability = lowerBound.nullability != upperBound.nullability,
+                        hasFlexibleNullability = lowerBound.isMarkedNullable != upperBound.isMarkedNullable,
                         hasFlexibleMutability = isMutabilityFlexible(),
                         hasFlexibleArrayElementVariance = false,
                         addRawTypeAnnotation = false,
@@ -239,18 +259,18 @@ class Fir2IrTypeConverter(
 
     private fun ConeFlexibleType.hasFlexibleArrayElementVariance(): Boolean =
         lowerBound.let { lowerBound ->
-            lowerBound is ConeClassLikeType && lowerBound.lookupTag.classId == StandardClassIds.Array &&
+            lowerBound.classLikeLookupTagIfAny?.classId == StandardClassIds.Array &&
                     lowerBound.typeArguments.single().kind == ProjectionKind.INVARIANT
         } && upperBound.let { upperBound ->
-            upperBound is ConeClassLikeType && upperBound.lookupTag.classId == StandardClassIds.Array &&
+            upperBound.classLikeLookupTagIfAny?.classId == StandardClassIds.Array &&
                     upperBound.typeArguments.single().kind == ProjectionKind.OUT
         }
 
     private fun approximateUpperBounds(resolvedBounds: List<FirResolvedTypeRef>): IrType {
-        val commonSupertype = session.typeContext.commonSuperTypeOrNull(resolvedBounds.map { it.type })!!
+        val commonSupertype = session.typeContext.commonSuperTypeOrNull(resolvedBounds.map { it.coneType })!!.lowerBoundIfFlexible()
         val resultType = (commonSupertype as? ConeClassLikeType)?.replaceArgumentsWithStarProjections()
             ?: commonSupertype
-        val approximatedType = (commonSupertype as? ConeSimpleKotlinType)?.let { approximateType(it) } ?: resultType
+        val approximatedType = (commonSupertype as? ConeSimpleKotlinType)?.approximateForIrOrSelf(c) ?: resultType
         return approximatedType.toIrType(c)
     }
 
@@ -319,23 +339,26 @@ class Fir2IrTypeConverter(
     private fun getArrayClassSymbol(classId: ClassId?): IrClassSymbol? {
         val primitiveId = StandardClassIds.elementTypeByPrimitiveArrayType[classId] ?: return null
         val irType = classIdToTypeMap[primitiveId]
-        return irBuiltIns.primitiveArrayForType[irType] ?: error("Strange primitiveId $primitiveId from array: $classId")
+        return builtins.primitiveArrayForType[irType] ?: error("Strange primitiveId $primitiveId from array: $classId")
     }
 
+    // TODO: candidate for removal
     private fun getBuiltInClassSymbol(classId: ClassId?): IrClassSymbol? {
         return classIdToSymbolMap[classId] ?: getArrayClassSymbol(classId)
     }
 
-    private fun approximateType(type: ConeSimpleKotlinType): ConeKotlinType {
-        if (type is ConeClassLikeType && type.typeArguments.isEmpty()) return type
-        val substitutor = object : AbstractConeSubstitutor(session.typeContext) {
-            override fun substituteType(type: ConeKotlinType): ConeKotlinType? {
-                return if (type is ConeIntersectionType) {
-                    type.alternativeType?.let { substituteOrSelf(it) }
-                } else null
-            }
-        }
-        return substitutor.substituteOrSelf(type).approximateForIrOrSelf(c)
+    private fun approximateTypeForLocalClassIfNeeded(symbol: FirClassifierSymbol<*>): IrType? {
+        // Should only be run in the skipBodies (i.e. kapt) mode.
+        if (!configuration.skipBodies) return null
+
+        if (symbol !is FirClassSymbol) return null
+        val firClass = symbol.fir as? FirClass ?: return null
+        if (!firClass.isLocalClassOrAnonymousObject()) return null
+        return firClass.superTypeRefs.firstOrNull {
+            // Skip Enum supertype because otherwise, translating local enums will lead to stack overflow error
+            // (since a local enum `L` has `kotlin/Enum<L>` as a supertype).
+            (it.coneType.lookupTagIfAny as? ConeClassLikeLookupTag)?.classId != StandardClassIds.Enum
+        }?.toIrType() ?: builtins.anyType
     }
 }
 
@@ -368,4 +391,5 @@ internal fun ConeKotlinType.approximateForIrOrSelf(c: Fir2IrComponents): ConeKot
     return approximateForIrOrNull(c) ?: this
 }
 
-internal fun createErrorType(): IrErrorType = IrErrorTypeImpl(null, emptyList(), Variance.INVARIANT)
+internal fun createErrorType(message: String = "<error>", isMarkedNullable: Boolean = false): IrErrorType =
+    IrErrorTypeImpl(ErrorUtils.createErrorType(ErrorTypeKind.UNRESOLVED_TYPE, message), emptyList(), Variance.INVARIANT, isMarkedNullable)

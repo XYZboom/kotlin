@@ -425,13 +425,16 @@ class JvmTargetValidationTest : KGPBaseTest() {
                 """
                 |
                 |java {
-                |    targetCompatibility = JavaVersion.VERSION_17
-                |    sourceCompatibility = JavaVersion.VERSION_17
+                |    targetCompatibility = JavaVersion.VERSION_11
+                |    sourceCompatibility = JavaVersion.VERSION_11
                 |}
                 """.trimMargin()
             )
 
-            buildAndFail(":lib:compileKotlinJvmWithJava") {
+            buildAndFail(
+                ":lib:compileKotlinJvmWithJava",
+                "-Pkotlin.internal.suppressGradlePluginErrors=KotlinTargetAlreadyDeclaredError"
+            ) {
                 assertHasDiagnostic(KotlinToolingDiagnostics.InconsistentTargetCompatibilityForKotlinAndJavaTasks)
             }
         }
@@ -458,7 +461,10 @@ class JvmTargetValidationTest : KGPBaseTest() {
                 """.trimMargin()
             )
 
-            build(":lib:compileKotlinPlainJvm")
+            build(
+                ":lib:compileKotlinPlainJvm",
+                "-Pkotlin.internal.suppressGradlePluginErrors=KotlinTargetAlreadyDeclaredError"
+            )
         }
     }
 

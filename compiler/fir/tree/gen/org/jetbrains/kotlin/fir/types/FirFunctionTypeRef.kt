@@ -16,7 +16,7 @@ import org.jetbrains.kotlin.fir.visitors.FirTransformer
 import org.jetbrains.kotlin.fir.visitors.FirVisitor
 
 /**
- * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.functionTypeRef]
+ * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTree.functionTypeRef]
  */
 abstract class FirFunctionTypeRef : FirTypeRefWithNullability() {
     abstract override val source: KtSourceElement?
@@ -26,7 +26,7 @@ abstract class FirFunctionTypeRef : FirTypeRefWithNullability() {
     abstract val parameters: List<FirFunctionTypeParameter>
     abstract val returnTypeRef: FirTypeRef
     abstract val isSuspend: Boolean
-    abstract val contextReceiverTypeRefs: List<FirTypeRef>
+    abstract val contextParameterTypeRefs: List<FirTypeRef>
 
     override fun <R, D> accept(visitor: FirVisitor<R, D>, data: D): R =
         visitor.visitFunctionTypeRef(this, data)

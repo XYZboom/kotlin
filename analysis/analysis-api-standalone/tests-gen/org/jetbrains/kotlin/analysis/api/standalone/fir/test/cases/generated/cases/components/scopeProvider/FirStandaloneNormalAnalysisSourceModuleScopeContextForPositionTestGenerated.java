@@ -65,6 +65,18 @@ public class FirStandaloneNormalAnalysisSourceModuleScopeContextForPositionTestG
   }
 
   @Test
+  @TestMetadata("classifiersCompanionObject.kt")
+  public void testClassifiersCompanionObject() {
+    runTest("analysis/analysis-api/testData/components/scopeProvider/scopeContextForPosition/classifiersCompanionObject.kt");
+  }
+
+  @Test
+  @TestMetadata("classifiersFromParentCompanionObject.kt")
+  public void testClassifiersFromParentCompanionObject() {
+    runTest("analysis/analysis-api/testData/components/scopeProvider/scopeContextForPosition/classifiersFromParentCompanionObject.kt");
+  }
+
+  @Test
   @TestMetadata("contextReceiver.kt")
   public void testContextReceiver() {
     runTest("analysis/analysis-api/testData/components/scopeProvider/scopeContextForPosition/contextReceiver.kt");
@@ -194,6 +206,12 @@ public class FirStandaloneNormalAnalysisSourceModuleScopeContextForPositionTestG
   @TestMetadata("syntheticPropertiesScope.kt")
   public void testSyntheticPropertiesScope() {
     runTest("analysis/analysis-api/testData/components/scopeProvider/scopeContextForPosition/syntheticPropertiesScope.kt");
+  }
+
+  @Test
+  @TestMetadata("valueClassFromPackage.kt")
+  public void testValueClassFromPackage() {
+    runTest("analysis/analysis-api/testData/components/scopeProvider/scopeContextForPosition/valueClassFromPackage.kt");
   }
 
   @Nested

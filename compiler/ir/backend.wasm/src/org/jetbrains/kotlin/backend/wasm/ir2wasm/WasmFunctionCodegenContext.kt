@@ -6,12 +6,15 @@
 package org.jetbrains.kotlin.backend.wasm.ir2wasm
 
 import org.jetbrains.kotlin.backend.wasm.WasmBackendContext
+import org.jetbrains.kotlin.ir.IrFileEntry
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.expressions.IrLoop
+import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrReturnableBlockSymbol
 import org.jetbrains.kotlin.ir.symbols.IrValueParameterSymbol
 import org.jetbrains.kotlin.ir.symbols.IrValueSymbol
+import org.jetbrains.kotlin.ir.util.fileEntry
 import org.jetbrains.kotlin.wasm.ir.*
 import java.util.LinkedList
 
@@ -19,22 +22,23 @@ enum class LoopLabelType { BREAK, CONTINUE }
 enum class SyntheticLocalType { IS_INTERFACE_PARAMETER, TABLE_SWITCH_SELECTOR }
 
 class WasmFunctionCodegenContext(
-    val irFunction: IrFunction,
+    val irFunction: IrFunction?,
     private val wasmFunction: WasmFunction.Defined,
-    val backendContext: WasmBackendContext,
-    val context: WasmModuleCodegenContext,
+    private val backendContext: WasmBackendContext,
+    private val wasmFileCodegenContext: WasmFileCodegenContext,
+    private val wasmModuleTypeTransformer: WasmModuleTypeTransformer,
+    skipCommentInstructions: Boolean
 ) {
     val bodyGen: WasmExpressionBuilder =
-        WasmIrExpressionBuilder(wasmFunction.instructions)
-
-    val tagIdx: Int
-        get() = 0
+        WasmExpressionBuilder(wasmFunction.instructions, skipCommentInstructions = skipCommentInstructions)
 
     private val wasmLocals = LinkedHashMap<IrValueSymbol, WasmLocal>()
     private val wasmSyntheticLocals = LinkedHashMap<SyntheticLocalType, WasmLocal>()
     private val loopLevels = LinkedHashMap<Pair<IrLoop, LoopLabelType>, Int>()
     private val nonLocalReturnLevels = LinkedHashMap<IrReturnableBlockSymbol, Int>()
-    private val inlinedFunctionStack = LinkedList<IrFunction>()
+
+    data class InlineContext(val inlineFunctionSymbol: IrFunctionSymbol?, val irFileEntry: IrFileEntry)
+    private val inlineContextStack = LinkedList<InlineContext>()
 
     fun defineLocal(irValueDeclaration: IrValueSymbol) {
         assert(irValueDeclaration !in wasmLocals) { "Redefinition of local" }
@@ -43,12 +47,18 @@ class WasmFunctionCodegenContext(
         val wasmLocal = WasmLocal(
             wasmFunction.locals.size,
             owner.name.asString(),
-            if (owner is IrValueParameter) context.transformValueParameterType(owner) else context.transformType(owner.type),
+            if (owner is IrValueParameter) wasmModuleTypeTransformer.transformValueParameterType(owner) else wasmModuleTypeTransformer.transformType(owner.type),
             isParameter = irValueDeclaration is IrValueParameterSymbol
         )
 
         wasmLocals[irValueDeclaration] = wasmLocal
         wasmFunction.locals += wasmLocal
+    }
+
+    fun defineTmpVariable(type: WasmType): Int {
+        val wasmLocal = WasmLocal(wasmFunction.locals.size, "tmp", type, false)
+        wasmFunction.locals += wasmLocal
+        return wasmLocal.id
     }
 
     fun referenceLocal(irValueDeclaration: IrValueSymbol): WasmLocal {
@@ -62,7 +72,7 @@ class WasmFunctionCodegenContext(
     private val SyntheticLocalType.wasmType
         get() = when (this) {
             SyntheticLocalType.IS_INTERFACE_PARAMETER ->
-                WasmRefNullType(WasmHeapType.Type(context.referenceGcType(backendContext.irBuiltIns.anyClass)))
+                WasmRefNullType(WasmHeapType.Type(wasmFileCodegenContext.referenceGcType(backendContext.irBuiltIns.anyClass)))
             SyntheticLocalType.TABLE_SWITCH_SELECTOR -> WasmI32
         }
 
@@ -95,14 +105,17 @@ class WasmFunctionCodegenContext(
         return loopLevels.getValue(Pair(irLoop, labelType))
     }
 
-    val currentFunction: IrFunction
-        get() = inlinedFunctionStack.lastOrNull() ?: irFunction
+    val currentFunctionSymbol: IrFunctionSymbol?
+        get() = inlineContextStack.firstOrNull()?.inlineFunctionSymbol ?: irFunction?.symbol
 
-    fun stepIntoInlinedFunction(inlineFunction: IrFunction) {
-        inlinedFunctionStack.push(inlineFunction)
+    val currentFileEntry: IrFileEntry?
+        get() = inlineContextStack.firstOrNull()?.irFileEntry ?: irFunction?.fileEntry
+
+    fun stepIntoInlinedFunction(inlineFunctionSymbol: IrFunctionSymbol?, irFileEntry: IrFileEntry) {
+        inlineContextStack.push(InlineContext(inlineFunctionSymbol, irFileEntry))
     }
 
     fun stepOutLastInlinedFunction() {
-        inlinedFunctionStack.pop()
+        inlineContextStack.pop()
     }
 }

@@ -93,7 +93,7 @@ public actual open class IndexOutOfBoundsException : RuntimeException {
 }
 
 @Deprecated("Use IndexOutOfBoundsException instead.")
-@DeprecatedSinceKotlin(warningSince = "1.9")
+@DeprecatedSinceKotlin(warningSince = "1.9", errorSince = "2.1")
 public open class ArrayIndexOutOfBoundsException : IndexOutOfBoundsException {
 
     public constructor() : super()
@@ -158,11 +158,11 @@ internal actual open class UninitializedPropertyAccessException : RuntimeExcepti
     actual constructor(cause: Throwable?) : super(cause)
 }
 
-public open class OutOfMemoryError : Error {
+public actual open class OutOfMemoryError : Error {
 
-    public constructor() : super()
+    public actual constructor() : super()
 
-    public constructor(message: String?) : super(message)
+    public actual constructor(message: String?) : super(message)
 }
 
 public actual open class NumberFormatException : IllegalArgumentException {

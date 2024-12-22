@@ -6,12 +6,12 @@
 package org.jetbrains.kotlin.powerassert
 
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
-import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
-import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.test.backend.handlers.IrPrettyKotlinDumpHandler
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
+import org.jetbrains.kotlin.test.builders.irHandlersStep
 import org.jetbrains.kotlin.test.directives.AdditionalFilesDirectives
 import org.jetbrains.kotlin.test.directives.ConfigurationDirectives.WITH_STDLIB
 import org.jetbrains.kotlin.test.directives.JvmEnvironmentConfigurationDirectives.FULL_JDK
@@ -45,14 +45,6 @@ open class AbstractFirLightTreeBlackBoxCodegenTestForPowerAssert : AbstractFirLi
 // ------------------------ configuration ------------------------
 
 fun TestConfigurationBuilder.configurePlugin() {
-    // TODO there has got to be a better way?
-    val sourceRoots = File("plugins/power-assert/testData/")
-        .walkTopDown()
-        .filter { it.isDirectory }
-        .joinToString(",") { it.path }
-    System.setProperty("KOTLIN_POWER_ASSERT_ADD_SRC_ROOTS", sourceRoots)
-
-
     defaultDirectives {
         +FULL_JDK
         +WITH_STDLIB
@@ -66,6 +58,10 @@ fun TestConfigurationBuilder.configurePlugin() {
     )
 
     enableJunit()
+
+    irHandlersStep {
+        useHandlers(::IrPrettyKotlinDumpHandler)
+    }
 }
 
 class PowerAssertEnvironmentConfigurator(testServices: TestServices) : EnvironmentConfigurator(testServices) {
@@ -77,8 +73,7 @@ class PowerAssertEnvironmentConfigurator(testServices: TestServices) : Environme
             .ifEmpty { listOf("kotlin.assert") }
             .mapTo(mutableSetOf()) { FqName(it) }
 
-        val messageCollector = configuration.get(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, MessageCollector.NONE)
-        IrGenerationExtension.registerExtension(PowerAssertIrGenerationExtension(messageCollector, functions))
+        IrGenerationExtension.registerExtension(PowerAssertIrGenerationExtension(PowerAssertConfiguration(configuration, functions)))
     }
 }
 

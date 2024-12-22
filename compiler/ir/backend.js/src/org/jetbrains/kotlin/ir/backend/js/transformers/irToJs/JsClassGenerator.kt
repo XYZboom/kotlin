@@ -465,13 +465,13 @@ class JsClassGenerator(private val irClass: IrClass, val context: JsGenerationCo
     }
 
     private fun findDefaultConstructor(): JsNameRef? {
-        return when (val defaultConstructor = backendContext.findDefaultConstructorFor(irClass)) {
+        return when (val defaultConstructor = irClass.findDefaultConstructorForReflection()) {
             is IrConstructor -> context.getNameForConstructor(defaultConstructor).makeRef()
             is IrSimpleFunction -> when {
                 es6mode -> JsNameRef(context.getNameForMemberFunction(defaultConstructor), classNameRef)
                 else -> context.getNameForStaticFunction(defaultConstructor).makeRef()
             }
-            else -> null
+            null -> null
         }
     }
 

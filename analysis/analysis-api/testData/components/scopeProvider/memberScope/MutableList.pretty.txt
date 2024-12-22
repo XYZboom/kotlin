@@ -2,9 +2,9 @@ fun add(element: E): kotlin.Boolean
 
 fun add(index: kotlin.Int, element: E)
 
-fun addAll(index: kotlin.Int, elements: kotlin.collections.Collection<E>): kotlin.Boolean
-
 fun addAll(elements: kotlin.collections.Collection<E>): kotlin.Boolean
+
+fun addAll(index: kotlin.Int, elements: kotlin.collections.Collection<E>): kotlin.Boolean
 
 fun clear()
 

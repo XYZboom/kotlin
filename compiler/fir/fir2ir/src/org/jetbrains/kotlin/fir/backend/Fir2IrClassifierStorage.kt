@@ -14,20 +14,21 @@ import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.fir.expressions.FirAnonymousObjectExpression
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
-import org.jetbrains.kotlin.fir.resolve.toSymbol
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag
+import org.jetbrains.kotlin.fir.resolve.toClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirTypeAliasSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
-import org.jetbrains.kotlin.fir.types.FirTypeRef
+import org.jetbrains.kotlin.fir.symbols.lazyResolveToPhase
+import org.jetbrains.kotlin.fir.types.ConeClassLikeLookupTag
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
 import org.jetbrains.kotlin.ir.symbols.*
 import org.jetbrains.kotlin.ir.symbols.impl.*
-import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.SpecialNames
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
+import java.util.concurrent.ConcurrentHashMap
 
 class Fir2IrClassifierStorage(
     private val c: Fir2IrComponents,
@@ -35,6 +36,7 @@ class Fir2IrClassifierStorage(
     private val conversionScope: Fir2IrConversionScope,
 ) : Fir2IrComponents by c {
     private val classCache: MutableMap<FirRegularClass, IrClassSymbol> = commonMemberStorage.classCache
+    private val notFoundClassCache: ConcurrentHashMap<ConeClassLikeLookupTag, IrClass> = commonMemberStorage.notFoundClassCache
 
     private val typeAliasCache: MutableMap<FirTypeAlias, IrTypeAliasSymbol> = mutableMapOf()
 
@@ -61,6 +63,7 @@ class Fir2IrClassifierStorage(
      *
      * Be careful when using it, and avoid it, except really needed.
      */
+    @Suppress("unused")
     @DelicateDeclarationStorageApi
     fun forEachCachedDeclarationSymbol(block: (IrSymbol) -> Unit) {
         classCache.values.forEach { block(it) }
@@ -72,9 +75,6 @@ class Fir2IrClassifierStorage(
     }
 
     private var processMembersOfClassesOnTheFlyImmediately = false
-
-    private fun FirTypeRef.toIrType(typeOrigin: ConversionTypeOrigin = ConversionTypeOrigin.DEFAULT): IrType =
-        with(typeConverter) { toIrType(typeOrigin) }
 
     // ------------------------------------ type parameters ------------------------------------
 
@@ -208,19 +208,20 @@ class Fir2IrClassifierStorage(
         val classId = firClass.symbol.classId
         val parentId = classId.outerClassId
         val parentClass = parentId?.let { session.symbolProvider.getClassLikeSymbolByClassId(it) }
-        val irParent = declarationStorage.findIrParent(classId.packageFqName, parentClass?.toLookupTag(), firClass.symbol, firClass.origin)!!
+        val irParent = declarationStorage.findIrParent(
+            classId.packageFqName,
+            parentClass?.toLookupTag(),
+            firClass.symbol,
+            firClass.origin
+        )!!
 
         classCache[firClass] = symbol
         check(irParent.isExternalParent()) { "Source classes should be created separately before referencing" }
-        val irClass = lazyDeclarationsGenerator.createIrLazyClass(firClass, irParent, symbol)
-        // NB: this is needed to prevent recursions in case of self bounds
-        irClass.prepareTypeParameters()
-
-        return irClass
+        return lazyDeclarationsGenerator.createIrLazyClass(firClass, irParent, symbol)
     }
 
-    fun getIrClass(lookupTag: ConeClassLikeLookupTag): IrClass? {
-        val firClassSymbol = lookupTag.toSymbol(session) as? FirClassSymbol<*> ?: return null
+    private fun getIrClass(lookupTag: ConeClassLikeLookupTag): IrClass? {
+        val firClassSymbol = lookupTag.toClassSymbol(session) ?: return null
         return getIrClass(firClassSymbol.fir)
     }
 
@@ -244,18 +245,18 @@ class Fir2IrClassifierStorage(
     }
 
     fun getFieldsWithContextReceiversForClass(irClass: IrClass, klass: FirClass): List<IrField> {
-        if (klass !is FirRegularClass || klass.contextReceivers.isEmpty()) return emptyList()
+        if (klass !is FirRegularClass || klass.contextParameters.isEmpty()) return emptyList()
 
         return fieldsForContextReceivers.getOrPut(irClass) {
-            klass.contextReceivers.withIndex().map { (index, contextReceiver) ->
-                c.irFactory.createField(
+            klass.contextParameters.withIndex().map { (index, contextReceiver) ->
+                IrFactoryImpl.createField(
                     startOffset = UNDEFINED_OFFSET,
                     endOffset = UNDEFINED_OFFSET,
                     origin = IrDeclarationOrigin.FIELD_FOR_CLASS_CONTEXT_RECEIVER,
                     name = Name.identifier("contextReceiverField$index"),
                     visibility = DescriptorVisibilities.PRIVATE,
                     symbol = IrFieldSymbolImpl(),
-                    type = contextReceiver.typeRef.toIrType(c),
+                    type = contextReceiver.returnTypeRef.toIrType(c),
                     isFinal = true,
                     isStatic = false,
                     isExternal = false,
@@ -266,10 +267,20 @@ class Fir2IrClassifierStorage(
         }
     }
 
+    fun getIrClassForNotFoundClass(classLikeLookupTag: ConeClassLikeLookupTag): IrClass {
+        return notFoundClassCache.getOrPut(classLikeLookupTag) {
+            classifiersGenerator.createIrClassForNotFoundClass(classLikeLookupTag)
+        }
+    }
+
     // ------------------------------------ local classes ------------------------------------
 
     private fun createAndCacheLocalIrClassOnTheFly(klass: FirClass): IrClass {
-        val (irClass, firClassOrLocalParent, irClassOrLocalParent) = classifiersGenerator.createLocalIrClassOnTheFly(klass, processMembersOfClassesOnTheFlyImmediately)
+        val (irClass, firClassOrLocalParent, irClassOrLocalParent) = classifiersGenerator.createLocalIrClassOnTheFly(
+            klass,
+            processMembersOfClassesOnTheFlyImmediately
+        )
+
         if (!processMembersOfClassesOnTheFlyImmediately) {
             localClassesCreatedOnTheFly[firClassOrLocalParent] = irClassOrLocalParent
         }
@@ -285,22 +296,6 @@ class Fir2IrClassifierStorage(
             conversionScope.withContainingFirClass(klass) {
                 classifiersGenerator.processClassHeader(klass, irClass)
                 converter.processClassMembers(klass, irClass)
-                // See the problem from KT-57441
-                //
-                // ```kt
-                // class Wrapper {
-                //     private val dummy = object: Bar {}
-                //     private val bar = object: Bar by dummy {}
-                // }
-                // interface Bar {
-                //     val foo: String
-                //         get() = ""
-                // }
-                // ```
-                //
-                // When we are building bar.foo fake override, we should call dummy.foo,
-                // so we should have object : Bar.foo fake override to be built and bound.
-                converter.bindFakeOverridesInClass(irClass)
             }
         }
         localClassesCreatedOnTheFly.clear()
@@ -341,6 +336,7 @@ class Fir2IrClassifierStorage(
 
         val irParent = declarationStorage.findIrParent(enumEntry, fakeOverrideOwnerLookupTag = null) as IrClass
         if (irParent.isExternalParent()) {
+            enumEntry.lazyResolveToPhase(FirResolvePhase.ANNOTATION_ARGUMENTS)
             classifiersGenerator.createIrEnumEntry(
                 enumEntry,
                 irParent = irParent,
@@ -407,10 +403,8 @@ class Fir2IrClassifierStorage(
         )!!
 
         val symbol = IrTypeAliasSymbolImpl()
-        val irTypeAlias = lazyDeclarationsGenerator.createIrLazyTypeAlias(firTypeAlias, irParent, symbol)
         typeAliasCache[firTypeAlias] = symbol
-        irTypeAlias.prepareTypeParameters()
-
+        lazyDeclarationsGenerator.createIrLazyTypeAlias(firTypeAlias, irParent, symbol)
         return symbol
     }
 

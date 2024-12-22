@@ -22,7 +22,7 @@ import org.jetbrains.kotlin.fir.references.FirResolvedCallableReference
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.resolved
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
-import org.jetbrains.kotlin.fir.resolve.toFirRegularClassSymbol
+import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
@@ -32,7 +32,6 @@ import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.psi.stubs.elements.KtStubElementTypes
 import org.jetbrains.kotlin.util.getChildren
-import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
 
 object FirSuspendCallChecker : FirQualifiedAccessExpressionChecker(MppCheckerKind.Common) {
     private val BUILTIN_SUSPEND_NAME = StandardClassIds.Callables.suspend.callableName
@@ -166,19 +165,27 @@ object FirSuspendCallChecker : FirQualifiedAccessExpressionChecker(MppCheckerKin
     }
 
     private fun checkNonLocalReturnUsage(enclosingSuspendFunction: FirFunction, context: CheckerContext): Boolean {
-        val containingFunction = context.containingDeclarations.lastIsInstanceOrNull<FirFunction>() ?: return false
-        return if (containingFunction is FirAnonymousFunction && enclosingSuspendFunction !== containingFunction) {
-            containingFunction.inlineStatus.returnAllowed
-        } else {
-            enclosingSuspendFunction === containingFunction
+        for (declaration in context.containingDeclarations.asReversed()) {
+            // If we found the nearest suspend function, we're finished.
+            if (declaration == enclosingSuspendFunction) return true
+            // Local variables are okay.
+            if (declaration is FirProperty && declaration.isLocal) continue
+            // Inline lambdas are okay.
+            if (declaration is FirAnonymousFunction && declaration.inlineStatus.returnAllowed) continue
+            // We already report UNSUPPORTED on suspend calls in value parameters default values, so they are okay for our purposes.
+            if (declaration is FirValueParameter) continue
+            // Everything else (local classes, init blocks, non-inline lambdas, etc.F) is not okay.
+            return false
         }
+
+        return false
     }
 
     private fun checkRestrictsSuspension(
         expression: FirQualifiedAccessExpression,
         enclosingSuspendFunction: FirFunction,
         calledDeclarationSymbol: FirCallableSymbol<*>,
-        context: CheckerContext
+        context: CheckerContext,
     ): Boolean {
         if (expression is FirFunctionCall && isCaseMissedByK1(expression)) {
             return true
@@ -187,8 +194,8 @@ object FirSuspendCallChecker : FirQualifiedAccessExpressionChecker(MppCheckerKin
         val session = context.session
 
         val enclosingSuspendFunctionDispatchReceiverOwnerSymbol =
-            (enclosingSuspendFunction.dispatchReceiverType as? ConeClassLikeType)?.lookupTag?.toFirRegularClassSymbol(session)
-        val enclosingSuspendFunctionExtensionReceiverOwnerSymbol = enclosingSuspendFunction.takeIf { it.receiverParameter != null }?.symbol
+            enclosingSuspendFunction.dispatchReceiverType?.classLikeLookupTagIfAny?.toRegularClassSymbol(session)
+        val enclosingSuspendFunctionExtensionReceiverSymbol = enclosingSuspendFunction.receiverParameter?.symbol
 
         val (dispatchReceiverExpression, extensionReceiverExpression, extensionReceiverParameterType) =
             expression.computeReceiversInfo(session, calledDeclarationSymbol)
@@ -196,20 +203,20 @@ object FirSuspendCallChecker : FirQualifiedAccessExpressionChecker(MppCheckerKin
         for (receiverExpression in listOfNotNull(dispatchReceiverExpression, extensionReceiverExpression)) {
             if (!receiverExpression.resolvedType.isRestrictSuspensionReceiver(session)) continue
             if (sameInstanceOfReceiver(receiverExpression, enclosingSuspendFunctionDispatchReceiverOwnerSymbol)) continue
-            if (sameInstanceOfReceiver(receiverExpression, enclosingSuspendFunctionExtensionReceiverOwnerSymbol)) continue
+            if (sameInstanceOfReceiver(receiverExpression, enclosingSuspendFunctionExtensionReceiverSymbol)) continue
 
             return false
         }
 
-        if (enclosingSuspendFunctionExtensionReceiverOwnerSymbol?.resolvedReceiverTypeRef?.coneType?.isRestrictSuspensionReceiver(session) != true) {
+        if (enclosingSuspendFunctionExtensionReceiverSymbol?.resolvedType?.isRestrictSuspensionReceiver(session) != true) {
             return true
         }
 
-        if (sameInstanceOfReceiver(dispatchReceiverExpression, enclosingSuspendFunctionExtensionReceiverOwnerSymbol)) {
+        if (sameInstanceOfReceiver(dispatchReceiverExpression, enclosingSuspendFunctionExtensionReceiverSymbol)) {
             return true
         }
 
-        if (sameInstanceOfReceiver(extensionReceiverExpression, enclosingSuspendFunctionExtensionReceiverOwnerSymbol)) {
+        if (sameInstanceOfReceiver(extensionReceiverExpression, enclosingSuspendFunctionExtensionReceiverSymbol)) {
             if (extensionReceiverParameterType?.isRestrictSuspensionReceiver(session) == true) {
                 return true
             }
@@ -263,7 +270,7 @@ object FirSuspendCallChecker : FirQualifiedAccessExpressionChecker(MppCheckerKin
     private fun ConeKotlinType.isRestrictSuspensionReceiver(session: FirSession): Boolean {
         when (this) {
             is ConeClassLikeType -> {
-                val regularClassSymbol = fullyExpandedType(session).lookupTag.toFirRegularClassSymbol(session) ?: return false
+                val regularClassSymbol = fullyExpandedType(session).lookupTag.toRegularClassSymbol(session) ?: return false
                 if (regularClassSymbol.getAnnotationByClassId(StandardClassIds.Annotations.RestrictsSuspension, session) != null) {
                     return true
                 }

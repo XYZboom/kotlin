@@ -1,4 +1,5 @@
-// LANGUAGE: -JavaTypeParameterDefaultRepresentationWithDNN
+// RUN_PIPELINE_TILL: FRONTEND
+// LANGUAGE: -JavaTypeParameterDefaultRepresentationWithDNN -ProhibitReturningIncorrectNullabilityValuesFromSamConstructorLambdaOfJdkInterfaces
 // RENDER_DIAGNOSTICS_FULL_TEXT
 // ISSUE: KT-57014, KT-66730
 // FULL_JDK
@@ -14,7 +15,7 @@ public interface StringSupplier {
     String get();
 }
 
-// FILE: JavaTestValueProvider.java
+// FILE: TestValueProvider.java
 import org.jetbrains.annotations.Nullable;
 
 public class TestValueProvider {

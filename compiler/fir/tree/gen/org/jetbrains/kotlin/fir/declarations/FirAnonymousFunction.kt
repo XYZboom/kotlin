@@ -25,7 +25,7 @@ import org.jetbrains.kotlin.fir.visitors.FirVisitor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedContainerSource
 
 /**
- * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.anonymousFunction]
+ * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTree.anonymousFunction]
  */
 abstract class FirAnonymousFunction : FirFunction(), FirTypeParametersOwner, FirContractDescriptionOwner {
     abstract override val source: KtSourceElement?
@@ -39,7 +39,7 @@ abstract class FirAnonymousFunction : FirFunction(), FirTypeParametersOwner, Fir
     abstract override val deprecationsProvider: DeprecationsProvider
     abstract override val containerSource: DeserializedContainerSource?
     abstract override val dispatchReceiverType: ConeSimpleKotlinType?
-    abstract override val contextReceivers: List<FirContextReceiver>
+    abstract override val contextParameters: List<FirValueParameter>
     abstract override val controlFlowGraphReference: FirControlFlowGraphReference?
     abstract override val valueParameters: List<FirValueParameter>
     abstract override val body: FirBlock?
@@ -70,7 +70,7 @@ abstract class FirAnonymousFunction : FirFunction(), FirTypeParametersOwner, Fir
 
     abstract override fun replaceDeprecationsProvider(newDeprecationsProvider: DeprecationsProvider)
 
-    abstract override fun replaceContextReceivers(newContextReceivers: List<FirContextReceiver>)
+    abstract override fun replaceContextParameters(newContextParameters: List<FirValueParameter>)
 
     abstract override fun replaceControlFlowGraphReference(newControlFlowGraphReference: FirControlFlowGraphReference?)
 
@@ -93,6 +93,8 @@ abstract class FirAnonymousFunction : FirFunction(), FirTypeParametersOwner, Fir
     abstract override fun <D> transformReturnTypeRef(transformer: FirTransformer<D>, data: D): FirAnonymousFunction
 
     abstract override fun <D> transformReceiverParameter(transformer: FirTransformer<D>, data: D): FirAnonymousFunction
+
+    abstract override fun <D> transformContextParameters(transformer: FirTransformer<D>, data: D): FirAnonymousFunction
 
     abstract override fun <D> transformValueParameters(transformer: FirTransformer<D>, data: D): FirAnonymousFunction
 

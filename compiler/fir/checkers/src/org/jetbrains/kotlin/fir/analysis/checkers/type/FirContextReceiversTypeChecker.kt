@@ -14,17 +14,18 @@ import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.checkSubTypes
 import org.jetbrains.kotlin.fir.analysis.checkers.findContextReceiverListSource
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
-import org.jetbrains.kotlin.fir.types.*
+import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
+import org.jetbrains.kotlin.fir.types.contextParameterTypes
+import org.jetbrains.kotlin.fir.types.hasContextParameters
 
-object FirContextReceiversTypeChecker : FirTypeRefChecker(MppCheckerKind.Platform) {
-    override fun check(typeRef: FirTypeRef, context: CheckerContext, reporter: DiagnosticReporter) {
-        if (typeRef !is FirResolvedTypeRef) return
+object FirContextReceiversTypeChecker : FirResolvedTypeRefChecker(MppCheckerKind.Platform) {
+    override fun check(typeRef: FirResolvedTypeRef, context: CheckerContext, reporter: DiagnosticReporter) {
         if (typeRef.source?.kind is KtFakeSourceElementKind) return
-        if (!typeRef.coneType.hasContextReceivers) return
+        if (!typeRef.coneType.hasContextParameters) return
         val source = typeRef.source?.findContextReceiverListSource() ?: return
 
         if (context.languageVersionSettings.supportsFeature(LanguageFeature.ContextReceivers)) {
-            if (checkSubTypes(typeRef.coneType.contextReceiversTypes(context.session), context)) {
+            if (checkSubTypes(typeRef.coneType.contextParameterTypes(context.session), context)) {
                 reporter.reportOn(
                     source,
                     FirErrors.SUBTYPING_BETWEEN_CONTEXT_RECEIVERS,
@@ -34,12 +35,14 @@ object FirContextReceiversTypeChecker : FirTypeRefChecker(MppCheckerKind.Platfor
             return
         }
 
-        reporter.reportOn(
-            source,
-            FirErrors.UNSUPPORTED_FEATURE,
-            LanguageFeature.ContextReceivers to context.languageVersionSettings,
-            context
-        )
+        if (!context.languageVersionSettings.supportsFeature(LanguageFeature.ContextParameters)) {
+            reporter.reportOn(
+                source,
+                FirErrors.UNSUPPORTED_FEATURE,
+                LanguageFeature.ContextParameters to context.languageVersionSettings,
+                context
+            )
+        }
     }
 }
 

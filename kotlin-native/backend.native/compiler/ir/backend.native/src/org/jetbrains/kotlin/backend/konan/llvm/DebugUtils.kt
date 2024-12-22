@@ -12,7 +12,6 @@ import llvm.*
 import org.jetbrains.kotlin.backend.konan.*
 import org.jetbrains.kotlin.ir.IrFileEntry
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
-import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.classOrNull
@@ -72,7 +71,7 @@ internal class DebugInfo(override val generationState: NativeGenerationState) : 
                 // we don't split path to filename and directory to provide enough level uniquely for dsymutil to avoid symbol
                 // clashing, which happens on linking with libraries produced from intercepting sources.
                 File = path.path(),
-                dir = "",
+                dir = config.configuration.get(BinaryOptions.debugCompilationDir) ?: "",
                 producer = DWARF.producer,
                 isOptimized = 0,
                 flags = "",
@@ -172,37 +171,48 @@ internal class DebugInfo(override val generationState: NativeGenerationState) : 
         DICreateSubroutineType(builder, allocArrayOf(types.map { it.diType(llvmTargetData) }), types.size)!!
     }
 
-    fun IrFile.diFileScope() = files.getOrPut(this.fileEntry.name) {
-        val path = this.fileEntry.name.toFileAndFolder(context.config)
+    fun IrFileEntry.diFileScope() = files.getOrPut(this.name) {
+        val path = this.name.toFileAndFolder(context.config)
         DICreateFile(builder, path.file, path.folder)!!
     }
 
     fun IrFunction.diFunctionScope(
-            file: IrFile,
+            fileEntry: IrFileEntry,
             linkageName: String,
             startLine: Int,
             nodebug: Boolean,
-    ) = diFunctionScope(file, name.asString(), linkageName, startLine, subroutineType(llvmTargetData), nodebug)
+            isTransparentStepping: Boolean = false,
+    ) = diFunctionScope(
+            fileEntry,
+            name.asString(),
+            linkageName,
+            startLine,
+            subroutineType(llvmTargetData),
+            nodebug,
+            isTransparentStepping = isTransparentStepping,
+    )
 
     fun diFunctionScope(
-            file: IrFile,
+            fileEntry: IrFileEntry,
             name: String,
             linkageName: String,
             startLine: Int,
             subroutineType: DISubroutineTypeRef,
             nodebug: Boolean,
+            isTransparentStepping: Boolean = false,
     ) = DICreateFunction(
             builder = builder,
             scope = compilationUnit,
             name = (if (nodebug) "<NODEBUG>" else "") + name,
             linkageName = linkageName,
-            file = file.diFileScope(),
+            file = fileEntry.diFileScope(),
             lineNo = startLine,
             type = subroutineType,
             //TODO: need more investigations.
             isLocal = 0,
             isDefinition = 1,
-            scopeLine = 0
+            scopeLine = 0,
+            isTransparentStepping = if (isTransparentStepping) 1 else 0,
     )!!
 
     private fun dwarfPointerType(type: DITypeOpaqueRef): DITypeOpaqueRef =
@@ -318,7 +328,8 @@ internal fun setupBridgeDebugInfo(generationState: NativeGenerationState, functi
             type = debugInfo.subroutineType(generationState.runtime.targetData, emptyList()), // TODO: use proper type.
             isLocal = 0,
             isDefinition = 1,
-            scopeLine = 0
+            scopeLine = 0,
+            isTransparentStepping = generationState.config.enableDebugTransparentStepping,
     ).reinterpret()
 
     return LocationInfo(scope, 1, 0)

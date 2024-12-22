@@ -38,7 +38,8 @@ val SirVariable.accessors: List<SirAccessor>
 
 val SirParameter.name: String? get() = parameterName ?: argumentName
 
-val SirType.isVoid: Boolean get() = this is SirNominalType && this.type == SirSwiftModule.void
+val SirType.isVoid: Boolean get() = this is SirNominalType && this.typeDeclaration == SirSwiftModule.void
+val SirType.isNever: Boolean get() = this is SirNominalType && this.typeDeclaration == SirSwiftModule.never
 
 fun <T : SirDeclaration> SirMutableDeclarationContainer.addChild(producer: () -> T): T {
     val child = producer()
@@ -46,3 +47,33 @@ fun <T : SirDeclaration> SirMutableDeclarationContainer.addChild(producer: () ->
     declarations += child
     return child
 }
+
+val SirType.swiftName
+    get(): String = when (this) {
+        is SirExistentialType -> "Any"
+        is SirNominalType -> listOfNotNull(
+            parent?.swiftName?.let { "$it." },
+            typeDeclaration.swiftFqName,
+            typeArguments.takeIf { it.isNotEmpty() }?.let { it.joinToString(prefix = "<", postfix = ">", separator = ",") { it.swiftName } }
+        ).joinToString("")
+        is SirErrorType -> "ERROR_TYPE"
+        is SirUnsupportedType -> "Swift.Never"
+        is SirFunctionalType -> "(${parameterTypes.joinToString { it.swiftName }}) -> ${returnType.swiftName}"
+    }
+
+private val SirDeclaration.swiftParentNamePrefix: String?
+    get() = this.parent.swiftFqNameOrNull
+
+val SirDeclarationParent.swiftFqNameOrNull: String?
+    get() = (this as? SirNamedDeclaration)?.swiftFqName
+        ?: ((this as? SirNamed)?.name?.swiftSanitizedName)
+        ?: ((this as? SirExtension)?.extendedType?.swiftName)
+
+val SirNamedDeclaration.swiftFqName: String
+    get() = swiftParentNamePrefix?.let { "$it.${name.swiftSanitizedName}" } ?: name.swiftSanitizedName
+
+val SirFunction.swiftFqName: String
+    get() = swiftParentNamePrefix?.let { "$it.${name.swiftSanitizedName}" } ?: name.swiftSanitizedName
+
+val SirVariable.swiftFqName: String
+    get() = swiftParentNamePrefix?.let { "$it.${name.swiftSanitizedName}" } ?: name.swiftSanitizedName

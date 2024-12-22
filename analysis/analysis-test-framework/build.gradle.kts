@@ -18,12 +18,13 @@ dependencies {
     testImplementation(project(":analysis:kt-references"))
     testApi(projectTests(":compiler:tests-common-new"))
     testApi(projectTests(":compiler:tests-common"))
-    testImplementation(project(":analysis:analysis-api-providers"))
+    testImplementation(project(":analysis:analysis-api-platform-interface"))
     testImplementation(project(":analysis:analysis-api"))
     testApi(project(":analysis:analysis-api-standalone:analysis-api-standalone-base"))
     testApi(project(":analysis:analysis-api-standalone:analysis-api-fir-standalone-base"))
-    testImplementation(project(":analysis:analysis-api-impl-barebone"))
     testImplementation(project(":analysis:analysis-api-impl-base"))
+    testImplementation(project(":analysis:decompiled:decompiler-to-psi"))
+    testImplementation(project(":analysis:decompiled:decompiler-to-file-stubs"))
 }
 
 sourceSets {
@@ -32,14 +33,18 @@ sourceSets {
 }
 
 projectTest(jUnitMode = JUnitMode.JUnit5) {
-    dependsOn(":plugins:fir-plugin-prototype:plugin-annotations:jar")
+    dependsOn(":plugins:plugin-sandbox:plugin-annotations:jar")
     workingDir = rootDir
     useJUnitPlatform()
 }
 
 testsJar()
 
-
 tasks.withType<KotlinJvmCompile>().configureEach {
     compilerOptions.freeCompilerArgs.add("-Xcontext-receivers")
+
+    compilerOptions.optIn.addAll(
+        "org.jetbrains.kotlin.analysis.api.KaExperimentalApi",
+        "org.jetbrains.kotlin.analysis.api.KaPlatformInterface",
+    )
 }

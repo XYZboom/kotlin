@@ -40,7 +40,6 @@ fun invokeInterop(flavor: String, args: Array<String>, runFromDaemon: Boolean): 
     val manifest = File(buildDir, "manifest.properties")
     val cstubsName ="cstubs"
     val libraries = arguments.library
-    val repos = arguments.repo
     val targetRequest = arguments.target
     val target = PlatformManager(
         KotlinNativePaths.homePath.absolutePath,
@@ -68,14 +67,12 @@ fun invokeInterop(flavor: String, args: Array<String>, runFromDaemon: Boolean): 
         nativeStubs +
         cinteropArgsToCompiler +
         libraries.flatMap { listOf("-library", it) } +
-        repos.flatMap { listOf("-repo", it) } +
         (if (noDefaultLibs) arrayOf("-$NODEFAULTLIBS") else emptyArray()) +
         (if (noEndorsedLibs) arrayOf("-$NOENDORSEDLIBS") else emptyArray()) +
         (if (purgeUserLibs) arrayOf("-$PURGE_USER_LIBS") else emptyArray()) +
         (if (nopack) arrayOf("-$NOPACK") else emptyArray()) +
         moduleName?.let { arrayOf("-module-name", it) }.orEmpty() +
         shortModuleName?.let { arrayOf("${K2NativeCompilerArguments.SHORT_MODULE_NAME_ARG}=$it") }.orEmpty() +
-        "-library-version=${arguments.libraryVersion}" +
         arguments.kotlincOption
 }
 

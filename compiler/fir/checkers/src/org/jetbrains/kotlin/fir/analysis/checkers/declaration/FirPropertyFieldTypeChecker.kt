@@ -45,7 +45,7 @@ object FirPropertyFieldTypeChecker : FirPropertyChecker(MppCheckerKind.Common) {
             reporter.reportOn(backingField.source, FirErrors.LATEINIT_PROPERTY_FIELD_DECLARATION_WITH_INITIALIZER, context)
         }
 
-        if (backingField.isLateInit && backingField.isNullable) {
+        if (backingField.isLateInit && backingField.returnTypeRef.coneType.canBeNull(context.session)) {
             reporter.reportOn(backingField.source, FirErrors.LATEINIT_NULLABLE_BACKING_FIELD, context)
         }
 
@@ -66,12 +66,6 @@ object FirPropertyFieldTypeChecker : FirPropertyChecker(MppCheckerKind.Common) {
             checkAsPropertyNotSubtype(declaration, context, reporter)
         }
     }
-
-    private val FirBackingField.isNullable
-        get() = when (val type = returnTypeRef.coneType) {
-            is ConeTypeParameterType -> type.isNullable || type.lookupTag.typeParameterSymbol.resolvedBounds.any { it.coneType.isNullable }
-            else -> type.isNullable
-        }
 
     private val FirPropertyAccessor?.isNotExplicit
         get() = this == null || this is FirDefaultPropertyAccessor

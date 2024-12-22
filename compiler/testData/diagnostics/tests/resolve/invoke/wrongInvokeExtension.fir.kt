@@ -1,4 +1,4 @@
-
+// RUN_PIPELINE_TILL: FRONTEND
 class B
 
 class A {
@@ -12,8 +12,8 @@ fun test(a: A, b: B) {
 
     b.(<!UNRESOLVED_REFERENCE!>a<!>)()
 
-    <!CANNOT_INFER_PARAMETER_TYPE!>with<!>(b) <!CANNOT_INFER_PARAMETER_TYPE!>{
+    <!CANNOT_INFER_PARAMETER_TYPE!>with<!>(b) {
         val y: Int = a()
         (<!UNRESOLVED_REFERENCE!>a<!>)()
-    }<!>
+    }
 }

@@ -32,14 +32,6 @@ class WasmUselessDeclarationsRemover(
         process(declaration)
     }
 
-    override fun visitSimpleFunction(declaration: IrSimpleFunction) {
-        if (declaration == context.fieldInitFunction) {
-            declaration.removeUnusedObjectsInitializers()
-        }
-
-        super.visitSimpleFunction(declaration)
-    }
-
     // TODO bring back the primary constructor fix
     private fun process(container: IrDeclarationContainer) {
         container.declarations.transformFlat { member ->
@@ -49,12 +41,6 @@ class WasmUselessDeclarationsRemover(
                 member.acceptVoid(this)
                 null
             }
-        }
-    }
-
-    private fun IrSimpleFunction.removeUnusedObjectsInitializers() {
-        (body as? IrBlockBody)?.statements?.removeIf {
-            it is IrSetField && it.symbol.owner.isObjectInstanceField() && it.symbol.owner !in usefulDeclarations
         }
     }
 }

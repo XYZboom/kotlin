@@ -34,7 +34,7 @@ object FirAccidentalOverrideClashChecker : FirSimpleFunctionChecker(MppCheckerKi
         val mayBeRenamedBuiltIn = name in namesPossibleForRenamedBuiltin
         val mayBeSameAsBuiltInWithErasedParameters = name.sameAsBuiltinMethodWithErasedValueParameters
         if (!mayBeRenamedBuiltIn && !mayBeSameAsBuiltInWithErasedParameters) return
-        val containingClass = declaration.getContainingClass(context.session) ?: return
+        val containingClass = declaration.getContainingClass() ?: return
 
         var reported = false
         containingClass.unsubstitutedScope(context).processFunctionsByName(name) {
@@ -42,13 +42,13 @@ object FirAccidentalOverrideClashChecker : FirSimpleFunctionChecker(MppCheckerKi
             val hiddenFir = it.fir
             if (!reported && hiddenFir.isHiddenToOvercomeSignatureClash == true && !hiddenFir.isFinal) {
                 if (declaration.computeJvmDescriptor() == hiddenFir.computeJvmDescriptor()) {
-                    val regularBase = hiddenFir.initialSignatureAttr as? FirSimpleFunction ?: return@processFunctionsByName
+                    val regularBase = hiddenFir.initialSignatureAttr ?: return@processFunctionsByName
                     val description = when {
                         mayBeRenamedBuiltIn -> "a renamed function"
                         else -> "a function with erased parameters"
                     }
                     reporter.reportOn(
-                        declaration.source, ACCIDENTAL_OVERRIDE_CLASH_BY_JVM_SIGNATURE, it, description, regularBase.symbol, context
+                        declaration.source, ACCIDENTAL_OVERRIDE_CLASH_BY_JVM_SIGNATURE, it, description, regularBase, context
                     )
                     reported = true
                 }

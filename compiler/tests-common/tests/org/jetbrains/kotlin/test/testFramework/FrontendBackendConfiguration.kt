@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.test.testFramework
 
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
-import org.jetbrains.kotlin.config.JVMConfigurationKeys
 import org.jetbrains.kotlin.test.FirParser
 import org.jetbrains.kotlin.test.TargetBackend
 
@@ -16,11 +15,10 @@ interface FrontendBackendConfiguration {
         get() = false
     val firParser: FirParser
         get() = FirParser.Psi
-    val backend
+    val backend: TargetBackend
         get() = TargetBackend.ANY
 
     fun configureIrFir(configuration: CompilerConfiguration) {
-        configuration.put(JVMConfigurationKeys.IR, backend.isIR)
         configuration.put(CommonConfigurationKeys.USE_FIR, useFir)
         when (firParser) {
             FirParser.LightTree -> configuration.put(CommonConfigurationKeys.USE_LIGHT_TREE, true)

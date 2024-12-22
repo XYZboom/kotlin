@@ -29,31 +29,22 @@ import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedContainerSource
 
 @FirBuilderDsl
-class FirBackingFieldBuilder : FirAnnotationContainerBuilder {
+class FirBackingFieldBuilder : FirVariableBuilder, FirAnnotationContainerBuilder {
     override var source: KtSourceElement? = null
-    var resolvePhase: FirResolvePhase = FirResolvePhase.RAW_FIR
-    lateinit var moduleData: FirModuleData
-    lateinit var origin: FirDeclarationOrigin
-    var attributes: FirDeclarationAttributes = FirDeclarationAttributes()
-    lateinit var returnTypeRef: FirTypeRef
-    var receiverParameter: FirReceiverParameter? = null
-    var deprecationsProvider: DeprecationsProvider = UnresolvedDeprecationProvider
-    var containerSource: DeserializedContainerSource? = null
-    var dispatchReceiverType: ConeSimpleKotlinType? = null
-    val contextReceivers: MutableList<FirContextReceiver> = mutableListOf()
-    lateinit var name: Name
-    var delegate: FirExpression? = null
-    var isVar: Boolean by kotlin.properties.Delegates.notNull<Boolean>()
+    override var resolvePhase: FirResolvePhase = FirResolvePhase.RAW_FIR
+    override lateinit var moduleData: FirModuleData
+    override lateinit var origin: FirDeclarationOrigin
+    override var attributes: FirDeclarationAttributes = FirDeclarationAttributes()
+    override lateinit var returnTypeRef: FirTypeRef
+    override var deprecationsProvider: DeprecationsProvider = UnresolvedDeprecationProvider
+    override lateinit var name: Name
+    override var isVar: Boolean by kotlin.properties.Delegates.notNull<Boolean>()
     var isVal: Boolean by kotlin.properties.Delegates.notNull<Boolean>()
-    var getter: FirPropertyAccessor? = null
-    var setter: FirPropertyAccessor? = null
-    var backingField: FirBackingField? = null
     lateinit var symbol: FirBackingFieldSymbol
     lateinit var propertySymbol: FirPropertySymbol
-    var initializer: FirExpression? = null
+    override var initializer: FirExpression? = null
     override val annotations: MutableList<FirAnnotation> = mutableListOf()
-    val typeParameters: MutableList<FirTypeParameter> = mutableListOf()
-    lateinit var status: FirDeclarationStatus
+    override lateinit var status: FirDeclarationStatus
 
     @OptIn(FirImplementationDetail::class)
     override fun build(): FirBackingField {
@@ -64,27 +55,70 @@ class FirBackingFieldBuilder : FirAnnotationContainerBuilder {
             origin,
             attributes,
             returnTypeRef,
-            receiverParameter,
             deprecationsProvider,
-            containerSource,
-            dispatchReceiverType,
-            contextReceivers.toMutableOrEmpty(),
             name,
-            delegate,
             isVar,
             isVal,
-            getter,
-            setter,
-            backingField,
             symbol,
             propertySymbol,
             initializer,
             annotations.toMutableOrEmpty(),
-            typeParameters,
             status,
         )
     }
 
+
+    @Deprecated("Modification of 'receiverParameter' has no impact for FirBackingFieldBuilder", level = DeprecationLevel.HIDDEN)
+    override var receiverParameter: FirReceiverParameter?
+        get() = throw IllegalStateException()
+        set(_) {
+            throw IllegalStateException()
+        }
+
+    @Deprecated("Modification of 'containerSource' has no impact for FirBackingFieldBuilder", level = DeprecationLevel.HIDDEN)
+    override var containerSource: DeserializedContainerSource?
+        get() = throw IllegalStateException()
+        set(_) {
+            throw IllegalStateException()
+        }
+
+    @Deprecated("Modification of 'dispatchReceiverType' has no impact for FirBackingFieldBuilder", level = DeprecationLevel.HIDDEN)
+    override var dispatchReceiverType: ConeSimpleKotlinType?
+        get() = throw IllegalStateException()
+        set(_) {
+            throw IllegalStateException()
+        }
+
+    @Deprecated("Modification of 'contextParameters' has no impact for FirBackingFieldBuilder", level = DeprecationLevel.HIDDEN)
+    override val contextParameters: MutableList<FirValueParameter> = mutableListOf()
+
+    @Deprecated("Modification of 'delegate' has no impact for FirBackingFieldBuilder", level = DeprecationLevel.HIDDEN)
+    override var delegate: FirExpression?
+        get() = throw IllegalStateException()
+        set(_) {
+            throw IllegalStateException()
+        }
+
+    @Deprecated("Modification of 'getter' has no impact for FirBackingFieldBuilder", level = DeprecationLevel.HIDDEN)
+    override var getter: FirPropertyAccessor?
+        get() = throw IllegalStateException()
+        set(_) {
+            throw IllegalStateException()
+        }
+
+    @Deprecated("Modification of 'setter' has no impact for FirBackingFieldBuilder", level = DeprecationLevel.HIDDEN)
+    override var setter: FirPropertyAccessor?
+        get() = throw IllegalStateException()
+        set(_) {
+            throw IllegalStateException()
+        }
+
+    @Deprecated("Modification of 'backingField' has no impact for FirBackingFieldBuilder", level = DeprecationLevel.HIDDEN)
+    override var backingField: FirBackingField?
+        get() = throw IllegalStateException()
+        set(_) {
+            throw IllegalStateException()
+        }
 }
 
 @OptIn(ExperimentalContracts::class)

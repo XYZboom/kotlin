@@ -10,35 +10,42 @@ import com.intellij.util.SmartList
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.DiagnosticCheckerFilter
 import org.jetbrains.kotlin.diagnostics.KtPsiDiagnostic
 
-/**
- * @see FileStructureElementDiagnosticsCollector
- */
 internal class FileStructureElementDiagnostics(private val retriever: FileStructureElementDiagnosticRetriever) {
-    private val diagnosticByCommonCheckers: FileStructureElementDiagnosticList by lazy {
-        retriever.retrieve(FileStructureElementDiagnosticsCollector.USUAL_COLLECTOR)
+    private val diagnosticByDefaultCheckers: FileStructureElementDiagnosticList by lazy {
+        retriever.retrieve(DiagnosticCheckerFilter.ONLY_DEFAULT_CHECKERS)
     }
 
-    private val diagnosticByExtendedCheckers: FileStructureElementDiagnosticList by lazy {
-        retriever.retrieve(FileStructureElementDiagnosticsCollector.EXTENDED_COLLECTOR)
+    private val diagnosticByExtraCheckers: FileStructureElementDiagnosticList by lazy {
+        retriever.retrieve(DiagnosticCheckerFilter.ONLY_EXTRA_CHECKERS)
+    }
+
+    private val diagnosticByExperimentalCheckers: FileStructureElementDiagnosticList by lazy {
+        retriever.retrieve(DiagnosticCheckerFilter.ONLY_EXPERIMENTAL_CHECKERS)
     }
 
     fun diagnosticsFor(filter: DiagnosticCheckerFilter, element: PsiElement): List<KtPsiDiagnostic> =
         SmartList<KtPsiDiagnostic>().apply {
-            if (filter.runCommonCheckers) {
-                addAll(diagnosticByCommonCheckers.diagnosticsFor(element))
+            if (filter.runDefaultCheckers) {
+                addAll(diagnosticByDefaultCheckers.diagnosticsFor(element))
             }
-            if (filter.runExtendedCheckers) {
-                addAll(diagnosticByExtendedCheckers.diagnosticsFor(element))
+            if (filter.runExtraCheckers) {
+                addAll(diagnosticByExtraCheckers.diagnosticsFor(element))
+            }
+            if (filter.runExperimentalCheckers) {
+                addAll(diagnosticByExperimentalCheckers.diagnosticsFor(element))
             }
         }
 
 
     inline fun forEach(filter: DiagnosticCheckerFilter, action: (List<KtPsiDiagnostic>) -> Unit) {
-        if (filter.runCommonCheckers) {
-            diagnosticByCommonCheckers.forEach(action)
+        if (filter.runDefaultCheckers) {
+            diagnosticByDefaultCheckers.forEach(action)
         }
-        if (filter.runExtendedCheckers) {
-            diagnosticByExtendedCheckers.forEach(action)
+        if (filter.runExtraCheckers) {
+            diagnosticByExtraCheckers.forEach(action)
+        }
+        if (filter.runExperimentalCheckers) {
+            diagnosticByExperimentalCheckers.forEach(action)
         }
     }
 }

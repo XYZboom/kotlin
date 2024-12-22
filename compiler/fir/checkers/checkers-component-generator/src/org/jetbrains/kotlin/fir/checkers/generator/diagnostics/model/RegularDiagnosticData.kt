@@ -41,7 +41,7 @@ data class DiagnosticParameter(
     val type: KType
 )
 
-enum class PositioningStrategy(private val strategy: String? = null) {
+enum class PositioningStrategy {
     DEFAULT,
     VAL_OR_VAR_NODE,
     SECONDARY_CONSTRUCTOR_DELEGATION_CALL,
@@ -98,9 +98,9 @@ enum class PositioningStrategy(private val strategy: String? = null) {
     SPREAD_OPERATOR,
     DECLARATION_WITH_BODY,
     NOT_SUPPORTED_IN_INLINE_MOST_RELEVANT,
-    INCOMPATIBLE_DECLARATION,
     ACTUAL_DECLARATION_NAME,
     UNREACHABLE_CODE,
+    CONTEXT_KEYWORD,
     INLINE_PARAMETER_MODIFIER,
     ABSTRACT_MODIFIER,
     LABEL,
@@ -124,15 +124,15 @@ enum class PositioningStrategy(private val strategy: String? = null) {
     TYPE_ARGUMENT_LIST_OR_SELF,
     WHEN_GUARD,
     PACKAGE_DIRECTIVE_NAME_EXPRESSION,
+    CALLABLE_DECLARATION_SIGNATURE_NO_MODIFIERS,
+    PROPERTY_DELEGATE_BY_KEYWORD,
+    OUTERMOST_PARENTHESES_IN_ASSIGNMENT_LHS,
+    DEPRECATION,
     ;
 
-    val expressionToCreate get() = "SourceElementPositioningStrategies.${strategy ?: name}"
+    val expressionToCreate get() = "SourceElementPositioningStrategies.$name"
 
     companion object {
         const val importToAdd = "org.jetbrains.kotlin.diagnostics.SourceElementPositioningStrategies"
     }
 }
-
-
-fun DiagnosticData.hasDefaultPositioningStrategy(): Boolean =
-    positioningStrategy == PositioningStrategy.DEFAULT

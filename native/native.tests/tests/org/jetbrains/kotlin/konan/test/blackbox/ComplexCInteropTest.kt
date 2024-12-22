@@ -6,8 +6,9 @@
 package org.jetbrains.kotlin.konan.test.blackbox
 
 import com.intellij.testFramework.TestDataPath
-import org.jetbrains.kotlin.konan.target.ClangArgs
+import org.jetbrains.kotlin.konan.target.Architecture
 import org.jetbrains.kotlin.konan.target.Family
+import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.jetbrains.kotlin.konan.target.isSimulator
 import org.jetbrains.kotlin.konan.test.blackbox.support.*
 import org.jetbrains.kotlin.konan.test.blackbox.support.TestCase
@@ -22,6 +23,7 @@ import org.jetbrains.kotlin.konan.test.blackbox.support.settings.*
 import org.jetbrains.kotlin.konan.test.blackbox.support.settings.Timeouts
 import org.jetbrains.kotlin.konan.test.blackbox.support.util.ClangDistribution
 import org.jetbrains.kotlin.konan.test.blackbox.support.util.compileWithClang
+import org.jetbrains.kotlin.konan.test.blackbox.support.util.compileWithClangToStaticLibrary
 import org.jetbrains.kotlin.native.executors.RunProcessResult
 import org.jetbrains.kotlin.native.executors.runProcess
 import org.jetbrains.kotlin.test.TestMetadata
@@ -31,7 +33,6 @@ import org.junit.jupiter.api.Test
 import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 
 @TestDataPath("\$PROJECT_ROOT")
 class ClassicComplexCInteropTest : ComplexCInteropTestBase()
@@ -49,26 +50,14 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
     @Test
     @TestMetadata("embedStaticLibraries.kt")
     fun testEmbedStaticLibraries() {
-        val llvmAr = ClangArgs.Native(testRunSettings.configurables).llvmAr().first()
         val embedStaticLibrariesDir = interopDir.resolve("embedStaticLibraries")
         (1..4).forEach {
             val source = embedStaticLibrariesDir.resolve("$it.c")
-            val obj = buildDir.resolve("$it.o")
-            compileWithClang(
-                clangDistribution = ClangDistribution.Llvm,
-                sourceFiles = listOf(source),
-                includeDirectories = emptyList(),
-                outputFile = obj,
-                libraryDirectories = emptyList(),
-                libraries = emptyList(),
-                additionalClangFlags = listOf("-c"),
-                fmodules = false, // with `-fmodules`, ld cannot find symbol `_assert`
-            ).assertSuccess()
             val libFile = buildDir.resolve("$it.a")
-            runProcess(llvmAr, "-rc", libFile.absolutePath, obj.absolutePath) {
-                timeout = Duration.parse("1m")
-            }
-            assertTrue(libFile.exists())
+            compileWithClangToStaticLibrary(
+                sourceFiles = listOf(source),
+                outputFile = libFile,
+            ).assertSuccess()
         }
         val defFile = buildDir.resolve("embedStaticLibraries.def").also {
             it.printWriter().use {
@@ -105,10 +94,7 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
     @Test
     @TestMetadata("smoke.kt")
     fun testInteropObjCSmokeGC() {
-        Assumptions.assumeTrue(
-            testRunSettings.get<GCType>() != GCType.NOOP
-                    || testRunSettings.get<CacheMode>() != CacheMode.WithoutCache // TODO: Remove line after fix of KT-63944
-        )
+        Assumptions.assumeTrue(testRunSettings.get<GCType>() != GCType.NOOP)
         testInteropObjCSmoke("smoke")
     }
 
@@ -116,7 +102,6 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
     @TestMetadata("smoke_noopgc.kt")
     fun testInteropObjCSmokeNoopGC() {
         Assumptions.assumeTrue(testRunSettings.get<GCType>() == GCType.NOOP)
-        Assumptions.assumeTrue(testRunSettings.get<CacheMode>() == CacheMode.WithoutCache) // TODO: Remove line after fix of KT-63944
         testInteropObjCSmoke("smoke_noopgc")
     }
 
@@ -198,7 +183,9 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
     @TestMetadata("with_initializer")
     fun testObjCWithGlobalInitializer() {
         val execResult = testDylibCinteropExe("with_initializer")
-        assertEquals("OK", execResult.stdout)
+        Assumptions.assumingThat(!testRunSettings.get<ForcedNoopTestRunner>().value) {
+            assertEquals("OK", execResult.stdout)
+        }
     }
 
     @Test
@@ -212,25 +199,31 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
     fun testKt42172() {
         Assumptions.assumeFalse(testRunSettings.get<GCType>() == GCType.NOOP)
         val execResult = testDylibCinteropExe("kt42172")
-        assertEquals("Executed finalizer", execResult.stdout)
+        Assumptions.assumingThat(!testRunSettings.get<ForcedNoopTestRunner>().value) {
+            assertEquals("Executed finalizer", execResult.stdout)
+        }
     }
 
     @Test
     @TestMetadata("include_categories")
     fun testInclude_categories() {
         val execResult = testDylibCinteropExe("include_categories")
-        assertEquals("""
-            3.0
-            3.14
-            6.0
-            
-            3
-            6
-            6.0
-            
-            3.0
-            600.0
-        """.trimIndent(), execResult.stdout)
+        Assumptions.assumingThat(!testRunSettings.get<ForcedNoopTestRunner>().value) {
+            assertEquals(
+                """
+                3.0
+                3.14
+                6.0
+                
+                3
+                6
+                6.0
+                
+                3.0
+                600.0
+                """.trimIndent(), execResult.stdout
+            )
+        }
     }
 
     @Test
@@ -245,7 +238,9 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
             extraClangOpts = listOf("-framework", "AppKit", "-fobjc-arc"),
             extraCompilerOpts = listOf("-tr"),
         )
-        assertTrue(execResult.stdout.contains("[  PASSED  ] 8 tests"), execResult.stdout)
+        Assumptions.assumingThat(!testRunSettings.get<ForcedNoopTestRunner>().value) {
+            assertTrue(execResult.stdout.contains("[  PASSED  ] 8 tests"), execResult.stdout)
+        }
     }
 
     @Test
@@ -258,7 +253,9 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
             extraCompilerOpts = listOf("-tr", "-XXLanguage:+ImplicitSignedToUnsignedIntegerConversion"),
             extras = TestCase.WithTestRunnerExtras(TestRunnerType.DEFAULT),
         )
-        assertTrue(execResult.stdout.contains("[  PASSED  ] 4 tests"))
+        Assumptions.assumingThat(!testRunSettings.get<ForcedNoopTestRunner>().value) {
+            assertTrue(execResult.stdout.contains("[  PASSED  ] 4 tests"))
+        }
     }
 
     @Test
@@ -269,7 +266,9 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
             extraCompilerOpts = listOf("-tr"),
             extras = TestCase.WithTestRunnerExtras(TestRunnerType.DEFAULT),
         )
-        assertTrue(execResult.stdout.contains("[  PASSED  ] 5 tests"))
+        Assumptions.assumingThat(!testRunSettings.get<ForcedNoopTestRunner>().value) {
+            assertTrue(execResult.stdout.contains("[  PASSED  ] 5 tests"))
+        }
     }
 
     @Test
@@ -282,8 +281,10 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
             "objc_wrap.def",
             "objc_wrap.kt",
         )
-        assertEquals("", res.stdout)
-        assertEquals("", res.stderr)
+        Assumptions.assumingThat(!testRunSettings.get<ForcedNoopTestRunner>().value) {
+            assertEquals("", res.stdout)
+            assertEquals("", res.stderr)
+        }
     }
 
     @Test
@@ -296,8 +297,10 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
             "objcExceptionMode.def",
             "objcExceptionMode_wrap.kt",
         )
-        assertEquals("OK: Ends with uncaught exception handler", res.stdout)
-        assertEquals("", res.stderr)
+        Assumptions.assumingThat(!testRunSettings.get<ForcedNoopTestRunner>().value) {
+            assertEquals("OK: Ends with uncaught exception handler", res.stdout)
+            assertEquals("", res.stderr)
+        }
     }
 
     @Test
@@ -311,8 +314,10 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
             "objcExceptionMode_wrap.kt",
             extraCinteropArgs = listOf("-Xforeign-exception-mode", "objc-wrap")
         )
-        assertEquals("OK: ForeignException", res.stdout)
-        assertEquals("", res.stderr)
+        Assumptions.assumingThat(!testRunSettings.get<ForcedNoopTestRunner>().value) {
+            assertEquals("OK: ForeignException", res.stdout)
+            assertEquals("", res.stderr)
+        }
     }
 
     private fun testDylibCinteropExe(
@@ -365,7 +370,7 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
             ),
             extras = extras,
         )
-        return testRunSettings.executor.runProcess(success.resultingArtifact.executableFile.absolutePath)
+        return testRunSettings.testProcessExecutor.runProcess(success.resultingArtifact.executableFile.absolutePath)
     }
 
     @Test
@@ -447,7 +452,6 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
 
     private fun compileDylib(name: String, mSources: List<File>, extraClangOpts: List<String> = listOf("-fobjc-arc")): TestCompilationResult.Success<out TestCompilationArtifact.Executable> {
         val clangResult = compileWithClang(
-            clangDistribution = ClangDistribution.Llvm,
             sourceFiles = mSources,
             includeDirectories = emptyList(),
             outputFile = buildDir.resolve("lib$name.dylib"),
@@ -461,5 +465,61 @@ abstract class ComplexCInteropTestBase : AbstractNativeSimpleTest() {
             fmodules = false, // with `-fmodules`, ld cannot find symbol `_assert`
         ).assertSuccess()
         return clangResult
+    }
+
+    @Test
+    @TestMetadata("arc_contract")
+    fun arcContract() {
+        Assumptions.assumeTrue(targets.testTarget.family.isAppleFamily)
+        Assumptions.assumeTrue(targets.testTarget.architecture == Architecture.ARM64)
+        Assumptions.assumeTrue(targets.testTarget != KonanTarget.WATCHOS_ARM64) // Not real ARM64.
+        val root = interopObjCDir.resolve("arc_contract")
+        val bcFile = buildDir.resolve("arc_contract.bc")
+        runProcess(
+            "${testRunSettings.configurables.absoluteLlvmHome}/bin/llvm-as",
+            root.resolve("main.ll").absolutePath,
+            "-o",
+            bcFile.absolutePath
+        )
+        val testCase = generateTestCaseWithSingleFile(
+            root.resolve("main.kt"),
+            testKind = TestKind.STANDALONE_NO_TR,
+            extras = TestCase.NoTestRunnerExtras(),
+            freeCompilerArgs = TestCompilerArgs("-native-library", bcFile.absolutePath),
+            checks = TestRunChecks.Default(testRunSettings.get<Timeouts>().executionTimeout).copy(
+                outputDataFile = TestRunCheck.OutputDataFile(file = root.resolve("main.out"))
+            )
+        )
+        val compilationResult = compileToExecutableInOneStage(testCase).assertSuccess()
+        runExecutableAndVerify(testCase, TestExecutable.fromCompilationResult(testCase, compilationResult))
+    }
+
+    @Test
+    @TestMetadata("safepointSignposts")
+    fun safepointSignposts() {
+        Assumptions.assumeTrue(targets.testTarget.family.isAppleFamily)
+        Assumptions.assumeFalse(targets.areDifferentTargets())
+
+        val srcDir = interopObjCDir.resolve("safepointSignposts")
+        compileDylib("cinterop", listOf(srcDir.resolve("cinterop.m")))
+
+        val (testCase, compilationResult) = compileDefAndKtToExecutable(
+            testName = "safepointSignposts",
+            defFile = srcDir.resolve("cinterop.def"),
+            ktFiles = listOf(srcDir.resolve("main.kt")),
+            freeCompilerArgs = TestCompilerArgs(
+                compilerArgs = listOf(
+                    "-opt-in=kotlinx.cinterop.ExperimentalForeignApi",
+                    "-linker-option", "-L${buildDir.absolutePath}",
+                )
+            ),
+            extras = TestCase.NoTestRunnerExtras(),
+        )
+        val process = ProcessBuilder("/usr/bin/log", "stream", "--signpost").start()
+        try {
+            runExecutableAndVerify(testCase, TestExecutable.fromCompilationResult(testCase, compilationResult))
+        } finally {
+            process.destroyForcibly()
+        }
     }
 }

@@ -7,17 +7,18 @@
 
 package org.jetbrains.kotlin.gradle.dependencyResolutionTests.tcs
 
+import org.jetbrains.kotlin.gradle.util.mockGenerateProjectStructureMetadataTaskOutputs
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.jetbrains.kotlin.gradle.dependencyResolutionTests.mavenCentralCacheRedirector
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformSourceSetConventionsImpl.commonMain
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformSourceSetConventionsImpl.commonTest
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformSourceSetConventionsImpl.dependencies
 import org.jetbrains.kotlin.gradle.dsl.multiplatformExtension
 import org.jetbrains.kotlin.gradle.idea.tcs.IdeaKotlinBinaryDependency
 import org.jetbrains.kotlin.gradle.idea.tcs.IdeaKotlinResolvedBinaryDependency
 import org.jetbrains.kotlin.gradle.idea.tcs.IdeaKotlinSourceDependency
 import org.jetbrains.kotlin.gradle.idea.testFixtures.tcs.*
+import org.jetbrains.kotlin.gradle.internal.dsl.KotlinMultiplatformSourceSetConventionsImpl.commonMain
+import org.jetbrains.kotlin.gradle.internal.dsl.KotlinMultiplatformSourceSetConventionsImpl.commonTest
+import org.jetbrains.kotlin.gradle.internal.dsl.KotlinMultiplatformSourceSetConventionsImpl.dependencies
 import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
 import org.jetbrains.kotlin.gradle.plugin.ide.dependencyResolvers.IdeJvmAndAndroidPlatformBinaryDependencyResolver
 import org.jetbrains.kotlin.gradle.plugin.ide.kotlinIdeMultiplatformImport
@@ -39,7 +40,7 @@ class IdeJvmAndAndroidDependencyResolutionTest {
         setMultiplatformAndroidSourceSetLayoutVersion(2)
         applyMultiplatformPlugin()
         plugins.apply("com.android.library")
-        androidExtension.compileSdkVersion(33)
+        androidExtension.configureDefaults()
         if (enableDefaultStdlib) repositories.mavenLocal()
         repositories.mavenCentralCacheRedirector()
 
@@ -58,7 +59,9 @@ class IdeJvmAndAndroidDependencyResolutionTest {
     }
 
     private fun Project.assertBinaryDependencies(sourceSetName: String, notation: Any) {
-        project.kotlinIdeMultiplatformImport.resolveDependencies(sourceSetName).filterIsInstance<IdeaKotlinResolvedBinaryDependency>()
+        project.kotlinIdeMultiplatformImport
+            .resolveDependencies(sourceSetName)
+            .filterIsInstance<IdeaKotlinResolvedBinaryDependency>()
             .assertMatches(notation)
     }
 
@@ -98,6 +101,8 @@ class IdeJvmAndAndroidDependencyResolutionTest {
         root.evaluate()
         producer.evaluate()
         consumer.evaluate()
+
+        producer.mockGenerateProjectStructureMetadataTaskOutputs()
 
         root.allprojects { project ->
             project.repositories.mavenLocal()
@@ -185,9 +190,13 @@ class IdeJvmAndAndroidDependencyResolutionTest {
             api(project(":b"))
         }
 
+
         root.evaluate()
         a.evaluate()
         b.evaluate()
+
+        b.mockGenerateProjectStructureMetadataTaskOutputs()
+        a.mockGenerateProjectStructureMetadataTaskOutputs()
 
         a.kotlinIdeMultiplatformImport.resolveDependencies("jvmAndAndroidTest").assertMatches(
             friendSourceDependency(":a/commonMain"),
@@ -215,6 +224,8 @@ class IdeJvmAndAndroidDependencyResolutionTest {
         root.evaluate()
         producer.evaluate()
         consumer.evaluate()
+
+        producer.mockGenerateProjectStructureMetadataTaskOutputs()
 
         consumer.kotlinIdeMultiplatformImport.resolveDependencies("commonMain").assertMatches(
             regularSourceDependency(":producer/commonMain"),
@@ -266,6 +277,52 @@ class IdeJvmAndAndroidDependencyResolutionTest {
         project.assertBinaryDependencies("commonMain", jvmAndAndroidDependencies)
         project.assertBinaryDependencies("jvmAndAndroidMain", jvmAndAndroidDependencies)
         project.assertBinaryDependencies("commonTest", jvmAndAndroidDependencies)
+        project.assertBinaryDependencies("jvmAndAndroidTest", jvmAndAndroidDependencies)
+    }
+
+    @Test
+    fun `test existence of kotlin-test dependencies for commonTest source set with only JVM+Android target`() {
+        val project = buildProject { configureAndroidAndMultiplatform(true) }
+
+        project.multiplatformExtension.sourceSets.getByName("commonTest").dependencies {
+            implementation(kotlin("test"))
+        }
+
+        project.evaluate()
+
+        val stdlibVersion = project.getKotlinPluginVersion()
+        val stdlibDependencies = listOf(
+            binaryCoordinates(Regex(".*kotlin-stdlib.*")),
+            binaryCoordinates(Regex("org\\.jetbrains:annotations:.*")),
+            binaryCoordinates("org.jetbrains.kotlin:kotlin-test-junit:${stdlibVersion}"),
+            binaryCoordinates("org.jetbrains.kotlin:kotlin-test:${stdlibVersion}"),
+            binaryCoordinates("junit:junit:4.13.2"),
+            binaryCoordinates("org.hamcrest:hamcrest-core:1.3"),
+        )
+
+        project.assertBinaryDependencies("commonTest", stdlibDependencies)
+    }
+
+    @Test
+    fun `KT-71444 Android and JVM fails to transitively resolve kotlin-stdlib-common when it hasn't explicit version set`() {
+        val project = buildProject { configureAndroidAndMultiplatform(enableDefaultStdlib = true) }
+        val kotlin = project.multiplatformExtension
+        kotlin.sourceSets.getByName("commonMain").dependencies {
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.2")
+        }
+
+        project.evaluate()
+
+        val kgpVersion = project.getKotlinPluginVersion()
+        // This list is exhaustive. We don't expect to see kotlin-stdlib-common as it should be replaced by kotlin-stdlib
+        val jvmAndAndroidDependencies = listOf(
+            binaryCoordinates("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.7.2"),
+            binaryCoordinates("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.7.2"),
+            binaryCoordinates("org.jetbrains.kotlin:kotlin-stdlib:$kgpVersion"),
+            binaryCoordinates("org.jetbrains:annotations:13.0"),
+        )
+
+        project.assertBinaryDependencies("jvmAndAndroidMain", jvmAndAndroidDependencies)
         project.assertBinaryDependencies("jvmAndAndroidTest", jvmAndAndroidDependencies)
     }
 }

@@ -45,6 +45,27 @@ object FirDiagnosticsDirectives : SimpleDirectivesContainer() {
         applicability = Global
     )
 
+    val LATEST_LV_DIFFERENCE by directive(
+        description = """
+            Diagnostics differs between latest stable and latest language version
+            Separate file for latest LV should be checked
+        """.trimIndent()
+    )
+
+    val TEST_ALONGSIDE_K1_TESTDATA by directive(
+        description = """
+            This directive indicates that the test is run on the testdata,
+            which is also used for K1 tests
+        """.trimIndent()
+    )
+
+    val USE_LATEST_LANGUAGE_VERSION by directive(
+        description = """
+            Indicates that test is run with latest language version.
+            This directive should not be used directly in testdata
+        """.trimIndent()
+    )
+
     val FIR_PARSER by enumDirective<FirParser>(
         description = "Defines which parser should be used for FIR compiler"
     )
@@ -62,8 +83,16 @@ object FirDiagnosticsDirectives : SimpleDirectivesContainer() {
         applicability = Global
     )
 
-    val WITH_EXTENDED_CHECKERS by directive(
-        description = "Enable extended checkers"
+    val WITH_EXTRA_CHECKERS by directive(
+        description = "Enable extra checkers"
+    )
+
+    val WITH_EXPERIMENTAL_CHECKERS by directive(
+        description = "Enable experimental checkers"
+    )
+
+    val DISABLE_JAVA_FACADE by directive(
+        description = "Disables javac for diagnostic tests containing incorrect Java code. Such tests must be fixed, but until they are, use this directive"
     )
 
     val SCOPE_DUMP by stringDirective(
@@ -98,6 +127,12 @@ object FirDiagnosticsDirectives : SimpleDirectivesContainer() {
     val RENDER_FIR_DECLARATION_ATTRIBUTES by directive(
         description = """
             Prints declaration attributes to dumps in load compiled kotlin tests
+        """
+    )
+
+    val SUPPRESS_NO_TYPE_ALIAS_EXPANSION_MODE by stringDirective(
+        description = """S
+            Suppresses AbstractFirLightTreeDiagnosticsWithoutAliasExpansionTest
         """
     )
 }

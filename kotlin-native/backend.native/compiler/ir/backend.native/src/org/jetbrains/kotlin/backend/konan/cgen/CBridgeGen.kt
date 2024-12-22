@@ -1,3 +1,8 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
 package org.jetbrains.kotlin.backend.konan.cgen
 
 import org.jetbrains.kotlin.backend.common.lower.at
@@ -19,16 +24,17 @@ import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.*
 import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrFunctionReferenceImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrRawFunctionReferenceImpl
 import org.jetbrains.kotlin.ir.objcinterop.getObjCMethodInfo
 import org.jetbrains.kotlin.ir.objcinterop.isObjCMetaClass
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.impl.*
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.isNullable
+import org.jetbrains.kotlin.ir.util.isSubtypeOfClass
 import org.jetbrains.kotlin.konan.ForeignExceptionMode
 import org.jetbrains.kotlin.konan.target.Family
 import org.jetbrains.kotlin.konan.target.KonanTarget
@@ -127,10 +133,10 @@ internal fun KotlinStubs.generateCCall(expression: IrCall, builder: IrBuilderWit
 
         (0 until expression.valueArgumentsCount).forEach {
             callBuilder.addArgument(
-                    expression.getValueArgument(it)!!,
-                    type = expression.getTypeArgument(it)!!,
-                    variadic = false,
-                    parameter = null
+                expression.getValueArgument(it)!!,
+                type = expression.typeArguments[it]!!,
+                variadic = false,
+                parameter = null
             )
         }
     } else {
@@ -152,7 +158,7 @@ internal fun KotlinStubs.generateCCall(expression: IrCall, builder: IrBuilderWit
     }
 
     val returnValuePassing = if (isInvoke) {
-        val returnType = expression.getTypeArgument(expression.typeArgumentsCount - 1)!!
+        val returnType = expression.typeArguments.last()!!
         mapReturnType(returnType, expression, signature = null)
     } else {
         mapReturnType(callee.returnType, expression, signature = callee)
@@ -382,10 +388,7 @@ internal fun KotlinStubs.generateObjCCall(
             receiverOrSuper, symbols.nativePtrType, CTypes.voidPtr).name
     callBuilder.cFunctionBuilder.addParameter(CTypes.voidPtr)
 
-    if (isDirect) {
-        callBuilder.cCallBuilder.arguments += "0"
-        callBuilder.cFunctionBuilder.addParameter(CTypes.voidPtr)
-    } else {
+    if (!isDirect) {
         callBuilder.cCallBuilder.arguments += "@selector($selector)"
         callBuilder.cFunctionBuilder.addParameter(CTypes.voidPtr)
     }
@@ -530,7 +533,7 @@ private fun KotlinStubs.generateCFunction(
     signature.extensionReceiverParameter?.let { callbackBuilder.addParameter(it, function.extensionReceiverParameter!!) }
 
     signature.valueParameters.forEach {
-        callbackBuilder.addParameter(it, function.valueParameters[it.index])
+        callbackBuilder.addParameter(it, function.valueParameters[it.indexInOldValueParameters])
     }
 
     return callbackBuilder.build(function, signature)
@@ -549,13 +552,11 @@ internal fun KotlinStubs.generateCFunctionPointer(
     )
     addKotlin(fakeFunction)
 
-    return IrFunctionReferenceImpl.fromSymbolOwner(
+    return IrRawFunctionReferenceImpl(
             expression.startOffset,
             expression.endOffset,
             expression.type,
-            fakeFunction.symbol,
-            typeArgumentsCount = 0,
-            reflectionTarget = null
+            fakeFunction.symbol
     )
 }
 
@@ -1124,7 +1125,7 @@ private class ObjCBlockPointerValuePassing(
                 ClassKind.CLASS,
                 Modality.FINAL,
         )
-        irClass.createParameterDeclarations()
+        irClass.createThisReceiverParameter()
 
         irClass.superTypes += stubs.irBuiltIns.anyType
         irClass.superTypes += functionType.makeNotNull()
@@ -1164,7 +1165,6 @@ private class ObjCBlockPointerValuePassing(
                 type = symbols.nativePtrType,
                 isAssignable = false,
                 symbol = IrValueParameterSymbolImpl(),
-                index = 0,
                 varargElementType = null,
                 isCrossinline = false,
                 isNoinline = false,
@@ -1205,7 +1205,7 @@ private class ObjCBlockPointerValuePassing(
         )
         invokeMethod.overriddenSymbols += overriddenInvokeMethod.symbol
         irClass.addChild(invokeMethod)
-        invokeMethod.createDispatchReceiverParameter()
+        invokeMethod.parameters += invokeMethod.createDispatchReceiverParameterWithClassParent()
 
         invokeMethod.valueParameters += (0 until parameterCount).map { index ->
             val parameter = context.irFactory.createValueParameter(
@@ -1216,7 +1216,6 @@ private class ObjCBlockPointerValuePassing(
                     type = functionType.arguments[index].typeOrNull!!,
                     isAssignable = false,
                     symbol = IrValueParameterSymbolImpl(),
-                    index = index,
                     varargElementType = null,
                     isCrossinline = false,
                     isNoinline = false,

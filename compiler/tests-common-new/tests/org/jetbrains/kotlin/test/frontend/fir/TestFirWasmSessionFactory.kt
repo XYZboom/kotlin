@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.test.model.TestModule
 import org.jetbrains.kotlin.test.services.TestServices
 import org.jetbrains.kotlin.test.services.configuration.WasmEnvironmentConfigurator
 import org.jetbrains.kotlin.wasm.config.WasmConfigurationKeys
+import org.jetbrains.kotlin.wasm.config.wasmTarget
 import java.io.File
 
 object TestFirWasmSessionFactory {
@@ -35,7 +36,6 @@ object TestFirWasmSessionFactory {
         configuration: CompilerConfiguration,
         extensionRegistrars: List<FirExtensionRegistrar>,
         languageVersionSettings: LanguageVersionSettings,
-        registerExtraComponents: ((FirSession) -> Unit),
     ): FirSession {
         val target = configuration.get(WasmConfigurationKeys.WASM_TARGET, WasmTarget.JS)
         val resolvedLibraries = resolveLibraries(
@@ -50,14 +50,13 @@ object TestFirWasmSessionFactory {
             moduleDataProvider,
             extensionRegistrars,
             languageVersionSettings,
-            registerExtraComponents,
+            configuration.wasmTarget,
         )
     }
 
     fun createModuleBasedSession(
         mainModuleData: FirModuleData, sessionProvider: FirProjectSessionProvider, extensionRegistrars: List<FirExtensionRegistrar>,
         languageVersionSettings: LanguageVersionSettings, wasmTarget: WasmTarget, lookupTracker: LookupTracker?,
-        registerExtraComponents: ((FirSession) -> Unit),
         sessionConfigurator: FirSessionConfigurator.() -> Unit,
     ): FirSession =
         FirWasmSessionFactory.createModuleBasedSession(
@@ -68,7 +67,6 @@ object TestFirWasmSessionFactory {
             wasmTarget,
             lookupTracker,
             icData = null,
-            registerExtraComponents,
             sessionConfigurator
         )
 }

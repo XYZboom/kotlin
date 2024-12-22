@@ -1,7 +1,10 @@
+// DISABLE_JAVA_FACADE
+// RUN_PIPELINE_TILL: BACKEND
 // FIR_IDENTICAL
 // ISSUE: KT-61309
 // ALLOW_KOTLIN_PACKAGE
-// FILE: Test.java
+
+// FILE: javacode/Test.java
 package javacode;
 
 import java.lang.annotation.ElementType;

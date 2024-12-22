@@ -54,7 +54,7 @@ The following declaration is incompatible because number of type parameters is d
 actual fun <K, V> f7() {}
                   ^^
 compiler/testData/multiplatform/incompatibleCallables/jvm.kt:17:21: error: 'actual fun f10(): Unit' has no corresponding expected declaration
-The following declaration is incompatible because visibility is different:
+The following declaration is incompatible because visibility is different. Expect declaration visibility is 'public'. Actual declaration visibility is 'internal':
     expect fun f10(): Unit
 
 internal actual fun f10() {}
@@ -83,7 +83,7 @@ The following declaration is incompatible because some type parameter is reified
 
 actual inline fun <reified X> f14() {}
                               ^^^
-compiler/testData/multiplatform/incompatibleCallables/jvm.kt:26:16: error: actual function cannot have default argument values. They should be declared in the expected function.
+compiler/testData/multiplatform/incompatibleCallables/jvm.kt:26:16: error: actual function cannot have default argument values. They must be declared in the expected function.
 actual fun f16(s: String = "") {}
                ^^^^^^^^^^^^^^
 compiler/testData/multiplatform/incompatibleCallables/jvm.kt:28:12: error: 'actual fun f17(s: Array<out String>): Unit' has no corresponding expected declaration

@@ -7,13 +7,14 @@ package org.jetbrains.kotlin.test.backend.handlers
 
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.ir.IrBuiltIns
-import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
+import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.DumpIrTreeOptions
+import org.jetbrains.kotlin.ir.util.DumpIrTreeOptions.FlagsFilter
 import org.jetbrains.kotlin.ir.util.allOverridden
 import org.jetbrains.kotlin.ir.util.dump
 import org.jetbrains.kotlin.ir.util.dumpTreesFromLineNumber
@@ -35,6 +36,7 @@ import org.jetbrains.kotlin.test.services.moduleStructure
 import org.jetbrains.kotlin.test.utils.MultiModuleInfoDumper
 import org.jetbrains.kotlin.test.utils.withExtension
 import org.jetbrains.kotlin.test.utils.withSuffixAndExtension
+import org.jetbrains.kotlin.utils.addToStdlib.applyIf
 import java.io.File
 
 class IrTextDumpHandler(
@@ -56,11 +58,13 @@ class IrTextDumpHandler(
             }
         }
 
-        fun List<IrFile>.groupWithTestFiles(module: TestModule): List<Pair<TestFile?, IrFile>> = mapNotNull { irFile ->
-            val name = File(irFile.fileEntry.name).name
-            val testFile = module.files.firstOrNull { it.name == name }
-            testFile to irFile
-        }
+        fun List<IrFile>.groupWithTestFiles(module: TestModule, ordered: Boolean = false): List<Pair<TestFile?, IrFile>> =
+            mapNotNull { irFile ->
+                val name = File(irFile.fileEntry.name).name
+                val testFile = module.files.firstOrNull { it.name == name }
+                testFile to irFile
+            }.applyIf(ordered) { sortedBy { it.second.fileEntry.name } }
+
 
         private val HIDDEN_ENUM_METHOD_NAMES = setOf(
             Name.identifier("finalize"), // JVM-specific fake override from java.lang.Enum. TODO: remove it after fixing KT-63744
@@ -94,28 +98,27 @@ class IrTextDumpHandler(
 
         if (DUMP_IR !in module.directives) return
 
-        val irBuiltins = info.irModuleFragment.irBuiltins
-
         val dumpOptions = DumpIrTreeOptions(
             normalizeNames = true,
             printFacadeClassInFqNames = false,
-            printFlagsInDeclarationReferences = false,
+            declarationFlagsFilter = FlagsFilter { declaration, isReference, flags ->
+                // By coincidence, there is a huge number of cases in IR text test data files
+                // when flags are still rendered for references to fields and classes.
+                flags.takeIf { !isReference || declaration is IrField || declaration is IrClass }.orEmpty()
+            },
             // KT-60248 Abbreviations should not be rendered to make K2 IR dumps closer to K1 IR dumps during irText tests.
             // PSI2IR assigns field `abbreviation` with type abbreviation. It serves only debugging purposes, and no compiler functionality relies on it.
             // FIR2IR does not initialize field `abbreviation` at all.
             printTypeAbbreviations = false,
-            isHiddenDeclaration = { isHiddenDeclaration(it, irBuiltins) },
+            isHiddenDeclaration = { isHiddenDeclaration(it, info.irPluginContext.irBuiltIns) },
             stableOrder = true,
         )
-
         val builder = baseDumper.builderForModule(module.name)
-        val testFileToIrFile = info.irModuleFragment.files.groupWithTestFiles(module)
+
+        val testFileToIrFile = info.irModuleFragment.files.groupWithTestFiles(module, ordered = dumpOptions.stableOrder)
         for ((testFile, irFile) in testFileToIrFile) {
             if (testFile?.directives?.contains(EXTERNAL_FILE) == true) continue
-            var actualDump = irFile.dumpTreesFromLineNumber(lineNumber = 0, dumpOptions)
-            if (actualDump.isEmpty()) {
-                actualDump = irFile.dumpTreesFromLineNumber(lineNumber = UNDEFINED_OFFSET, dumpOptions)
-            }
+            val actualDump = irFile.dumpTreesFromLineNumber(lineNumber = 0, dumpOptions)
             builder.append(actualDump)
         }
 

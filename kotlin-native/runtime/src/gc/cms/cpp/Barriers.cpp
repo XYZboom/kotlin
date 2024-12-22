@@ -9,6 +9,7 @@
 #include <atomic>
 
 #include "GCImpl.hpp"
+#include "Memory.h"
 #include "ThreadData.hpp"
 #include "ThreadRegistry.hpp"
 
@@ -93,7 +94,7 @@ bool gc::barriers::BarriersThreadData::shouldMarkNewObjects() const noexcept {
     return markHandle_.has_value();
 }
 
-ALWAYS_INLINE void gc::barriers::BarriersThreadData::onAllocation(ObjHeader* allocated) {
+PERFORMANCE_INLINE void gc::barriers::BarriersThreadData::onAllocation(ObjHeader* allocated) {
     BarriersLogDebug(currentPhaseRelaxed(), "Allocation %p", allocated);
     if (shouldMarkNewObjects()) {
         auto& objectData = alloc::objectDataForObject(allocated);
@@ -112,7 +113,6 @@ void gc::barriers::enableBarriers(int64_t epoch) noexcept {
 }
 
 void gc::barriers::switchToWeakProcessingBarriers() noexcept {
-    // TODO markDispatcher().assertWeakReadForbiden();
     switchPhase(BarriersPhase::kMarkClosure, BarriersPhase::kWeakProcessing);
 }
 
@@ -127,8 +127,16 @@ void gc::barriers::disableBarriers() noexcept {
 namespace {
 
 // TODO decide whether it's really beneficial to NO_INLINE the slow path
-NO_INLINE void beforeHeapRefUpdateSlowPath(mm::DirectRefAccessor ref, ObjHeader* value) noexcept {
-    auto prev = ref.load();
+NO_INLINE void beforeHeapRefUpdateSlowPath(mm::DirectRefAccessor ref, ObjHeader* value, bool loadAtomic) noexcept {
+    AssertThreadState(ThreadState::kRunnable);
+
+    ObjHeader* prev;
+    if (loadAtomic) {
+        prev = ref.loadAtomic(std::memory_order_relaxed);
+    } else {
+        prev = ref.load();
+    }
+
     if (prev != nullptr && prev->heap()) {
         // TODO Redundant if the destination object is black.
         //      Yet at the moment there is now efficient way to distinguish black and gray objects.
@@ -144,11 +152,28 @@ NO_INLINE void beforeHeapRefUpdateSlowPath(mm::DirectRefAccessor ref, ObjHeader*
 
 } // namespace
 
-ALWAYS_INLINE void gc::barriers::beforeHeapRefUpdate(mm::DirectRefAccessor ref, ObjHeader* value) noexcept {
+PERFORMANCE_INLINE void gc::barriers::beforeHeapRefUpdate(mm::DirectRefAccessor ref, ObjHeader* value, bool loadAtomic) noexcept {
     auto phase = currentPhase();
     BarriersLogDebug(phase, "Write *%p <- %p (%p overwritten)", ref.location(), value, ref.load());
     if (__builtin_expect(phase == BarriersPhase::kMarkClosure, false)) {
-        beforeHeapRefUpdateSlowPath(ref, value);
+        beforeHeapRefUpdateSlowPath(ref, value, loadAtomic);
+    }
+}
+
+PERFORMANCE_INLINE gc::barriers::SpecialRefReleaseGuard::Impl::Impl(mm::DirectRefAccessor ref) noexcept {
+    // Can be called with any possible thread state: kotlin, native, unattached thread.
+    // This guard synchronizes with the `ConcurrentMark` via the ThreadRegistry lock.
+    // It must be done before the barriers phase check.
+    if (mm::ThreadRegistry::IsCurrentThreadRegistered()) {
+        // If the thread is registered, just ensure, that the root set mutation happens will happen in the runnable state
+        stateGuard_ = ThreadStateGuard{ThreadState::kRunnable, true};
+        // NOTE that this barrier must be executed before the RC decrement
+        beforeHeapRefUpdate(ref, nullptr, false);
+    } else {
+        // In case of an unregistered thread, just do thing outside the mark phase.
+        // NOTE This code can be called from quite an unexpected places (such as TLS destructors).
+        // One can't simply register the thread from here.
+        markMutex_ = markDispatcher().markMutex();
     }
 }
 
@@ -156,7 +181,7 @@ namespace {
 
 /**
  * Before the mark closure is built, every weak read may resurrect a weakly-reachable object.
- * Thus, the referent must be pushed in a mark queue, in case it wold be resureceted behind the mark front.
+ * Thus, the referent must be pushed in a mark queue, in case it wold be resurrected behind the mark front.
  */
 NO_INLINE void weakRefReadInMarkSlowPath(ObjHeader* weakReferee) noexcept {
     assertPhase(BarriersPhase::kMarkClosure);
@@ -165,7 +190,7 @@ NO_INLINE void weakRefReadInMarkSlowPath(ObjHeader* weakReferee) noexcept {
     gc::mark::ConcurrentMark::MarkTraits::tryEnqueue(markQueue, weakReferee);
 }
 
-/** After the mark closure is built, but weak refs are not yet nulled out, every weak read shouuld check if the weak referent is marked. */
+/** After the mark closure is built, but weak refs are not yet nulled out, every weak read should check if the weak referent is marked. */
 NO_INLINE ObjHeader* weakRefReadInWeakSweepSlowPath(ObjHeader* weakReferee) noexcept {
     assertPhase(BarriersPhase::kWeakProcessing);
     if (!gc::isMarked(weakReferee)) {
@@ -176,22 +201,17 @@ NO_INLINE ObjHeader* weakRefReadInWeakSweepSlowPath(ObjHeader* weakReferee) noex
 
 } // namespace
 
-ALWAYS_INLINE ObjHeader* gc::barriers::weakRefReadBarrier(std::atomic<ObjHeader*>& weakReferee) noexcept {
+PERFORMANCE_INLINE ObjHeader* gc::barriers::weakRefReadBarrier(std_support::atomic_ref<ObjHeader*> weakReferee) noexcept {
     if (__builtin_expect(currentPhase() != BarriersPhase::kDisabled, false)) {
         // Mark dispatcher requires weak reads be protected by the following:
         auto weakReadProtector = markDispatcher().weakReadProtector();
+        AssertThreadState(ThreadState::kRunnable);
 
         auto weak = weakReferee.load(std::memory_order_relaxed);
         if (!weak) return nullptr;
 
         auto phase = currentPhase();
         BarriersLogDebug(phase, "Weak read %p", weak);
-
-        // The weak read protector switches the thread state to native, thus making this code able to execute during STW.
-        // However, this is only possible with the disabled barriers.
-        // Be extra cautious not to access or modify heap structure here. e.g. do not allocate objects
-        AssertThreadState(ThreadState::kNative);
-        RuntimeAssert(!mm::IsThreadSuspensionRequested() || phase == BarriersPhase::kDisabled, "Unexpected barriers phase during STW: %s", toString(phase));
 
         if (__builtin_expect(phase == BarriersPhase::kMarkClosure, false)) {
             weakRefReadInMarkSlowPath(weak);

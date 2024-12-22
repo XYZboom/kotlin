@@ -1,3 +1,5 @@
+// LATEST_LV_DIFFERENCE
+// RUN_PIPELINE_TILL: BACKEND
 // WITH_STDLIB
 // MODULE: m1-common
 // FILE: common.kt
@@ -87,8 +89,8 @@ package test
 @ClassArgAnn(ClassForReference::class)
 actual fun getClassExpression() {}
 
-<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>@ClassArgAnn(ClassForReference::class)
-actual fun differentClassesWithSameName() {}<!>
+@ClassArgAnn(ClassForReference::class)
+<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT, ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>actual<!> fun differentClassesWithSameName() {}
 
 @StringArgAnn("1.9")
 actual fun stringConstant() {}
@@ -114,8 +116,8 @@ actual fun varargInAnnotationWithArraySpread() {}
 @ArrayArgAnn(arrayOf("foo", "bar"))
 actual fun arrayInAnnotation() {}
 
-<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>@ArrayArgAnn(["foo"])
-actual fun arrayInAnnotationNotMatch() {}<!>
+@ArrayArgAnn(["foo"])
+<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT, ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>actual<!> fun arrayInAnnotationNotMatch() {}
 
 @NestedAnnArg(
     text = "root",
@@ -127,7 +129,7 @@ actual fun arrayInAnnotationNotMatch() {}<!>
 )
 actual fun complexNestedAnnotations() {}
 
-<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>@NestedAnnArg(
+@NestedAnnArg(
     text = "root",
     NestedAnnArg("1"),
     NestedAnnArg("2",
@@ -135,4 +137,4 @@ actual fun complexNestedAnnotations() {}
                  NestedAnnArg("DIFFERENT")
     )
 )
-actual fun complexNestedAnnotationsNotMatch() {}<!>
+<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT, ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>actual<!> fun complexNestedAnnotationsNotMatch() {}

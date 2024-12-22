@@ -17,9 +17,7 @@ import org.jetbrains.kotlin.fir.declarations.comparators.FirCallableDeclarationC
 import org.jetbrains.kotlin.fir.declarations.comparators.FirMemberDeclarationComparator
 import org.jetbrains.kotlin.fir.declarations.impl.FirDefaultPropertyGetter
 import org.jetbrains.kotlin.fir.declarations.impl.FirDefaultPropertySetter
-import org.jetbrains.kotlin.fir.declarations.utils.isExpect
-import org.jetbrains.kotlin.fir.declarations.utils.isFromEnumClass
-import org.jetbrains.kotlin.fir.declarations.utils.visibility
+import org.jetbrains.kotlin.fir.declarations.utils.*
 import org.jetbrains.kotlin.fir.expressions.FirDelegatedConstructorCall
 import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.extensions.declarationGenerators
@@ -32,18 +30,18 @@ import org.jetbrains.kotlin.fir.references.toResolvedConstructorSymbol
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
 import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
 import org.jetbrains.kotlin.fir.types.*
+import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
+import org.jetbrains.kotlin.ir.expressions.IrBlockBody
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrFieldAccessExpression
 import org.jetbrains.kotlin.ir.expressions.impl.*
 import org.jetbrains.kotlin.ir.symbols.IrConstructorSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.IrType
-import org.jetbrains.kotlin.ir.util.classId
-import org.jetbrains.kotlin.ir.util.constructedClassType
-import org.jetbrains.kotlin.ir.util.isSetter
-import org.jetbrains.kotlin.ir.util.parentAsClass
+import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.resolve.DataClassResolver
 
@@ -94,18 +92,6 @@ internal class ClassMemberGenerator(
                 }
             }
 
-            if (klass is FirRegularClass && (irClass.isValue || irClass.isData)) {
-                if (irClass.isSingleFieldValueClass) {
-                    dataClassMembersGenerator.generateBodiesForSingleFieldValueClassMembers(klass, irClass)
-                }
-                if (irClass.isMultiFieldValueClass) {
-                    dataClassMembersGenerator.generateBodiesForMultiFieldValueClassMembers(klass, irClass)
-                }
-                if (irClass.isData) {
-                    dataClassMembersGenerator.generateBodiesForDataClassMembers(klass, irClass)
-                }
-            }
-
             annotationGenerator.generate(irClass, klass)
             if (irPrimaryConstructor != null) {
                 declarationStorage.leaveScope(irPrimaryConstructor.symbol)
@@ -124,7 +110,7 @@ internal class ClassMemberGenerator(
                         irFunction.putParametersInScope(firFunction)
                     }
                 }
-                val irParameters = valueParameters.drop(firFunction.contextReceivers.size)
+                val irParameters = valueParameters.drop(firFunction.contextParameters.size)
                 val annotationMode = containingClass?.classKind == ClassKind.ANNOTATION_CLASS && irFunction is IrConstructor
                 for ((valueParameter, firValueParameter) in irParameters.zip(firFunction.valueParameters)) {
                     visitor.withAnnotationMode(enableAnnotationMode = annotationMode) {
@@ -134,54 +120,58 @@ internal class ClassMemberGenerator(
                 annotationGenerator.generate(irFunction, firFunction)
             }
             if (firFunction is FirConstructor && irFunction is IrConstructor && !firFunction.isExpect && !irFunction.isExternal) {
-                val body = factory.createBlockBody(startOffset, endOffset)
-                val delegatedConstructor = firFunction.delegatedConstructor
-                val irClass = parent as IrClass
-                if (delegatedConstructor != null) {
-                    val irDelegatingConstructorCall = conversionScope.forDelegatingConstructorCall(irFunction, irClass) {
-                        delegatedConstructor.toIrDelegatingConstructorCall()
-                    }
-                    body.statements += irDelegatingConstructorCall
-                }
-
-                if (containingClass is FirRegularClass && containingClass.contextReceivers.isNotEmpty()) {
-                    val contextReceiverFields =
-                        c.classifierStorage.getFieldsWithContextReceiversForClass(irClass, containingClass)
-
-                    val thisParameter =
-                        conversionScope.dispatchReceiverParameter(irClass) ?: error("No found this parameter for $irClass")
-
-                    for (index in containingClass.contextReceivers.indices) {
-                        require(contextReceiverFields.size > index) {
-                            "Not defined context receiver #${index} for $irClass. " +
-                                    "Context receivers found: $contextReceiverFields"
+                if (!configuration.skipBodies) {
+                    val body = factory.createBlockBody(startOffset, endOffset)
+                    val delegatedConstructor = firFunction.delegatedConstructor
+                    val irClass = parent as IrClass
+                    if (delegatedConstructor != null) {
+                        val irDelegatingConstructorCall = conversionScope.forDelegatingConstructorCall(irFunction, irClass) {
+                            delegatedConstructor.toIrDelegatingConstructorCall()
                         }
-                        val irValueParameter = valueParameters[index]
-                        body.statements.add(
-                            IrSetFieldImpl(
-                                UNDEFINED_OFFSET, UNDEFINED_OFFSET,
-                                contextReceiverFields[index].symbol,
-                                IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, thisParameter.type, thisParameter.symbol),
-                                IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, irValueParameter.type, irValueParameter.symbol),
-                                c.irBuiltIns.unitType,
-                            )
-                        )
+                        body.statements += irDelegatingConstructorCall
                     }
-                }
 
-                if (delegatedConstructor?.isThis == false) {
-                    val instanceInitializerCall = IrInstanceInitializerCallImpl(
-                        startOffset, endOffset, irClass.symbol, irFunction.constructedClassType
-                    )
-                    body.statements += instanceInitializerCall
-                }
+                    if (containingClass is FirRegularClass && containingClass.contextParameters.isNotEmpty()) {
+                        val contextReceiverFields =
+                            c.classifierStorage.getFieldsWithContextReceiversForClass(irClass, containingClass)
 
-                val regularBody = firFunction.body?.let { visitor.convertToIrBlockBody(it) }
-                if (regularBody != null) {
-                    body.statements += regularBody.statements
-                }
-                if (body.statements.isNotEmpty()) {
-                    irFunction.body = body
+                        val thisParameter =
+                            conversionScope.dispatchReceiverParameter(irClass) ?: error("No found this parameter for $irClass")
+
+                        for (index in containingClass.contextParameters.indices) {
+                            require(contextReceiverFields.size > index) {
+                                "Not defined context receiver #${index} for $irClass. " +
+                                        "Context receivers found: $contextReceiverFields"
+                            }
+                            val irValueParameter = valueParameters[index]
+                            body.statements.add(
+                                IrSetFieldImpl(
+                                    UNDEFINED_OFFSET, UNDEFINED_OFFSET,
+                                    contextReceiverFields[index].symbol,
+                                    IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, thisParameter.type, thisParameter.symbol),
+                                    IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, irValueParameter.type, irValueParameter.symbol),
+                                    c.builtins.unitType,
+                                )
+                            )
+                        }
+                    }
+
+                    if (delegatedConstructor?.isThis == false) {
+                        val instanceInitializerCall = IrInstanceInitializerCallImpl(
+                            startOffset, endOffset, irClass.symbol, builtins.unitType
+                        )
+                        body.statements += instanceInitializerCall
+                    }
+
+                    val regularBody = firFunction.body?.let { visitor.convertToIrBlockBody(it) }
+                    if (regularBody != null) {
+                        body.statements += regularBody.statements
+                    }
+                    // Constructor of `Any` is a special case because
+                    // constructors of other classes have at least a delegation call to a super constructor
+                    if (body.statements.isNotEmpty() || containingClass?.classId == StandardClassIds.Any) {
+                        irFunction.body = body
+                    }
                 }
             } else if (irFunction !is IrConstructor && !irFunction.isExpect) {
                 when {
@@ -191,19 +181,21 @@ internal class ClassMemberGenerator(
                         irFunction.body = IrSyntheticBodyImpl(startOffset, endOffset, kind)
                     }
                     irFunction.parent is IrClass && irFunction.parentAsClass.isData -> {
+                        require(irFunction is IrSimpleFunction)
                         when {
-                            DataClassResolver.isComponentLike(irFunction.name) ->
-                                firFunction?.body?.let { irFunction.body = visitor.convertToIrBlockBody(it) }
-                                    ?: dataClassMembersGenerator.generateDataClassComponentBody(irFunction, containingClass as FirRegularClass)
-                            DataClassResolver.isCopy(irFunction.name) ->
-                                firFunction?.body?.let { irFunction.body = visitor.convertToIrBlockBody(it) }
-                                    ?: dataClassMembersGenerator.generateDataClassCopyBody(irFunction, containingClass as FirRegularClass)
-                            else ->
-                                irFunction.body = firFunction?.body?.let { visitor.convertToIrBlockBody(it) }
+                            DataClassResolver.isComponentLike(irFunction.name) -> when (firFunction?.body) {
+                                null -> dataClassMembersGenerator.registerCopyOrComponentFunction(irFunction)
+                                else -> irFunction.body = convertBody(firFunction)
+                            }
+                            DataClassResolver.isCopy(irFunction.name) -> when (firFunction?.body) {
+                                null -> dataClassMembersGenerator.registerCopyOrComponentFunction(irFunction)
+                                else -> irFunction.body = convertBody(firFunction)
+                            }
+                            else -> irFunction.body = convertBody(firFunction)
                         }
                     }
                     else -> {
-                        irFunction.body = firFunction?.body?.let { visitor.convertToIrBlockBody(it) }
+                        irFunction.body = convertBody(firFunction)
                     }
                 }
             }
@@ -211,44 +203,35 @@ internal class ClassMemberGenerator(
                 // Scope for primary constructor should be left after class declaration
                 declarationStorage.leaveScope(irFunction.symbol)
             }
-            if (irFunction is IrSimpleFunction && firFunction is FirSimpleFunction && containingClass != null) {
-                /**
-                 * In useIrFakeOverrideBuilder it would be dropped anyway, as [org.jetbrains.kotlin.ir.overrides.IrFakeOverrideBuilder.buildFakeOverridesForClass]
-                 * recalculates this value from scratch. Also, it's quite meaningless in non-platform modules anyway.
-                 */
-                if (configuration.useFirBasedFakeOverrideGenerator) {
-                    @OptIn(FirBasedFakeOverrideGenerator::class)
-                    irFunction.overriddenSymbols = firFunction.generateOverriddenFunctionSymbols(containingClass, c)
-                }
-            }
         }
         return irFunction
     }
 
-    fun convertPropertyContent(irProperty: IrProperty, property: FirProperty, containingClass: FirClass?): IrProperty {
+    private fun IrFunction.convertBody(firFunction: FirFunction?): IrBlockBody? {
+        val firBody = firFunction?.body
+        return when {
+            firBody == null -> null
+            configuration.skipBodies -> factory.createBlockBody(startOffset, endOffset).also { body ->
+                val expression =
+                    IrErrorExpressionImpl(startOffset, endOffset, builtins.nothingType, SKIP_BODIES_ERROR_DESCRIPTION)
+                body.statements.add(
+                    IrReturnImpl(startOffset, endOffset, builtins.nothingType, symbol, expression)
+                )
+            }
+            else -> visitor.convertToIrBlockBody(firBody)
+        }
+    }
+
+    fun convertPropertyContent(irProperty: IrProperty, property: FirProperty): IrProperty {
         val initializer = property.backingField?.initializer ?: property.initializer
         val delegate = property.delegate
         val propertyType = property.returnTypeRef.toIrType(c)
         irProperty.initializeBackingField(property, initializerExpression = initializer ?: delegate)
-        if (containingClass != null) {
-            /**
-             * In useIrFakeOverrideBuilder it would be dropped anyway, as [org.jetbrains.kotlin.ir.overrides.IrFakeOverrideBuilder.buildFakeOverridesForClass]
-             * recalculates this value from scratch. Also, it's quite meaningless in non-platform modules anyway.
-             */
-            if (configuration.useFirBasedFakeOverrideGenerator) {
-                @OptIn(FirBasedFakeOverrideGenerator::class) // checked for useIrFakeOverrideBuilder
-                irProperty.overriddenSymbols = property.generateOverriddenPropertySymbols(containingClass, c)
-            }
-        }
-        val needGenerateDefaultGetter =
-            property.getter is FirDefaultPropertyGetter ||
-                    (property.getter == null && irProperty.parent is IrScript && property.destructuringDeclarationContainerVariable != null)
+        val needGenerateDefaultGetter = property.getter is FirDefaultPropertyGetter ||
+                (property.getter == null && irProperty.parent is IrScript && property.destructuringDeclarationContainerVariable != null)
 
         irProperty.getter?.setPropertyAccessorContent(
-            property, property.getter, irProperty, propertyType,
-            isDefault = needGenerateDefaultGetter,
-            isGetter = true,
-            containingClass = containingClass
+            property.getter, irProperty, propertyType, isDefault = needGenerateDefaultGetter
         )
         // Create fake body for Enum.entries
         if (irProperty.origin == IrDeclarationOrigin.ENUM_CLASS_SPECIAL_MEMBER) {
@@ -258,10 +241,7 @@ internal class ClassMemberGenerator(
 
         if (property.isVar) {
             irProperty.setter?.setPropertyAccessorContent(
-                property, property.setter, irProperty, propertyType,
-                property.setter is FirDefaultPropertySetter,
-                isGetter = false,
-                containingClass = containingClass
+                property.setter, irProperty, propertyType, property.setter is FirDefaultPropertySetter
             )
         }
         annotationGenerator.generate(irProperty, property)
@@ -272,8 +252,8 @@ internal class ClassMemberGenerator(
         conversionScope.withParent(irField) {
             declarationStorage.enterScope(irField.symbol)
             val initializerExpression = field.initializer
-            if (irField.initializer == null && initializerExpression != null) {
-                irField.initializer = irFactory.createExpressionBody(visitor.convertToIrExpression(initializerExpression))
+            if (irField.initializer == null && initializerExpression != null && !configuration.skipBodies) {
+                irField.initializer = IrFactoryImpl.createExpressionBody(visitor.convertToIrExpression(initializerExpression))
             }
             declarationStorage.leaveScope(irField.symbol)
         }
@@ -285,40 +265,40 @@ internal class ClassMemberGenerator(
         initializerExpression: FirExpression?
     ) {
         val irField = backingField ?: return
-        conversionScope.withParent(irField) {
-            declarationStorage.enterScope(this@initializeBackingField.symbol)
-            // NB: initializer can be already converted
-            if (initializer == null && initializerExpression != null) {
-                initializer = irFactory.createExpressionBody(
-                    run {
-                        val irExpression = visitor.convertToIrExpression(initializerExpression, isDelegate = property.delegate != null)
-                        if (property.delegate == null) {
-                            with(visitor.implicitCastInserter) {
-                                irExpression.insertSpecialCast(
-                                    initializerExpression,
-                                    initializerExpression.resolvedType,
-                                    property.returnTypeRef.coneType
-                                )
+        val isAnnotationParameter = (irField.parent as? IrClass)?.kind == ClassKind.ANNOTATION_CLASS
+        if (!configuration.skipBodies || isAnnotationParameter || property.isConst) {
+            conversionScope.withParent(irField) {
+                declarationStorage.enterScope(this@initializeBackingField.symbol)
+                // NB: initializer can be already converted
+                if (initializer == null && initializerExpression != null) {
+                    initializer = IrFactoryImpl.createExpressionBody(
+                        run {
+                            val irExpression = visitor.convertToIrExpression(initializerExpression, isDelegate = property.delegate != null)
+                            if (property.delegate == null) {
+                                with(visitor.implicitCastInserter) {
+                                    irExpression.insertSpecialCast(
+                                        initializerExpression,
+                                        initializerExpression.resolvedType,
+                                        property.returnTypeRef.coneType
+                                    )
+                                }
+                            } else {
+                                irExpression
                             }
-                        } else {
-                            irExpression
                         }
-                    }
-                )
+                    )
+                }
+                declarationStorage.leaveScope(this@initializeBackingField.symbol)
             }
-            declarationStorage.leaveScope(this@initializeBackingField.symbol)
         }
         property.backingField?.let { annotationGenerator.generate(irField, it) }
     }
 
     private fun IrSimpleFunction.setPropertyAccessorContent(
-        property: FirProperty,
         propertyAccessor: FirPropertyAccessor?,
         correspondingProperty: IrProperty,
         propertyType: IrType,
-        isDefault: Boolean,
-        isGetter: Boolean,
-        containingClass: FirClass?
+        isDefault: Boolean
     ) {
         conversionScope.withFunction(this) {
             applyParentFromStackTo(this)
@@ -329,18 +309,18 @@ internal class ClassMemberGenerator(
                     val backingField = correspondingProperty.backingField
                     val fieldSymbol = backingField?.symbol
                     val declaration = this
-                    if (fieldSymbol != null) {
+                    if (fieldSymbol != null && !configuration.skipBodies) {
                         body = factory.createBlockBody(
                             startOffset, endOffset,
                             listOf(
                                 if (isSetter) {
-                                    IrSetFieldImpl(startOffset, endOffset, fieldSymbol, irBuiltIns.unitType).apply {
+                                    IrSetFieldImpl(startOffset, endOffset, fieldSymbol, builtins.unitType).apply {
                                         setReceiver(declaration)
                                         value = IrGetValueImpl(startOffset, endOffset, propertyType, valueParameters.first().symbol)
                                     }
                                 } else {
                                     IrReturnImpl(
-                                        startOffset, endOffset, irBuiltIns.nothingType, symbol,
+                                        startOffset, endOffset, builtins.nothingType, symbol,
                                         IrGetFieldImpl(startOffset, endOffset, fieldSymbol, propertyType).setReceiver(declaration)
                                     )
                                 }
@@ -350,11 +330,6 @@ internal class ClassMemberGenerator(
                     declarationStorage.leaveScope(this.symbol)
                 }
             }
-            if (containingClass != null && c.configuration.useFirBasedFakeOverrideGenerator) {
-                @OptIn(FirBasedFakeOverrideGenerator::class)
-                this.overriddenSymbols = property.generateOverriddenAccessorSymbols(containingClass, isGetter, c)
-            }
-
         }
     }
 
@@ -377,10 +352,10 @@ internal class ClassMemberGenerator(
                 )
             }
 
-        // Unwrap substitution overrides from both derived class and a super class
+        // Unwrap substitution overrides from both derived class and a superclass
         val constructorSymbol = referencedSymbol
             .unwrapCallRepresentative(c, referencedSymbol.containingClassLookupTag())
-            .unwrapCallRepresentative(c, (referencedSymbol.resolvedReturnType as? ConeClassLikeType)?.lookupTag)
+            .unwrapCallRepresentative(c, referencedSymbol.resolvedReturnType.classLikeLookupTagIfAny)
 
         check(constructorSymbol is FirConstructorSymbol)
 
@@ -390,7 +365,7 @@ internal class ClassMemberGenerator(
             val typeArguments = constructedTypeRef.coneType.fullyExpandedType(session).typeArguments
             val constructor = constructorSymbol.fir
             /*
-             * We should generate enum constructor call only if it is used to create new enum entry (so it's super constructor call)
+             * We should generate enum constructor call only if it is used to create new enum entry (so it's a super constructor call)
              * If it is this constructor call that we are facing secondary constructor of enum, and should generate
              *   regular delegating constructor call
              *
@@ -402,20 +377,26 @@ internal class ClassMemberGenerator(
              */
             @OptIn(UnexpandedTypeCheck::class)
             if ((constructor.isFromEnumClass || constructor.returnTypeRef.isEnum) && this.isSuper) {
-                IrEnumConstructorCallImpl(
+                IrEnumConstructorCallImplWithShape(
                     startOffset, endOffset,
                     constructedIrType,
                     irConstructorSymbol,
                     typeArgumentsCount = constructor.typeParameters.size,
-                    valueArgumentsCount = constructor.valueParameters.size
+                    valueArgumentsCount = constructor.valueParameters.size,
+                    contextParameterCount = constructor.contextParameters.size,
+                    hasDispatchReceiver = constructor.dispatchReceiverType != null,
+                    hasExtensionReceiver = constructor.isExtension,
                 )
             } else {
-                IrDelegatingConstructorCallImpl(
+                IrDelegatingConstructorCallImplWithShape(
                     startOffset, endOffset,
-                    irBuiltIns.unitType,
+                    builtins.unitType,
                     irConstructorSymbol,
                     typeArgumentsCount = constructor.typeParameters.size,
-                    valueArgumentsCount = constructor.valueParameters.size + constructor.contextReceivers.size
+                    valueArgumentsCount = constructor.valueParameters.size + constructor.contextParameters.size,
+                    contextParameterCount = constructor.contextParameters.size,
+                    hasDispatchReceiver = constructor.dispatchReceiverType != null,
+                    hasExtensionReceiver = constructor.isExtension,
                 )
             }.let {
                 if (constructor.typeParameters.isNotEmpty()) {
@@ -423,7 +404,7 @@ internal class ClassMemberGenerator(
                         for ((index, typeArgument) in typeArguments.withIndex()) {
                             if (index >= constructor.typeParameters.size) break
                             val irType = (typeArgument as ConeKotlinTypeProjection).type.toIrType(c)
-                            it.putTypeArgument(index, irType)
+                            it.typeArguments[index] = irType
                         }
                     }
                 }
@@ -450,7 +431,25 @@ internal class ClassMemberGenerator(
 
         val firDefaultValue = firValueParameter.defaultValue
         if (firDefaultValue != null) {
-            this.defaultValue = factory.createExpressionBody(visitor.convertToIrExpression(firDefaultValue))
+            this.defaultValue = when {
+                configuration.skipBodies && parent.isDataClassCopy ->
+                    // Replicate K1 behavior, which removes default values of data class copy parameters in skipBodies (kapt) mode.
+                    null
+                configuration.skipBodies && !parent.isAnnotationConstructor ->
+                    factory.createExpressionBody(
+                        IrErrorExpressionImpl(startOffset, endOffset, builtins.nothingType, SKIP_BODIES_ERROR_DESCRIPTION)
+                    )
+                else ->
+                    factory.createExpressionBody(
+                        visitor.convertToIrExpression(firDefaultValue)
+                    )
+            }
         }
     }
+
+    private val IrElement.isAnnotationConstructor: Boolean
+        get() = this is IrConstructor && parentAsClass.isAnnotationClass
+
+    private val IrElement.isDataClassCopy: Boolean
+        get() = this is IrSimpleFunction && DataClassResolver.isCopy(name) && parent.let { it is IrClass && it.isData }
 }

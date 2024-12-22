@@ -9,7 +9,6 @@ import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.ir.backend.js.WholeWorldStageController
 import org.jetbrains.kotlin.ir.backend.js.ic.*
 import org.jetbrains.kotlin.ir.backend.js.moduleName
-import org.jetbrains.kotlin.ir.backend.js.utils.serialization.serializeTo
 import org.jetbrains.kotlin.ir.backend.js.utils.serialization.deserializeJsIrProgramFragment
 import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImplForJsIC
 import org.jetbrains.kotlin.js.test.handlers.JsBoxRunner
@@ -25,11 +24,11 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 
 private class TestArtifactCache(val moduleName: String, val binaryAsts: MutableMap<String, ByteArray> = mutableMapOf()) {
-    fun fetchArtifacts(): ModuleArtifact {
-        return ModuleArtifact(
+    fun fetchArtifacts(): JsModuleArtifact {
+        return JsModuleArtifact(
             moduleName = moduleName,
             fileArtifacts = binaryAsts.entries.map {
-                SrcFileArtifact(
+                JsSrcFileArtifact(
                     srcFilePath = it.key,
                     // TODO: It will be better to use saved fragments, but it doesn't work
                     //  Merger.merge() + JsNode.resolveTemporaryNames() modify fragments,
@@ -83,7 +82,6 @@ class JsIrIncrementalDataProvider(private val testServices: TestServices) : Test
         val configuration = testServices.compilerConfigurationProvider.getCompilerConfiguration(module)
 
         val mainArguments = JsEnvironmentConfigurator.getMainCallParametersForModule(module)
-            .run { if (shouldBeGenerated()) arguments() else null }
 
         runtimeKlibPath.forEach {
             recordIncrementalData(it, null, libs, configuration, mainArguments)
@@ -98,7 +96,6 @@ class JsIrIncrementalDataProvider(private val testServices: TestServices) : Test
         val configuration = testServices.compilerConfigurationProvider.getCompilerConfiguration(module)
 
         val mainArguments = JsEnvironmentConfigurator.getMainCallParametersForModule(module)
-            .run { if (shouldBeGenerated()) arguments() else null }
 
         val allDependencies = JsEnvironmentConfigurator.getAllRecursiveLibrariesFor(module, testServices).keys.toList()
 
@@ -154,7 +151,7 @@ class JsIrIncrementalDataProvider(private val testServices: TestServices) : Test
         for (rebuiltFile in rebuiltFiles) {
             if (rebuiltFile.first.module == mainModuleIr) {
                 val output = ByteArrayOutputStream()
-                rebuiltFile.second.serializeTo(output)
+                rebuiltFile.second.serialize(output)
                 moduleCache.binaryAsts[rebuiltFile.first.fileEntry.name] = output.toByteArray()
             }
         }

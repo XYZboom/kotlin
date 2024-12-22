@@ -28,13 +28,11 @@ import org.jetbrains.kotlin.ir.expressions.impl.*
 import org.jetbrains.kotlin.ir.symbols.impl.IrVariableSymbolImpl
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
-import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
+import org.jetbrains.kotlin.ir.util.isNullable
+import org.jetbrains.kotlin.ir.visitors.IrTransformer
 import org.jetbrains.kotlin.util.OperatorNameConventions
 
-@PhaseDescription(
-    name = "JvmOptimizationLowering",
-    description = "Optimize code for JVM code generation"
-)
+@PhaseDescription(name = "JvmOptimizationLowering")
 internal class JvmOptimizationLowering(val context: JvmBackendContext) : FileLoweringPass {
     private companion object {
         private fun isNegation(expression: IrExpression): Boolean =
@@ -80,7 +78,7 @@ internal class JvmOptimizationLowering(val context: JvmBackendContext) : FileLow
     private inner class Transformer(
         private val fileEntry: IrFileEntry,
         private val inlineScopeResolver: IrInlineScopeResolver
-    ) : IrElementTransformer<IrDeclaration?> {
+    ) : IrTransformer<IrDeclaration?>() {
 
         private val dontTouchTemporaryVals = HashSet<IrVariable>()
 
@@ -104,7 +102,7 @@ internal class JvmOptimizationLowering(val context: JvmBackendContext) : FileLow
                 if (left.isNullConst() && right.isNullConst())
                     return IrConstImpl.constTrue(expression.startOffset, expression.endOffset, context.irBuiltIns.booleanType)
 
-                if (left.isNullConst() && right is IrConst<*> || right.isNullConst() && left is IrConst<*>)
+                if (left.isNullConst() && right is IrConst || right.isNullConst() && left is IrConst)
                     return IrConstImpl.constFalse(expression.startOffset, expression.endOffset, context.irBuiltIns.booleanType)
             }
 
@@ -123,7 +121,7 @@ internal class JvmOptimizationLowering(val context: JvmBackendContext) : FileLow
             return context.createIrBuilder(expression.symbol, expression.startOffset, expression.endOffset).irBlock(expression) {
                 if (backingField.isStatic && receiver != null && receiver !is IrGetValue) {
                     // If the field is static, evaluate the receiver for potential side effects.
-                    +receiver.coerceToUnit(context.irBuiltIns, this@JvmOptimizationLowering.context.typeSystem)
+                    +receiver.coerceToUnit(context.irBuiltIns)
                 }
                 if (accessor.valueParameters.isNotEmpty()) {
                     +irSetField(
@@ -132,7 +130,7 @@ internal class JvmOptimizationLowering(val context: JvmBackendContext) : FileLow
                         expression.getValueArgument(expression.valueArgumentsCount - 1)!!
                     )
                 } else {
-                    +irGetField(receiver.takeUnless { backingField.isStatic }, backingField)
+                    +irGetField(receiver.takeUnless { backingField.isStatic }, backingField, expression.type)
                 }
             }.unwrapSingleExpressionBlock()
         }
@@ -210,7 +208,7 @@ internal class JvmOptimizationLowering(val context: JvmBackendContext) : FileLow
             if (variable in dontTouchTemporaryVals) return null
 
             when (val initializer = variable.initializer) {
-                is IrConst<*> ->
+                is IrConst ->
                     return initializer
                 is IrGetValue ->
                     when (val initializerValue = initializer.symbol.owner) {
@@ -414,7 +412,7 @@ internal class JvmOptimizationLowering(val context: JvmBackendContext) : FileLow
             // initializer with the constant initializer.
             val variable = expression.symbol.owner
             return when (val replacement = getInlineableValueForTemporaryVal(variable)) {
-                is IrConst<*> ->
+                is IrConst ->
                     replacement.copyWithOffsets(expression.startOffset, expression.endOffset)
                 is IrGetValue ->
                     replacement.copyWithOffsets(expression.startOffset, expression.endOffset)
@@ -473,8 +471,8 @@ internal class JvmOptimizationLowering(val context: JvmBackendContext) : FileLow
             value: IrExpression?,
             isMinus: Boolean
         ): IrExpression? {
-            if (value is IrConst<*> && value.kind == IrConstKind.Int) {
-                val delta = IrConstKind.Int.valueOf(value)
+            if (value is IrConst && value.kind == IrConstKind.Int) {
+                val delta = value.value as Int
                 val upperBound = Byte.MAX_VALUE.toInt() + (if (isMinus) 1 else 0)
                 val lowerBound = Byte.MIN_VALUE.toInt() + (if (isMinus) 1 else 0)
                 if (delta in lowerBound..upperBound) {

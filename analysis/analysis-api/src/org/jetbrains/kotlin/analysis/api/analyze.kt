@@ -3,64 +3,65 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-@file:OptIn(KtAnalysisApiInternals::class)
+@file:OptIn(KaImplementationDetail::class)
 
 package org.jetbrains.kotlin.analysis.api
 
 import com.intellij.psi.PsiFile
-import org.jetbrains.kotlin.analysis.api.session.KtAnalysisSessionProvider
-import org.jetbrains.kotlin.analysis.project.structure.DanglingFileResolutionMode
-import org.jetbrains.kotlin.analysis.project.structure.KtModule
-import org.jetbrains.kotlin.analysis.project.structure.KtModuleStructureInternals
-import org.jetbrains.kotlin.analysis.project.structure.withDanglingFileResolutionMode
+import org.jetbrains.kotlin.analysis.api.session.KaSessionProvider
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
+import org.jetbrains.kotlin.analysis.api.projectStructure.withDanglingFileResolutionMode
 import org.jetbrains.kotlin.psi.KtElement
 
 /**
- * Executes the given [action] in a [KtAnalysisSession] context.
+ * Executes the given [action] in an [analysis session][KaSession] context.
  *
- * The project will be analyzed from the perspective of [useSiteKtElement]'s module, also called the use-site module.
+ * The project will be analyzed from the perspective of [useSiteElement]'s module, also called the use-site module.
  *
- * @see KtAnalysisSession
+ * Neither the analysis session nor any other [lifetime owners][org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeOwner] may be leaked
+ * outside the [analyze] block. Please consult the documentation of [KaSession] for important information about lifetime management.
  */
 public inline fun <R> analyze(
-    useSiteKtElement: KtElement,
-    action: KtAnalysisSession.() -> R
+    useSiteElement: KtElement,
+    action: KaSession.() -> R
 ): R =
-    KtAnalysisSessionProvider.getInstance(useSiteKtElement.project)
-        .analyse(useSiteKtElement, action)
+    KaSessionProvider.getInstance(useSiteElement.project)
+        .analyze(useSiteElement, action)
 
 /**
- * Executes the given [action] in a [KtAnalysisSession] context.
+ * Executes the given [action] in an [analysis session][KaSession] context.
  *
- * The project will be analyzed from the perspective of the given [useSiteKtModule].
+ * The project will be analyzed from the perspective of the given [useSiteModule].
  *
- * @see KtAnalysisSession
- * @see KtLifetimeTokenFactory
+ * Neither the analysis session nor any other [lifetime owners][org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeOwner] may be leaked
+ * outside the [analyze] block. Please consult the documentation of [KaSession] for important information about lifetime management.
  */
 public inline fun <R> analyze(
-    useSiteKtModule: KtModule,
-    crossinline action: KtAnalysisSession.() -> R
+    useSiteModule: KaModule,
+    crossinline action: KaSession.() -> R
 ): R {
-    val sessionProvider = KtAnalysisSessionProvider.getInstance(useSiteKtModule.project)
-    return sessionProvider.analyze(useSiteKtModule, action)
+    val sessionProvider = KaSessionProvider.getInstance(useSiteModule.project)
+    return sessionProvider.analyze(useSiteModule, action)
 }
 
 /**
- * Executes the given [action] in a [KtAnalysisSession] context.
- * Depending on the passed [resolutionMode], declarations inside a file copy will be treated in a specific way.
+ * Executes the given [action] in a [KaSession] context.
  *
- * Note that the [useSiteKtElement] must be inside a dangling file copy.
- * Specifically, [PsiFile.getOriginalFile] must point to the copy source.
+ * The [useSiteElement] must be inside a dangling file copy (specifically, [PsiFile.getOriginalFile] must point to the copy source).
+ * Depending on the passed [resolutionMode], declarations inside the file copy will be treated in a specific way.
  *
- * The project will be analyzed from the perspective of [useSiteKtElement]'s module, also called the use-site module.
+ * The project will be analyzed from the perspective of [useSiteElement]'s module, also called the use-site module.
+ *
+ * Neither the analysis session nor any other [lifetime owners][org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeOwner] may be leaked
+ * outside the [analyze] block. Please consult the documentation of [KaSession] for important information about lifetime management.
  */
-@OptIn(KtModuleStructureInternals::class)
 public inline fun <R> analyzeCopy(
-    useSiteKtElement: KtElement,
-    resolutionMode: DanglingFileResolutionMode,
-    crossinline action: KtAnalysisSession.() -> R,
+    useSiteElement: KtElement,
+    resolutionMode: KaDanglingFileResolutionMode,
+    crossinline action: KaSession.() -> R,
 ): R {
-    val containingFile = useSiteKtElement.containingKtFile
+    val containingFile = useSiteElement.containingKtFile
     return withDanglingFileResolutionMode(containingFile, resolutionMode) {
         analyze(containingFile, action)
     }

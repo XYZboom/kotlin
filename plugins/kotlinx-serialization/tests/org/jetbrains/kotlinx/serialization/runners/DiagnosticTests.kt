@@ -26,25 +26,27 @@ abstract class AbstractSerializationPluginDiagnosticTest : AbstractDiagnosticTes
 abstract class AbstractSerializationFirPsiDiagnosticTest : AbstractFirPsiDiagnosticTest() {
     override fun configure(builder: TestConfigurationBuilder) {
         super.configure(builder)
-        with(builder) {
-            configureForKotlinxSerialization()
-            disableOptInErrors()
+        builder.configureSerializationFirPsiDiagnosticTest()
+    }
+}
 
-            forTestsMatching("*/diagnostics/*") {
-                configurationForClassicAndFirTestsAlongside()
-            }
+fun TestConfigurationBuilder.configureSerializationFirPsiDiagnosticTest() {
+    configureForKotlinxSerialization()
+    disableOptInErrors()
 
-            forTestsMatching("*/firMembers/*") {
-                defaultDirectives {
-                    +FIR_DUMP
-                }
-            }
+    forTestsMatching("*/diagnostics/*") {
+        configurationForClassicAndFirTestsAlongside()
+    }
+
+    forTestsMatching("*/firMembers/*") {
+        defaultDirectives {
+            +FIR_DUMP
         }
     }
 }
 
 private fun TestConfigurationBuilder.disableOptInErrors() {
     defaultDirectives {
-        DIAGNOSTICS with listOf("-OPT_IN_USAGE", "-OPT_IN_USAGE_ERROR")
+        DIAGNOSTICS with listOf("-OPT_IN_USAGE", "-OPT_IN_USAGE_ERROR", "-OPT_IN_TO_INHERITANCE", "-OPT_IN_TO_INHERITANCE_ERROR")
     }
 }

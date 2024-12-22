@@ -9,48 +9,26 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import org.jetbrains.kotlin.KtFakeSourceElementKind
 import org.jetbrains.kotlin.analysis.low.level.api.fir.LLFirModuleResolveComponents
-import org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.ClassDiagnosticRetriever
-import org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.FileDiagnosticRetriever
-import org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.FileStructureElementDiagnostics
-import org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.ScriptDiagnosticRetriever
-import org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.SingleNonLocalDeclarationDiagnosticRetriever
-import org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.isImplicitConstructor
+import org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.*
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.correspondingProperty
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.impl.FirPrimaryConstructor
-import org.jetbrains.kotlin.fir.utils.exceptions.withFirEntry
 import org.jetbrains.kotlin.fir.visitors.FirVisitor
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.utils.exceptions.requireWithAttachment
 
 /**
  * Collects [KT -> FIR][KtToFirMapping] mapping and [diagnostics][FileStructureElementDiagnostics] for [declaration].
  *
- * @param declaration is a fully resolved declaration
+ * @param declaration is a fully resolved declaration (not necessary in [FirResolvePhase.BODY_RESOLVE] phase)
  *
  * @see FileStructure
- * @see org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.FileStructureElementDiagnosticsCollector
+ * @see org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.fir.LLFirStructureElementDiagnosticsCollector
  */
 internal sealed class FileStructureElement(
     val declaration: FirDeclaration,
     val diagnostics: FileStructureElementDiagnostics,
 ) {
-    init {
-        val actualResolvePhase = declaration.resolvePhase
-        requireWithAttachment(
-            actualResolvePhase == FirResolvePhase.BODY_RESOLVE,
-            {
-                """
-                    ${this::class.simpleName} can be created only for fully resolved declaration.
-                    Actual phase: $actualResolvePhase
-                """.trimIndent()
-            },
-        ) {
-            withFirEntry("declaration", declaration)
-        }
-    }
-
     val mappings: KtToFirMapping = KtToFirMapping(declaration)
 
     companion object {
@@ -110,9 +88,21 @@ internal class KtToFirMapping(firElement: FirDeclaration) {
             is KtConstructorDelegationCall,
                 // In case of type projection we are not recording the corresponding type reference
             is KtTypeProjection,
-                // If we have, say, A(), reference A is not recorded, while call A() is recorded
-            is KtCallExpression,
-            -> getElement(current as KtElement)
+                -> getElement(current as KtElement)
+            is KtCallExpression -> {
+                // Case 1:
+                // If we have, say, A(), reference A is not recorded, while call A() is recorded.
+                //
+                // Case 2:
+                // A<Ty> and B<Ty> in `A<Ty>.B<Ty>` are both calls, but neither A nor B nor B<Ty> are recorded.
+                // Only A<Ty> and the whole qualified expression (as FirResolvedQualifier) are recorded.
+                val parent = current.parent
+                if (current.valueArgumentList == null &&
+                    parent is KtQualifiedExpression &&
+                    parent.selectorExpression == current
+                ) getElement(parent)
+                else getElement(current)
+            }
             is KtBinaryExpression ->
                 // Here there is no separate FIR node for partial operator calls (like for a[i] = 1, there is no separate node for a[i])
                 if (element is KtArrayAccessExpression || element is KtOperationReferenceExpression) getElement(current) else null
@@ -163,7 +153,7 @@ internal class RootScriptStructureElement(
 
 internal fun <T, R> visitScriptDependentElements(script: FirScript, visitor: FirVisitor<T, R>, data: R) {
     script.annotations.forEach { it.accept(visitor, data) }
-    script.contextReceivers.forEach { it.accept(visitor, data) }
+    script.receivers.forEach { it.accept(visitor, data) }
 }
 
 internal class ClassDeclarationStructureElement(

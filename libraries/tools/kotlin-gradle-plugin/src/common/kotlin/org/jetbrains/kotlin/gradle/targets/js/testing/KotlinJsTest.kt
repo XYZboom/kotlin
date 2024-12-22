@@ -15,14 +15,13 @@ import org.gradle.work.NormalizeLineEndings
 import org.jetbrains.kotlin.gradle.internal.testing.TCServiceMessagesTestExecutionSpec
 import org.jetbrains.kotlin.gradle.targets.js.RequiredKotlinJsDependency
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrCompilation
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsExtension
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsPlugin.Companion.kotlinNodeJsEnvSpec
 import org.jetbrains.kotlin.gradle.targets.js.npm.RequiresNpmDependencies
 import org.jetbrains.kotlin.gradle.targets.js.testing.karma.KotlinKarma
 import org.jetbrains.kotlin.gradle.targets.js.testing.mocha.KotlinMocha
 import org.jetbrains.kotlin.gradle.tasks.KotlinTest
 import org.jetbrains.kotlin.gradle.utils.domainObjectSet
 import org.jetbrains.kotlin.gradle.utils.getFile
-import org.jetbrains.kotlin.gradle.utils.getValue
 import org.jetbrains.kotlin.gradle.utils.newFileProperty
 import javax.inject.Inject
 
@@ -32,13 +31,13 @@ abstract class KotlinJsTest
 constructor(
     @Transient
     @Internal
-    override var compilation: KotlinJsIrCompilation
+    override var compilation: KotlinJsIrCompilation,
 ) : KotlinTest(),
     RequiresNpmDependencies {
     @Transient
-    private val nodeJs = project.rootProject.kotlinNodeJsExtension
+    private val nodeJs = project.kotlinNodeJsEnvSpec
 
-    private val nodeExecutable by project.provider { nodeJs.requireConfigured().executable }
+    private val nodeExecutable = nodeJs.executable
 
     @Input
     var environment = mutableMapOf<String, String>()
@@ -118,7 +117,14 @@ constructor(
     }
 
     fun useMocha() = useMocha {}
-    fun useMocha(body: KotlinMocha.() -> Unit) = use(KotlinMocha(compilation, path), body)
+    fun useMocha(body: KotlinMocha.() -> Unit) =
+        if (compilation.wasmTarget == null) {
+            use(KotlinMocha(compilation, path), body)
+        } else {
+            logger.warn("Mocha test framework for Wasm target is not supported. For KotlinWasmNode used")
+            testFramework
+        }
+
     fun useMocha(fn: Action<KotlinMocha>) {
         useMocha {
             fn.execute(this)
@@ -142,10 +148,6 @@ constructor(
     }
 
     private inline fun <T : KotlinJsTestFramework> use(runner: T, body: T.() -> Unit): T {
-        check(testFramework == null) {
-            "testFramework already configured for task ${this.path}"
-        }
-
         val testFramework = runner.also(body)
         this.testFramework = testFramework
 
@@ -155,7 +157,7 @@ constructor(
     override fun createTestExecutionSpec(): TCServiceMessagesTestExecutionSpec {
         val forkOptions = DefaultProcessForkOptions(fileResolver)
         forkOptions.workingDir = testFramework!!.workingDir.getFile()
-        forkOptions.executable = nodeExecutable
+        forkOptions.executable = testFramework!!.executable.get()
 
         environment.forEach { (key, value) ->
             forkOptions.environment(key, value)

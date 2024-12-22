@@ -1,4 +1,5 @@
-// LANGUAGE: -AdaptedCallableReferenceAgainstReflectiveType -DisableCompatibilityModeForNewInference
+// RUN_PIPELINE_TILL: FRONTEND
+// LANGUAGE: -DisableCompatibilityModeForNewInference
 // DIAGNOSTICS: -UNUSED_PARAMETER
 
 import kotlin.reflect.KFunction1

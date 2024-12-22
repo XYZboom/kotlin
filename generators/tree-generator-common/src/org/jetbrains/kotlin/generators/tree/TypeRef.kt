@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.generators.tree
 
 import org.jetbrains.kotlin.generators.tree.imports.ImportCollecting
 import org.jetbrains.kotlin.generators.tree.imports.Importable
-import org.jetbrains.kotlin.generators.tree.printer.braces
 import org.jetbrains.kotlin.types.Variance
 import org.jetbrains.kotlin.utils.addToStdlib.joinToWithBuffer
 import java.util.*
@@ -277,7 +276,11 @@ class TypeVariable(
 
 fun <P : TypeParameterRef> KClass<*>.asRef(): ClassRef<P> {
     val qualifiedName = this.qualifiedName ?: error("$this doesn't have qualified name and thus cannot be converted to ClassRef")
-    val kind = if (java.isInterface) TypeKind.Interface else TypeKind.Class
+    return java.asRef(qualifiedName)
+}
+
+fun <P : TypeParameterRef> Class<*>.asRef(qualifiedName: String = this.name): ClassRef<P> {
+    val kind = if (isInterface) TypeKind.Interface else TypeKind.Class
     val parts = qualifiedName.split('.')
     val indexWhereClassNameStarts = parts.indexOfFirst { it.first().isUpperCase() }
     val packageName = parts.take(indexWhereClassNameStarts).joinToString(separator = ".")
@@ -298,14 +301,6 @@ val ClassOrElementRef.typeKind: TypeKind
         is ElementOrRef<*> -> element.kind!!.typeKind
         is ClassRef<*> -> kind
     }
-
-fun ClassOrElementRef.inheritanceClauseParenthesis(): String = when (this) {
-    is ElementOrRef<*> -> element.kind.braces()
-    is ClassRef<*> -> when (kind) {
-        TypeKind.Class -> "()"
-        TypeKind.Interface -> ""
-    }
-}
 
 val TypeRef.nullable: Boolean
     get() = (this as? TypeRefWithNullability)?.nullable ?: false

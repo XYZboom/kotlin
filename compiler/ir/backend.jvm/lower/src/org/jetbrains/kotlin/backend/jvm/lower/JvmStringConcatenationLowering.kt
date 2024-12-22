@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.ir.symbols.IrTypeParameterSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.constructors
 import org.jetbrains.kotlin.ir.util.functions
+import org.jetbrains.kotlin.ir.util.isNullable
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 
 private val IrClass.toStringFunction: IrSimpleFunction
@@ -46,7 +47,7 @@ private fun JvmIrBuilder.normalizeArgument(expression: IrExpression): IrExpressi
         return irImplicitCast(expression, context.irBuiltIns.intType)
     }
 
-    if (expression is IrConst<*> && expression.kind == IrConstKind.String && (expression.value as String).length == 1) {
+    if (expression is IrConst && expression.kind == IrConstKind.String && (expression.value as String).length == 1) {
         // PSI2IR generates const Strings for 1-length literals in string templates (e.g., the space between x and y in "$x $y").
         // We want to use the more efficient `append(Char)` function in such cases. This mirrors the behavior of the non-IR backend.
         //
@@ -121,7 +122,6 @@ private const val MAX_STRING_CONCAT_DEPTH = 23
  */
 @PhaseDescription(
     name = "StringConcatenation",
-    description = "Replace IrStringConcatenation with string builders",
     // FlattenStringConcatenationLowering consolidates string concatenation expressions.
     // ForLoopsLowering may produce IrStringConcatenations.
     prerequisite = [FlattenStringConcatenationLowering::class, ForLoopsLowering::class]

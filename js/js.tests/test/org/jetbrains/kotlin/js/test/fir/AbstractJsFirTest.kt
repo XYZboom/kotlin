@@ -1,17 +1,16 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
 package org.jetbrains.kotlin.js.test.fir
 
-import org.jetbrains.kotlin.js.test.JsSteppingTestAdditionalSourceProvider
-import org.jetbrains.kotlin.js.test.ir.AbstractJsBlackBoxCodegenTestBase
-import org.jetbrains.kotlin.js.test.converters.FirJsKlibBackendFacade
-import org.jetbrains.kotlin.js.test.converters.JsIrBackendFacade
-import org.jetbrains.kotlin.js.test.converters.incremental.RecompileModuleJsIrBackendFacade
-import org.jetbrains.kotlin.js.test.handlers.JsDebugRunner
+import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.js.test.converters.FirJsKlibSerializerFacade
 import org.jetbrains.kotlin.js.test.handlers.JsIrRecompiledArtifactsIdentityHandler
 import org.jetbrains.kotlin.js.test.handlers.JsWrongModuleHandler
 import org.jetbrains.kotlin.js.test.handlers.createFirJsLineNumberHandler
-import org.jetbrains.kotlin.js.test.handlers.createIrJsLineNumberHandler
-import org.jetbrains.kotlin.js.test.ir.AbstractJsIrES6Test
-import org.jetbrains.kotlin.js.test.ir.AbstractJsIrTest
+import org.jetbrains.kotlin.js.test.ir.AbstractJsBlackBoxCodegenTestBase
 import org.jetbrains.kotlin.js.test.utils.configureJsTypeScriptExportTest
 import org.jetbrains.kotlin.js.test.utils.configureLineNumberTests
 import org.jetbrains.kotlin.js.test.utils.configureSteppingTests
@@ -21,19 +20,20 @@ import org.jetbrains.kotlin.test.FirParser
 import org.jetbrains.kotlin.test.TargetBackend
 import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
 import org.jetbrains.kotlin.test.builders.*
-import org.jetbrains.kotlin.test.directives.DiagnosticsDirectives
-import org.jetbrains.kotlin.test.directives.FirDiagnosticsDirectives
-import org.jetbrains.kotlin.test.directives.JsEnvironmentConfigurationDirectives
-import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives
-import org.jetbrains.kotlin.test.frontend.fir.Fir2IrJsResultsConverter
+import org.jetbrains.kotlin.test.directives.*
+import org.jetbrains.kotlin.test.directives.KlibBasedCompilerTestDirectives.IGNORE_KLIB_SYNTHETIC_ACCESSORS_CHECKS
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives.LANGUAGE
+import org.jetbrains.kotlin.test.frontend.fir.Fir2IrResultsConverter
 import org.jetbrains.kotlin.test.frontend.fir.FirFrontendFacade
 import org.jetbrains.kotlin.test.frontend.fir.FirMetaInfoDiffSuppressor
 import org.jetbrains.kotlin.test.frontend.fir.FirOutputArtifact
-import org.jetbrains.kotlin.test.frontend.fir.handlers.*
+import org.jetbrains.kotlin.test.frontend.fir.handlers.FirCfgConsistencyHandler
+import org.jetbrains.kotlin.test.frontend.fir.handlers.FirCfgDumpHandler
+import org.jetbrains.kotlin.test.frontend.fir.handlers.FirDumpHandler
+import org.jetbrains.kotlin.test.frontend.fir.handlers.FirResolvedTypesVerifier
 import org.jetbrains.kotlin.test.model.*
 import org.jetbrains.kotlin.test.runners.codegen.commonFirHandlersForCodegenTest
 import org.jetbrains.kotlin.test.services.configuration.JsEnvironmentConfigurator
-import org.jetbrains.kotlin.utils.bind
 import java.lang.Boolean.getBoolean
 
 
@@ -42,23 +42,20 @@ open class AbstractFirJsTest(
     testGroupOutputDirPrefix: String,
     targetBackend: TargetBackend = TargetBackend.JS_IR,
     val parser: FirParser = FirParser.Psi,
-) : AbstractJsBlackBoxCodegenTestBase<FirOutputArtifact, IrBackendInput, BinaryArtifacts.KLib>(
-    FrontendKinds.FIR, targetBackend, pathToTestDir, testGroupOutputDirPrefix, skipMinification = true
+) : AbstractJsBlackBoxCodegenTestBase<FirOutputArtifact>(
+    FrontendKinds.FIR, targetBackend, pathToTestDir, testGroupOutputDirPrefix
 ) {
     override val frontendFacade: Constructor<FrontendFacade<FirOutputArtifact>>
         get() = ::FirFrontendFacade
 
-    override val frontendToBackendConverter: Constructor<Frontend2BackendConverter<FirOutputArtifact, IrBackendInput>>
-        get() = ::Fir2IrJsResultsConverter
+    override val frontendToIrConverter: Constructor<Frontend2BackendConverter<FirOutputArtifact, IrBackendInput>>
+        get() = ::Fir2IrResultsConverter
 
-    override val backendFacade: Constructor<BackendFacade<IrBackendInput, BinaryArtifacts.KLib>>
-        get() = ::FirJsKlibBackendFacade
+    override val serializerFacade: Constructor<BackendFacade<IrBackendInput, BinaryArtifacts.KLib>>
+        get() = ::FirJsKlibSerializerFacade
 
-    override val afterBackendFacade: Constructor<AbstractTestFacade<BinaryArtifacts.KLib, BinaryArtifacts.Js>>?
-        get() = ::JsIrBackendFacade
-
-    override val recompileFacade: Constructor<AbstractTestFacade<BinaryArtifacts.Js, BinaryArtifacts.Js>>
-        get() = { RecompileModuleJsIrBackendFacade(it) }
+    override val backendFacades: JsBackendFacades
+        get() = JsBackendFacades.WithRecompilation
 
     private fun getBoolean(s: String, default: Boolean) = System.getProperty(s)?.let { parseBoolean(it) } ?: default
 
@@ -103,19 +100,19 @@ open class AbstractFirJsTest(
 
 open class AbstractFirPsiJsBoxTest : AbstractFirJsTest(
     pathToTestDir = "${JsEnvironmentConfigurator.TEST_DATA_DIR_PATH}/box/",
-    testGroupOutputDirPrefix = "firBox/",
+    testGroupOutputDirPrefix = "firPsiBox/",
     parser = FirParser.Psi,
 )
 
 open class AbstractFirLightTreeJsBoxTest : AbstractFirJsTest(
     pathToTestDir = "${JsEnvironmentConfigurator.TEST_DATA_DIR_PATH}/box/",
-    testGroupOutputDirPrefix = "firBox/",
+    testGroupOutputDirPrefix = "firLightTreeBox/",
     parser = FirParser.LightTree,
 )
 
-open class AbstractFirJsCodegenBoxTest : AbstractFirJsTest(
+open class AbstractFirJsCodegenBoxTestBase(testGroupOutputDirPrefix: String) : AbstractFirJsTest(
     pathToTestDir = "compiler/testData/codegen/box/",
-    testGroupOutputDirPrefix = "codegen/firBox/"
+    testGroupOutputDirPrefix = testGroupOutputDirPrefix
 ) {
     override fun configure(builder: TestConfigurationBuilder) {
         super.configure(builder)
@@ -126,6 +123,22 @@ open class AbstractFirJsCodegenBoxTest : AbstractFirJsTest(
         builder.useAfterAnalysisCheckers(
             ::FirMetaInfoDiffSuppressor
         )
+    }
+}
+
+open class AbstractFirJsCodegenBoxTest : AbstractFirJsCodegenBoxTestBase(
+    testGroupOutputDirPrefix = "codegen/firBox/"
+)
+open class AbstractFirJsCodegenBoxWithInlinedFunInKlibTest : AbstractFirJsCodegenBoxTestBase(
+    testGroupOutputDirPrefix = "codegen/firBoxWithInlinedFunInKlib"
+) {
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        with(builder) {
+            defaultDirectives {
+                LANGUAGE with "+${LanguageFeature.IrInlinerBeforeKlibSerialization.name}"
+            }
+        }
     }
 }
 
@@ -208,4 +221,31 @@ open class AbstractFirJsSteppingTest : AbstractFirJsTest(
 open class AbstractFirJsCodegenWasmJsInteropTest : AbstractFirJsTest(
     pathToTestDir = "compiler/testData/codegen/wasmJsInterop/",
     testGroupOutputDirPrefix = "codegen/firWasmJsInteropJs/"
+)
+
+// TODO(KT-64570): Don't inherit from AbstractFirJsTest after we move the common prefix of lowerings before serialization.
+abstract class AbstractFirJsKlibSyntheticAccessorTest(
+    private val narrowedAccessorVisibility: Boolean,
+    testGroupOutputDirPrefix: String
+) : AbstractFirJsTest(
+    pathToTestDir = "compiler/testData/klib/syntheticAccessors/",
+    testGroupOutputDirPrefix,
+) {
+    override fun TestConfigurationBuilder.configuration() {
+        commonConfigurationForJsBlackBoxCodegenTest(IGNORE_KLIB_SYNTHETIC_ACCESSORS_CHECKS)
+        defaultDirectives {
+            +KlibBasedCompilerTestDirectives.DUMP_KLIB_SYNTHETIC_ACCESSORS
+            if (narrowedAccessorVisibility) +KlibBasedCompilerTestDirectives.KLIB_SYNTHETIC_ACCESSORS_WITH_NARROWED_VISIBILITY
+        }
+    }
+}
+
+open class AbstractFirJsKlibSyntheticAccessorInPhase1Test : AbstractFirJsKlibSyntheticAccessorTest(
+    narrowedAccessorVisibility = true,
+    testGroupOutputDirPrefix = "klib/syntheticAccessors-k2/phase1",
+)
+
+open class AbstractFirJsKlibSyntheticAccessorInPhase2Test : AbstractFirJsKlibSyntheticAccessorTest(
+    narrowedAccessorVisibility = false,
+    testGroupOutputDirPrefix = "klib/syntheticAccessors-k2/phase2",
 )

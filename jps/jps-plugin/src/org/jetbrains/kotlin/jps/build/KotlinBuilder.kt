@@ -47,7 +47,7 @@ import org.jetbrains.kotlin.jps.statistic.statisticsReportServiceKey
 import org.jetbrains.kotlin.jps.targets.KotlinJvmModuleBuildTarget
 import org.jetbrains.kotlin.jps.targets.KotlinModuleBuildTarget
 import org.jetbrains.kotlin.load.kotlin.header.KotlinClassHeader
-import org.jetbrains.kotlin.metadata.jvm.deserialization.JvmMetadataVersion
+import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.preloading.ClassCondition
 import org.jetbrains.kotlin.utils.KotlinPaths
@@ -67,6 +67,7 @@ class KotlinBuilder : ModuleLevelBuilder(BuilderCategory.SOURCE_PROCESSOR) {
 
         val useDependencyGraph = System.getProperty("jps.use.dependency.graph", "false")!!.toBoolean()
         val isKotlinBuilderInDumbMode = System.getProperty("kotlin.jps.dumb.mode", "false")!!.toBoolean()
+        val enableLookupStorageFillingInDumbMode = System.getProperty("kotlin.jps.enable.lookups.in.dumb.mode", "false")!!.toBoolean()
 
         private val classesToLoadByParentFromRegistry =
             System.getProperty("kotlin.jps.classesToLoadByParent")?.split(',')?.map { it.trim() } ?: emptyList()
@@ -552,17 +553,17 @@ class KotlinBuilder : ModuleLevelBuilder(BuilderCategory.SOURCE_PROCESSOR) {
                 )
             }
 
-            if (!isKotlinBuilderInDumbMode) {
+            if (!isKotlinBuilderInDumbMode || enableLookupStorageFillingInDumbMode) {
                 updateLookupStorage(lookupTracker, kotlinContext.lookupStorageManager, kotlinDirtyFilesHolder)
+            }
 
-                if (!isChunkRebuilding) {
-                    changesCollector.processChangesUsingLookups(
-                        kotlinDirtyFilesHolder.allDirtyFiles,
-                        kotlinContext.lookupStorageManager,
-                        fsOperations,
-                        incrementalCaches.values
-                    )
-                }
+            if (!isKotlinBuilderInDumbMode && !isChunkRebuilding) {
+                changesCollector.processChangesUsingLookups(
+                    kotlinDirtyFilesHolder.allDirtyFiles,
+                    kotlinContext.lookupStorageManager,
+                    fsOperations,
+                    incrementalCaches.values
+                )
             }
         }
 
@@ -740,7 +741,7 @@ class KotlinBuilder : ModuleLevelBuilder(BuilderCategory.SOURCE_PROCESSOR) {
 
         return outputItemCollector.outputs
             .sortedBy { it.outputFile }
-            .groupBy(SimpleOutputItem::target) { it.toGeneratedFile(JvmMetadataVersion.INSTANCE) }
+            .groupBy(SimpleOutputItem::target) { it.toGeneratedFile(MetadataVersion.INSTANCE) }
     }
 
     private fun updateLookupStorage(

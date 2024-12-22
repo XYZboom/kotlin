@@ -8,11 +8,9 @@ package org.jetbrains.kotlin.fir.java.enhancement
 import org.jetbrains.kotlin.builtins.jvm.JavaToKotlinClassMap
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.declarations.FirClassLikeDeclaration
 import org.jetbrains.kotlin.fir.languageVersionSettings
-import org.jetbrains.kotlin.fir.resolve.toSymbol
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag
-import org.jetbrains.kotlin.fir.symbols.ConeClassifierLookupTag
+import org.jetbrains.kotlin.fir.resolve.toClassLikeSymbol
+import org.jetbrains.kotlin.fir.types.ConeClassifierLookupTag
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.load.java.typeEnhancement.*
 import org.jetbrains.kotlin.name.ClassId
@@ -46,10 +44,6 @@ private fun ConeKotlinType.enhanceConeKotlinType(
 ): ConeKotlinType? {
     return when (this) {
         is ConeFlexibleType -> {
-            // We reproduce the K1 behavior: if head type qualifier is for warnings, we totally ignore
-            // enhancement on its arguments, too (see JavaTypeEnhancement.enhancePossiblyFlexible).
-            // It's not totally correct, but tolerable since we would like to avoid excessive breaking changes and the warnings should be
-            // anyway reported.
             val lowerResult = lowerBound.enhanceInflexibleType(
                 session, TypeComponentPosition.FLEXIBLE_LOWER, qualifiers, index, subtreeSizes,
                 isFromDefinitelyNotNullType = false, convertErrorToWarning = convertErrorsToWarnings,
@@ -64,7 +58,7 @@ private fun ConeKotlinType.enhanceConeKotlinType(
                 this is ConeRawType -> ConeRawType.create(lowerResult ?: lowerBound, upperResult ?: upperBound)
                 else -> coneFlexibleOrSimpleType(session.typeContext, lowerResult ?: lowerBound, upperResult ?: upperBound).let {
                     it.applyIf(it !is ConeFlexibleType) {
-                        it.withAttributes(it.attributes + CompilerConeAttributes.EnhancedNullability)
+                        it.withAttributes(it.attributes.add(CompilerConeAttributes.EnhancedNullability))
                     }
                 }
             }
@@ -85,7 +79,7 @@ private fun ClassId.mutableToReadOnly(): ClassId? {
     return JavaToKotlinClassMap.mutableToReadOnly(this)
 }
 
-private fun ConeSimpleKotlinType.enhanceInflexibleType(
+private fun ConeRigidType.enhanceInflexibleType(
     session: FirSession,
     position: TypeComponentPosition,
     qualifiers: IndexedJavaTypeQualifiers,
@@ -93,7 +87,7 @@ private fun ConeSimpleKotlinType.enhanceInflexibleType(
     subtreeSizes: List<Int>,
     isFromDefinitelyNotNullType: Boolean,
     convertErrorToWarning: Boolean,
-): ConeSimpleKotlinType? {
+): ConeRigidType? {
     if (this is ConeDefinitelyNotNullType) {
         return original.enhanceInflexibleType(session, position, qualifiers, index, subtreeSizes, isFromDefinitelyNotNullType = true, convertErrorToWarning)
     }
@@ -123,11 +117,16 @@ private fun ConeSimpleKotlinType.enhanceInflexibleType(
     )
 
     return if (enhanced != null && (effectiveQualifiers.isNullabilityQualifierForWarning || convertErrorToWarning)) {
-        val newAttributes = attributes.plus(EnhancedTypeForWarningAttribute(enhanced, isDeprecation = convertErrorToWarning && effectiveQualifiers.enhancesSomethingForError()))
+        val newAttributes = attributes.add(
+            EnhancedTypeForWarningAttribute(
+                enhanced.enhancedTypeForWarningOrSelf,
+                isDeprecation = convertErrorToWarning && effectiveQualifiers.enhancesSomethingForError()
+            )
+        )
 
         if (enhancedTag != lookupTag) {
             // Handle case when mutability was enhanced and nullability was enhanced for warning.
-            enhancedTag.constructType(enhanced.typeArguments, isNullable, newAttributes)
+            enhancedTag.constructType(enhanced.typeArguments, isMarkedNullable, newAttributes)
         } else {
             this.withAttributes(newAttributes).withArguments(enhanced.typeArguments)
         }.applyIf(isFromDefinitelyNotNullType) {
@@ -136,7 +135,14 @@ private fun ConeSimpleKotlinType.enhanceInflexibleType(
             ConeDefinitelyNotNullType.create(this, session.typeContext)
         }
     } else {
-        enhanced
+        // It's possible for enhanced (for warning) types to be enhanced again, one instance is when in
+        // `JavaClassUseSiteMemberScope.processOverridesForFunctionsWithErasedValueParameter`,
+        // `relevantFunctionFromSupertypes` is a substitution override.
+        // In this case, the non-enhanced Java method gets a value parameter with an enhanced type.
+        // In a situation where this previously enhanced for warning type gets enhanced for error (because of an override, e.g., from a
+        // `@PurelyImplements` supertype), we need to remove the enhanced for warning attribute, otherwise we end up with a contradicting,
+        // non-flexible(!) type like `EFW(String?) String`.
+        enhanced?.withAttributes(enhanced.attributes.remove(EnhancedTypeForWarningAttribute::class))
     }
 }
 
@@ -154,11 +160,11 @@ private fun ConeLookupTagBasedType.enhanceInflexibleType(
     nullabilityFromQualifiers: NullabilityQualifier?,
     enhancedTag: ConeClassifierLookupTag,
     convertNestedErrorsToWarnings: Boolean,
-): ConeSimpleKotlinType? {
+): ConeRigidType? {
     val enhancedIsNullable = when (nullabilityFromQualifiers) {
         NullabilityQualifier.NULLABLE -> true
         NullabilityQualifier.NOT_NULL -> false
-        else -> isNullable
+        else -> isMarkedNullable
     }
 
     var globalArgIndex = index + 1
@@ -166,13 +172,13 @@ private fun ConeLookupTagBasedType.enhanceInflexibleType(
         val currentArgGlobalIndex = globalArgIndex.also { globalArgIndex += subtreeSizes[it] }
         if (arg.type == null && qualifiers(currentArgGlobalIndex).nullability == NullabilityQualifier.FORCE_FLEXIBILITY) {
             // Given `C<T extends @Nullable V>`, unannotated `C<?>` is `C<out (V..V?)>`.
-            val typeParameters = (this.lookupTag.toSymbol(session)?.fir as? FirClassLikeDeclaration)?.typeParameters
+            val typeParameters = this.lookupTag.toClassLikeSymbol(session)?.fir?.typeParameters
             if (typeParameters != null) {
                 val bound = typeParameters[currentArgLocalIndex].symbol.fir.bounds.first().coneType
                 return@mapIndexed ConeKotlinTypeProjectionOut(
                     ConeFlexibleType(
-                        bound.lowerBoundIfFlexible().withNullability(ConeNullability.NOT_NULL, session.typeContext),
-                        bound.upperBoundIfFlexible().withNullability(ConeNullability.NULLABLE, session.typeContext)
+                        bound.lowerBoundIfFlexible().withNullability(nullable = false, session.typeContext),
+                        bound.upperBoundIfFlexible().withNullability(nullable = true, session.typeContext)
                     )
                 )
             }
@@ -190,12 +196,12 @@ private fun ConeLookupTagBasedType.enhanceInflexibleType(
     }
 
     val shouldAddAttribute = nullabilityFromQualifiers == NullabilityQualifier.NOT_NULL && !hasEnhancedNullability
-    if (lookupTag == enhancedTag && enhancedIsNullable == isNullable && !shouldAddAttribute && enhancedArguments.all { it == null }) {
+    if (lookupTag == enhancedTag && enhancedIsNullable == isMarkedNullable && !shouldAddAttribute && enhancedArguments.all { it == null }) {
         return null // absolutely no changes
     }
 
     val mergedArguments = Array(typeArguments.size) { enhancedArguments[it] ?: typeArguments[it] }
-    val mergedAttributes = if (shouldAddAttribute) attributes + CompilerConeAttributes.EnhancedNullability else attributes
+    val mergedAttributes = if (shouldAddAttribute) attributes.add(CompilerConeAttributes.EnhancedNullability) else attributes
     val enhancedType = enhancedTag.constructType(mergedArguments, enhancedIsNullable, mergedAttributes)
     return if (isDefinitelyNotNull || (isFromDefinitelyNotNullType && nullabilityFromQualifiers == null))
         ConeDefinitelyNotNullType.create(enhancedType, session.typeContext) ?: enhancedType

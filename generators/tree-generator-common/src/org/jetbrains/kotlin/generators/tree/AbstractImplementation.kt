@@ -17,8 +17,8 @@ abstract class AbstractImplementation<Implementation, Element, Field>(
     val name: String?,
 ) : FieldContainer<Field>, ImplementationKindOwner
         where Implementation : AbstractImplementation<Implementation, Element, Field>,
-              Element : AbstractElement<Element, *, Implementation>,
-              Field : AbstractField<*> {
+              Element : AbstractElement<Element, Field, Implementation>,
+              Field : AbstractField<Field> {
 
     override val allParents: List<Element>
         get() = listOf(element)
@@ -76,9 +76,9 @@ abstract class AbstractImplementation<Implementation, Element, Field>(
     private fun withDefault(field: Field) =
         !field.isFinal && field.implementationDefaultStrategy !is AbstractField.ImplementationDefaultStrategy.Required
 
-    val fieldsInConstructor by lazy { allFields.filterNot(::withDefault) }
+    val fieldsInConstructor by lazy { allFields.filter { !withDefault(it) } }
 
-    val fieldsInBody by lazy { allFields.filter(::withDefault) }
+    val fieldsInBody by lazy { allFields.filter { withDefault(it) || it.customSetter != null } }
 
     var requiresOptIn = false
 

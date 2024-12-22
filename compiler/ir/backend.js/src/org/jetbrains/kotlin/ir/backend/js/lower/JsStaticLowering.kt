@@ -14,10 +14,12 @@ import org.jetbrains.kotlin.ir.builders.declarations.buildFun
 import org.jetbrains.kotlin.ir.builders.declarations.buildProperty
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
-import org.jetbrains.kotlin.ir.types.isUnit
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.name.JsStandardClassIds
 
+/**
+ * Make for each `@JsStatic` declaration inside the companion object a proxy declaration inside its parent class static scope.
+ */
 class JsStaticLowering(private val context: JsIrBackendContext) : DeclarationTransformer {
     override fun transformFlat(declaration: IrDeclaration): List<IrDeclaration>? {
         if (declaration.parentClassOrNull?.isCompanion != true || !declaration.isJsStaticDeclaration()) return null
@@ -26,7 +28,9 @@ class JsStaticLowering(private val context: JsIrBackendContext) : DeclarationTra
         val proxyDeclaration = when (declaration) {
             is IrSimpleFunction -> declaration.takeIf { it.correspondingPropertySymbol == null }?.generateStaticMethodProxy(containingClass)
             is IrProperty -> declaration.generateStaticPropertyProxy(containingClass)
-            else -> error("Unexpected declaration type: ${declaration::class.simpleName}")
+            else -> irError("Unexpected declaration type") {
+                withIrEntry("declaration", declaration)
+            }
         } ?: return null
 
         containingClass.declarations.add(proxyDeclaration)
@@ -60,19 +64,18 @@ class JsStaticLowering(private val context: JsIrBackendContext) : DeclarationTra
             copyAnnotationsFrom(originalFun)
 
             parent = proxyParent
-            extensionReceiverParameter = originalFun.extensionReceiverParameter?.copyTo(this)
-            valueParameters = originalFun.valueParameters.map { it.copyTo(this) }
+
+            val substitutionMap = makeTypeParameterSubstitutionMap(originalFun, this)
+            parameters = originalFun.nonDispatchParameters.map { it.copyTo(this, type = it.type.substitute(substitutionMap)) }
 
             body = context.createIrBuilder(symbol).irBlockBody {
                 val delegatingCall = irCall(originalFun).apply {
                     passTypeArgumentsFrom(this@proxy)
+                    arguments.clear()
                     if (originalFun.dispatchReceiverParameter != null) {
-                        dispatchReceiver = irGetObject(originalFun.parentAsClass.symbol)
+                        arguments.add(irGetObject(originalFun.parentAsClass.symbol))
                     }
-                    extensionReceiverParameter?.let { extensionReceiver = irGet(it) }
-                    for ((i, valueParameter) in valueParameters.withIndex()) {
-                        putValueArgument(i, irGet(valueParameter))
-                    }
+                    this@proxy.parameters.mapTo(arguments) { irGet(it) }
                 }
 
                 +irReturn(delegatingCall)

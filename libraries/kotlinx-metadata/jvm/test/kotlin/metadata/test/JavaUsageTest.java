@@ -10,6 +10,7 @@ import kotlin.metadata.KmClass;
 import kotlin.metadata.jvm.JvmMetadataVersion;
 import kotlin.metadata.jvm.KotlinClassHeader;
 import kotlin.metadata.jvm.KotlinClassMetadata;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Objects;

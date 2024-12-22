@@ -5,29 +5,22 @@
 
 package org.jetbrains.kotlin.backend.konan.lower
 
-import org.jetbrains.kotlin.backend.common.BodyLoweringPass
+import org.jetbrains.kotlin.backend.common.LoweringContext
+import org.jetbrains.kotlin.backend.common.lower.KlibAssertionRemoverLowering
+import org.jetbrains.kotlin.backend.common.lower.KlibAssertionWrapperLowering
+import org.jetbrains.kotlin.backend.common.phaser.PhaseDescription
 import org.jetbrains.kotlin.backend.konan.Context
-import org.jetbrains.kotlin.ir.declarations.IrDeclaration
-import org.jetbrains.kotlin.ir.expressions.IrBody
-import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.ir.expressions.IrReturnableBlock
-import org.jetbrains.kotlin.ir.expressions.impl.IrCompositeImpl
-import org.jetbrains.kotlin.ir.util.inlineFunction
-import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
-import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
+import org.jetbrains.kotlin.backend.konan.ir.KonanSymbols
+import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 
-internal class AssertRemovalLowering(val context: Context) : BodyLoweringPass {
-    private val asserts = context.ir.symbols.asserts.toSet()
+@PhaseDescription("NativeAssertionWrapperLowering")
+internal class NativeAssertionWrapperLowering(context: LoweringContext) : KlibAssertionWrapperLowering(context) {
+    override val isAssertionArgumentEvaluationEnabled: IrSimpleFunctionSymbol = (context.ir.symbols as KonanSymbols).isAssertionArgumentEvaluationEnabled
+}
 
-    override fun lower(irBody: IrBody, container: IrDeclaration) {
-        irBody.transformChildrenVoid(object : IrElementTransformerVoid() {
-            override fun visitReturnableBlock(expression: IrReturnableBlock): IrExpression {
-                val inlinedFunction = expression.inlineFunction ?: return super.visitReturnableBlock(expression)
-                if (inlinedFunction.symbol in asserts) {
-                    return IrCompositeImpl(expression.startOffset, expression.endOffset, expression.type)
-                }
-                return super.visitReturnableBlock(expression)
-            }
-        })
-    }
+internal class NativeAssertionRemoverLowering(context: Context) : KlibAssertionRemoverLowering(
+        context, context.config.assertsEnabled, context.config.assertsEnabled
+) {
+    override val isAssertionThrowingErrorEnabled: IrSimpleFunctionSymbol = context.ir.symbols.isAssertionThrowingErrorEnabled
+    override val isAssertionArgumentEvaluationEnabled: IrSimpleFunctionSymbol = context.ir.symbols.isAssertionArgumentEvaluationEnabled
 }

@@ -7,12 +7,12 @@
 
 package org.jetbrains.kotlin.codegen.fir
 
-import org.jetbrains.kotlin.codegen.ir.*
-import org.jetbrains.kotlin.jvm.compiler.JvmIrLinkageModeTest
+import org.jetbrains.kotlin.codegen.*
+import org.jetbrains.kotlin.codegen.ir.AbstractIrCheckLocalVariablesTableTest
 import org.jetbrains.kotlin.test.FirParser
 import org.jetbrains.kotlin.test.FirParser.LightTree
 
-class FirLightTreePackageGenTest : IrPackageGenTest() {
+class FirLightTreePackageGenTest : PackageGenTest() {
     override val useFir: Boolean
         get() = true
 
@@ -20,7 +20,7 @@ class FirLightTreePackageGenTest : IrPackageGenTest() {
         get() = LightTree
 }
 
-class FirLightTreePrimitiveTypesTest : IrPrimitiveTypesTest() {
+class FirLightTreePrimitiveTypesTest : PrimitiveTypesTest() {
     override val useFir: Boolean
         get() = true
 
@@ -28,7 +28,7 @@ class FirLightTreePrimitiveTypesTest : IrPrimitiveTypesTest() {
         get() = LightTree
 }
 
-class FirLightTreeAnnotationGenTest : IrAnnotationGenTest() {
+class FirLightTreeAnnotationGenTest : AnnotationGenTest() {
     override val useFir: Boolean
         get() = true
 
@@ -36,7 +36,7 @@ class FirLightTreeAnnotationGenTest : IrAnnotationGenTest() {
         get() = LightTree
 }
 
-class FirLightTreeOuterClassGenTest : IrOuterClassGenTest() {
+class FirLightTreeOuterClassGenTest : OuterClassGenTest() {
     override val useFir: Boolean
         get() = true
 
@@ -52,7 +52,7 @@ abstract class AbstractFirLightTreeCheckLocalVariablesTableTest : AbstractIrChec
         get() = LightTree
 }
 
-class FirLightTreePropertyGenTest : IrPropertyGenTest() {
+class FirLightTreePropertyGenTest : PropertyGenTest() {
     override val useFir: Boolean
         get() = true
 
@@ -60,7 +60,7 @@ class FirLightTreePropertyGenTest : IrPropertyGenTest() {
         get() = LightTree
 }
 
-class FirLightTreeKotlinSyntheticClassAnnotationTest : IrKotlinSyntheticClassAnnotationTest() {
+class FirLightTreeKotlinSyntheticClassAnnotationTest : KotlinSyntheticClassAnnotationTest() {
     override val useFir: Boolean
         get() = true
 
@@ -68,7 +68,7 @@ class FirLightTreeKotlinSyntheticClassAnnotationTest : IrKotlinSyntheticClassAnn
         get() = LightTree
 }
 
-class FirLightTreeVarArgTest : IrVarArgTest() {
+class FirLightTreeVarArgTest : VarArgTest() {
     override val useFir: Boolean
         get() = true
 
@@ -76,7 +76,7 @@ class FirLightTreeVarArgTest : IrVarArgTest() {
         get() = LightTree
 }
 
-class FirLightTreeControlStructuresTest : IrControlStructuresTest() {
+class FirLightTreeControlStructuresTest : ControlStructuresTest() {
     override val useFir: Boolean
         get() = true
 
@@ -84,7 +84,7 @@ class FirLightTreeControlStructuresTest : IrControlStructuresTest() {
         get() = LightTree
 }
 
-class FirLightTreeInnerClassInfoGenTest : IrInnerClassInfoGenTest() {
+class FirLightTreeInnerClassInfoGenTest : InnerClassInfoGenTest() {
     override val useFir: Boolean
         get() = true
 
@@ -92,38 +92,18 @@ class FirLightTreeInnerClassInfoGenTest : IrInnerClassInfoGenTest() {
         get() = LightTree
 }
 
-class FirLightTreeMethodOrderTest : IrMethodOrderTest() {
+class FirLightTreeMethodOrderTest : MethodOrderTest() {
     override val useFir: Boolean
         get() = true
 
     override val firParser: FirParser
         get() = LightTree
 
-    override fun testDelegatedMethod() {
-        doTest(
-            """
-                interface Trait {
-                    fun f0()
-                    fun f4()
-                    fun f3()
-                    fun f2()
-                    fun f1()
-                    fun f5()
-                }
-
-                val delegate: Trait = throw Error()
-
-                val obj = object : Trait by delegate {
-                    override fun f3() { }
-                }
-            """,
-            "\$obj$1",
-            listOf("<init>()V", "f0()V", "f4()V", "f2()V", "f1()V", "f5()V", "f3()V")
-        )
-    }
+    override fun delegatedMethodExpectation(): List<String> =
+        listOf("<init>()V", "f3()V", "f0()V", "f4()V", "f2()V", "f1()V", "f5()V")
 }
 
-class FirLightTreeReflectionClassLoaderTest : IrReflectionClassLoaderTest() {
+class FirLightTreeReflectionClassLoaderTest : ReflectionClassLoaderTest() {
     override val useFir: Boolean
         get() = true
 
@@ -131,7 +111,7 @@ class FirLightTreeReflectionClassLoaderTest : IrReflectionClassLoaderTest() {
         get() = LightTree
 }
 
-class FirLightTreeCustomBytecodeTextTest : IrCustomBytecodeTextTest() {
+class FirLightTreeCustomBytecodeTextTest : CustomBytecodeTextTest() {
     override val useFir: Boolean
         get() = true
 
@@ -139,7 +119,7 @@ class FirLightTreeCustomBytecodeTextTest : IrCustomBytecodeTextTest() {
         get() = LightTree
 }
 
-class FirLightTreeCustomScriptCodegenTest : IrCustomScriptCodegenTest() {
+class FirLightTreeGenerateNotNullAssertionsTest : GenerateNotNullAssertionsTest() {
     override val useFir: Boolean
         get() = true
 
@@ -147,23 +127,7 @@ class FirLightTreeCustomScriptCodegenTest : IrCustomScriptCodegenTest() {
         get() = LightTree
 }
 
-class FirLightTreeGenerateNotNullAssertionsTest : IrGenerateNotNullAssertionsTest() {
-    override val useFir: Boolean
-        get() = true
-
-    override val firParser: FirParser
-        get() = LightTree
-}
-
-class FirLightTreeSourceInfoGenTest : IrSourceInfoGenTest() {
-    override val useFir: Boolean
-        get() = true
-
-    override val firParser: FirParser
-        get() = LightTree
-}
-
-class FirLightTreeLinkageModeTest : JvmIrLinkageModeTest() {
+class FirLightTreeSourceInfoGenTest : SourceInfoGenTest() {
     override val useFir: Boolean
         get() = true
 

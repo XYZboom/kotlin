@@ -17,7 +17,7 @@ object JvmStandardClassIds {
     val JVM_NAME_SHORT: String = JVM_NAME.shortName().asString()
 
     val JVM_MULTIFILE_CLASS: FqName = FqName("kotlin.jvm.JvmMultifileClass")
-    val JVM_MULTIFILE_CLASS_ID: ClassId = ClassId(FqName("kotlin.jvm"), Name.identifier("JvmMultifileClass"))
+    val JVM_MULTIFILE_CLASS_ID: ClassId = ClassId.topLevel(JVM_MULTIFILE_CLASS)
     val JVM_MULTIFILE_CLASS_SHORT = JVM_MULTIFILE_CLASS.shortName().asString()
 
     val JVM_PACKAGE_NAME: FqName = FqName("kotlin.jvm.JvmPackageName")
@@ -31,6 +31,7 @@ object JvmStandardClassIds {
     val JVM_DEFAULT_WITH_COMPATIBILITY_CLASS_ID = ClassId.topLevel(JVM_DEFAULT_WITH_COMPATIBILITY_FQ_NAME)
     val JVM_OVERLOADS_FQ_NAME = FqName("kotlin.jvm.JvmOverloads")
     val JVM_OVERLOADS_CLASS_ID = ClassId.topLevel(JVM_OVERLOADS_FQ_NAME)
+    val JVM_STATIC_FQ_NAME = FqName("kotlin.jvm.JvmStatic")
 
     val JVM_SUPPRESS_WILDCARDS_ANNOTATION_FQ_NAME = FqName("kotlin.jvm.JvmSuppressWildcards")
     val JVM_WILDCARD_ANNOTATION_FQ_NAME = FqName("kotlin.jvm.JvmWildcard")
@@ -54,6 +55,12 @@ object JvmStandardClassIds {
     val SYNCHRONIZED_ANNOTATION_CLASS_ID = ClassId.topLevel(SYNCHRONIZED_ANNOTATION_FQ_NAME)
 
     @JvmField
+    val THROWS_ANNOTATION_FQ_NAME = FqName("kotlin.jvm.Throws")
+
+    @JvmField
+    val THROWS_ANNOTATION_CLASS_ID = ClassId.topLevel(THROWS_ANNOTATION_FQ_NAME)
+
+    @JvmField
     val STRICTFP_ANNOTATION_FQ_NAME = FqName("kotlin.jvm.Strictfp")
 
     @JvmField
@@ -74,7 +81,7 @@ object JvmStandardClassIds {
     const val MULTIFILE_PART_NAME_DELIMITER = "__"
 
     object Annotations {
-        val JvmStatic = "JvmStatic".jvmId()
+        val JvmStatic = ClassId.topLevel(JVM_STATIC_FQ_NAME)
         val JvmName = "JvmName".jvmId()
         val JvmField = "JvmField".jvmId()
         val JvmDefault = "JvmDefault".jvmId()
@@ -99,6 +106,10 @@ object JvmStandardClassIds {
 
     object Java {
         val Record = "Record".javaLangId()
+    }
+
+    object Callables {
+        val JavaClass = CallableId(BASE_JVM_PACKAGE, Name.identifier("javaClass"))
     }
 }
 

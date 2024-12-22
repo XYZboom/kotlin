@@ -15,6 +15,7 @@ import org.jetbrains.kotlin.diagnostics.KtDiagnosticReporterWithContext
 import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrFile
+import org.jetbrains.kotlin.ir.declarations.IrMetadataSourceOwner
 import org.jetbrains.kotlin.ir.declarations.path
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.types.classOrNull
@@ -32,9 +33,11 @@ class KtDiagnosticReporterWithImplicitIrBasedContext(
 
     private val suppressCache = IrBasedSuppressCache()
 
-    private fun IrElement.toSourceElement(containingIrFile: IrFile) =
-        (PsiSourceManager.findPsiElement(this, containingIrFile)?.let(::KtRealPsiSourceElement)
-            ?: sourceElement())
+    private fun IrElement.toSourceElement(containingIrFile: IrFile): AbstractKtSourceElement? {
+        return PsiSourceManager.findPsiElement(this, containingIrFile)?.let(::KtRealPsiSourceElement)
+            ?: (this as? IrMetadataSourceOwner)?.metadata?.source
+            ?: sourceElement()
+    }
 
     override fun at(irElement: IrElement, containingIrDeclaration: IrDeclaration): DiagnosticContextImpl =
         at(irElement, containingIrDeclaration.file)
@@ -106,20 +109,20 @@ internal class IrBasedSuppressCache : AbstractKotlinSuppressCache<IrElement>() {
                 it.type.classOrNull?.owner?.hasEqualFqName(SUPPRESS) == true
             }?.flatMap {
                 buildList {
-                    fun addIfStringConst(irConst: IrConst<*>) {
+                    fun addIfStringConst(irConst: IrConst) {
                         if (irConst.kind == IrConstKind.String) {
                             add((irConst.value as String).lowercase())
                         }
                     }
 
-                    for (i in 0 until it.valueArgumentsCount) {
-                        when (val arg = it.getValueArgument(i)) {
-                            is IrConst<*> -> addIfStringConst(arg)
+                    for (arg in it.arguments) {
+                        when (arg) {
+                            is IrConst -> addIfStringConst(arg)
                             is IrConstantArray -> arg.elements.filterIsInstance<IrConstantPrimitive>().forEach {
                                 addIfStringConst(it.value)
                             }
                             // TODO: consider leaving only this branch
-                            is IrVararg -> arg.elements.filterIsInstance<IrConst<*>>().forEach {
+                            is IrVararg -> arg.elements.filterIsInstance<IrConst>().forEach {
                                 addIfStringConst(it)
                             }
                         }

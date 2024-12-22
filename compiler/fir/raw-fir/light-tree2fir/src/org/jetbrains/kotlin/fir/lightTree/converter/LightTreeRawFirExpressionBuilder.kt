@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.*
 import org.jetbrains.kotlin.ElementTypeUtils.getOperationSymbol
 import org.jetbrains.kotlin.ElementTypeUtils.isExpression
 import org.jetbrains.kotlin.KtNodeTypes.*
+import org.jetbrains.kotlin.KtNodeTypes.STRING_TEMPLATE
 import org.jetbrains.kotlin.descriptors.EffectiveVisibility
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
@@ -21,13 +22,13 @@ import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
 import org.jetbrains.kotlin.fir.declarations.FirVariable
 import org.jetbrains.kotlin.fir.declarations.builder.buildAnonymousFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildProperty
+import org.jetbrains.kotlin.fir.declarations.builder.buildReceiverParameterCopy
 import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
 import org.jetbrains.kotlin.fir.declarations.impl.FirDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.diagnostics.*
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.expressions.builder.*
-import org.jetbrains.kotlin.fir.expressions.impl.FirContractCallBlock
 import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
 import org.jetbrains.kotlin.fir.expressions.impl.buildSingleExpressionBlock
 import org.jetbrains.kotlin.fir.lightTree.fir.ValueParameter
@@ -41,6 +42,7 @@ import org.jetbrains.kotlin.fir.references.builder.buildExplicitThisReference
 import org.jetbrains.kotlin.fir.references.builder.buildSimpleNamedReference
 import org.jetbrains.kotlin.fir.symbols.impl.FirAnonymousFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirReceiverParameterSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
 import org.jetbrains.kotlin.fir.types.FirTypeProjection
 import org.jetbrains.kotlin.fir.types.FirTypeRef
@@ -48,11 +50,13 @@ import org.jetbrains.kotlin.fir.types.builder.buildErrorTypeRef
 import org.jetbrains.kotlin.lexer.KtTokens.*
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.SpecialNames
+import org.jetbrains.kotlin.psi.psiUtil.UNWRAPPABLE_TOKEN_TYPES
 import org.jetbrains.kotlin.psi.stubs.elements.KtConstantExpressionElementType
 import org.jetbrains.kotlin.psi.stubs.elements.KtNameReferenceExpressionElementType
 import org.jetbrains.kotlin.types.expressions.OperatorConventions
 import org.jetbrains.kotlin.util.OperatorNameConventions
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
+import kotlin.collections.contains
 
 class LightTreeRawFirExpressionBuilder(
     session: FirSession,
@@ -61,7 +65,7 @@ class LightTreeRawFirExpressionBuilder(
     context: Context<LighterASTNode> = Context(),
 ) : AbstractLightTreeRawFirBuilder(session, tree, context) {
 
-    inline fun <reified R : FirExpression> getAsFirExpression(
+    internal inline fun <reified R : FirExpression> getAsFirExpression(
         expression: LighterASTNode?,
         errorReason: String = "",
         sourceWhenInvalidExpression: LighterASTNode? = expression,
@@ -69,6 +73,16 @@ class LightTreeRawFirExpressionBuilder(
     ): R {
         val converted = expression?.let { convertExpression(it, errorReason) }
 
+        return wrapExpressionIfNeeded(expression, converted, isValidExpression, sourceWhenInvalidExpression, errorReason)
+    }
+
+    private inline fun <reified R : FirExpression> wrapExpressionIfNeeded(
+        expression: LighterASTNode?,
+        converted: FirElement?,
+        isValidExpression: (R) -> Boolean = { !it.isStatementLikeExpression },
+        sourceWhenInvalidExpression: LighterASTNode? = expression,
+        errorReason: String = "",
+    ): R {
         return when {
             converted is R -> when {
                 isValidExpression(converted) -> converted
@@ -142,8 +156,12 @@ class LightTreeRawFirExpressionBuilder(
 
             OBJECT_LITERAL -> declarationBuilder.convertObjectLiteral(expression)
             FUN -> declarationBuilder.convertFunctionDeclaration(expression)
-            DESTRUCTURING_DECLARATION -> declarationBuilder.convertDestructingDeclaration(expression).toFirDestructingDeclaration(this, baseModuleData)
-            else -> buildErrorExpression(expression.toFirSourceElement(KtFakeSourceElementKind.ErrorTypeRef), ConeSimpleDiagnostic(errorReason, DiagnosticKind.ExpressionExpected))
+            DESTRUCTURING_DECLARATION -> declarationBuilder.convertDestructingDeclaration(expression)
+                .toFirDestructingDeclaration(this, baseModuleData)
+            else -> buildErrorExpression(
+                expression.toFirSourceElement(KtFakeSourceElementKind.ErrorTypeRef),
+                ConeSimpleDiagnostic(errorReason, DiagnosticKind.ExpressionExpected)
+            )
         }
     }
 
@@ -159,7 +177,11 @@ class LightTreeRawFirExpressionBuilder(
         val functionSymbol = FirAnonymousFunctionSymbol()
         lambdaExpression.getChildNodesByType(FUNCTION_LITERAL).first().forEachChildren {
             when (it.tokenType) {
-                VALUE_PARAMETER_LIST -> valueParameterList += declarationBuilder.convertValueParameters(it, functionSymbol, ValueParameterDeclaration.LAMBDA)
+                VALUE_PARAMETER_LIST -> valueParameterList += declarationBuilder.convertValueParameters(
+                    valueParameters = it,
+                    functionSymbol,
+                    ValueParameterDeclaration.LAMBDA
+                )
                 BLOCK -> block = it
                 ARROW -> hasArrow = true
             }
@@ -172,7 +194,7 @@ class LightTreeRawFirExpressionBuilder(
             moduleData = baseModuleData
             origin = FirDeclarationOrigin.Source
             returnTypeRef = implicitType
-            receiverParameter = expressionSource.asReceiverParameter()
+            receiverParameter = expressionSource.asReceiverParameter(moduleData, functionSymbol)
             symbol = functionSymbol
             isLambda = true
             hasExplicitParameterList = hasArrow
@@ -191,7 +213,7 @@ class LightTreeRawFirExpressionBuilder(
                     val name = SpecialNames.DESTRUCT
                     val multiParameter = buildValueParameter {
                         source = valueParameter.firValueParameter.source
-                        containingFunctionSymbol = functionSymbol
+                        containingDeclarationSymbol = functionSymbol
                         moduleData = baseModuleData
                         origin = FirDeclarationOrigin.Source
                         returnTypeRef = valueParameter.firValueParameter.returnTypeRef
@@ -219,39 +241,32 @@ class LightTreeRawFirExpressionBuilder(
             body = withForcedLocalContext {
                 if (block != null) {
                     val kind = runIf(destructuringStatements.isNotEmpty()) {
-                    KtFakeSourceElementKind.LambdaDestructuringBlock
-                }
-                val bodyBlock = declarationBuilder.convertBlockExpressionWithoutBuilding(block!!, kind).apply {
-                        statements.firstOrNull()?.let {
-                            if (it.isContractBlockFirCheck()) {
-                                this@buildAnonymousFunction.contractDescription = it.toLegacyRawContractDescription()
-                                statements[0] = FirContractCallBlock(it)
-                            }
-                        }
-
+                        KtFakeSourceElementKind.LambdaDestructuringBlock
+                    }
+                    val bodyBlock = declarationBuilder.convertBlockExpressionWithoutBuilding(block!!, kind).apply {
                         if (statements.isEmpty()) {
                             statements.add(
                                 buildReturnExpression {
                                     source = expressionSource.fakeElement(KtFakeSourceElementKind.ImplicitReturn.FromExpressionBody)
                                     this.target = target
                                     result = buildUnitExpression {
-                                        source = expressionSource.fakeElement(KtFakeSourceElementKind.ImplicitUnit.LambdaCoercion)
+                                        source = expressionSource.fakeElement(KtFakeSourceElementKind.ImplicitUnit.ForEmptyLambda)
                                     }
                                 }
                             )
                         }
                     }.build()
 
-                if (destructuringStatements.isNotEmpty()) {
-                    // Destructured variables must be in a separate block so that they can be shadowed.
-                    buildBlock {
-                        source = bodyBlock.source?.realElement()
-                        statements.addAll(destructuringStatements)
-                        statements.add(bodyBlock)
+                    if (destructuringStatements.isNotEmpty()) {
+                        // Destructured variables must be in a separate block so that they can be shadowed.
+                        buildBlock {
+                            source = bodyBlock.source?.realElement()
+                            statements.addAll(destructuringStatements)
+                            statements.add(bodyBlock)
+                        }
+                    } else {
+                        bodyBlock
                     }
-                } else {
-                    bodyBlock
-                }
                 } else {
                     buildSingleExpressionBlock(buildErrorExpression(null, ConeSyntaxDiagnostic("Lambda has no body")))
                 }
@@ -267,45 +282,98 @@ class LightTreeRawFirExpressionBuilder(
     }
 
     /**
-     * @see org.jetbrains.kotlin.parsing.KotlinExpressionParsing.parseBinaryExpression
-     * @see org.jetbrains.kotlin.fir.builder.RawFirBuilder.Visitor.visitBinaryExpression
+     * Attempts to fold a binary expression involving string concatenation into a single string concatenation call.
+     *
+     * This method traverses the provided binary expression, extracting all string template nodes and converting
+     * the expression into a unified string concatenation call. The method handles nested expressions by pushing
+     * nodes onto an input stack and processing them iteratively.
+     *
+     * @return A `FirStatement` representing a single string concatenation call if the folding was successful;
+     * `null` if the binary expression could not be folded.
      */
-    private fun convertBinaryExpression(binaryExpression: LighterASTNode): FirStatement {
-        var isLeftArgument = true
-        lateinit var operationTokenName: String
-        var leftArgNode: LighterASTNode? = null
-        var rightArg: LighterASTNode? = null
-        var operationReferenceSource: KtLightSourceElement? = null
-        binaryExpression.forEachChildren {
-            when (it.tokenType) {
-                OPERATION_REFERENCE -> {
-                    isLeftArgument = false
-                    operationTokenName = it.asText
-                    operationReferenceSource = it.toFirSourceElement()
+    private fun tryFoldStringConcatenation(binaryExpression: LighterASTNode): FirStatement? {
+        val input = mutableListOf<LighterASTNode?>()
+        val output = mutableListOf<LighterASTNode?>()
+        input.add(binaryExpression)
+        while (input.isNotEmpty()) {
+            var node = input.pop()
+            when (node?.tokenType) {
+                BINARY_EXPRESSION -> {
+                    val (leftNode, opNode, rightNode) = extractBinaryExpression(node)
+
+                    if (opNode.asText.getOperationSymbol() != PLUS) {
+                        return null
+                    }
+
+                    input.add(leftNode)
+                    input.add(rightNode)
                 }
-                else -> if (it.isExpression()) {
-                    if (isLeftArgument) {
-                        leftArgNode = it
+                PARENTHESIZED -> {
+                    val content = node.getExpressionInParentheses()
+                    input.add(content)
+                }
+                else -> {
+                    if (node?.tokenType != STRING_TEMPLATE) {
+                        return null
                     } else {
-                        rightArg = it
+                        output.add(node)
                     }
                 }
             }
         }
 
-        val baseSource = binaryExpression.toFirSourceElement()
+        return buildStringConcatenationCall {
+            argumentList = buildArgumentList { arguments += output.asReversed().map { getAsFirExpression<FirExpression>(it) } }
+            source = binaryExpression.toFirSourceElement()
+            interpolationPrefix = ""
+        }
+    }
+
+    /**
+     * @see org.jetbrains.kotlin.parsing.KotlinExpressionParsing.parseBinaryExpression
+     * @see org.jetbrains.kotlin.fir.builder.RawFirBuilder.Visitor.visitBinaryExpression
+     */
+    private fun convertBinaryExpression(binaryExpression: LighterASTNode): FirStatement {
+        return tryFoldStringConcatenation(binaryExpression) ?: convertBinaryExpressionFallback(binaryExpression)
+    }
+
+    private fun extractBinaryExpression(binaryExpression: LighterASTNode): Triple<LighterASTNode?, LighterASTNode, LighterASTNode?> {
+        var left: LighterASTNode? = null
+        var op: LighterASTNode? = null
+        var right: LighterASTNode? = null
+        binaryExpression.forEachChildren {
+            when (it.tokenType) {
+                OPERATION_REFERENCE -> {
+                    op = it
+                }
+                else -> if (it.isExpression()) {
+                    if (op == null) {
+                        left = it
+                    } else {
+                        right = it
+                    }
+                }
+            }
+        }
+        return Triple(left, op!!, right)
+    }
+
+    private fun convertBinaryExpressionFallback(binaryExpression: LighterASTNode): FirStatement {
+        val (leftArgNode, opNode, rightArgNode) = extractBinaryExpression(binaryExpression)
+        val operationReferenceSource = opNode.toFirSourceElement()
+        val operationTokenName = opNode.asText
         val operationToken = operationTokenName.getOperationSymbol()
+        val baseSource = binaryExpression.toFirSourceElement()
         if (operationToken == IDENTIFIER) {
             context.calleeNamesForLambda += operationTokenName.nameAsSafeName()
         } else {
             context.calleeNamesForLambda += null
         }
 
-        val rightArgAsFir =
-            if (rightArg != null)
-                getAsFirExpression<FirExpression>(rightArg, "No right operand")
-            else
-                buildErrorExpression(null, ConeSyntaxDiagnostic("No right operand"))
+        val rightArgAsFir = if (rightArgNode != null)
+            getAsFirExpression<FirExpression>(rightArgNode, "No right operand")
+        else
+            buildErrorExpression(null, ConeSyntaxDiagnostic("No right operand"))
 
         val leftArgAsFir = getAsFirExpression<FirExpression>(leftArgNode, "No left operand")
 
@@ -327,7 +395,7 @@ class LightTreeRawFirExpressionBuilder(
             buildFunctionCall {
                 source = binaryExpression.toFirSourceElement()
                 calleeReference = buildSimpleNamedReference {
-                    source = operationReferenceSource ?: this@buildFunctionCall.source
+                    source = operationReferenceSource
                     name = conventionCallName ?: operationTokenName.nameAsSafeName()
                 }
                 explicitReceiver = leftArgAsFir
@@ -337,13 +405,14 @@ class LightTreeRawFirExpressionBuilder(
         } else {
             val firOperation = operationToken.toFirOperation()
             if (firOperation in FirOperation.ASSIGNMENTS) {
-                return leftArgNode.generateAssignment(
+                leftArgNode.generateAssignment(
                     binaryExpression.toFirSourceElement(),
                     leftArgNode?.toFirSourceElement(),
                     rightArgAsFir,
                     firOperation,
                     leftArgAsFir.annotations,
-                    rightArg,
+                    rightArgNode,
+                    leftArgNode?.tokenType in UNWRAPPABLE_TOKEN_TYPES,
                 ) {
                     getAsFirExpression<FirExpression>(
                         this,
@@ -369,7 +438,7 @@ class LightTreeRawFirExpressionBuilder(
      */
     private fun convertBinaryWithTypeRHSExpression(
         binaryExpression: LighterASTNode,
-        toFirOperation: String.() -> FirOperation
+        toFirOperation: String.() -> FirOperation,
     ): FirTypeOperatorCall {
         lateinit var operationTokenName: String
         var leftArgAsFir: FirExpression? = null
@@ -420,7 +489,7 @@ class LightTreeRawFirExpressionBuilder(
 
         context.dropLastLabel()
 
-        return buildExpressionHandlingErrors(firExpression, labeledExpression.toFirSourceElement(), forbiddenLabelKind, labelSource)
+        return buildExpressionHandlingLabelErrors(firExpression, labeledExpression.toFirSourceElement(), forbiddenLabelKind, labelSource)
     }
 
     /**
@@ -497,7 +566,7 @@ class LightTreeRawFirExpressionBuilder(
             }
         }
 
-        val result = firExpression ?: buildErrorExpression(null, ConeNotAnnotationContainer("???"))
+        val result = firExpression ?: buildErrorExpression(annotatedExpression.toFirSourceElement(), ConeNotAnnotationContainer("???"))
         require(result is FirAnnotationContainer)
         result.replaceAnnotations(result.annotations.smartPlus(firAnnotationList))
         return result
@@ -674,7 +743,7 @@ class LightTreeRawFirExpressionBuilder(
 
         val source = callSuffix.toFirSourceElement()
 
-        val (calleeReference, explicitReceiver, isImplicitInvoke) = when {
+        val (calleeReference, receiverForInvoke) = when {
             name != null -> CalleeAndReceiver(
                 buildSimpleNamedReference {
                     this.source = callSuffix.getFirstChildExpressionUnwrapped()?.toFirSourceElement() ?: source
@@ -698,7 +767,6 @@ class LightTreeRawFirExpressionBuilder(
                         this.name = OperatorNameConventions.INVOKE
                     },
                     additionalArgument!!,
-                    isImplicitInvoke = true
                 )
             }
 
@@ -711,7 +779,7 @@ class LightTreeRawFirExpressionBuilder(
         }
 
         val builder: FirQualifiedAccessExpressionBuilder = if (hasArguments) {
-            val builder = if (isImplicitInvoke) FirImplicitInvokeCallBuilder() else FirFunctionCallBuilder()
+            val builder = if (receiverForInvoke != null) FirImplicitInvokeCallBuilder() else FirFunctionCallBuilder()
             builder.apply {
                 this.source = source
                 this.calleeReference = calleeReference
@@ -727,16 +795,21 @@ class LightTreeRawFirExpressionBuilder(
             }
         }
         return builder.apply {
-            this.explicitReceiver = explicitReceiver
+            this.explicitReceiver = receiverForInvoke
             typeArguments += firTypeArguments
-        }.build()
+        }.build().pullUpSafeCallIfNecessary()
     }
 
     /**
      * @see org.jetbrains.kotlin.parsing.KotlinExpressionParsing.parseStringTemplate
      */
     private fun convertStringTemplate(stringTemplate: LighterASTNode): FirExpression {
-        return stringTemplate.getChildrenAsArray().toInterpolatingCall(stringTemplate) { convertShortOrLongStringTemplate(it) }
+        val children = stringTemplate.getChildrenAsArray()
+        return children.toInterpolatingCall(
+            stringTemplate,
+            convertTemplateEntry = { convertShortOrLongStringTemplate(it) },
+            prefix = { children.firstOrNull { it?.tokenType == INTERPOLATION_PREFIX }?.asText ?: "" }
+        )
     }
 
     private fun LighterASTNode?.convertShortOrLongStringTemplate(errorReason: String): Collection<FirExpression> {
@@ -777,6 +850,12 @@ class LightTreeRawFirExpressionBuilder(
                         symbol = FirPropertySymbol(variable.name)
                         isLocal = true
                         status = FirDeclarationStatusImpl(Visibilities.Local, Modality.FINAL)
+                        receiverParameter = variable.receiverParameter?.let {
+                            buildReceiverParameterCopy(it) {
+                                symbol = FirReceiverParameterSymbol()
+                                containingDeclarationSymbol = this@buildProperty.symbol
+                            }
+                        }
                         annotations += variable.annotations
                     }
                 }
@@ -875,7 +954,7 @@ class LightTreeRawFirExpressionBuilder(
 
     private fun convertWhenConditionExpression(
         whenCondition: LighterASTNode,
-        whenRefWithSubject: FirExpressionRef<FirWhenExpression>?
+        whenRefWithSubject: FirExpressionRef<FirWhenExpression>?,
     ): FirExpression {
         var firExpression: FirExpression? = null
         whenCondition.forEachChildren {
@@ -1083,7 +1162,7 @@ class LightTreeRawFirExpressionBuilder(
 
     private fun createSimpleNamedReference(
         sourceElement: KtSourceElement,
-        referenceExpression: LighterASTNode
+        referenceExpression: LighterASTNode,
     ): FirNamedReference {
         return buildSimpleNamedReference {
             source = sourceElement
@@ -1311,8 +1390,13 @@ class LightTreeRawFirExpressionBuilder(
         var blockNode: LighterASTNode? = null
         catchClause.forEachChildren {
             when (it.tokenType) {
-                VALUE_PARAMETER_LIST -> valueParameter = declarationBuilder.convertValueParameters(it, FirAnonymousFunctionSymbol()/*TODO*/, ValueParameterDeclaration.CATCH)
-                    .firstOrNull() ?: return null
+                VALUE_PARAMETER_LIST -> valueParameter = declarationBuilder.convertValueParameters(
+                    valueParameters = it,
+                    FirAnonymousFunctionSymbol(),
+                    ValueParameterDeclaration.CATCH
+                ).firstOrNull()
+                    ?: return null
+
                 BLOCK -> blockNode = it
             }
         }

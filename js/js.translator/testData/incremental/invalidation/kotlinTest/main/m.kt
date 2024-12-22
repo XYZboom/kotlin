@@ -1,6 +1,6 @@
-fun box(stepId: Int) = when (stepId) {
+fun box(stepId: Int, isWasm: Boolean) = when (stepId) {
         0 -> "OK"
-        1 -> checkLog {
+        1 -> checkLog(wrapInEmptySuite = !isWasm) {
             suite("Test1") {
                 test("foo") {
                     call("before")
@@ -9,7 +9,7 @@ fun box(stepId: Int) = when (stepId) {
                 }
             }
         }
-        2 -> checkLog {
+        2 -> checkLog(wrapInEmptySuite = !isWasm) {
             suite("Test1") {
                 test("foo") {
                     call("before")
@@ -25,7 +25,7 @@ fun box(stepId: Int) = when (stepId) {
                 }
             }
         }
-        3 -> checkLog {
+        3 -> checkLog(wrapInEmptySuite = !isWasm) {
             suite("Test1") {
                 test("foo") {
                     call("before")

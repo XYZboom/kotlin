@@ -1,7 +1,9 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // MODULE: m1-common
 // FILE: common.kt
 
-<!NO_ACTUAL_FOR_EXPECT{JVM}!>expect class Foo {
+<!NO_ACTUAL_FOR_EXPECT{JVM}!>expect<!> class Foo {
     val justVal: String
     var justVar: String
 
@@ -25,6 +27,6 @@
     <!EXPECTED_LATEINIT_PROPERTY!>lateinit<!> var lateinitVar: String
 
     val delegated: String by <!EXPECTED_DELEGATED_PROPERTY!>Delegate<!>
-}<!>
+}
 
 object Delegate { operator fun getValue(x: Any?, y: Any?): String = "" }

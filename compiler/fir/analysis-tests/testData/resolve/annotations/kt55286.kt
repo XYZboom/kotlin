@@ -1,4 +1,6 @@
+// RUN_PIPELINE_TILL: BACKEND
 // ISSUE: KT-55286
+// LATEST_LV_DIFFERENCE
 
 annotation class Deprecated<T>
 

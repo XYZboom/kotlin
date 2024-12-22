@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.backend.jvm.ir.createJvmIrBuilder
 import org.jetbrains.kotlin.backend.jvm.ir.isInPublicInlineScope
 import org.jetbrains.kotlin.backend.jvm.ir.javaClassReference
+import org.jetbrains.kotlin.backend.jvm.isPublicAbi
 import org.jetbrains.kotlin.backend.jvm.unboxInlineClass
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.Modality
@@ -30,16 +31,13 @@ import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.util.OperatorNameConventions
 
-@PhaseDescription(
-    name = "AnnotationImplementation",
-    description = "Create synthetic annotations implementations and use them in annotations constructor calls"
-)
+@PhaseDescription(name = "AnnotationImplementation")
 internal class JvmAnnotationImplementationLowering(context: JvmBackendContext) : AnnotationImplementationLowering(
     { JvmAnnotationImplementationTransformer(context, it) }
 )
 
 class JvmAnnotationImplementationTransformer(private val jvmContext: JvmBackendContext, file: IrFile) :
-    AnnotationImplementationTransformer(jvmContext, file) {
+    AnnotationImplementationTransformer(jvmContext, jvmContext.symbolTable, file) {
     private val publicAnnotationImplementationClasses = mutableSetOf<IrClassSymbol>()
 
     // FIXME: Copied from JvmSingleAbstractMethodLowering
@@ -72,8 +70,8 @@ class JvmAnnotationImplementationTransformer(private val jvmContext: JvmBackendC
     override fun IrExpression.transformArrayEqualsArgument(type: IrType, irBuilder: IrBlockBodyBuilder): IrExpression =
         if (!type.isUnsignedArray()) this
         else irBuilder.irCall(jvmContext.ir.symbols.unsafeCoerceIntrinsic).apply {
-            putTypeArgument(0, type)
-            putTypeArgument(1, type.unboxInlineClass())
+            typeArguments[0] = type
+            typeArguments[1] = type.unboxInlineClass()
             putValueArgument(0, this@transformArrayEqualsArgument)
         }
 
@@ -94,7 +92,7 @@ class JvmAnnotationImplementationTransformer(private val jvmContext: JvmBackendC
         // Mark the implClass as part of the public ABI if it was instantiated from a public
         // inline function, since annotation implementation classes are regenerated during inlining.
         if (annotationClass.symbol in publicAnnotationImplementationClasses) {
-            jvmContext.publicAbiSymbols += implClass.symbol
+            implClass.isPublicAbi = true
         }
 
         implClass.addFunction(
@@ -244,7 +242,7 @@ class JvmAnnotationImplementationTransformer(private val jvmContext: JvmBackendC
                 SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, listOf(
                     IrDelegatingConstructorCallImpl(
                         SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, irBuiltIns.unitType, irBuiltIns.anyClass.constructors.single(),
-                        typeArgumentsCount = 0, valueArgumentsCount = 0
+                        typeArgumentsCount = 0,
                     )
                 )
             )

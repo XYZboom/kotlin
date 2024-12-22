@@ -17,11 +17,12 @@ import org.jetbrains.kotlin.fir.FirAnnotationContainer
 import org.jetbrains.kotlin.fir.FirElementWithResolveState
 import org.jetbrains.kotlin.fir.caches.firCachesFactory
 import org.jetbrains.kotlin.fir.declarations.*
-import org.jetbrains.kotlin.fir.declarations.annotationPlatformSupport
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.expressions.FirAnnotationCall
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotationCallCopy
+import org.jetbrains.kotlin.fir.extensions.withGeneratedDeclarationsSymbolProviderDisabled
 import org.jetbrains.kotlin.fir.resolve.ScopeSession
+import org.jetbrains.kotlin.fir.resolve.providers.FirSymbolProviderInternals
 import org.jetbrains.kotlin.fir.resolve.transformers.plugin.CompilerRequiredAnnotationsComputationSession
 import org.jetbrains.kotlin.fir.resolve.transformers.plugin.FirCompilerRequiredAnnotationsResolveTransformer
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
@@ -139,14 +140,20 @@ private class LLFirCompilerRequiredAnnotationsTargetResolver(
             }
         }
 
-        // 5. Transform annotations in the air
-        annotationTransformer.transformAnnotations()
+        // N.B. We disable generated declarations provider to avoid infinite resolve problems (see KT-67483)
+        @OptIn(FirSymbolProviderInternals::class)
+        transformer.session.withGeneratedDeclarationsSymbolProviderDisabled {
 
-        // 6. Move some annotations to the proper positions
-        annotationTransformer.balanceAnnotations(target)
+            // 5. Transform annotations in the air
+            annotationTransformer.transformAnnotations()
 
-        // 7. Calculate deprecations in the air
-        annotationTransformer.calculateDeprecations(target)
+            // 6. Move some annotations to the proper positions
+            annotationTransformer.balanceAnnotations(target)
+
+            // 7. Calculate deprecations in the air
+            annotationTransformer.calculateDeprecations(target)
+
+        }
 
         // 8. Publish result
         performCustomResolveUnderLock(target) {
@@ -237,11 +244,18 @@ private class LLFirCompilerRequiredAnnotationsTargetResolver(
             }
 
             when (target) {
-                is FirFunction -> target.valueParameters.forEach(::publishResult)
+                is FirFunction -> {
+                    target.contextParameters.forEach(::publishResult)
+                    target.valueParameters.forEach(::publishResult)
+                }
                 is FirProperty -> {
+                    target.contextParameters.forEach(::publishResult)
                     target.getter?.let(::publishResult)
                     target.setter?.let(::publishResult)
                     target.backingField?.let(::publishResult)
+                }
+                is FirRegularClass -> {
+                    target.contextParameters.forEach(::publishResult)
                 }
             }
         }
@@ -288,7 +302,7 @@ private class LLFirCompilerRequiredAnnotationsTargetResolver(
 
                     // Non-empty arguments must be lazy expressions
                     if (FirLazyBodiesCalculator.needCalculatingAnnotationCall(annotation)) {
-                        argumentList = FirLazyBodiesCalculator.calculateLazyArgumentsForAnnotation(annotation, llFirSession)
+                        argumentList = FirLazyBodiesCalculator.calculateLazyArgumentsForAnnotation(annotation, resolveTargetSession)
                     }
                 }
             } else {

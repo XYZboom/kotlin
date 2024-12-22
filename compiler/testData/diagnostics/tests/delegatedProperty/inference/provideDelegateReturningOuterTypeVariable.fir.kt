@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // ISSUE: KT-61747
 
 interface A {
@@ -7,7 +8,7 @@ interface A {
 fun <T> foo(x: (T) -> Unit): T = TODO()
 
 fun bar1(a: A) {
-    val x by <!DELEGATE_SPECIAL_FUNCTION_MISSING!>foo { x: A -> }<!>
+    val x <!DELEGATE_SPECIAL_FUNCTION_MISSING!>by<!> foo { x: A -> }
 }
 
 fun bar2(a: A) {
@@ -15,5 +16,5 @@ fun bar2(a: A) {
         return this
     }
 
-    val x by <!DELEGATE_SPECIAL_FUNCTION_MISSING!>foo { x: A -> }<!>
+    val x <!DELEGATE_SPECIAL_FUNCTION_MISSING!>by<!> foo { x: A -> }
 }

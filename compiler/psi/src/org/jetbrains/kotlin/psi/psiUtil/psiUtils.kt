@@ -17,17 +17,25 @@
 package org.jetbrains.kotlin.psi.psiUtil
 
 import com.intellij.lang.ASTNode
+import com.intellij.lang.LighterASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LazyParseablePsiElement
 import com.intellij.psi.impl.source.tree.TreeUtil
 import com.intellij.psi.search.PsiSearchScopeUtil
 import com.intellij.psi.search.SearchScope
+import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.elementType
+import com.intellij.util.diff.FlyweightCapableTreeStructure
 import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.KtNodeTypes.*
+import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.PsiDiagnosticUtils
 import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.psi
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.util.getChildren
 import java.util.*
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -35,6 +43,36 @@ import kotlin.contracts.contract
 // NOTE: in this file we collect only LANGUAGE INDEPENDENT methods working with PSI and not modifying it
 
 // ----------- Walking children/siblings/parents -------------------------------------------------------------------------------------------
+
+/**
+ * Emulates recursion using a stack to prevent StackOverflow exception on big concatenation expressions like
+ * `val x = "a0" + "a1" + ... + "a9999"`
+
+ * Traversing order is different from using default [KtVisitorVoid]!
+ * However, it is the same at least for regular left-associative expression.
+ * For instance, the "a" + "b" + "c" is represented as
+ *
+ * ```
+ *          '+'
+ *      '+'     'c'
+ *  'a'     'b'
+ * ```
+ *
+ * And it's traversed as: 'a', '+', 'b', '+', 'c'
+ */
+fun KtVisitorVoid.visitBinaryExpressionUsingStack(expression: KtBinaryExpression) {
+    val stack = kotlin.collections.ArrayDeque<PsiElement>().also { it.add(expression) }
+    while (stack.isNotEmpty()) {
+        val element = stack.removeLast()
+        if (element is KtBinaryExpression) {
+            for (i in element.children.size - 1 downTo 0) {
+                stack.addLast(element.children[i])
+            }
+        } else {
+            element.accept(this)
+        }
+    }
+}
 
 val PsiElement.allChildren: PsiChildRange
     get() {
@@ -201,7 +239,6 @@ inline fun <reified T : PsiElement> PsiElement.getParentOfTypeAndBranches(
     return getParentOfType<T>(strict)?.getIfChildIsInBranches(this, branches)
 }
 
-@Suppress("NO_TAIL_CALLS_FOUND", "NON_TAIL_RECURSIVE_CALL") // K2 warning suppression, TODO: KT-62472
 tailrec fun PsiElement.getOutermostParentContainedIn(container: PsiElement): PsiElement? {
     val parent = parent
     return if (parent == container) this else parent?.getOutermostParentContainedIn(container)
@@ -214,6 +251,54 @@ fun PsiChildRange.trimWhiteSpaces(): PsiChildRange {
     return PsiChildRange(
         first.siblings().firstOrNull { it !is PsiWhiteSpace },
         last!!.siblings(forward = false).firstOrNull { it !is PsiWhiteSpace })
+}
+
+/**
+ * See [unwrap()][org.jetbrains.kotlin.fir.builder.AbstractRawFirBuilder.unwrap]
+ */
+val UNWRAPPABLE_TOKEN_TYPES: Set<IElementType> = setOf(PARENTHESIZED, LABELED_EXPRESSION, ANNOTATED_EXPRESSION)
+
+/**
+ * This function should only be called for a source element corresponding to
+ * an assignment/assignment operator call/increment or a decrement operator.
+ */
+fun PsiElement.getAssignmentLhsIfUnwrappable(): PsiElement? =
+    when {
+        // In `++(x)` the LHS source `(x)` is the last child
+        elementType == PREFIX_EXPRESSION -> children.lastOrNull()
+        // In `(x)++` or `(x) = ...` the LHS source is the first child
+        else -> children.firstOrNull()
+    }.takeIf {
+        it?.elementType in UNWRAPPABLE_TOKEN_TYPES
+    }
+
+/**
+ * This function should only be called for a source element corresponding to
+ * an assignment/assignment operator call/increment or a decrement operator.
+ */
+fun LighterASTNode.getAssignmentLhsIfUnwrappable(tree: FlyweightCapableTreeStructure<LighterASTNode>): LighterASTNode? =
+    when {
+        // In `++(x)` the LHS source `(x)` is the last child
+        tokenType == PREFIX_EXPRESSION -> getChildren(tree).lastOrNull()
+        // In `(x)++` or `(x) = ...` the LHS source is the first child
+        else -> getChildren(tree).firstOrNull()
+    }.takeIf {
+        it?.tokenType in UNWRAPPABLE_TOKEN_TYPES
+    }
+
+/**
+ * This function should only be called for a source element corresponding to
+ * an assignment/assignment operator call/increment or a decrement operator.
+ */
+fun KtSourceElement?.hasUnwrappableAsAssignmentLhs(): Boolean {
+    if (this == null) {
+        return false
+    }
+
+    val node = psi?.getAssignmentLhsIfUnwrappable()
+        ?: lighterASTNode.getAssignmentLhsIfUnwrappable(treeStructure)
+
+    return node != null
 }
 
 // -------------------- Recursive tree visiting --------------------------------------------------------------------------------------------
@@ -457,16 +542,18 @@ inline fun <reified T : PsiElement> PsiElement.getLastParentOfTypeInRow() = pare
 inline fun <reified T : PsiElement> PsiElement.getLastParentOfTypeInRowWithSelf() = parentsWithSelf
     .takeWhile { it is T }.lastOrNull() as? T
 
-fun KtModifierListOwner.hasExpectModifier() = hasModifier(KtTokens.HEADER_KEYWORD) || hasModifier(KtTokens.EXPECT_KEYWORD)
-fun KtModifierList.hasExpectModifier() = hasModifier(KtTokens.HEADER_KEYWORD) || hasModifier(KtTokens.EXPECT_KEYWORD)
+fun KtModifierListOwner.hasExpectModifier() = hasModifier(KtTokens.EXPECT_KEYWORD)
+fun KtModifierList.hasExpectModifier() = hasModifier(KtTokens.EXPECT_KEYWORD)
 
-fun KtModifierListOwner.hasActualModifier() = hasModifier(KtTokens.IMPL_KEYWORD) || hasModifier(KtTokens.ACTUAL_KEYWORD)
-fun KtModifierList.hasActualModifier() = hasModifier(KtTokens.IMPL_KEYWORD) || hasModifier(KtTokens.ACTUAL_KEYWORD)
+fun KtModifierListOwner.hasActualModifier() = hasModifier(KtTokens.ACTUAL_KEYWORD)
+fun KtModifierList.hasActualModifier() = hasModifier(KtTokens.ACTUAL_KEYWORD)
 fun KtModifierList.hasSuspendModifier() = hasModifier(KtTokens.SUSPEND_KEYWORD)
 
 fun KtModifierList.hasFunModifier() = hasModifier(KtTokens.FUN_KEYWORD)
 
 fun KtModifierList.hasValueModifier() = hasModifier(KtTokens.VALUE_KEYWORD)
+
+fun KtModifierListOwner.hasInnerModifier() = hasModifier(KtTokens.INNER_KEYWORD)
 
 fun ASTNode.children() = generateSequence(firstChildNode) { node -> node.treeNext }
 fun ASTNode.parents() = generateSequence(treeParent) { node -> node.treeParent }

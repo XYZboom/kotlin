@@ -17,7 +17,10 @@ import org.jetbrains.kotlin.fir.analysis.checkers.isVisibleInClass
 import org.jetbrains.kotlin.fir.analysis.checkers.unsubstitutedScope
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.containingClassLookupTag
-import org.jetbrains.kotlin.fir.declarations.*
+import org.jetbrains.kotlin.fir.declarations.FirClass
+import org.jetbrains.kotlin.fir.declarations.FirRegularClass
+import org.jetbrains.kotlin.fir.declarations.getNonSubsumedOverriddenSymbols
+import org.jetbrains.kotlin.fir.declarations.isTrivialIntersection
 import org.jetbrains.kotlin.fir.declarations.utils.classId
 import org.jetbrains.kotlin.fir.declarations.utils.isAbstract
 import org.jetbrains.kotlin.fir.declarations.utils.isExpect
@@ -25,12 +28,15 @@ import org.jetbrains.kotlin.fir.declarations.utils.isSuspend
 import org.jetbrains.kotlin.fir.delegatedWrapperData
 import org.jetbrains.kotlin.fir.isSubstitutionOverride
 import org.jetbrains.kotlin.fir.resolve.substitution.substitutorByMap
-import org.jetbrains.kotlin.fir.scopes.*
+import org.jetbrains.kotlin.fir.scopes.FirTypeScope
+import org.jetbrains.kotlin.fir.scopes.MemberWithBaseScope
+import org.jetbrains.kotlin.fir.scopes.getDirectOverriddenFunctions
+import org.jetbrains.kotlin.fir.scopes.getDirectOverriddenMembers
+import org.jetbrains.kotlin.fir.scopes.getDirectOverriddenProperties
 import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.types.ConeErrorType
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
-import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.typeContext
 import org.jetbrains.kotlin.fir.unwrapSubstitutionOverrides
 import org.jetbrains.kotlin.name.Name
@@ -71,6 +77,7 @@ sealed class FirImplementationMismatchChecker(mppKind: MppCheckerKind) : FirClas
         for (name in classScope.getCallableNames()) {
             classScope.processFunctionsByName(name) {
                 checkInheritanceClash(declaration, context, dedupReporter, typeCheckerState, it, classScope)
+                checkDifferentNamesForTheSameParameterInSupertypes(declaration, context, dedupReporter, it, classScope)
             }
             classScope.processPropertiesByName(name) {
                 checkInheritanceClash(declaration, context, dedupReporter, typeCheckerState, it, classScope)
@@ -212,23 +219,66 @@ sealed class FirImplementationMismatchChecker(mppKind: MppCheckerKind) : FirClas
         reporter.reportOn(containingClass.source, FirErrors.VAR_OVERRIDDEN_BY_VAL_BY_DELEGATION, symbol, overriddenVar, context)
     }
 
-    private fun FirTypeScope.collectFunctionsNamed(
+    private fun checkDifferentNamesForTheSameParameterInSupertypes(
+        containingClass: FirClass,
+        context: CheckerContext,
+        reporter: DiagnosticReporter,
+        functionSymbol: FirNamedFunctionSymbol,
+        classScope: FirTypeScope,
+    ) {
+        if (functionSymbol !is FirIntersectionCallableSymbol) return
+
+        val overriddenFunctions = classScope.getDirectOverriddenFunctions(functionSymbol)
+        for (currentIndex in overriddenFunctions.indices) {
+            val currentFunctionSymbol = overriddenFunctions[currentIndex].takeIf { it.resolvedStatus.hasStableParameterNames }
+                ?: continue
+
+            for (otherIndex in currentIndex + 1 until overriddenFunctions.size) {
+                val otherFunctionSymbol = overriddenFunctions[otherIndex].takeIf { it.resolvedStatus.hasStableParameterNames }
+                    ?: continue
+
+                currentFunctionSymbol.checkValueParameterNamesWith(
+                    otherFunctionSymbol
+                ) { currentParameter, otherParameter, parameterIndex ->
+                    reporter.reportOn(
+                        containingClass.source,
+                        FirErrors.DIFFERENT_NAMES_FOR_THE_SAME_PARAMETER_IN_SUPERTYPES,
+                        currentParameter,
+                        otherParameter,
+                        parameterIndex,
+                        listOf(currentFunctionSymbol, otherFunctionSymbol),
+                        context
+                    )
+                }
+            }
+        }
+    }
+
+    private fun FirTypeScope.collectCallablesNamed(
         name: Name,
         containingClass: FirClass,
         context: CheckerContext,
-    ): List<FirNamedFunctionSymbol> {
-        val allFunctions = mutableListOf<FirNamedFunctionSymbol>()
+    ): List<FirCallableSymbol<*>> {
+        val allCallables = mutableListOf<FirCallableSymbol<*>>()
 
         processFunctionsByName(name) { sym ->
             when (sym) {
                 is FirIntersectionOverrideFunctionSymbol -> sym
                     .getNonSubsumedOverriddenSymbols(context.session, context.scopeSession)
-                    .mapNotNullTo(allFunctions) { it as? FirNamedFunctionSymbol }
-                else -> allFunctions.add(sym)
+                    .mapNotNullTo(allCallables) { it as? FirNamedFunctionSymbol }
+                else -> allCallables.add(sym)
+            }
+        }
+        processPropertiesByName(name) { sym ->
+            when (sym) {
+                is FirIntersectionOverridePropertySymbol -> sym
+                    .getNonSubsumedOverriddenSymbols(context.session, context.scopeSession)
+                    .mapNotNullTo(allCallables) { it as? FirNamedFunctionSymbol }
+                else -> allCallables.add(sym)
             }
         }
 
-        return allFunctions.filter {
+        return allCallables.filter {
             it.isVisibleInClass(containingClass.symbol)
         }
     }
@@ -240,13 +290,15 @@ sealed class FirImplementationMismatchChecker(mppKind: MppCheckerKind) : FirClas
         scope: FirTypeScope,
         name: Name
     ) {
-        val allFunctions = scope.collectFunctionsNamed(name, containingClass, context)
+        val allCallables = scope.collectCallablesNamed(name, containingClass, context)
 
-        val sameArgumentGroups = allFunctions.groupBy { function ->
+        val sameArgumentGroups = allCallables.groupBy { callable ->
             buildList {
-                addIfNotNull(function.resolvedReceiverTypeRef?.type)
-                function.valueParameterSymbols.mapTo(this) { it.resolvedReturnTypeRef.coneType }
-            }
+                addIfNotNull(callable.resolvedReceiverTypeRef?.coneType)
+                if (callable is FirNamedFunctionSymbol) {
+                    callable.valueParameterSymbols.mapTo(this) { it.resolvedReturnTypeRef.coneType }
+                }
+            } to (callable is FirPropertySymbol) // Needed to split properties and functions into separate groups
         }.values
 
         val clashes = sameArgumentGroups.mapNotNull { fs ->
@@ -256,7 +308,8 @@ sealed class FirImplementationMismatchChecker(mppKind: MppCheckerKind) : FirClas
         }
 
         for (clash in clashes) {
-            val (first, second) = clash
+            val first = clash.first.unwrapSubstitutionOverrides()
+            val second = clash.second.unwrapSubstitutionOverrides()
 
             val firstClassLookupTag = first.containingClassLookupTag()
             val secondClassLookupTag = second.containingClassLookupTag()

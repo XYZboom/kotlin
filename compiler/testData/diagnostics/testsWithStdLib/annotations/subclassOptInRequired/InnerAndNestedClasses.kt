@@ -1,5 +1,5 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // FIR_IDENTICAL
-@file:OptIn(ExperimentalSubclassOptIn::class)
 
 @RequiresOptIn
 annotation class Api
@@ -10,7 +10,7 @@ open class B {
     open inner class L
 }
 
-class E() : <!OPT_IN_USAGE_ERROR!>B<!>()
+class E() : <!OPT_IN_TO_INHERITANCE_ERROR!>B<!>()
 class K() : B.C()
 
 fun test() {

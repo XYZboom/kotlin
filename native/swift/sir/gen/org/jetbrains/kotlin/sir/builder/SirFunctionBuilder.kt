@@ -19,9 +19,14 @@ class SirFunctionBuilder {
     var origin: SirOrigin = SirOrigin.Unknown
     var visibility: SirVisibility = SirVisibility.PUBLIC
     var documentation: String? = null
-    lateinit var kind: SirCallableKind
+    val attributes: MutableList<SirAttribute> = mutableListOf()
     var body: SirFunctionBody? = null
+    var errorType: SirType = SirType.never
+    var isOverride: Boolean = false
+    var isInstance: Boolean = true
+    var modality: SirModality = SirModality.UNSPECIFIED
     lateinit var name: String
+    var extensionReceiverParameter: SirParameter? = null
     val parameters: MutableList<SirParameter> = mutableListOf()
     lateinit var returnType: SirType
 
@@ -30,9 +35,14 @@ class SirFunctionBuilder {
             origin,
             visibility,
             documentation,
-            kind,
+            attributes,
             body,
+            errorType,
+            isOverride,
+            isInstance,
+            modality,
             name,
+            extensionReceiverParameter,
             parameters,
             returnType,
         )
@@ -57,9 +67,14 @@ inline fun buildFunctionCopy(original: SirFunction, init: SirFunctionBuilder.() 
     copyBuilder.origin = original.origin
     copyBuilder.visibility = original.visibility
     copyBuilder.documentation = original.documentation
-    copyBuilder.kind = original.kind
+    copyBuilder.attributes.addAll(original.attributes)
     copyBuilder.body = original.body
+    copyBuilder.errorType = original.errorType
+    copyBuilder.isOverride = original.isOverride
+    copyBuilder.isInstance = original.isInstance
+    copyBuilder.modality = original.modality
     copyBuilder.name = original.name
+    copyBuilder.extensionReceiverParameter = original.extensionReceiverParameter
     copyBuilder.parameters.addAll(original.parameters)
     copyBuilder.returnType = original.returnType
     return copyBuilder.apply(init).build()

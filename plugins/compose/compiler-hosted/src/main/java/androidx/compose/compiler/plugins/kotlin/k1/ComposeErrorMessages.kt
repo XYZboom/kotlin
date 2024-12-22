@@ -27,6 +27,7 @@ class ComposeErrorMessages : DefaultErrorMessages.Extension {
         DiagnosticFactoryToRendererMap(
             "Compose"
         )
+
     override fun getMap() = MAP
 
     init {
@@ -38,7 +39,7 @@ class ComposeErrorMessages : DefaultErrorMessages.Extension {
         MAP.put(
             ComposeErrors.COMPOSABLE_EXPECTED,
             "Functions which invoke @Composable functions must be marked with the @Composable " +
-                "annotation"
+                    "annotation"
         )
 
         MAP.put(
@@ -56,7 +57,7 @@ class ComposeErrorMessages : DefaultErrorMessages.Extension {
         MAP.put(
             ComposeErrors.MISSING_DISALLOW_COMPOSABLE_CALLS_ANNOTATION,
             "Parameter {0} cannot be inlined inside of lambda argument {1} of {2} " +
-                "without also being annotated with @DisallowComposableCalls",
+                    "without also being annotated with @DisallowComposableCalls",
             Renderers.NAME,
             Renderers.NAME,
             Renderers.NAME
@@ -65,7 +66,7 @@ class ComposeErrorMessages : DefaultErrorMessages.Extension {
         MAP.put(
             ComposeErrors.NONREADONLY_CALL_IN_READONLY_COMPOSABLE,
             "Composables marked with @ReadOnlyComposable can only call other @ReadOnlyComposable " +
-                "composables"
+                    "composables"
         )
 
         MAP.put(
@@ -91,7 +92,7 @@ class ComposeErrorMessages : DefaultErrorMessages.Extension {
         )
         MAP.put(
             ComposeErrors.ABSTRACT_COMPOSABLE_DEFAULT_PARAMETER_VALUE,
-            "Overridable Composable functions with default values are not currently supported"
+            "Open Composable functions with default values are not currently supported"
         )
         MAP.put(
             ComposeErrors.COMPOSABLE_FUN_MAIN,
@@ -104,19 +105,19 @@ class ComposeErrorMessages : DefaultErrorMessages.Extension {
         MAP.put(
             ComposeErrors.TYPE_MISMATCH,
             "Type inference failed. Expected type mismatch: inferred type is {1} but {0}" +
-                " was expected",
+                    " was expected",
             RENDER_TYPE_WITH_ANNOTATIONS,
             RENDER_TYPE_WITH_ANNOTATIONS
         )
         MAP.put(
             ComposeErrors.COMPOSE_APPLIER_CALL_MISMATCH,
-            "Calling a {0} composable function where a {1} composable was expected",
+            "Calling a {1} composable function where a {0} composable was expected",
             Renderers.TO_STRING,
             Renderers.TO_STRING
         )
         MAP.put(
             ComposeErrors.COMPOSE_APPLIER_PARAMETER_MISMATCH,
-            "A {0} composable parameter was provided where a {1} composable was expected",
+            "A {1} composable parameter was provided where a {0} composable was expected",
             Renderers.TO_STRING,
             Renderers.TO_STRING
         )
@@ -135,12 +136,12 @@ class ComposeErrorMessages : DefaultErrorMessages.Extension {
         MAP.put(
             ComposeErrors.REDUNDANT_COMPOSABLE_ANNOTATION,
             "Invalid `@Composable` annotation on inline lambda." +
-                " This will become an error in Kotlin 2.0."
+                    " This will become an error in Kotlin 2.0."
         )
         MAP.put(
             ComposeErrors.NAMED_ARGUMENTS_NOT_ALLOWED,
             "Named arguments in composable function types are deprecated." +
-            " This will become an error in Kotlin 2.0"
+                    " This will become an error in Kotlin 2.0"
         )
     }
 }

@@ -5,11 +5,14 @@
 
 package org.jetbrains.kotlin.gradle.unitTests
 
+import org.gradle.api.internal.tasks.DefaultTaskContainer
+import org.gradle.api.tasks.TaskInstantiationException
 import org.jetbrains.kotlin.gradle.dependencyResolutionTests.mavenCentralCacheRedirector
 import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
 import org.jetbrains.kotlin.gradle.util.buildProject
 import org.jetbrains.kotlin.gradle.util.buildProjectWithMPP
 import org.jetbrains.kotlin.gradle.util.kotlin
+import org.jetbrains.kotlin.util.assertThrows
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -51,18 +54,29 @@ class KotlinNativeLinkTest {
         }
 
         // 1. Configure KotlinNativeLink's apiFiles before compilation's apiConfiguration is wired. Using apiFilesConfiguration directly here because apiFiles is filtered by File.exists check
-        val apiFiles = (exportingProject.tasks.getByName("linkReleaseStaticLinuxArm64") as KotlinNativeLink).apiFilesConfiguration
+        val apiFiles = (exportingProject.tasks.getByName("linkReleaseStaticLinuxArm64") as KotlinNativeLink).apiFiles
 
         // 2. Set up the compilations
         exportingProject.evaluate()
 
         assertEquals(
             hashSetOf(
-                apiInCommon.layout.buildDirectory.file("classes/kotlin/linuxArm64/main/klib/apiInCommon.klib").get().asFile,
-                apiInLinux.layout.buildDirectory.file("classes/kotlin/linuxArm64/main/klib/apiInLinux.klib").get().asFile,
+                apiInCommon.layout.buildDirectory.file("classes/kotlin/linuxArm64/main/klib/apiInCommon").get().asFile,
+                apiInLinux.layout.buildDirectory.file("classes/kotlin/linuxArm64/main/klib/apiInLinux").get().asFile,
             ),
-            apiFiles.resolve(),
+            apiFiles.files,
         )
+    }
+
+    @Test
+    fun `KT-72112 - eager KotlinNativeLink task instantiation - doesn't fail configuration`() {
+        buildProjectWithMPP {
+            // Force all tasks to instantiate eagerly
+            tasks.all { }
+            kotlin {
+                iosSimulatorArm64().binaries.framework { }
+            }
+        }.evaluate()
     }
 
 }

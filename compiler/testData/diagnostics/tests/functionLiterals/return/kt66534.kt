@@ -1,4 +1,5 @@
-// ISSUE: KT-66534
+// RUN_PIPELINE_TILL: FRONTEND
+// ISSUE: KT-66534, KT-66954
 // WITH_STDLIB
 
 // FILE: A.java
@@ -77,6 +78,14 @@ val expectedNullableUnitExplicitReturnNull: () -> Unit? = l@ {
 fun expectedFlexibleUnitExplicitReturnNull() {
     A.foo = l@ {
         return@l null
+    }
+}
+
+fun nullableUnit(): Unit? = null
+
+fun expectedFlexibleUnitImplicitReturnNull() {
+    A.foo = l@ {
+        return@l nullableUnit()
     }
 }
 

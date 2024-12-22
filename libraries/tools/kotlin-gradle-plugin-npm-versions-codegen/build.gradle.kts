@@ -6,8 +6,8 @@ dependencies {
     implementation(kotlinStdlib("jdk8"))
     implementation(libs.ktor.client.cio)
     implementation(libs.gson)
-    implementation("org.apache.velocity:velocity:1.7")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.0.0")
+    implementation("org.apache.velocity:velocity-engine-core:2.3")
+    implementation(libs.kotlinx.serialization.core)
 }
 
 val generateNpmVersions by generator(

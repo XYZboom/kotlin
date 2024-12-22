@@ -80,12 +80,6 @@ public class IrBytecodeListingTestGenerated extends AbstractIrBytecodeListingTes
   }
 
   @Test
-  @TestMetadata("companionObjectVisibility_before.kt")
-  public void testCompanionObjectVisibility_before() {
-    runTest("compiler/testData/codegen/bytecodeListing/companionObjectVisibility_before.kt");
-  }
-
-  @Test
   @TestMetadata("defaultImpls.kt")
   public void testDefaultImpls() {
     runTest("compiler/testData/codegen/bytecodeListing/defaultImpls.kt");
@@ -332,6 +326,24 @@ public class IrBytecodeListingTestGenerated extends AbstractIrBytecodeListingTes
     @TestMetadata("annotationCtorCallNoSynthetic.kt")
     public void testAnnotationCtorCallNoSynthetic() {
       runTest("compiler/testData/codegen/bytecodeListing/annotations/annotationCtorCallNoSynthetic.kt");
+    }
+
+    @Test
+    @TestMetadata("annotationDefaultTargetFirstOnly.kt")
+    public void testAnnotationDefaultTargetFirstOnly() {
+      runTest("compiler/testData/codegen/bytecodeListing/annotations/annotationDefaultTargetFirstOnly.kt");
+    }
+
+    @Test
+    @TestMetadata("annotationDefaultTargetParamProperty.kt")
+    public void testAnnotationDefaultTargetParamProperty() {
+      runTest("compiler/testData/codegen/bytecodeListing/annotations/annotationDefaultTargetParamProperty.kt");
+    }
+
+    @Test
+    @TestMetadata("annotationMixedTargeting.kt")
+    public void testAnnotationMixedTargeting() {
+      runTest("compiler/testData/codegen/bytecodeListing/annotations/annotationMixedTargeting.kt");
     }
 
     @Test
@@ -1828,12 +1840,6 @@ public class IrBytecodeListingTestGenerated extends AbstractIrBytecodeListingTes
       public void testNew() {
         runTest("compiler/testData/codegen/bytecodeListing/inlineClasses/stdlibManglingIn1430/new.kt");
       }
-
-      @Test
-      @TestMetadata("old.kt")
-      public void testOld() {
-        runTest("compiler/testData/codegen/bytecodeListing/inlineClasses/stdlibManglingIn1430/old.kt");
-      }
     }
   }
 
@@ -1914,6 +1920,28 @@ public class IrBytecodeListingTestGenerated extends AbstractIrBytecodeListingTes
           public void testPrimitiveAndNullable() {
             runTest("compiler/testData/codegen/bytecodeListing/jvm8/defaults/allCompatibility/specialization/primitiveAndNullable.kt");
           }
+        }
+      }
+
+      @Nested
+      @TestMetadata("compiler/testData/codegen/bytecodeListing/jvm8/defaults/defaultCompatibilityBridges")
+      @TestDataPath("$PROJECT_ROOT")
+      public class DefaultCompatibilityBridges {
+        @Test
+        public void testAllFilesPresentInDefaultCompatibilityBridges() {
+          KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/bytecodeListing/jvm8/defaults/defaultCompatibilityBridges"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM_IR, true);
+        }
+
+        @Test
+        @TestMetadata("annotations.kt")
+        public void testAnnotations() {
+          runTest("compiler/testData/codegen/bytecodeListing/jvm8/defaults/defaultCompatibilityBridges/annotations.kt");
+        }
+
+        @Test
+        @TestMetadata("noBridgeIfSuperMethodIsAbstract.kt")
+        public void testNoBridgeIfSuperMethodIsAbstract() {
+          runTest("compiler/testData/codegen/bytecodeListing/jvm8/defaults/defaultCompatibilityBridges/noBridgeIfSuperMethodIsAbstract.kt");
         }
       }
 
@@ -2347,12 +2375,6 @@ public class IrBytecodeListingTestGenerated extends AbstractIrBytecodeListingTes
     }
 
     @Test
-    @TestMetadata("sealedClassConstructor_1_4.kt")
-    public void testSealedClassConstructor_1_4() {
-      runTest("compiler/testData/codegen/bytecodeListing/sealed/sealedClassConstructor_1_4.kt");
-    }
-
-    @Test
     @TestMetadata("sealedClassConstructor_1_5.kt")
     public void testSealedClassConstructor_1_5() {
       runTest("compiler/testData/codegen/bytecodeListing/sealed/sealedClassConstructor_1_5.kt");
@@ -2555,6 +2577,18 @@ public class IrBytecodeListingTestGenerated extends AbstractIrBytecodeListingTes
       @TestMetadata("partiallySpecializedClass.kt")
       public void testPartiallySpecializedClass() {
         runTest("compiler/testData/codegen/bytecodeListing/specialBridges/signatures/partiallySpecializedClass.kt");
+      }
+
+      @Test
+      @TestMetadata("withPlatformDependentDeclarations.kt")
+      public void testWithPlatformDependentDeclarations() {
+        runTest("compiler/testData/codegen/bytecodeListing/specialBridges/signatures/withPlatformDependentDeclarations.kt");
+      }
+
+      @Test
+      @TestMetadata("withoutPlatformDependentDeclarations.kt")
+      public void testWithoutPlatformDependentDeclarations() {
+        runTest("compiler/testData/codegen/bytecodeListing/specialBridges/signatures/withoutPlatformDependentDeclarations.kt");
       }
     }
   }

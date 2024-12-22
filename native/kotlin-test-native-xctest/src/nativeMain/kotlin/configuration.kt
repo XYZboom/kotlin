@@ -74,7 +74,13 @@ private fun testArguments(key: String): Array<String> {
     (NSProcessInfo.processInfo.arguments as? List<String>)?.let {
         // Drop the first element containing executable name.
         // See https://developer.apple.com/documentation/foundation/nsprocessinfo/1415596-arguments
-        return it.drop(1).toTypedArray()
+        // Then filter only relevant to the runner arguments.
+        val args = it.drop(1)
+            .filter { argument ->
+                argument.startsWith("--gtest_") || argument.startsWith("--ktest_") ||
+                        argument == "--help" || argument == "-h"
+            }.toTypedArray()
+        if (args.isNotEmpty()) return args
     }
 
     (NSProcessInfo.processInfo.environment[key] as? String)?.let {

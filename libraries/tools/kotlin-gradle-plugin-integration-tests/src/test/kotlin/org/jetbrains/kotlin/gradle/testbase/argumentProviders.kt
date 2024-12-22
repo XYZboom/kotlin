@@ -7,9 +7,7 @@ package org.jetbrains.kotlin.gradle.testbase
 
 import org.gradle.api.JavaVersion
 import org.gradle.util.GradleVersion
-import org.junit.jupiter.api.extension.ConditionEvaluationResult
-import org.junit.jupiter.api.extension.ExecutionCondition
-import org.junit.jupiter.api.extension.ExtensionContext
+import org.junit.jupiter.api.extension.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.ArgumentsProvider
@@ -32,6 +30,30 @@ annotation class GradleTestVersions(
 )
 
 /**
+ * Adds another dimension of arguments alongside Gradle Version
+ * Example:
+ *
+ * ```
+ * class SomeGradleTest {
+ *   @GradleTest
+ *   @GradleTestExtraStringArguments("a", "b")
+ *   fun testMethod(gradleVersion: GradleVersion, extra: String) {
+ *      // JUnit will invoke testMethod as follows
+ *      // testMethod(GradleVersion.MIN, "a")
+ *      // testMethod(GradleVersion.MIN, "b")
+ *      // testMethod(GradleVersion.MAX, "a")
+ *      // testMethod(GradleVersion.MAX, "b")
+ *   }
+ * }
+ * ```
+ */
+@Target(AnnotationTarget.FUNCTION, AnnotationTarget.ANNOTATION_CLASS, AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class GradleTestExtraStringArguments(
+    vararg val values: String
+)
+
+/**
  * Parameterized test against different Gradle versions.
  * Test should accept [GradleVersion] as a parameter.
  *
@@ -47,7 +69,7 @@ annotation class GradleTestVersions(
 @ArgumentsSource(GradleArgumentsProvider::class)
 annotation class GradleTest
 
-inline fun <reified T : Annotation> findAnnotation(context: ExtensionContext): T {
+inline fun <reified T : Annotation> findAnnotationOrNull(context: ExtensionContext): T? {
     var nextSuperclass: Class<*>? = context.testClass.get().superclass
     val superClassSequence = if (nextSuperclass != null) {
         generateSequence {
@@ -73,7 +95,23 @@ inline fun <reified T : Annotation> findAnnotation(context: ExtensionContext): T
             .mapNotNull { annotation ->
                 annotation.annotationClass.annotations.firstOrNull { it is T }
             }
-            .first() as T
+            .firstOrNull() as T?
+}
+
+inline fun <reified T : Annotation> findAnnotation(context: ExtensionContext): T {
+    return findAnnotationOrNull(context) ?: error("Couldn't find @${T::class.java.simpleName} in the test or the test class hierarchy")
+}
+
+open class GradleParameterResolver : ParameterResolver {
+    override fun supportsParameter(parameterContext: ParameterContext, extensionContext: ExtensionContext): Boolean {
+        return parameterContext.parameter.type == GradleVersion::class.java
+    }
+
+    override fun resolveParameter(parameterContext: ParameterContext, extensionContext: ExtensionContext): Any? {
+        val versionFilter = extensionContext.getConfigurationParameter("gradle.integration.tests.gradle.version.filter")
+            .map { GradleVersion.version(it) }
+        return if (versionFilter.isPresent) versionFilter.get() else null
+    }
 }
 
 open class GradleArgumentsProvider : ArgumentsProvider {
@@ -84,15 +122,21 @@ open class GradleArgumentsProvider : ArgumentsProvider {
         val versionFilter = context.getConfigurationParameter("gradle.integration.tests.gradle.version.filter")
             .map { GradleVersion.version(it) }
 
+        val extraArguments = extraArguments(context) ?: emptyArray()
+
         return gradleVersions
             .asSequence()
             .filter { gradleVersion -> versionFilter.map { gradleVersion == it }.orElse(true) }
-            .map { Arguments.of(it) }
+            .flatMap { gradleVersion ->
+                if (extraArguments.isNotEmpty()) {
+                    extraArguments.asSequence().map { extraArgument -> Arguments.of(gradleVersion, extraArgument) }
+                } else sequenceOf(Arguments.of(gradleVersion))
+            }
             .asStream()
     }
 
     protected fun gradleVersions(context: ExtensionContext): Set<GradleVersion> {
-        val versionsAnnotation = findAnnotation<GradleTestVersions>(context)
+        val versionsAnnotation = findAnnotationOrNull<GradleTestVersions>(context) ?: GradleTestVersions()
 
         fun max(a: GradleVersion, b: GradleVersion) = if (a >= b) a else b
         val minGradleVersion = GradleVersion.version(versionsAnnotation.minVersion)
@@ -109,6 +153,11 @@ open class GradleArgumentsProvider : ArgumentsProvider {
         }
 
         return setOf(minGradleVersion, *additionalGradleVersions.toTypedArray(), maxGradleVersion)
+    }
+
+    protected fun extraArguments(context: ExtensionContext): Array<out String>? {
+        val extraArgumentsAnnotation = findAnnotationOrNull<GradleTestExtraStringArguments>(context)
+        return extraArgumentsAnnotation?.values
     }
 }
 
@@ -169,17 +218,19 @@ class GradleAndJdkArgumentsProvider : GradleArgumentsProvider() {
 
         return providedJdks
             .flatMap { providedJdk ->
-                val minSupportedGradleVersion = jdkGradleCompatibilityMatrix[providedJdk.version]
+                val allSupportedGradleVersions = jdkGradleCompatibilityMatrix
+                    .filter { providedJdk.version in it.javaVersions }
+
+                check(allSupportedGradleVersions.isNotEmpty()) {
+                    "Could not find suitable Gradle version for $providedJdk. Please update the compatibility matrix."
+                }
+
+                val supportedGradleVersionsRange =
+                    allSupportedGradleVersions.first().gradleVersions.start..allSupportedGradleVersions.last().gradleVersions.endInclusive
                 gradleVersions
                     .run {
-                        if (jdkAnnotation.compatibleWithGradle && minSupportedGradleVersion != null) {
-                            val initialVersionsCount = count()
-                            val filteredVersions = filter { it >= minSupportedGradleVersion }
-                            if (initialVersionsCount > filteredVersions.count()) {
-                                (filteredVersions + minSupportedGradleVersion).toSet()
-                            } else {
-                                filteredVersions
-                            }
+                        if (jdkAnnotation.compatibleWithGradle) {
+                            gradleVersionsWorkingWithJdk(supportedGradleVersionsRange, providedJdk)
                         } else this
                     }
                     .map { it to providedJdk }
@@ -192,11 +243,57 @@ class GradleAndJdkArgumentsProvider : GradleArgumentsProvider() {
             .asStream()
     }
 
+    private fun Set<GradleVersion>.gradleVersionsWorkingWithJdk(
+        allSupportedForJdkGradleVersionRange: ClosedRange<GradleVersion>,
+        requestedJdk: JdkVersions.ProvidedJdk,
+    ): Set<GradleVersion> {
+        val initialVersionsCount = count()
+        val filteredVersions = filter { it in allSupportedForJdkGradleVersionRange }
+        return when {
+            // All Gradle versions fit
+            filteredVersions.count() == initialVersionsCount -> this
+            // No Gradle versions fit
+            filteredVersions.count() == 0 -> error(
+                "Requested Gradle versions ${this.joinToString()} are not compatible with JDK ${requestedJdk.version}."
+            )
+            // Some Gradle versions fit
+            filteredVersions.count() <= initialVersionsCount -> {
+                filteredVersions.toSet()
+            }
+            else -> error(
+                "Failed to match JDK version ${requestedJdk.version} to ${this.joinToString()} - result: ${filteredVersions.joinToString()}"
+            )
+        }
+    }
+
     companion object {
-        private val jdkGradleCompatibilityMatrix = mapOf(
-            JavaVersion.VERSION_16 to GradleVersion.version(TestVersions.Gradle.G_7_0),
-            JavaVersion.VERSION_17 to GradleVersion.version(TestVersions.Gradle.G_7_3),
-            JavaVersion.VERSION_21 to GradleVersion.version(TestVersions.Gradle.G_7_3),
+        private data class GradleJavaVersionsRange(
+            val gradleVersions: ClosedRange<GradleVersion>,
+            val javaVersions: ClosedRange<JavaVersion>,
+        )
+
+        // https://docs.gradle.org/current/userguide/compatibility.html#java_runtime
+        private val jdkGradleCompatibilityMatrix = setOf<GradleJavaVersionsRange>(
+            GradleJavaVersionsRange(
+                gradleVersions = GradleVersion.version(TestVersions.Gradle.G_7_6)..GradleVersion.version(TestVersions.Gradle.G_8_2),
+                javaVersions = JavaVersion.VERSION_1_8..JavaVersion.VERSION_19,
+            ),
+            GradleJavaVersionsRange(
+                gradleVersions = GradleVersion.version(TestVersions.Gradle.G_8_3)..GradleVersion.version(TestVersions.Gradle.G_8_4),
+                javaVersions = JavaVersion.VERSION_1_8..JavaVersion.VERSION_20,
+            ),
+            GradleJavaVersionsRange(
+                gradleVersions = GradleVersion.version(TestVersions.Gradle.G_8_5)..GradleVersion.version(TestVersions.Gradle.G_8_7),
+                javaVersions = JavaVersion.VERSION_1_8..JavaVersion.VERSION_21,
+            ),
+            GradleJavaVersionsRange(
+                gradleVersions = GradleVersion.version(TestVersions.Gradle.G_8_8)..GradleVersion.version(TestVersions.Gradle.G_8_9),
+                javaVersions = JavaVersion.VERSION_1_8..JavaVersion.VERSION_22,
+            ),
+            GradleJavaVersionsRange(
+                gradleVersions = GradleVersion.version(TestVersions.Gradle.G_8_10)..GradleVersion.version(TestVersions.Gradle.G_8_11),
+                javaVersions = JavaVersion.VERSION_17..JavaVersion.VERSION_23,
+            ),
         )
     }
 }

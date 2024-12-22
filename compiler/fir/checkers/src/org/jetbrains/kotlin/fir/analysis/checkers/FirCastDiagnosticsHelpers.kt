@@ -10,7 +10,8 @@ import org.jetbrains.kotlin.fir.declarations.utils.isLocal
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.getClassAndItsOuterClassesWhenLocal
-import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutorByMap
+import org.jetbrains.kotlin.fir.resolve.substitution.substitutorByMap
+import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
@@ -28,7 +29,7 @@ fun isCastErased(supertype: ConeKotlinType, subtype: ConeKotlinType, context: Ch
     // here we want to restrict cases such as `x is T` for x = T?, when T might have nullable upper bound
     if (isNonReifiedTypeParameter && !isUpcast) {
         // hack to save previous behavior in case when `x is T`, where T is not nullable, see IsErasedNullableTasT.kt
-        val nullableToDefinitelyNotNull = !subtype.canBeNull(context.session) && supertype.withNullability(ConeNullability.NOT_NULL, typeContext) == subtype
+        val nullableToDefinitelyNotNull = !subtype.canBeNull(context.session) && supertype.withNullability(nullable = false, typeContext) == subtype
         if (!nullableToDefinitelyNotNull) {
             return true
         }
@@ -37,8 +38,8 @@ fun isCastErased(supertype: ConeKotlinType, subtype: ConeKotlinType, context: Ch
     // cast between T and T? is always OK
     if ((supertype !is ConeErrorType && supertype.isMarkedNullable) || (subtype !is ConeErrorType && subtype.isMarkedNullable)) {
         return isCastErased(
-            supertype.withNullability(ConeNullability.NOT_NULL, typeContext),
-            subtype.withNullability(ConeNullability.NOT_NULL, typeContext),
+            supertype.withNullability(nullable = false, typeContext),
+            subtype.withNullability(nullable = false, typeContext),
             context
         )
     }
@@ -148,7 +149,7 @@ fun findStaticallyKnownSubtype(
             val resultValue = when (val value = substitution[variable]) {
                 null -> null
                 is ConeStarProjection -> {
-                    ConeStubTypeForTypeVariableInSubtyping(ConeTypeVariable("", null), ConeNullability.NULLABLE)
+                    ConeStubTypeForTypeVariableInSubtyping(ConeTypeVariable("", null), isMarkedNullable = true)
                 }
                 else -> value.type
             }
@@ -160,7 +161,7 @@ fun findStaticallyKnownSubtype(
 
     // At this point we have values for all type parameters of List
     // Let's make a type by substituting them: List<T> -> List<Foo>
-    val substitutor = ConeSubstitutorByMap.create(resultSubstitution, session)
+    val substitutor = substitutorByMap(resultSubstitution, session)
     return substitutor.substituteOrSelf(subtypeWithVariablesType)
 }
 
@@ -193,8 +194,8 @@ internal fun isRefinementUseless(
             // Normalize `targetType` for cases like the following:
             // fun f(x: Int?) { x as? Int } // USELESS_CAST is reasonable here
             val refinedTargetType =
-                if (expression.operation == FirOperation.SAFE_AS && lhsType.isNullable) {
-                    targetType.withNullability(ConeNullability.NULLABLE, context.session.typeContext)
+                if (expression.operation == FirOperation.SAFE_AS && lhsType.isMarkedOrFlexiblyNullable) {
+                    targetType.withNullability(nullable = true, context.session.typeContext)
                 } else {
                     targetType
                 }

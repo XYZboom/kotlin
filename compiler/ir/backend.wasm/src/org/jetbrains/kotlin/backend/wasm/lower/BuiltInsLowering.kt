@@ -29,6 +29,8 @@ import org.jetbrains.kotlin.ir.util.toIrConst
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.getArrayElementType
+import org.jetbrains.kotlin.ir.util.isNullable
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.name.parentOrNull
 
@@ -131,7 +133,7 @@ class BuiltInsLowering(val context: WasmBackendContext) : FileLoweringPass {
                 return builder.irCall(symbols.throwNoBranchMatchedException, irBuiltins.nothingType)
 
             irBuiltins.illegalArgumentExceptionSymbol ->
-                return builder.irCall(symbols.throwIAE, irBuiltins.nothingType, 1).apply {
+                return builder.irCall(symbols.throwIAE, irBuiltins.nothingType).apply {
                     putValueArgument(0, call.getValueArgument(0)!!)
                 }
 
@@ -154,7 +156,7 @@ class BuiltInsLowering(val context: WasmBackendContext) : FileLoweringPass {
                 ).apply {
                     extensionReceiver = argument
                     if (argumentType.classOrNull == irBuiltins.arrayClass) {
-                        putTypeArgument(0, argumentType.getArrayElementType(irBuiltins))
+                        typeArguments[0] = argumentType.getArrayElementType(irBuiltins)
                     }
                 }
             }
@@ -164,7 +166,7 @@ class BuiltInsLowering(val context: WasmBackendContext) : FileLoweringPass {
                 return irCall(call, newSymbol, argumentsAsReceivers = true)
             }
             context.reflectionSymbols.getKClass -> {
-                val type = call.getTypeArgument(0)!!
+                val type = call.typeArguments[0]!!
                 val klass = type.classOrNull?.owner ?: error("Invalid type")
 
                 val constructorArgument: IrExpression
@@ -184,7 +186,6 @@ class BuiltInsLowering(val context: WasmBackendContext) : FileLoweringPass {
                     type = kclassConstructor.returnType,
                     symbol = kclassConstructor.symbol,
                     typeArgumentsCount = 1,
-                    valueArgumentsCount = 1,
                     constructorTypeArgumentsCount = 0
                 ).also {
                     it.putClassTypeArgument(0, type)
@@ -207,7 +208,7 @@ class BuiltInsLowering(val context: WasmBackendContext) : FileLoweringPass {
         val klass = type.classOrNull?.owner ?: error("Invalid type")
 
         val typeId = builder.irCall(symbols.wasmTypeId).also {
-            it.putTypeArgument(0, type)
+            it.typeArguments[0] = type
         }
 
         if (!klass.isInterface) {
@@ -232,9 +233,7 @@ class BuiltInsLowering(val context: WasmBackendContext) : FileLoweringPass {
     private fun getExternalKClassCtorArgument(type: IrType, builder: DeclarationIrBuilder): IrExpression {
         val klass = type.classOrNull?.owner ?: error("Invalid type")
         check(klass.kind != ClassKind.INTERFACE) { "External interface must not be a class literal" }
-        val classGetClassFunction = context.mapping.wasmGetJsClass[klass]!!
-        val wrappedGetClassIfAny = context.mapping.wasmJsInteropFunctionToWrapper[classGetClassFunction] ?: classGetClassFunction
-        return builder.irCall(wrappedGetClassIfAny)
+        return builder.irCall(context.mapping.wasmGetJsClass[klass]!!)
     }
 
     override fun lower(irFile: IrFile) {

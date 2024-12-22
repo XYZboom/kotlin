@@ -35,6 +35,7 @@ val (nativeInteropRuntimeSourceSet, nativeInteropRuntimeApi) = extraSourceSet("n
 
 dependencies {
     api(kotlinStdlib("jdk8"))
+    api(project(":core:util.runtime"))
     api(intellijPlatformUtil()) {
         exclude(module = "annotations")
     }
@@ -57,7 +58,6 @@ dependencies {
     testApi(projectTests(":compiler:cli"))
     testApi(projectTests(":compiler:incremental-compilation-impl"))
     testApi(projectTests(":plugins:jvm-abi-gen"))
-    testApi(projectTests(":plugins:android-extensions-compiler"))
     testApi(projectTests(":plugins:parcelize:parcelize-compiler"))
     testApi(projectTests(":kotlin-annotation-processing-compiler"))
     testApi(projectTests(":kotlin-annotation-processing-cli"))
@@ -70,9 +70,13 @@ dependencies {
     testApi(projectTests(":kotlin-assignment-compiler-plugin"))
     testApi(projectTests(":kotlinx-serialization-compiler-plugin"))
     testApi(projectTests(":kotlin-atomicfu-compiler-plugin"))
-    testApi(projectTests(":plugins:fir-plugin-prototype"))
-    testApi(projectTests(":plugins:fir-plugin-prototype:fir-plugin-ic-test"))
+    testImplementation(projectTests(":analysis:analysis-api-impl-base"))
+    testImplementation(projectTests(":analysis:analysis-test-framework"))
+    testApi(projectTests(":plugins:plugin-sandbox"))
+    testApi(projectTests(":plugins:plugin-sandbox:plugin-sandbox-ic-test"))
+    testApi(projectTests(":plugins:plugins-interactions-testing"))
     testApi(projectTests(":generators:test-generator"))
+    testApi(projectTests(":generators:analysis-api-generator"))
     testApi(projectTests(":plugins:scripting:scripting-tests"))
     testImplementation(commonDependency("org.jetbrains.kotlin:kotlin-reflect")) { isTransitive = false }
     testImplementation(projectTests(":compiler:test-infrastructure-utils"))
@@ -84,11 +88,6 @@ dependencies {
     testApi(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
-
-    if (Ide.IJ()) {
-        testCompileOnly(jpsBuildTest())
-        testApi(jpsBuildTest())
-    }
 }
 
 

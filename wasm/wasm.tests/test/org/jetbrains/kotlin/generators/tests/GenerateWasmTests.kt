@@ -7,6 +7,8 @@ package org.jetbrains.kotlin.generators.tests
 
 import org.jetbrains.kotlin.generators.generateTestGroupSuiteWithJUnit5
 import org.jetbrains.kotlin.generators.util.TestGeneratorUtil
+import org.jetbrains.kotlin.incremental.AbstractFirWasmInvalidationTest
+import org.jetbrains.kotlin.incremental.AbstractFirWasmInvalidationWithPLTest
 import org.jetbrains.kotlin.wasm.test.AbstractWasmPartialLinkageWithICTestCase
 import org.jetbrains.kotlin.test.TargetBackend
 import org.jetbrains.kotlin.wasm.test.*
@@ -20,10 +22,11 @@ fun main(args: Array<String>) {
 
     // Common configuration shared between K1 and K2 tests:
     val jvmOnlyBoxTests = listOf("compileKotlinAgainstKotlin")
+    val k1BoxTestDir = "multiplatform/k1"
     val k2BoxTestDir = "multiplatform/k2"
 
     val jsTranslatorTestPattern = "^([^_](.+))\\.kt$"
-    val jsTranslatorReflectionPattern = "^(findAssociatedObject(InSeparatedFile)?(Lazyness)?)\\.kt$"
+    val jsTranslatorReflectionPattern = "^(findAssociatedObject(InSeparatedFile)?(Lazyness)?(AndDCE)?)\\.kt$"
     val jsTranslatorEsModulesExcludedDirs = listOf(
         // JsExport is not supported for classes
         "jsExport", "native", "export",
@@ -47,6 +50,25 @@ fun main(args: Array<String>) {
         testGroup("wasm/wasm.tests/tests-gen", "compiler/testData") {
             testClass<AbstractFirWasmPartialLinkageNoICTestCase> {
                 model("klib/partial-linkage/", pattern = "^([^_](.+))$", targetBackend = TargetBackend.WASM, recursive = false)
+            }
+        }
+
+        testGroup("wasm/wasm.tests/tests-gen", "js/js.translator/testData") {
+            testClass<AbstractFirWasmInvalidationTest> {
+                model(
+                    "incremental/invalidation/",
+                    pattern = "^([^_](.+))$",
+                    targetBackend = TargetBackend.WASM,
+                    recursive = false,
+                )
+            }
+            testClass<AbstractFirWasmInvalidationWithPLTest> {
+                model(
+                    "incremental/invalidationWithPL/",
+                    pattern = "^([^_](.+))$",
+                    targetBackend = TargetBackend.WASM,
+                    recursive = false,
+                )
             }
         }
     }
@@ -83,7 +105,7 @@ fun main(args: Array<String>) {
 
         testGroup("wasm/wasm.tests/tests-gen", "compiler/testData", testRunnerMethodName = "runTest0") {
             testClass<AbstractFirWasmJsCodegenBoxTest> {
-                model("codegen/box", pattern = jsTranslatorTestPattern, excludeDirs = jvmOnlyBoxTests)
+                model("codegen/box", pattern = jsTranslatorTestPattern, excludeDirs = jvmOnlyBoxTests + k1BoxTestDir)
             }
 
             testClass<AbstractFirWasmJsCodegenBoxInlineTest> {

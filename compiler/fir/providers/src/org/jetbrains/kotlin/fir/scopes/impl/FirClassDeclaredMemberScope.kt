@@ -10,8 +10,9 @@ import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.classId
 import org.jetbrains.kotlin.fir.declarations.utils.isSynthetic
 import org.jetbrains.kotlin.fir.isEnumEntries
-import org.jetbrains.kotlin.fir.resolve.providers.FirSymbolProvider
+import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
+import org.jetbrains.kotlin.fir.scopes.DelicateScopeAPI
 import org.jetbrains.kotlin.fir.scopes.FirContainingNamesAwareScope
 import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.name.ClassId
@@ -20,19 +21,21 @@ import org.jetbrains.kotlin.name.SpecialNames
 import org.jetbrains.kotlin.utils.SmartList
 
 abstract class FirClassDeclaredMemberScope(val classId: ClassId) : FirContainingNamesAwareScope() {
-
     override val scopeOwnerLookupNames: List<String> = SmartList(classId.asFqNameString())
+
+    @DelicateScopeAPI
+    abstract override fun withReplacedSessionOrNull(newSession: FirSession, newScopeSession: ScopeSession): FirClassDeclaredMemberScope?
 }
 
 class FirClassDeclaredMemberScopeImpl(
     val useSiteSession: FirSession,
-    klass: FirClass,
-    useLazyNestedClassifierScope: Boolean = false,
-    existingNames: List<Name>? = null,
-    symbolProvider: FirSymbolProvider? = null
+    private val klass: FirClass,
+    private val existingNamesForLazyNestedClassifierScope: List<Name>?,
 ) : FirClassDeclaredMemberScope(klass.classId) {
-    private val nestedClassifierScope: FirContainingNamesAwareScope? = if (useLazyNestedClassifierScope) {
-        lazyNestedClassifierScope(klass.symbol.classId, existingNames!!, symbolProvider!!)
+    // Note: this kind of scope contains both static and non-static classifiers
+    // Some discussion about it can be found in KT-62023
+    private val nestedClassifierScope: FirContainingNamesAwareScope? = if (existingNamesForLazyNestedClassifierScope != null) {
+        lazyNestedClassifierScope(useSiteSession, klass.symbol.classId, existingNamesForLazyNestedClassifierScope)
     } else {
         useSiteSession.nestedClassifierScope(klass)
     }
@@ -96,5 +99,10 @@ class FirClassDeclaredMemberScopeImpl(
 
     override fun getClassifierNames(): Set<Name> {
         return nestedClassifierScope?.getClassifierNames().orEmpty()
+    }
+
+    @DelicateScopeAPI
+    override fun withReplacedSessionOrNull(newSession: FirSession, newScopeSession: ScopeSession): FirClassDeclaredMemberScopeImpl {
+        return FirClassDeclaredMemberScopeImpl(newSession, klass, existingNamesForLazyNestedClassifierScope)
     }
 }

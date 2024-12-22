@@ -15,10 +15,15 @@ import org.jetbrains.kotlin.fir.declarations.utils.isCompanion
 import org.jetbrains.kotlin.fir.declarations.utils.isInner
 import org.jetbrains.kotlin.fir.expressions.FirCallableReferenceAccess
 import org.jetbrains.kotlin.fir.expressions.FirWhenExpression
+import org.jetbrains.kotlin.fir.extensions.extensionService
+import org.jetbrains.kotlin.fir.extensions.replSnippetResolveExtensions
 import org.jetbrains.kotlin.fir.languageVersionSettings
 import org.jetbrains.kotlin.fir.resolve.*
+import org.jetbrains.kotlin.fir.resolve.calls.ImplicitContextParameterValue
+import org.jetbrains.kotlin.fir.resolve.calls.ContextReceiverValue
 import org.jetbrains.kotlin.fir.resolve.calls.ImplicitExtensionReceiverValue
 import org.jetbrains.kotlin.fir.resolve.calls.ImplicitReceiverValue
+import org.jetbrains.kotlin.fir.resolve.calls.ImplicitReceiverValueForScriptOrSnippet
 import org.jetbrains.kotlin.fir.resolve.calls.InaccessibleImplicitReceiverValue
 import org.jetbrains.kotlin.fir.resolve.dfa.DataFlowAnalyzerContext
 import org.jetbrains.kotlin.fir.resolve.inference.FirInferenceSession
@@ -35,6 +40,7 @@ import org.jetbrains.kotlin.fir.symbols.impl.FirAnonymousFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.types.*
+import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.SpecialNames.UNDERSCORE_FOR_UNUSED_VAR
 import org.jetbrains.kotlin.util.PrivateForInline
@@ -69,8 +75,8 @@ class BodyResolveContext(
             regularTowerDataContexts = regularTowerDataContexts.replaceTowerDataMode(newMode = value)
         }
 
-    val implicitReceiverStack: ImplicitReceiverStack
-        get() = towerDataContext.implicitReceiverStack
+    val implicitValueStorage: ImplicitValueStorage
+        get() = towerDataContext.implicitValueStorage
 
     @set:PrivateForInline
     var containers: ArrayDeque<FirDeclaration> = ArrayDeque()
@@ -235,6 +241,11 @@ class BodyResolveContext(
     }
 
     @PrivateForInline
+    fun addAnonymousInitializer(anonymousInitializer: FirAnonymousInitializer) {
+        replaceTowerDataContext(towerDataContext.addAnonymousInitializer(anonymousInitializer))
+    }
+
+    @PrivateForInline
     private inline fun updateLastScope(transform: FirLocalScope.() -> FirLocalScope) {
         val lastScope = towerDataContext.localScopes.lastOrNull() ?: return
         replaceTowerDataContext(towerDataContext.setLastLocalScope(lastScope.transform()))
@@ -254,11 +265,24 @@ class BodyResolveContext(
         additionalLabelName: Name? = null,
         f: () -> T
     ): T = withTowerDataCleanup {
-        replaceTowerDataContext(towerDataContext.addContextReceiverGroup(owner.createContextReceiverValues(holder)))
+        val contextReceivers = mutableListOf<ContextReceiverValue>()
+        val contextParameters = mutableListOf<ImplicitContextParameterValue>()
+
+        owner.contextParameters.forEach { receiver ->
+            if (receiver.isLegacyContextReceiver()) {
+                contextReceivers += ContextReceiverValue(
+                    receiver.symbol, receiver.returnTypeRef.coneType, receiver.name, holder.session, holder.scopeSession,
+                )
+            } else {
+                contextParameters += ImplicitContextParameterValue(receiver.symbol, receiver.returnTypeRef.coneType)
+            }
+        }
+
+        replaceTowerDataContext(towerDataContext.addContextGroups(contextReceivers, contextParameters))
 
         if (type != null) {
             val receiver = ImplicitExtensionReceiverValue(
-                owner.symbol,
+                owner.receiverParameter!!.symbol,
                 type,
                 holder.session,
                 holder.scopeSession
@@ -284,7 +308,7 @@ class BodyResolveContext(
         return FirMemberTypeParameterScope(this)
     }
 
-    fun buildSecondaryConstructorParametersScope(constructor: FirConstructor, session: FirSession): FirLocalScope =
+    fun buildConstructorParametersScope(constructor: FirConstructor, session: FirSession): FirLocalScope =
         constructor.valueParameters.fold(FirLocalScope(session)) { acc, param -> acc.storeVariable(param, session) }
 
     @PrivateForInline
@@ -311,10 +335,21 @@ class BodyResolveContext(
 
     // ANALYSIS PUBLIC API
 
+    /**
+     * Pure parameters are those that are not properties.
+     * For example, in code `constructor(p1: Int, val p2: Int)` only `p1` is a pure parameter.
+     *
+     * To be used in contexts, where pure primary constructor parameters are accessible, e.g., property initializers.
+     * In primary constructor itself create new scope using [buildConstructorParametersScope].
+     */
     @OptIn(PrivateForInline::class)
     fun getPrimaryConstructorPureParametersScope(): FirLocalScope? =
         regularTowerDataContexts.primaryConstructorPureParametersScope
 
+    /**
+     * To be used in contexts, where primary constructor parameters are accessible, e.g., supertype delegate expression.
+     * In primary constructor itself create new scope using [buildConstructorParametersScope].
+     */
     @OptIn(PrivateForInline::class)
     fun getPrimaryConstructorAllParametersScope(): FirLocalScope? =
         regularTowerDataContexts.primaryConstructorAllParametersScope
@@ -494,7 +529,7 @@ class BodyResolveContext(
 
         val forMembersResolution = forConstructorHeader
             .addReceiver(labelName, towerElementsForClass.thisReceiver)
-            .addContextReceiverGroup(towerElementsForClass.contextReceivers)
+            .addContextGroups(towerElementsForClass.contextReceivers, emptyList())
 
         /*
          * Scope for enum entries is equal to initial scope for constructor header
@@ -562,7 +597,7 @@ class BodyResolveContext(
                 // TODO: temporary solution for avoiding problem described in KT-62712, flatten back after fix
                 .let { baseCtx ->
                     towerElementsForScript.implicitReceivers.fold(baseCtx) { ctx, it ->
-                        ctx.addContextReceiverGroup(listOf(it))
+                        ctx.addReceiver(it.type.classId?.shortClassName, it)
                     }
                 }
 
@@ -585,6 +620,43 @@ class BodyResolveContext(
     }
 
     @OptIn(PrivateForInline::class)
+    fun <T> withReplSnippet(
+        replSnippet: FirReplSnippet,
+        holder: SessionHolder,
+        f: () -> T
+    ): T {
+        return withContainer(replSnippet) {
+            withTowerDataCleanup {
+
+                // TODO: robuster matching and error reporting on no extension (KT-72969)
+                for (resolveExt in holder.session.extensionService.replSnippetResolveExtensions) {
+                    val scope = resolveExt.getSnippetScope(replSnippet, holder.session)
+                    if (scope != null) {
+                        addNonLocalTowerDataElement(scope.asTowerDataElement(isLocal = false))
+                        break
+                    }
+                }
+
+                addLocalScope(FirLocalScope(holder.session))
+
+                replSnippet.receivers.mapIndexed { index, receiver ->
+                    ImplicitReceiverValueForScriptOrSnippet(
+                        receiver.symbol,
+                        receiver.typeRef.coneType,
+                        holder.session,
+                        holder.scopeSession,
+                    )
+                }.asReversed().forEach {
+                    val additionalLabelName = it.type.abbreviatedTypeOrSelf.labelName(holder.session)
+                    addReceiver(null, it, additionalLabelName)
+                }
+
+                f()
+            }
+        }
+    }
+
+    @OptIn(PrivateForInline::class)
     fun <T> withCodeFragment(codeFragment: FirCodeFragment, holder: SessionHolder, f: () -> T): T {
         val codeFragmentContext = codeFragment.codeFragmentContext ?: error("Context is not set for a code fragment")
         val towerDataContext = codeFragmentContext.towerDataContext
@@ -593,6 +665,7 @@ class BodyResolveContext(
             .map { it.asTowerDataElement(isLocal = false) }
 
         val base = towerDataContext
+            // KT-69102: this line can lead to duplicate context receivers in the implicit receiver stack
             .addNonLocalTowerDataElements(towerDataContext.nonLocalTowerDataElements)
             .addNonLocalTowerDataElements(fragmentImportTowerDataElements)
 
@@ -626,8 +699,8 @@ class BodyResolveContext(
             session.languageVersionSettings.supportsFeature(LanguageFeature.ContextSensitiveEnumResolutionInWhen)
 
         if (withContextSensitiveResolution) {
-            val subjectClassSymbol = (subjectType as? ConeClassLikeType)
-                ?.lookupTag?.toFirRegularClassSymbol(session)?.takeIf { it.fir.classKind == ClassKind.ENUM_CLASS }
+            val subjectClassSymbol = (subjectType?.lowerBoundIfFlexible() as? ConeClassLikeType)
+                ?.lookupTag?.toRegularClassSymbol(session)?.takeIf { it.fir.classKind == ClassKind.ENUM_CLASS }
             val whenSubjectImportingScope = subjectClassSymbol?.let {
                 FirWhenSubjectImportingScope(it.classId, session, sessionHolder.scopeSession)
             }
@@ -692,12 +765,17 @@ class BodyResolveContext(
                 // Make all value parameters available in the local scope so that even one parameter that refers to another parameter,
                 // which may not be initialized yet, can be resolved. [FirFunctionParameterChecker] will detect and report an error
                 // if an uninitialized parameter is accessed by a preceding parameter.
+                for (contextParameter in function.contextParameters) {
+                    if (!contextParameter.isLegacyContextReceiver()) {
+                        storeVariable(contextParameter, holder.session)
+                    }
+                }
                 for (parameter in function.valueParameters) {
                     storeVariable(parameter, holder.session)
                 }
                 val receiverTypeRef = function.receiverParameter?.typeRef
                 val type = receiverTypeRef?.coneType
-                val additionalLabelName = type?.labelName(holder.session)
+                val additionalLabelName = type?.abbreviatedTypeOrSelf?.labelName(holder.session)
                 withLabelAndReceiverType(function.name, function, type, holder, additionalLabelName, f)
             } else {
                 f()
@@ -726,13 +804,13 @@ class BodyResolveContext(
              */
             withTowerDataMode(FirTowerDataMode.CONSTRUCTOR_HEADER) {
                 withTowerDataCleanup {
-                    getPrimaryConstructorAllParametersScope()?.let { addLocalScope(it) }
+                    addLocalScope(buildConstructorParametersScope(constructor, session))
                     f()
                 }
             }
         } else {
             withTowerDataCleanup {
-                addLocalScope(buildSecondaryConstructorParametersScope(constructor, session))
+                addLocalScope(buildConstructorParametersScope(constructor, session))
                 f()
             }
         }
@@ -814,6 +892,7 @@ class BodyResolveContext(
         return withTowerDataCleanup {
             getPrimaryConstructorPureParametersScope()?.let { addLocalScope(it) }
             addLocalScope(FirLocalScope(session))
+            addAnonymousInitializer(anonymousInitializer)
             withContainer(anonymousInitializer, f)
         }
     }
@@ -824,11 +903,17 @@ class BodyResolveContext(
         session: FirSession,
         f: () -> T
     ): T {
-        if (!valueParameter.name.isSpecial || valueParameter.name != UNDERSCORE_FOR_UNUSED_VAR) {
+        if ((!valueParameter.name.isSpecial || valueParameter.name != UNDERSCORE_FOR_UNUSED_VAR) && !valueParameter.isLegacyContextReceiver()) {
             storeVariable(valueParameter, session)
         }
         return withContainer(valueParameter, f)
     }
+
+    @OptIn(PrivateForInline::class)
+    inline fun <T> withReceiverParameter(
+        valueParameter: FirReceiverParameter,
+        f: () -> T
+    ): T = withContainer(valueParameter, f)
 
     @OptIn(PrivateForInline::class)
     inline fun <T> withProperty(
@@ -860,13 +945,13 @@ class BodyResolveContext(
             addLocalScope(FirLocalScope(holder.session))
             if (!forContracts && receiverTypeRef == null && property.returnTypeRef !is FirImplicitTypeRef &&
                 !property.isLocal && property.delegate == null &&
-                property.contextReceivers.isEmpty()
+                property.contextParameters.isEmpty()
             ) {
                 storeBackingField(property, holder.session)
             }
             withContainer(accessor) {
                 val type = receiverTypeRef?.coneType
-                val additionalLabelName = type?.labelName(holder.session)
+                val additionalLabelName = type?.abbreviatedTypeOrSelf?.labelName(holder.session)
                 withLabelAndReceiverType(property.name, property, type, holder, additionalLabelName, f)
             }
         }
@@ -915,20 +1000,12 @@ class BodyResolveContext(
         f: () -> T
     ): T {
         return withTowerDataMode(FirTowerDataMode.CONSTRUCTOR_HEADER) {
-            if (constructor.isPrimary) {
-                getPrimaryConstructorAllParametersScope()?.let {
-                    withTowerDataCleanup {
-                        addLocalScope(it)
-                        f()
-                    }
-                } ?: f()
-            } else {
-                addInaccessibleImplicitReceiverValue(owningClass, holder)
-                withTowerDataCleanup {
-                    addLocalScope(buildSecondaryConstructorParametersScope(constructor, holder.session))
-                    constructor.valueParameters.forEach { storeVariable(it, holder.session) }
-                    f()
+            withTowerDataCleanup {
+                if (!constructor.isPrimary) {
+                    addInaccessibleImplicitReceiverValue(owningClass, holder)
                 }
+                addLocalScope(buildConstructorParametersScope(constructor, holder.session))
+                f()
             }
         }
     }

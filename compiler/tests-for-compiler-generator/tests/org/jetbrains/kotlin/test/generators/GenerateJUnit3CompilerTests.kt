@@ -11,12 +11,7 @@ import org.jetbrains.kotlin.cfg.AbstractDataFlowTest
 import org.jetbrains.kotlin.cfg.AbstractPseudoValueTest
 import org.jetbrains.kotlin.cli.AbstractCliTest
 import org.jetbrains.kotlin.codegen.*
-import org.jetbrains.kotlin.codegen.defaultConstructor.AbstractDefaultArgumentsReflectionTest
-import org.jetbrains.kotlin.codegen.defaultConstructor.fir.AbstractFirLightTreeDefaultArgumentsReflectionTest
-import org.jetbrains.kotlin.codegen.defaultConstructor.fir.AbstractFirPsiDefaultArgumentsReflectionTest
-import org.jetbrains.kotlin.codegen.defaultConstructor.ir.AbstractIrDefaultArgumentsReflectionTest
 import org.jetbrains.kotlin.codegen.fir.*
-import org.jetbrains.kotlin.codegen.flags.AbstractWriteFlagsTest
 import org.jetbrains.kotlin.codegen.ir.*
 import org.jetbrains.kotlin.codegen.ir.AbstractIrWriteSignatureTest
 import org.jetbrains.kotlin.fir.builder.AbstractRawFirBuilderLazyBodiesByAstTest
@@ -36,8 +31,6 @@ import org.jetbrains.kotlin.jvm.compiler.fir.AbstractFirLightTreeCompileJavaAgai
 import org.jetbrains.kotlin.jvm.compiler.fir.AbstractFirPsiCompileJavaAgainstKotlinTest
 import org.jetbrains.kotlin.jvm.compiler.ir.*
 import org.jetbrains.kotlin.jvm.compiler.javac.AbstractLoadJavaUsingJavacTest
-import org.jetbrains.kotlin.klib.AbstractKlibIrTextTestCase
-import org.jetbrains.kotlin.klib.AbstractKlibJsIrTextTestCase
 import org.jetbrains.kotlin.lexer.kdoc.AbstractKDocLexerTest
 import org.jetbrains.kotlin.lexer.kotlin.AbstractKotlinLexerTest
 import org.jetbrains.kotlin.modules.xml.AbstractModuleXmlParserTest
@@ -55,11 +48,50 @@ fun generateJUnit3CompilerTests(args: Array<String>, mainClassName: String?) {
     val excludedCustomTestdataPattern = CUSTOM_TEST_DATA_EXTENSION_PATTERN
 
     generateTestGroupSuite(args, mainClassName) {
-        testGroup("compiler/tests-gen", "compiler/testData") {
+        testGroup("compiler/tests-integration/tests-gen", "compiler/testData") {
             testClass<AbstractMultiPlatformIntegrationTest> {
                 model("multiplatform", extension = null, recursive = true, excludeParentDirs = true)
             }
 
+            testClass<AbstractIrCustomScriptCodegenTest> {
+                model("codegen/customScript", pattern = "^(.*)$", targetBackend = TargetBackend.JVM_IR)
+            }
+
+            testClass<AbstractReplInterpreterTest> {
+                model("repl", extension = "repl")
+            }
+
+            testClass<AbstractCliTest> {
+                model("cli/jvm/readingConfigFromEnvironment", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/plugins", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/hmpp", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/apiVersion", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/argFileCommonChecks", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/diagnosticTests", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/extraArgCommonChecks", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/internalArgCommonChecks", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/jdkHome", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/languageVersion", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/optIn", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/sourcesCommonChecks", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XexplicitApi", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XjdkRelease", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XjspecifyAnnotation", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/Xjsr305", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XnewInference", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XsupressWarnings", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XXmultiPlatformProject", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/js", extension = "args", testMethod = "doJsTest", recursive = false)
+                model("cli/metadata", extension = "args", testMethod = "doMetadataTest", recursive = false)
+            }
+
+            testClass<AbstractAntTaskTest> {
+                model("integration/ant/jvm", extension = null, recursive = false)
+            }
+        }
+
+        testGroup("compiler/tests-gen", "compiler/testData") {
             testClass<AbstractResolveTest> {
                 model("resolve", extension = "resolve")
             }
@@ -96,40 +128,8 @@ fun generateJUnit3CompilerTests(args: Array<String>, mainClassName: String?) {
                 )
             }
 
-            testClass<AbstractKapt3BuilderModeBytecodeShapeTest> {
-                model("codegen/kapt", targetBackend = TargetBackend.JVM)
-            }
-
-            testClass<AbstractIrKapt3BuilderModeBytecodeShapeTest> {
+            testClass<AbstractKaptModeBytecodeShapeTest> {
                 model("codegen/kapt", targetBackend = TargetBackend.JVM_IR)
-            }
-
-            testClass<AbstractScriptCodegenTest> {
-                model("codegen/script", extension = "kts", targetBackend = TargetBackend.JVM, excludedPattern = excludedCustomTestdataPattern)
-            }
-
-            testClass<AbstractCustomScriptCodegenTest> {
-                model("codegen/customScript", pattern = "^(.*)$", targetBackend = TargetBackend.JVM)
-            }
-
-            testClass<AbstractIrCustomScriptCodegenTest> {
-                model("codegen/customScript", pattern = "^(.*)$", targetBackend = TargetBackend.JVM_IR)
-            }
-
-            testClass<AbstractTopLevelMembersInvocationTest> {
-                model("codegen/topLevelMemberInvocation", extension = null, recursive = false)
-            }
-
-            testClass<AbstractCheckLocalVariablesTableTest> {
-                model("checkLocalVariablesTable", targetBackend = TargetBackend.JVM)
-            }
-
-            testClass<AbstractWriteFlagsTest> {
-                model("writeFlags", targetBackend = TargetBackend.JVM)
-            }
-
-            testClass<AbstractDefaultArgumentsReflectionTest> {
-                model("codegen/defaultArguments/reflection")
             }
 
             testClass<AbstractLoadJavaTest> {
@@ -189,63 +189,8 @@ fun generateJUnit3CompilerTests(args: Array<String>, mainClassName: String?) {
                 model("loadJava17", extension = "java", testMethod = "doTestCompiledJava")
             }
 
-            testClass<AbstractCompileJavaAgainstKotlinTest> {
-                model(
-                    "compileJavaAgainstKotlin",
-                    testClassName = "WithoutJavac",
-                    testMethod = "doTestWithoutJavac",
-                    targetBackend = TargetBackend.JVM
-                )
-                model(
-                    "compileJavaAgainstKotlin",
-                    testClassName = "WithJavac",
-                    testMethod = "doTestWithJavac",
-                    targetBackend = TargetBackend.JVM
-                )
-            }
-
-
-
-            testClass<AbstractCompileKotlinAgainstJavaTest> {
-                model(
-                    "compileKotlinAgainstJava",
-                    testClassName = "WithAPT",
-                    testMethod = "doTestWithAPT",
-                    targetBackend = TargetBackend.JVM
-                )
-                model(
-                    "compileKotlinAgainstJava",
-                    testClassName = "WithoutAPT",
-                    testMethod = "doTestWithoutAPT",
-                    targetBackend = TargetBackend.JVM
-                )
-            }
-
             testClass<AbstractModuleXmlParserTest> {
                 model("modules.xml", extension = "xml")
-            }
-
-            testClass<AbstractWriteSignatureTest> {
-                model("writeSignature")
-            }
-
-            testClass<AbstractCliTest> {
-                model("cli/jvm/readingConfigFromEnvironment", extension = "args", testMethod = "doJvmTest", recursive = false)
-                model("cli/jvm/plugins", extension = "args", testMethod = "doJvmTest", recursive = false)
-                model("cli/jvm/hmpp", extension = "args", testMethod = "doJvmTest", recursive = false)
-                model("cli/jvm/sourceFilesAndDirectories", extension = "args", testMethod = "doJvmTest", recursive = false)
-                model("cli/jvm", extension = "args", testMethod = "doJvmTest", recursive = false)
-                model("cli/js", extension = "args", testMethod = "doJsTest", recursive = false)
-                model("cli/js-dce", extension = "args", testMethod = "doJsDceTest", recursive = false)
-                model("cli/metadata", extension = "args", testMethod = "doMetadataTest", recursive = false)
-            }
-
-            testClass<AbstractReplInterpreterTest> {
-                model("repl", extension = "repl")
-            }
-
-            testClass<AbstractAntTaskTest> {
-                model("integration/ant/jvm", extension = null, recursive = false)
             }
 
             testClass<AbstractControlFlowTest> {
@@ -283,14 +228,6 @@ fun generateJUnit3CompilerTests(args: Array<String>, mainClassName: String?) {
 
             testClass<AbstractKotlinLexerTest> {
                 model("lexer/kotlin")
-            }
-
-            testClass<AbstractComposeLikeIrBlackBoxCodegenTest> {
-                model("codegen/composeLike", targetBackend = TargetBackend.JVM_IR)
-            }
-
-            testClass<AbstractComposeLikeIrBytecodeTextTest> {
-                model("codegen/composeLikeBytecodeText", targetBackend = TargetBackend.JVM_IR)
             }
 
             testClass<AbstractIrCompileJavaAgainstKotlinTest> {
@@ -339,7 +276,7 @@ fun generateJUnit3CompilerTests(args: Array<String>, mainClassName: String?) {
             }
 
 
-            testClass<AbstractIrCompileKotlinAgainstJavaTest> {
+            testClass<AbstractIrCompileKotlinWithJavacIntegrationTest> {
                 model(
                     "compileKotlinAgainstJava",
                     testClassName = "WithAPT",
@@ -362,10 +299,6 @@ fun generateJUnit3CompilerTests(args: Array<String>, mainClassName: String?) {
                 model("writeFlags", targetBackend = TargetBackend.JVM_IR)
             }
 
-            testClass<AbstractIrDefaultArgumentsReflectionTest> {
-                model("codegen/defaultArguments/reflection", targetBackend = TargetBackend.JVM_IR)
-            }
-
             testClass<AbstractIrWriteSignatureTest> {
                 model("writeSignature", targetBackend = TargetBackend.JVM_IR)
             }
@@ -378,20 +311,12 @@ fun generateJUnit3CompilerTests(args: Array<String>, mainClassName: String?) {
                 model("writeFlags", targetBackend = TargetBackend.JVM_IR)
             }
 
-            testClass<AbstractFirPsiDefaultArgumentsReflectionTest> {
-                model("codegen/defaultArguments/reflection", targetBackend = TargetBackend.JVM_IR)
-            }
-
             testClass<AbstractFirPsiWriteSignatureTest> {
                 model("writeSignature", targetBackend = TargetBackend.JVM_IR)
             }
 
             testClass<AbstractFirLightTreeWriteFlagsTest> {
                 model("writeFlags", targetBackend = TargetBackend.JVM_IR)
-            }
-
-            testClass<AbstractFirLightTreeDefaultArgumentsReflectionTest> {
-                model("codegen/defaultArguments/reflection", targetBackend = TargetBackend.JVM_IR)
             }
 
             testClass<AbstractFirLightTreeCheckLocalVariablesTableTest> {
@@ -402,59 +327,8 @@ fun generateJUnit3CompilerTests(args: Array<String>, mainClassName: String?) {
                 model("writeSignature", targetBackend = TargetBackend.JVM_IR)
             }
 
-            testClass<AbstractIrLoadJavaTest> {
-                model("loadJava/compiledJava", extension = "java", testMethod = "doTestCompiledJava", targetBackend = TargetBackend.JVM_IR)
-                model(
-                    "loadJava/compiledJavaAndKotlin",
-                    extension = "txt",
-                    testMethod = "doTestCompiledJavaAndKotlin",
-                    targetBackend = TargetBackend.JVM_IR
-                )
-                model(
-                    "loadJava/compiledJavaIncludeObjectMethods",
-                    extension = "java",
-                    testMethod = "doTestCompiledJavaIncludeObjectMethods",
-                    targetBackend = TargetBackend.JVM_IR
-                )
-                model("loadJava/compiledKotlin", testMethod = "doTestCompiledKotlin", targetBackend = TargetBackend.JVM_IR)
-                model(
-                    "loadJava/compiledKotlinWithStdlib",
-                    testMethod = "doTestCompiledKotlinWithStdlib",
-                    targetBackend = TargetBackend.JVM_IR
-                )
-                model(
-                    "loadJava/javaAgainstKotlin",
-                    extension = "txt",
-                    testMethod = "doTestJavaAgainstKotlin",
-                    targetBackend = TargetBackend.JVM_IR
-                )
-                model(
-                    "loadJava/kotlinAgainstCompiledJavaWithKotlin",
-                    extension = "kt",
-                    testMethod = "doTestKotlinAgainstCompiledJavaWithKotlin",
-                    recursive = false,
-                    targetBackend = TargetBackend.JVM_IR
-                )
-                model("loadJava/sourceJava", extension = "java", testMethod = "doTestSourceJava", targetBackend = TargetBackend.JVM_IR)
-            }
-
             testClass<AbstractIrScriptCodegenTest> {
                 model("codegen/script", extension = "kts", targetBackend = TargetBackend.JVM_IR, excludedPattern = excludedCustomTestdataPattern)
-            }
-        }
-
-        testGroup(
-            testsRoot = "compiler/tests-gen",
-            testDataRoot = "compiler/testData",
-            testRunnerMethodName = "runTestWithCustomIgnoreDirective", // FIXME: This is a temporary hack to smooth the transition to the new test infrastructure
-            additionalRunnerArguments = listOf("\"// IGNORE_BACKEND_KLIB: \"")
-        ) {
-            testClass<AbstractKlibJsIrTextTestCase> {
-                model("ir/irText/js", pattern = "^(.+)\\.kt\$", targetBackend = TargetBackend.JS_IR)
-            }
-
-            testClass<AbstractKlibIrTextTestCase> {
-                model("ir/irText", pattern = "^(.+)\\.kt\$", targetBackend = TargetBackend.JS_IR)
             }
         }
 

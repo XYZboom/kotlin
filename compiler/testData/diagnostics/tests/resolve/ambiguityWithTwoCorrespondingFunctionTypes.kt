@@ -1,3 +1,5 @@
+// RUN_PIPELINE_TILL: FRONTEND
+// FIR_IDENTICAL
 // DIAGNOSTICS: -UNUSED_PARAMETER
 
 fun foo(a: Any, f: ()->Int) = f()

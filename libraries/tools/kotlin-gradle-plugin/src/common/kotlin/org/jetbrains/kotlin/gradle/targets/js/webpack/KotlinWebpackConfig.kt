@@ -41,7 +41,6 @@ data class KotlinWebpackConfig(
     var sourceMaps: Boolean = false,
     var export: Boolean = true,
     var progressReporter: Boolean = false,
-    var progressReporterPathFilter: File? = null,
     var resolveFromModulesFirst: Boolean = false
 ) : WebpackRulesDsl {
 
@@ -51,9 +50,6 @@ data class KotlinWebpackConfig(
     val outputPathInput: String?
         get() = npmProjectDir?.get()?.let { npmProjectDir -> outputPath?.relativeOrAbsolute(npmProjectDir) }
 
-    val progressReporterPathFilterInput: String?
-        get() = npmProjectDir?.get()?.let { npmProjectDir -> progressReporterPathFilter?.relativeOrAbsolute(npmProjectDir) }
-
     fun getRequiredDependencies(versions: NpmVersions) =
         mutableSetOf<RequiredKotlinJsDependency>().also {
             it.add(
@@ -61,6 +57,10 @@ data class KotlinWebpackConfig(
             )
             it.add(
                 versions.webpackCli
+            )
+
+            it.add(
+                versions.kotlinWebHelpers
             )
 
             if (sourceMaps) {
@@ -223,9 +223,10 @@ data class KotlinWebpackConfig(
                         enforce: "pre"
                 });
                 config.devtool = ${devtool?.let { "'$it'" } ?: false};
-            ${
-                "config.ignoreWarnings = [/Failed to parse source map/]"
-            }
+                config.ignoreWarnings = [
+                    /Failed to parse source map/,
+                    /Accessing import\.meta directly is unsupported \(only property access or destructuring is supported\)/
+                ]
                 
             """.trimIndent()
         )
@@ -295,7 +296,7 @@ data class KotlinWebpackConfig(
             """
                 // noinspection JSUnnecessarySemicolon
                 ;(function(config) {
-                    const tcErrorPlugin = require('kotlin-test-js-runner/tc-log-error-webpack');
+                    const tcErrorPlugin = require('kotlin-web-helpers/dist/tc-log-error-webpack');
                     config.plugins.push(new tcErrorPlugin())
                     config.stats = config.stats || {}
                     Object.assign(config.stats, config.stats, {

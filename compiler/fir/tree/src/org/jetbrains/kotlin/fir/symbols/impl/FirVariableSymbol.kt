@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -12,12 +12,20 @@ import org.jetbrains.kotlin.fir.diagnostics.ConeDiagnostic
 import org.jetbrains.kotlin.fir.expressions.FirAnonymousObjectExpression
 import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.references.FirControlFlowGraphReference
+import org.jetbrains.kotlin.fir.render
+import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.lazyResolveToPhase
+import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
+import org.jetbrains.kotlin.fir.types.FirTypeRef
+import org.jetbrains.kotlin.fir.utils.exceptions.withFirEntry
+import org.jetbrains.kotlin.mpp.EnumEntrySymbolMarker
 import org.jetbrains.kotlin.mpp.PropertySymbolMarker
 import org.jetbrains.kotlin.mpp.ValueParameterSymbolMarker
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.utils.exceptions.errorWithAttachment
 
 sealed class FirVariableSymbol<out E : FirVariable>(override val callableId: CallableId) : FirCallableSymbol<E>() {
     val resolvedInitializer: FirExpression?
@@ -39,9 +47,15 @@ sealed class FirVariableSymbol<out E : FirVariable>(override val callableId: Cal
             lazyResolveToPhase(FirResolvePhase.BODY_RESOLVE)
             return valueParameter.defaultValue
         }
+
+    val isVal: Boolean
+        get() = fir.isVal
+
+    val isVar: Boolean
+        get() = fir.isVar
 }
 
-open class FirPropertySymbol(callableId: CallableId, ) : FirVariableSymbol<FirProperty>(callableId), PropertySymbolMarker {
+open class FirPropertySymbol(callableId: CallableId) : FirVariableSymbol<FirProperty>(callableId), PropertySymbolMarker {
     // TODO: should we use this constructor for local variables?
     constructor(name: Name) : this(CallableId(name))
 
@@ -77,12 +91,6 @@ open class FirPropertySymbol(callableId: CallableId, ) : FirVariableSymbol<FirPr
             lazyResolveToPhase(FirResolvePhase.BODY_RESOLVE)
             return fir.controlFlowGraphReference
         }
-
-    val isVal: Boolean
-        get() = fir.isVal
-
-    val isVar: Boolean
-        get() = fir.isVar
 }
 
 class FirIntersectionOverridePropertySymbol(
@@ -98,12 +106,6 @@ class FirIntersectionOverrideFieldSymbol(
 ) : FirFieldSymbol(callableId), FirIntersectionCallableSymbol
 
 class FirBackingFieldSymbol(callableId: CallableId) : FirVariableSymbol<FirBackingField>(callableId) {
-    val isVal: Boolean
-        get() = fir.isVal
-
-    val isVar: Boolean
-        get() = fir.isVar
-
     val propertySymbol: FirPropertySymbol
         get() = fir.propertySymbol
 
@@ -119,20 +121,17 @@ open class FirFieldSymbol(callableId: CallableId) : FirVariableSymbol<FirField>(
 
     val hasConstantInitializer: Boolean
         get() = fir.hasConstantInitializer
-
-    val isVal: Boolean
-        get() = fir.isVal
-
-    val isVar: Boolean
-        get() = fir.isVar
 }
 
-class FirEnumEntrySymbol(callableId: CallableId) : FirVariableSymbol<FirEnumEntry>(callableId) {
+class FirEnumEntrySymbol(callableId: CallableId) : FirVariableSymbol<FirEnumEntry>(callableId), EnumEntrySymbolMarker {
     val initializerObjectSymbol: FirAnonymousObjectSymbol?
         get() = (fir.initializer as? FirAnonymousObjectExpression)?.anonymousObject?.symbol
 }
 
-class FirValueParameterSymbol(name: Name) : FirVariableSymbol<FirValueParameter>(CallableId(name)), ValueParameterSymbolMarker {
+class FirValueParameterSymbol(name: Name) : FirVariableSymbol<FirValueParameter>(CallableId(name)),
+    ValueParameterSymbolMarker,
+    // TODO(KT-72994) stop extending FirThisOwnerSymbol when context receivers are removed
+    FirThisOwnerSymbol<FirValueParameter> {
     val hasDefaultValue: Boolean
         get() = fir.defaultValue != null
 
@@ -148,8 +147,41 @@ class FirValueParameterSymbol(name: Name) : FirVariableSymbol<FirValueParameter>
     val isVararg: Boolean
         get() = fir.isVararg
 
-    val containingFunctionSymbol: FirFunctionSymbol<*>
-        get() = fir.containingFunctionSymbol
+    val containingDeclarationSymbol: FirBasedSymbol<*>
+        get() = fir.containingDeclarationSymbol
+}
+
+// TODO(KT-72994) convert to class extending FirBasedSymbol when context receivers are removed
+sealed interface FirThisOwnerSymbol<out E : FirDeclaration> {
+    val fir: E
+    val source: KtSourceElement?
+}
+
+class FirReceiverParameterSymbol : FirBasedSymbol<FirReceiverParameter>(), FirThisOwnerSymbol<FirReceiverParameter> {
+    val containingDeclarationSymbol: FirBasedSymbol<*>
+        get() = fir.containingDeclarationSymbol
+
+    val resolvedType: ConeKotlinType
+        get() = calculateResolvedTypeRef().coneType
+
+    private fun receiverTypeRef(): FirTypeRef {
+        return fir.typeRef
+    }
+
+    private fun calculateResolvedTypeRef(): FirResolvedTypeRef {
+        val receiverTypeRef = receiverTypeRef()
+        if (receiverTypeRef is FirResolvedTypeRef) {
+            return receiverTypeRef
+        }
+        lazyResolveToPhase(FirResolvePhase.TYPES)
+        val result = receiverTypeRef()
+        if (result !is FirResolvedTypeRef) {
+            errorInLazyResolve("receiverTypeRef", receiverTypeRef::class, FirResolvedTypeRef::class)
+        }
+        return result
+    }
+
+    override fun toString(): String = "FirReceiverParameterSymbol"
 }
 
 class FirErrorPropertySymbol(

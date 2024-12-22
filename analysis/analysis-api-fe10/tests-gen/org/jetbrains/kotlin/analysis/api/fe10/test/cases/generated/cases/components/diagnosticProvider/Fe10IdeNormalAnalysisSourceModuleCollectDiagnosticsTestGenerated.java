@@ -53,6 +53,12 @@ public class Fe10IdeNormalAnalysisSourceModuleCollectDiagnosticsTestGenerated ex
   }
 
   @Test
+  @TestMetadata("contracts.kt")
+  public void testContracts() {
+    runTest("analysis/analysis-api/testData/components/diagnosticsProvider/diagnostics/contracts.kt");
+  }
+
+  @Test
   @TestMetadata("danglingAnnotationInMiddle.kt")
   public void testDanglingAnnotationInMiddle() {
     runTest("analysis/analysis-api/testData/components/diagnosticsProvider/diagnostics/danglingAnnotationInMiddle.kt");
@@ -92,6 +98,18 @@ public class Fe10IdeNormalAnalysisSourceModuleCollectDiagnosticsTestGenerated ex
   @TestMetadata("errorsInFunctionalInterfacesInstances.kt")
   public void testErrorsInFunctionalInterfacesInstances() {
     runTest("analysis/analysis-api/testData/components/diagnosticsProvider/diagnostics/errorsInFunctionalInterfacesInstances.kt");
+  }
+
+  @Test
+  @TestMetadata("externalAnnotations.kt")
+  public void testExternalAnnotations() {
+    runTest("analysis/analysis-api/testData/components/diagnosticsProvider/diagnostics/externalAnnotations.kt");
+  }
+
+  @Test
+  @TestMetadata("genericsOnOuterClass.kt")
+  public void testGenericsOnOuterClass() {
+    runTest("analysis/analysis-api/testData/components/diagnosticsProvider/diagnostics/genericsOnOuterClass.kt");
   }
 
   @Test
@@ -203,6 +221,12 @@ public class Fe10IdeNormalAnalysisSourceModuleCollectDiagnosticsTestGenerated ex
   }
 
   @Test
+  @TestMetadata("unresolvedContracts.kt")
+  public void testUnresolvedContracts() {
+    runTest("analysis/analysis-api/testData/components/diagnosticsProvider/diagnostics/unresolvedContracts.kt");
+  }
+
+  @Test
   @TestMetadata("unresolvedReferenceInsideSuperConstructorCall.kt")
   public void testUnresolvedReferenceInsideSuperConstructorCall() {
     runTest("analysis/analysis-api/testData/components/diagnosticsProvider/diagnostics/unresolvedReferenceInsideSuperConstructorCall.kt");
@@ -242,6 +266,12 @@ public class Fe10IdeNormalAnalysisSourceModuleCollectDiagnosticsTestGenerated ex
   @TestMetadata("unusedDestructuring.kt")
   public void testUnusedDestructuring() {
     runTest("analysis/analysis-api/testData/components/diagnosticsProvider/diagnostics/unusedDestructuring.kt");
+  }
+
+  @Test
+  @TestMetadata("varargParameterFromLibraryWithFunctionalType.kt")
+  public void testVarargParameterFromLibraryWithFunctionalType() {
+    runTest("analysis/analysis-api/testData/components/diagnosticsProvider/diagnostics/varargParameterFromLibraryWithFunctionalType.kt");
   }
 
   @Nested
@@ -287,6 +317,12 @@ public class Fe10IdeNormalAnalysisSourceModuleCollectDiagnosticsTestGenerated ex
     @TestMetadata("deprecationAtTopLevel.kt")
     public void testDeprecationAtTopLevel() {
       runTest("analysis/analysis-api/testData/components/diagnosticsProvider/diagnostics/suppression/deprecationAtTopLevel.kt");
+    }
+
+    @Test
+    @TestMetadata("globalWarningSuppression.kt")
+    public void testGlobalWarningSuppression() {
+      runTest("analysis/analysis-api/testData/components/diagnosticsProvider/diagnostics/suppression/globalWarningSuppression.kt");
     }
   }
 

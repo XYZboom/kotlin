@@ -26,7 +26,6 @@ open class MultiModuleIncrementalCompilationIT : KmpIncrementalITBase() {
      */
     @DisplayName("Verify IC builds on change in lib/commonMain")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     @TestMetadata("generic-kmp-app-plus-lib-with-tests")
     fun testTouchLibCommon(gradleVersion: GradleVersion) = withProject(gradleVersion) {
         build("assemble")
@@ -72,12 +71,11 @@ open class MultiModuleIncrementalCompilationIT : KmpIncrementalITBase() {
         }
 
         testIndividualTarget("compileKotlinJvm") {
-            assertCompiledKotlinSources(
+            assertIncrementalCompilation(
                 listOf(
                     usedInAppPlatform,
                     resolvePath("app", "jvmMain", "DependsOnLibCommon.kt")
-                ).relativizeTo(projectPath),
-                output
+                ).relativizeTo(projectPath)
             )
         }
         testIndividualTarget("compileKotlinJs") {
@@ -98,7 +96,6 @@ open class MultiModuleIncrementalCompilationIT : KmpIncrementalITBase() {
      */
     @DisplayName("Verify IC builds on change in lib/platformMain")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     @TestMetadata("generic-kmp-app-plus-lib-with-tests")
     fun testTouchLibPlatform(gradleVersion: GradleVersion) = withProject(gradleVersion) {
         build("assemble")
@@ -117,12 +114,11 @@ open class MultiModuleIncrementalCompilationIT : KmpIncrementalITBase() {
                 ":lib:compileKotlinJvm"
             ),
             afterEachStep = {
-                assertCompiledKotlinSources(
-                    expectedSources = listOf(
+                assertIncrementalCompilation(
+                    listOf(
                         jvmUtil,
                         resolvePath("app", "jvmMain", "DependsOnLibJvm.kt")
-                    ).relativizeTo(projectPath),
-                    output = output
+                    ).relativizeTo(projectPath)
                 )
             }
         )
@@ -167,7 +163,6 @@ open class MultiModuleIncrementalCompilationIT : KmpIncrementalITBase() {
      */
     @DisplayName("Verify IC builds on change in app/commonMain")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     @TestMetadata("generic-kmp-app-plus-lib-with-tests")
     fun testTouchAppCommon(gradleVersion: GradleVersion) = withProject(gradleVersion) {
         build("assemble")
@@ -205,7 +200,6 @@ open class MultiModuleIncrementalCompilationIT : KmpIncrementalITBase() {
      */
     @DisplayName("Verify IC builds on change in app/platformMain")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     @TestMetadata("generic-kmp-app-plus-lib-with-tests")
     fun testTouchAppPlatform(gradleVersion: GradleVersion) = withProject(gradleVersion) {
         build("assemble")
@@ -218,7 +212,7 @@ open class MultiModuleIncrementalCompilationIT : KmpIncrementalITBase() {
         checkIncrementalBuild(
             tasksExpectedToExecute = setOf(":app:compileKotlinJvm")
         ) {
-            assertCompiledKotlinSources(listOf(changedJvmSource).relativizeTo(projectPath), output)
+            assertIncrementalCompilation(listOf(changedJvmSource).relativizeTo(projectPath))
         }
 
         /**

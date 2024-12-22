@@ -7,7 +7,7 @@ package org.jetbrains.kotlin.codegen.state
 
 import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.metadata.deserialization.BinaryVersion
-import org.jetbrains.kotlin.utils.metadataVersion
+import org.jetbrains.kotlin.util.metadataVersion
 
 class JvmBackendConfig(configuration: CompilerConfiguration) {
     val languageVersionSettings: LanguageVersionSettings = configuration.languageVersionSettings
@@ -37,17 +37,9 @@ class JvmBackendConfig(configuration: CompilerConfiguration) {
                 JvmClosureGenerationScheme.INDY
             else JvmClosureGenerationScheme.CLASS
 
-    val useKotlinNothingValueException: Boolean =
-        languageVersionSettings.apiVersion >= ApiVersion.KOTLIN_1_4 &&
-                !configuration.getBoolean(JVMConfigurationKeys.NO_KOTLIN_NOTHING_VALUE_EXCEPTION)
-
     // In 1.6, `typeOf` became stable and started to rely on a few internal stdlib functions which were missing before 1.6.
     val stableTypeOf: Boolean =
         languageVersionSettings.apiVersion >= ApiVersion.KOTLIN_1_6
-
-    val generateOptimizedCallableReferenceSuperClasses: Boolean =
-        languageVersionSettings.apiVersion >= ApiVersion.KOTLIN_1_4 &&
-                !configuration.getBoolean(JVMConfigurationKeys.NO_OPTIMIZED_CALLABLE_REFERENCES)
 
     val isCallAssertionsDisabled: Boolean = configuration.getBoolean(JVMConfigurationKeys.DISABLE_CALL_ASSERTIONS)
     val isReceiverAssertionsDisabled: Boolean =
@@ -77,7 +69,6 @@ class JvmBackendConfig(configuration: CompilerConfiguration) {
     val functionsWithInlineClassReturnTypesMangled: Boolean =
         languageVersionSettings.supportsFeature(LanguageFeature.MangleClassMembersReturningInlineClasses)
 
-    val shouldValidateIr: Boolean = configuration.getBoolean(JVMConfigurationKeys.VALIDATE_IR)
     val shouldValidateBytecode: Boolean = configuration.getBoolean(JVMConfigurationKeys.VALIDATE_BYTECODE)
 
     val classFileVersion: Int = run {
@@ -110,4 +101,9 @@ class JvmBackendConfig(configuration: CompilerConfiguration) {
     val useFir: Boolean = configuration.getBoolean(CommonConfigurationKeys.USE_FIR)
 
     val emitJvmTypeAnnotations: Boolean = configuration.getBoolean(JVMConfigurationKeys.EMIT_JVM_TYPE_ANNOTATIONS)
+
+    // Fixed coroutines debugging uses stdlib function to null out spilled locals.
+    // By default the function returns `null`, the debugger replaces it with implementation, that returns its argument.
+    // This way we avoid memory leaks in release builds and do not make coroutines undebuggable.
+    val nullOutSpilledCoroutineLocalsUsingStdlibFunction: Boolean = languageVersionSettings.apiVersion >= ApiVersion.KOTLIN_2_2
 }

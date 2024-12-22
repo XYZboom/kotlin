@@ -7,7 +7,7 @@ may apply:
 The following modules contain third-party code and are incorporated into the Kotlin compiler and/or
 the Kotlin IntelliJ IDEA plugin:
 
- - Path: compiler/backend/src/org/jetbrains/kotlin/codegen/inline/MaxStackFrameSizeAndLocalsCalculator.java
+ - Path: compiler/backend/src/org/jetbrains/kotlin/codegen/inline/MaxStackFrameSizeAndLocalsCalculator.kt
      - License: BSD ([license/third_party/asm_license.txt][asm])
      - Origin: Derived from ASM: a very small and fast Java bytecode manipulation framework, Copyright (c) 2000-2011 INRIA, France Telecom
    
@@ -47,19 +47,11 @@ the Kotlin IntelliJ IDEA plugin:
      - License: BSD ([license/third_party/dart_LICENSE.txt][dart])
      - Origin: Originally part of the Dart compiler, (c) 2011 the Dart Project Authors,
 
- - Path: js/js.inliner/src/org/jetbrains/kotlin/js/inline/FunctionInlineMutator.kt
-     - License: BSD ([license/third_party/dart_LICENSE.txt][dart])
-     - Origin: Originally part of the Dart compiler, (c) 2011 the Dart Project Authors,
-
  - Path: js/js.parser/src/com/google
       - License: Netscape Public License 1.1 ([license/third_party/rhino_LICENSE.txt][rhino])
       - Origin: Originally part of GWT, (C) 2007-08 Google Inc., distributed under the Apache 2 license. The code
         is derived from Rhino, (C) 1997-1999 Netscape Communications Corporation, distributed under the
         Netscape Public License.
-
- - Path: js/js.translator/qunit/qunit.js
-      - License: MIT ([license/third_party/qunit_license.txt][qunit])
-      - Origin: QUnit, Copyright (c) 2012 John Resig, Jörn Zaefferer,
 
  - Path: libraries/stdlib/src/kotlin/collections
       - License: Apache 2 ([license/third_party/gwt_license.txt][gwt])
@@ -257,25 +249,6 @@ any distributions of the tools or libraries:
  - Path: libraries/tools/kotlin-gradle-plugin/src/common/kotlin/org/jetbrains/kotlin/gradle/targets/js/nodejs/Platform.kt
       - License: Apache License 2.0 ([license/third_party/gradle-node-plugin_LICENSE.txt](third_party/gradle-node-plugin_LICENSE.txt))
       - Origin: Copyright (c) 2013 node-gradle/gradle-node-plugin
-      
- - Path: libraries/tools/kotlin-test-js-runner/karma-kotlin-reporter.js
-      - License: MIT ([license/third_party/karma_LICENSE.txt](third_party/karma_LICENSE.txt)
-             and [license/third_party/karma-teamcity-reporter_LICENSE.txt](third_party/karma-teamcity-reporter_LICENSE.txt))
-      - Origin: Copyright (C) 2011-2019 Google, Inc. and Copyright (C) 2011-2013 Vojta Jína and contributors.
-      
- - Path: libraries/tools/kotlin-test-js-runner/mocha-kotlin-reporter.js
-      - License: MIT ([license/third_party/mocha-teamcity-reporter_LICENSE.txt](third_party/mocha-teamcity-reporter_LICENSE.txt))
-      - Origin: Copyright (c) 2016 Jamie Sherriff
-      
- - Path: libraries/tools/kotlin-test-js-runner/src/utils.ts
-      - License: MIT ([license/third_party/teamcity-service-messages_LICENSE.txt](third_party/teamcity-service-messages_LICENSE.txt)
-             and [license/third_party/lodash_LICENSE.txt](third_party/lodash_LICENSE.txt))
-      - Origin: Copyright (c) 2013 Aaron Forsander and Copyright JS Foundation and other contributors <https://js.foundation/>
-      
- - Path: libraries/tools/kotlin-test-js-runner/src/teamcity-format.js
-      - License: MIT ([license/third_party/mocha-teamcity-reporter_LICENSE.txt](third_party/mocha-teamcity-reporter_LICENSE.txt)
-             and [license/third_party/teamcity-service-messages_LICENSE.txt](third_party/teamcity-service-messages_LICENSE.txt))
-      - Origin: Copyright (c) 2016 Jamie Sherriff and Copyright (c) 2013 Aaron Forsander
 
 ## Example Code
 
@@ -309,7 +282,6 @@ any distributions of the compiler, libraries or plugin:
 [jspecify]: third_party/testdata/jspecify_license.txt
 [lombok]: third_party/testdata/lombok_license.txt
 [power-assert]: third_party/power_assert_license.txt
-[qunit]: third_party/qunit_license.txt
 [rhino]: third_party/rhino_LICENSE.txt
 [rxjava]: third_party/testdata/rxjava_license.txt
 [spring]: third_party/testdata/spring_license.txt

@@ -1,33 +1,40 @@
 import org.gradle.internal.os.OperatingSystem
 import java.net.URI
 import com.github.gradle.node.npm.task.NpmTask
+import java.nio.file.Files
 import java.util.*
 
 plugins {
     kotlin("jvm")
     id("jps-compatible")
     alias(libs.plugins.gradle.node)
+    id("d8-configuration")
+    id("binaryen-configuration")
+    id("nodejs-configuration")
 }
-
-val cacheRedirectorEnabled = findProperty("cacheRedirectorEnabled")?.toString()?.toBoolean() == true
 
 node {
     download.set(true)
     version.set(nodejsVersion)
     nodeProjectDir.set(layout.buildDirectory.dir("node"))
-    if (cacheRedirectorEnabled) {
-        distBaseUrl.set("https://cache-redirector.jetbrains.com/nodejs.org/dist")
-    }
 }
 
 repositories {
     ivy {
         url = URI("https://archive.mozilla.org/pub/firefox/nightly/")
         patternLayout {
-            artifact("2024/03/[revision]/[artifact]-[classifier].[ext]")
+            artifact("2024/05/[revision]/[artifact]-[classifier].[ext]")
         }
         metadataSources { artifact() }
         content { includeModule("org.mozilla", "jsshell") }
+    }
+    ivy {
+        url = URI("https://github.com/WasmEdge/WasmEdge/releases/download/")
+        patternLayout {
+            artifact("[revision]/WasmEdge-[revision]-[classifier].[ext]")
+        }
+        metadataSources { artifact() }
+        content { includeModule("org.wasmedge", "wasmedge") }
     }
 }
 
@@ -57,7 +64,7 @@ val currentOsType = run {
 }
 
 
-val jsShellVersion = "2024-03-26-09-52-07-mozilla-central"
+val jsShellVersion = "2024-05-07-09-13-07-mozilla-central"
 val jsShellSuffix = when (currentOsType) {
     OsType(OsName.LINUX, OsArch.X86_32) -> "linux-i686"
     OsType(OsName.LINUX, OsArch.X86_64) -> "linux-x86_64"
@@ -73,9 +80,31 @@ val jsShell by configurations.creating {
     isCanBeConsumed = false
 }
 
+val wasmEdgeVersion = libs.versions.wasmedge
+val wasmEdgeSuffix = when (currentOsType) {
+    OsType(OsName.LINUX, OsArch.X86_64) -> "manylinux_2_28_x86_64@tar.gz"
+    OsType(OsName.MAC, OsArch.X86_64) -> "darwin_x86_64@tar.gz"
+    OsType(OsName.MAC, OsArch.ARM64) -> "darwin_arm64@tar.gz"
+    OsType(OsName.WINDOWS, OsArch.X86_32),
+    OsType(OsName.WINDOWS, OsArch.X86_64) -> "windows@zip"
+    else -> error("unsupported os type $currentOsType")
+}
+val wasmEdgeInnerSuffix = when (currentOsType.name) {
+    OsName.LINUX -> "Linux"
+    OsName.MAC -> "Darwin"
+    OsName.WINDOWS -> "Windows"
+    else -> error("unsupported os type $currentOsType")
+}
+
+val wasmEdge by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+
 dependencies {
     testApi(projectTests(":compiler:tests-common"))
     testApi(projectTests(":compiler:tests-common-new"))
+    testImplementation(projectTests(":js:js.tests"))
     testApi(intellijCore())
     testApi(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)
@@ -86,13 +115,16 @@ dependencies {
     implicitDependencies("org.mozilla:jsshell:$jsShellVersion:win64@zip")
     implicitDependencies("org.mozilla:jsshell:$jsShellVersion:linux-x86_64@zip")
     implicitDependencies("org.mozilla:jsshell:$jsShellVersion:mac@zip")
+
+    wasmEdge("org.wasmedge:wasmedge:${wasmEdgeVersion.get()}:$wasmEdgeSuffix")
+
+    implicitDependencies("org.wasmedge:wasmedge:${wasmEdgeVersion.get()}:windows@zip")
+    implicitDependencies("org.wasmedge:wasmedge:${wasmEdgeVersion.get()}:manylinux_2_28_x86_64@tar.gz")
+    implicitDependencies("org.wasmedge:wasmedge:${wasmEdgeVersion.get()}:darwin_arm64@tar.gz")
 }
 
 val generationRoot = projectDir.resolve("tests-gen")
 
-useD8Plugin()
-useNodeJsPlugin()
-useBinaryenPlugin()
 optInToExperimentalCompilerApi()
 
 sourceSets {
@@ -173,10 +205,61 @@ val unzipJsShell by task<Copy> {
     into(layout.buildDirectory.dir("tools/jsshell-$jsShellSuffix-$jsShellVersion"))
 }
 
+val unzipWasmEdge by task<Copy> {
+    dependsOn(wasmEdge)
+
+    from {
+        if (wasmEdge.singleFile.extension == "zip") {
+            zipTree(wasmEdge.singleFile)
+        } else {
+            tarTree(wasmEdge.singleFile)
+        }
+    }
+
+    val distDir = layout.buildDirectory.dir("tools")
+    val currentOsTypeForConfigurationCache = currentOsType.name
+    val resultDir = "WasmEdge-${wasmEdgeVersion.get()}-$wasmEdgeInnerSuffix"
+
+    into(distDir)
+
+    doLast {
+        if (currentOsTypeForConfigurationCache !in setOf(OsName.MAC, OsName.LINUX)) return@doLast
+
+        val wasmEdgeDirectory = distDir.get().dir(resultDir).asFile
+
+        val libDirectory = wasmEdgeDirectory.toPath()
+            .resolve(if (currentOsTypeForConfigurationCache == OsName.MAC) "lib" else "lib64")
+
+        val targets = if (currentOsTypeForConfigurationCache == OsName.MAC)
+            listOf("libwasmedge.0.1.0.dylib", "libwasmedge.0.1.0.tbd")
+        else listOf("libwasmedge.so.0.1.0")
+
+        targets.forEach {
+            val target = libDirectory.resolve(it)
+            val firstLink = libDirectory.resolve(it.replace("0.1.0", "0")).also(Files::deleteIfExists)
+            val secondLink = libDirectory.resolve(it.replace(".0.1.0", "")).also(Files::deleteIfExists)
+
+            Files.createSymbolicLink(firstLink, target)
+            Files.createSymbolicLink(secondLink, target)
+        }
+    }
+}
+
 fun Test.setupSpiderMonkey() {
     dependsOn(unzipJsShell)
     val jsShellExecutablePath = File(unzipJsShell.get().destinationDir, "js").absolutePath
     systemProperty("javascript.engine.path.SpiderMonkey", jsShellExecutablePath)
+}
+
+fun Test.setupWasmEdge() {
+    val wasmEdgeDirectory = unzipWasmEdge
+        .map { it.destinationDir.resolve("WasmEdge-${wasmEdgeVersion.get()}-$wasmEdgeInnerSuffix") }
+
+    inputs.dir(wasmEdgeDirectory)
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("wasmEdgeDirectory")
+
+    jvmArgumentProviders.add { listOf("-Dwasm.engine.path.WasmEdge=${wasmEdgeDirectory.get().resolve("bin/wasmedge")}") }
 }
 
 testsJar {}
@@ -195,10 +278,17 @@ fun Project.wasmProjectTest(
         jUnitMode = JUnitMode.JUnit5
     ) {
         workingDir = rootDir
-        setupV8()
-        setupNodeJs()
-        setupBinaryen()
+        with(d8KotlinBuild) {
+            setupV8()
+        }
+        with(nodeJsKotlinBuild) {
+            setupNodeJs()
+        }
+        with(binaryenKotlinBuild) {
+            setupBinaryen()
+        }
         setupSpiderMonkey()
+        setupWasmEdge()
         useJUnitPlatform()
         setupWasmStdlib("js")
         setupWasmStdlib("wasi")

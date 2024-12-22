@@ -69,7 +69,7 @@ object AbstractTypeMapper {
 
         val typeConstructor = type.typeConstructor()
 
-        if (type is SimpleTypeMarker) {
+        if (type is RigidTypeMarker) {
             val builtInType = mapBuiltInType(type, AsmTypeFactory, mode)
             if (builtInType != null) {
                 val asmType = boxTypeIfNeeded(builtInType, mode.needPrimitiveBoxing)
@@ -124,7 +124,7 @@ object AbstractTypeMapper {
     }
 
     private fun <Writer : JvmDescriptorTypeWriter<Type>> TypeSystemCommonBackendContextForTypeMapping.mapSuspendFunctionType(
-        type: SimpleTypeMarker,
+        type: RigidTypeMarker,
         context: TypeMappingContext<Writer>,
         mode: TypeMappingMode,
         sw: Writer?,
@@ -144,7 +144,7 @@ object AbstractTypeMapper {
     }
 
     private fun <Writer : JvmDescriptorTypeWriter<Type>> TypeSystemCommonBackendContextForTypeMapping.mapArrayType(
-        type: SimpleTypeMarker,
+        type: RigidTypeMarker,
         sw: Writer?,
         context: TypeMappingContext<Writer>,
         mode: TypeMappingMode,
@@ -154,12 +154,13 @@ object AbstractTypeMapper {
         val variance: Variance
         val memberType: KotlinTypeMarker
 
-        if (typeArgument.isStarProjection()) {
+        val type = typeArgument.getType()
+        if (type == null) {
             variance = Variance.OUT_VARIANCE
             memberType = nullableAnyType()
         } else {
             variance = typeArgument.getVariance().toVariance()
-            memberType = typeArgument.getType()
+            memberType = type
         }
 
         val arrayElementType: Type
@@ -177,14 +178,14 @@ object AbstractTypeMapper {
     private fun <Writer : JvmDescriptorTypeWriter<Type>> TypeSystemCommonBackendContextForTypeMapping.mapClassType(
         typeConstructor: TypeConstructorMarker,
         mode: TypeMappingMode,
-        type: SimpleTypeMarker,
+        type: RigidTypeMarker,
         context: TypeMappingContext<Writer>,
         sw: Writer?,
         materialized: Boolean
     ): Type {
         if (typeConstructor.isInlineClass() && !mode.needInlineClassWrapping) {
             val expandedType = computeExpandedTypeForInlineClass(type)
-            require(expandedType is SimpleTypeMarker?)
+            require(expandedType is RigidTypeMarker?)
             if (expandedType != null) {
                 return mapType(context, expandedType, mode.wrapInlineClassesMode(), sw, materialized)
             }

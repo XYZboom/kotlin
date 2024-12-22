@@ -1,6 +1,10 @@
 // WITH_STDLIB
 // FIR_IDENTICAL
 
+// DISABLE_IR_VISIBILITY_CHECKS: ANY
+// ^ Some functions, calls to which are emitted by the serialization plugin into user code, have internal visibility.
+//   See https://github.com/Kotlin/kotlinx.serialization/issues/2703
+
 // FILE: annotation.kt
 package kotlinx.serialization
 
@@ -186,6 +190,30 @@ object ObjectSerializer: KSerializer<Object> {
     }
 }
 
+// == sealed loop ==
+@Serializable
+public sealed interface SealedInterface
+
+@Serializable(with = SealedChild.CustomSerializer::class)
+@SerialName("child")
+@KeepGeneratedSerializer
+data class SealedChild(
+    val child: SealedInterface,
+) : SealedInterface {
+    internal object CustomSerializer : KSerializer<SealedChild> by generatedSerializer()
+}
+
+@Serializable
+public sealed interface Schema
+
+@KeepGeneratedSerializer
+@Serializable(with = Container.CustomSerializer::class)
+public data class Container(
+    val properties: List<Schema>
+) : Schema {
+    internal object CustomSerializer : KSerializer<Container> by generatedSerializer()
+}
+
 fun box(): String = boxWrapper {
     val value = Value(42)
     val data = Data(42)
@@ -209,6 +237,12 @@ fun box(): String = boxWrapper {
 
     assertEquals("Object()", Object.generatedSerializer().descriptor.toString(), "Object.generatedSerializer() illegal")
     assertSame(Object.generatedSerializer(), Object.generatedSerializer(), "Object.generatedSerializer() instance differs")
+
+    assertEquals("SealedInterface", SealedInterface.serializer().descriptor.serialName, "SealedInterface.serializer() illegal")
+
+    assertEquals("Container", Container.serializer().descriptor.serialName, "Container.serializer() illegal")
+    assertEquals("""{"properties":[{"type":"Container","properties":[]}]}""", Json.encodeToString(Container.serializer(), Container(listOf(Container(emptyList())))))
+    assertEquals("""{"properties":[{"type":"Container","properties":[]}]}""", Json.encodeToString(Container.CustomSerializer, Container(listOf(Container(emptyList())))))
 }
 
 inline fun <reified T : Any> test(

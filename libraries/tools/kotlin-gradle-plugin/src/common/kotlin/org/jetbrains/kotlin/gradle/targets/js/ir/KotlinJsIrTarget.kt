@@ -7,18 +7,12 @@ package org.jetbrains.kotlin.gradle.targets.js.ir
 
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
-import org.gradle.api.Task
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.TaskProvider
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.*
-import org.jetbrains.kotlin.gradle.plugin.AbstractKotlinTargetConfigurator.Companion.runTaskNameSuffix
-import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
+import org.jetbrains.kotlin.gradle.plugin.*
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation.Companion.MAIN_COMPILATION_NAME
-import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
-import org.jetbrains.kotlin.gradle.plugin.KotlinTargetComponent
-import org.jetbrains.kotlin.gradle.plugin.KotlinTargetWithTests
-import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider
-import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.Companion.kotlinPropertiesProvider
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.jetbrains.kotlin.gradle.plugin.mpp.resources.publication.setUpResourcesVariant
 import org.jetbrains.kotlin.gradle.targets.js.JsAggregatingExecutionSource
@@ -28,10 +22,11 @@ import org.jetbrains.kotlin.gradle.targets.js.KotlinWasmTargetType
 import org.jetbrains.kotlin.gradle.targets.js.binaryen.BinaryenExec
 import org.jetbrains.kotlin.gradle.targets.js.dsl.*
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTargetConfigurator.Companion.configureJsDefaultOptions
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsPlugin
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin
 import org.jetbrains.kotlin.gradle.targets.js.npm.NpmResolverPlugin
 import org.jetbrains.kotlin.gradle.targets.js.typescript.TypeScriptValidationTask
-import org.jetbrains.kotlin.gradle.tasks.*
+import org.jetbrains.kotlin.gradle.tasks.registerTask
 import org.jetbrains.kotlin.gradle.utils.*
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.capitalizeAsciiOnly
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
@@ -54,6 +49,10 @@ constructor(
 
     private val propertiesProvider = PropertiesProvider(project)
 
+    override val subTargets: NamedDomainObjectContainer<KotlinJsIrSubTargetWithBinary> = project.container(
+        KotlinJsIrSubTargetWithBinary::class.java
+    )
+
     override val testRuns: NamedDomainObjectContainer<KotlinJsReportAggregatingTestRun> by lazy {
         project.container(KotlinJsReportAggregatingTestRun::class.java, KotlinJsTestRunFactory(this))
     }
@@ -64,12 +63,11 @@ constructor(
     override var wasmTargetType: KotlinWasmTargetType? = null
         internal set
 
-    override var moduleName: String? = null
+    @Deprecated("Use outputModuleName with Provider API instead")
+    override var moduleName: String?
+        get() = outputModuleName.get()
         set(value) {
-            check(!isBrowserConfigured && !isNodejsConfigured) {
-                "Please set moduleName before initialize browser() or nodejs()"
-            }
-            field = value
+            outputModuleName.set(value)
         }
 
     override val kotlinComponents: Set<KotlinTargetComponent> by lazy {
@@ -136,17 +134,29 @@ constructor(
             .map { it.binaries }
             .get()
 
-    private val runTaskName get() = lowerCamelCaseName(disambiguationClassifier, runTaskNameSuffix)
-    val runTask: TaskProvider<Task>
-        get() = project.locateOrRegisterTask(runTaskName) {
-            it.description = "Run js on all configured platforms"
-        }
+    internal val configureTestSideEffect: Unit by lazy {
+        val mainCompilation = compilations.matching { it.isMain() }
 
-    private val configureTestSideEffect: Unit by lazy {
-        compilations.matching { it.name == KotlinCompilation.TEST_COMPILATION_NAME }
-            .all { compilation ->
-                compilation.binaries.executableIrInternal(compilation)
+        compilations.matching { it.isTest() }
+            .all { testCompilation ->
+                val testBinaries = testCompilation.binaries.executableIrInternal(testCompilation)
+
+                if (wasmTargetType != KotlinWasmTargetType.WASI) {
+                    testBinaries.forEach { binary ->
+                        binary.linkSyncTask.configure { task ->
+                            mainCompilation.all {
+                                task.from.from(project.tasks.named(it.processResourcesTaskName))
+                            }
+                        }
+                    }
+                }
             }
+    }
+
+    private fun <T : KotlinJsIrSubTargetWithBinary> addSubTarget(type: Class<T>, configure: T.() -> Unit): T {
+        val subTarget = project.objects.newInstance(type, this).also(configure)
+        subTargets.add(subTarget)
+        return subTarget
     }
 
     private val commonLazyDelegate = lazy {
@@ -193,21 +203,14 @@ constructor(
     //Browser
     private val browserLazyDelegate = lazy {
         commonLazy
-        project.objects.newInstance(KotlinBrowserJsIr::class.java, this).also {
-            it.configureSubTarget()
-            browserConfiguredHandlers.forEach { handler ->
-                handler(it)
-            }
-            browserConfiguredHandlers.clear()
+        addSubTarget(KotlinBrowserJsIr::class.java) {
+            configureSubTarget()
+            subTargetConfigurators.add(LibraryConfigurator(this))
+            subTargetConfigurators.add(WebpackConfigurator(this))
         }
     }
 
-    private val browserConfiguredHandlers = mutableListOf<KotlinJsBrowserDsl.() -> Unit>()
-
-    override val browser by browserLazyDelegate
-
-    override val isBrowserConfigured: Boolean
-        get() = browserLazyDelegate.isInitialized()
+    override val browser: KotlinJsBrowserDsl by browserLazyDelegate
 
     override fun browser(body: KotlinJsBrowserDsl.() -> Unit) {
         body(browser)
@@ -218,81 +221,43 @@ constructor(
         if (wasmTargetType != KotlinWasmTargetType.WASI) {
             commonLazy
         } else {
+            NodeJsPlugin.apply(project)
             NodeJsRootPlugin.apply(project.rootProject)
         }
 
-        project.objects.newInstance(KotlinNodeJsIr::class.java, this).also {
-            it.configureSubTarget()
-            nodejsConfiguredHandlers.forEach { handler ->
-                handler(it)
-            }
-
-            nodejsConfiguredHandlers.clear()
+        addSubTarget(KotlinNodeJsIr::class.java) {
+            configureSubTarget()
+            subTargetConfigurators.add(LibraryConfigurator(this))
+            subTargetConfigurators.add(NodeJsEnvironmentConfigurator(this))
         }
     }
 
-    private val nodejsConfiguredHandlers = mutableListOf<KotlinJsNodeDsl.() -> Unit>()
-
-    override val nodejs by nodejsLazyDelegate
-
-    override val isNodejsConfigured: Boolean
-        get() = nodejsLazyDelegate.isInitialized()
+    override val nodejs: KotlinJsNodeDsl by nodejsLazyDelegate
 
     override fun nodejs(body: KotlinJsNodeDsl.() -> Unit) {
         body(nodejs)
     }
 
     //d8
+    @OptIn(ExperimentalWasmDsl::class)
     private val d8LazyDelegate = lazy {
-        commonLazy
-        project.objects.newInstance(KotlinD8Ir::class.java, this).also {
-            it.configureSubTarget()
-            d8ConfiguredHandlers.forEach { handler ->
-                handler(it)
-            }
+        NodeJsRootPlugin.apply(project.rootProject)
 
-            d8ConfiguredHandlers.clear()
+        addSubTarget(KotlinD8Ir::class.java) {
+            configureSubTarget()
+            subTargetConfigurators.add(LibraryConfigurator(this))
+            subTargetConfigurators.add(D8EnvironmentConfigurator(this))
         }
     }
 
-    private val d8ConfiguredHandlers = mutableListOf<KotlinWasmD8Dsl.() -> Unit>()
-
-    override val d8 by d8LazyDelegate
-
-    override val isD8Configured: Boolean
-        get() = d8LazyDelegate.isInitialized()
+    override val d8: KotlinWasmD8Dsl by d8LazyDelegate
 
     private fun KotlinJsIrSubTarget.configureSubTarget() {
-        configureTestSideEffect
         configure()
     }
 
     override fun d8(body: KotlinWasmD8Dsl.() -> Unit) {
         body(d8)
-    }
-
-    override fun whenBrowserConfigured(body: KotlinJsBrowserDsl.() -> Unit) {
-        if (browserLazyDelegate.isInitialized()) {
-            browser(body)
-        } else {
-            browserConfiguredHandlers += body
-        }
-    }
-
-    override fun whenNodejsConfigured(body: KotlinJsNodeDsl.() -> Unit) {
-        if (nodejsLazyDelegate.isInitialized()) {
-            nodejs(body)
-        } else {
-            nodejsConfiguredHandlers += body
-        }
-    }
-
-    override fun whenD8Configured(body: KotlinWasmD8Dsl.() -> Unit) {
-        if (d8LazyDelegate.isInitialized()) {
-            d8(body)
-        } else {
-            d8ConfiguredHandlers += body
-        }
     }
 
     override fun useCommonJs() {
@@ -369,12 +334,40 @@ constructor(
             }
     }
 
-    @ExperimentalKotlinGradlePluginApi
     override val compilerOptions: KotlinJsCompilerOptions = project.objects
         .newInstance<KotlinJsCompilerOptionsDefault>()
         .apply {
             configureJsDefaultOptions()
         }
+
+    internal companion object {
+        private val DECAMELIZE_REGEX = "([A-Z])".toRegex()
+
+        internal fun buildNpmProjectName(project: Project, targetName: String): String {
+            val rootProjectName = project.rootProject.name
+
+            val localName = if (project != project.rootProject) {
+                (rootProjectName + project.path).replace(":", "-")
+            } else rootProjectName
+
+            val targetPartName = if (targetName.isNotEmpty() && targetName.toLowerCaseAsciiOnly() != "js") {
+                targetName
+                    .replace(DECAMELIZE_REGEX) {
+                        it.groupValues
+                            .drop(1)
+                            .joinToString(prefix = "-", separator = "-")
+                    }
+                    .toLowerCaseAsciiOnly()
+            } else null
+
+            return sequenceOf(
+                localName,
+                targetPartName
+            )
+                .filterNotNull()
+                .joinToString("-")
+        }
+    }
 }
 
 fun KotlinJsIrTarget.wasmDecamelizedDefaultNameOrNull(): String? = if (platformType == KotlinPlatformType.wasm) {

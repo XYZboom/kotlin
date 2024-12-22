@@ -11,8 +11,8 @@ import org.jetbrains.kotlin.config.CompilerConfigurationKey
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
 import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.CrossModuleReferences
 import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.CrossModuleReferences
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageConfig
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
@@ -45,7 +45,7 @@ value class ICHash(val hash: Hash128Bits = Hash128Bits()) {
     }
 }
 
-private class HashCalculatorForIC {
+private class HashCalculatorForIC(private val checkForClassStructuralChanges: Boolean = false) {
     private val md5Digest = MessageDigest.getInstance("MD5")
 
     fun update(data: ByteArray) = md5Digest.update(data)
@@ -81,6 +81,14 @@ private class HashCalculatorForIC {
 
     fun updateSymbol(symbol: IrSymbol) {
         update(symbol.toString())
+
+        if (checkForClassStructuralChanges) {
+            (symbol.owner as? IrClass)?.let { irClass ->
+                irClass.declarations.forEach {
+                    updateSymbol(it.symbol)
+                }
+            }
+        }
 
         (symbol.owner as? IrClass)?.takeIf { it.isInterface }?.let { irInterface ->
             // Adding or removing a method or property with a default implementation to an interface
@@ -147,8 +155,8 @@ private class HashCalculatorForIC {
     }
 }
 
-internal class ICHasher {
-    private val hashCalculator = HashCalculatorForIC()
+internal class ICHasher(checkForClassStructuralChanges: Boolean = false) {
+    private val hashCalculator = HashCalculatorForIC(checkForClassStructuralChanges)
 
     fun calculateConfigHash(config: CompilerConfiguration): ICHash {
         hashCalculator.update(KotlinCompilerVersion.VERSION)
@@ -174,7 +182,6 @@ internal class ICHasher {
             JSConfigurationKeys.SOURCE_MAP_EMBED_SOURCES,
             JSConfigurationKeys.SOURCEMAP_NAMES_POLICY,
             JSConfigurationKeys.MODULE_KIND,
-            JSConfigurationKeys.ERROR_TOLERANCE_POLICY
         )
         hashCalculator.updateConfigKeys(config, enumKeys) { value: Enum<*> ->
             hashCalculator.update(value.ordinal)

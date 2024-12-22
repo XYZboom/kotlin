@@ -14,14 +14,13 @@ import org.jetbrains.kotlin.diagnostics.*
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.isLocalMember
+import org.jetbrains.kotlin.fir.analysis.checkers.projectionKindAsString
 import org.jetbrains.kotlin.fir.analysis.getChild
 import org.jetbrains.kotlin.fir.builder.FirSyntaxErrors
 import org.jetbrains.kotlin.fir.declarations.utils.*
 import org.jetbrains.kotlin.fir.diagnostics.*
-import org.jetbrains.kotlin.fir.expressions.FirAnonymousFunctionExpression
-import org.jetbrains.kotlin.fir.expressions.FirExpression
-import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
-import org.jetbrains.kotlin.fir.expressions.FirResolvable
+import org.jetbrains.kotlin.fir.expressions.*
+import org.jetbrains.kotlin.fir.originalOrSelf
 import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
 import org.jetbrains.kotlin.fir.resolve.calls.*
 import org.jetbrains.kotlin.fir.resolve.diagnostics.*
@@ -101,12 +100,6 @@ private fun ConeDiagnostic.toKtDiagnostic(
     }
 
     is ConeTypeVisibilityError -> symbol.toInvisibleReferenceDiagnostic(smallestUnresolvablePrefix.last().source)
-    is ConeSetterVisibilityError -> FirErrors.INVISIBLE_SETTER.createOn(
-        source,
-        symbol,
-        symbol.setterSymbol?.visibility ?: symbol.visibility,
-        symbol.callableId
-    )
     is ConeVisibilityError -> symbol.toInvisibleReferenceDiagnostic(source)
     is ConeInapplicableWrongReceiver -> when (val diagnostic = primaryDiagnostic) {
         is DynamicReceiverExpectedButWasNonDynamic ->
@@ -115,14 +108,31 @@ private fun ConeDiagnostic.toKtDiagnostic(
     }
     is ConeNoCompanionObject -> FirErrors.NO_COMPANION_OBJECT.createOn(source, this.candidateSymbol as FirClassLikeSymbol<*>)
     is ConeAmbiguityError -> @OptIn(ApplicabilityDetail::class) when {
+        // Don't report ambiguity when some non-lambda, non-callable-reference argument has an error type
+        candidates.all {
+            if (it !is AbstractCallCandidate<*>) return@all false
+            // Ambiguous candidates may be not fully processed, so argument mapping may be not initialized
+            if (!it.argumentMappingInitialized) return@all false
+            it.argumentMapping.keys.any(AbstractConeResolutionAtom::containsErrorTypeForSuppressingAmbiguityError) ||
+                    it.contextArguments?.any(AbstractConeResolutionAtom::containsErrorTypeForSuppressingAmbiguityError) == true ||
+                    it.chosenExtensionReceiver?.containsErrorTypeForSuppressingAmbiguityError() == true
+        } -> null
         applicability.isSuccess -> FirErrors.OVERLOAD_RESOLUTION_AMBIGUITY.createOn(source, this.candidates.map { it.symbol })
         applicability == CandidateApplicability.UNSAFE_CALL -> {
-            val (unsafeCall, candidate) = candidates.firstNotNullOf { it.diagnostics.firstIsInstanceOrNull<UnsafeCall>()?.to(it) }
-            mapUnsafeCallError(candidate, unsafeCall, source, callOrAssignmentSource)
+            val diagnosticAndCandidate = candidates.firstNotNullOfOrNull {
+                (it as? AbstractCallCandidate<*>)?.diagnostics?.firstIsInstanceOrNull<InapplicableNullableReceiver>()?.to(it)
+            }
+            if (diagnosticAndCandidate != null) {
+                mapInapplicableNullableReceiver(diagnosticAndCandidate.second, diagnosticAndCandidate.first, source, callOrAssignmentSource)
+            } else {
+                FirErrors.NONE_APPLICABLE.createOn(source, this.candidates.map { it.symbol })
+            }
         }
 
         applicability == CandidateApplicability.UNSTABLE_SMARTCAST -> {
-            val unstableSmartcast = this.candidates.firstNotNullOf { it.diagnostics.firstIsInstanceOrNull<UnstableSmartCast>() }
+            val unstableSmartcast = this.candidates.firstNotNullOf {
+                (it as? AbstractCallCandidate<*>)?.diagnostics?.firstIsInstanceOrNull<UnstableSmartCast>()
+            }
             unstableSmartcast.mapUnstableSmartCast()
         }
 
@@ -188,7 +198,15 @@ private fun ConeDiagnostic.toKtDiagnostic(
     is ConeAmbiguousFunctionTypeKinds -> FirErrors.AMBIGUOUS_FUNCTION_TYPE_KIND.createOn(source, kinds)
     is ConeUnsupportedClassLiteralsWithEmptyLhs -> FirErrors.UNSUPPORTED_CLASS_LITERALS_WITH_EMPTY_LHS.createOn(source)
     is ConeMultipleLabelsAreForbidden -> FirErrors.MULTIPLE_LABELS_ARE_FORBIDDEN.createOn(this.source)
+    is ConeNoInferTypeMismatch -> FirErrors.TYPE_MISMATCH.createOn(source, lowerType, upperType, false)
+    is ConeDynamicUnsupported -> FirErrors.UNSUPPORTED.createOn(source, "dynamic type")
+    is ConeContextParameterWithDefaultValue -> FirErrors.CONTEXT_PARAMETER_WITH_DEFAULT.createOn(source)
     else -> throw IllegalArgumentException("Unsupported diagnostic type: ${this.javaClass}")
+}
+
+private fun AbstractConeResolutionAtom.containsErrorTypeForSuppressingAmbiguityError(): Boolean {
+    val arg = expression
+    return arg.resolvedType.hasError() && arg !is FirAnonymousFunctionExpression && arg !is FirCallableReferenceAccess
 }
 
 /**
@@ -217,9 +235,9 @@ fun ConeDiagnostic.toFirDiagnostics(
     }
 }
 
-private fun mapUnsafeCallError(
-    candidate: AbstractCandidate,
-    rootCause: UnsafeCall,
+private fun mapInapplicableNullableReceiver(
+    candidate: AbstractCallCandidate<*>,
+    rootCause: InapplicableNullableReceiver,
     source: KtSourceElement?,
     qualifiedAccessSource: KtSourceElement?,
 ): KtDiagnostic {
@@ -289,16 +307,25 @@ private fun mapInapplicableCandidateError(
             )
 
             is ArgumentTypeMismatch -> {
-                FirErrors.ARGUMENT_TYPE_MISMATCH.createOn(
-                    rootCause.argument.source ?: source,
-                    rootCause.expectedType.removeTypeVariableTypes(typeContext),
-                    // For lambda expressions, use their resolved type because `rootCause.actualType` can contain unresolved types
-                    if (rootCause.argument is FirAnonymousFunctionExpression && !rootCause.argument.resolvedType.hasError()) {
+                diagnosticForArgumentTypeMismatch(
+                    source = rootCause.argument.source ?: source,
+                    expectedType = rootCause.expectedType.removeTypeVariableTypes(typeContext),
+                    actualType = if (rootCause.argument is FirAnonymousFunctionExpression && !rootCause.argument.resolvedType.hasError()) {
                         rootCause.argument.resolvedType
                     } else {
                         rootCause.actualType.removeTypeVariableTypes(typeContext)
                     },
-                    rootCause.isMismatchDueToNullability
+                    isMismatchDueToNullability = rootCause.isMismatchDueToNullability,
+                    candidate = diagnostic.candidate
+                )
+            }
+
+            is UnitReturnTypeLambdaContradictsExpectedType -> {
+                FirErrors.ARGUMENT_TYPE_MISMATCH.createOn(
+                    rootCause.sourceForFunctionExpression ?: rootCause.lambda.source ?: source,
+                    rootCause.wholeLambdaExpectedType.removeTypeVariableTypes(typeContext),
+                    rootCause.lambda.typeRef.coneType.removeTypeVariableTypes(typeContext),
+                    false // not isMismatchDueToNullability
                 )
             }
 
@@ -307,23 +334,23 @@ private fun mapInapplicableCandidateError(
             is ErrorTypeInArguments -> null
 
             // see EagerResolveOfCallableReferences
-            is UnsuccessfulCallableReferenceAtom -> null
+            is UnsuccessfulCallableReferenceArgument -> null
 
             is MultipleContextReceiversApplicableForExtensionReceivers ->
                 FirErrors.AMBIGUOUS_CALL_WITH_IMPLICIT_CONTEXT_RECEIVER.createOn(qualifiedAccessSource ?: source)
 
             is NoReceiverAllowed -> FirErrors.NO_RECEIVER_ALLOWED.createOn(qualifiedAccessSource ?: source)
 
-            is NoApplicableValueForContextReceiver ->
-                FirErrors.NO_CONTEXT_RECEIVER.createOn(
+            is NoContextArgument ->
+                FirErrors.NO_CONTEXT_ARGUMENT.createOn(
                     qualifiedAccessSource ?: source,
                     rootCause.expectedContextReceiverType.removeTypeVariableTypes(typeContext)
                 )
 
             is UnsupportedContextualDeclarationCall -> FirErrors.UNSUPPORTED_CONTEXTUAL_DECLARATION_CALL.createOn(source)
 
-            is AmbiguousValuesForContextReceiverParameter ->
-                FirErrors.MULTIPLE_ARGUMENTS_APPLICABLE_FOR_CONTEXT_RECEIVER.createOn(
+            is AmbiguousContextArgument ->
+                FirErrors.AMBIGUOUS_CONTEXT_ARGUMENT.createOn(
                     qualifiedAccessSource ?: source,
                     rootCause.expectedContextReceiverType.removeTypeVariableTypes(typeContext)
                 )
@@ -359,7 +386,7 @@ private fun mapInapplicableCandidateError(
                 rootCause.argument.source ?: source
             )
 
-            is UnsafeCall -> mapUnsafeCallError(diagnostic.candidate, rootCause, source, qualifiedAccessSource)
+            is InapplicableNullableReceiver -> mapInapplicableNullableReceiver(diagnostic.candidate, rootCause, source, qualifiedAccessSource)
             is ManyLambdaExpressionArguments -> FirErrors.MANY_LAMBDA_EXPRESSION_ARGUMENTS.createOn(rootCause.argument.source ?: source)
             is InfixCallOfNonInfixFunction -> FirErrors.INFIX_MODIFIER_REQUIRED.createOn(source, rootCause.function)
             is OperatorCallOfNonOperatorFunction ->
@@ -401,6 +428,11 @@ private fun mapInapplicableCandidateError(
                 rootCause.candidateSymbol
             )
 
+            is WrongNumberOfTypeArguments -> FirErrors.WRONG_NUMBER_OF_TYPE_ARGUMENTS.createOn(
+                qualifiedAccessSource ?: source,
+                rootCause.desiredCount, rootCause.symbol
+            )
+
             else -> genericDiagnostic
         }
     }.distinct()
@@ -409,6 +441,39 @@ private fun mapInapplicableCandidateError(
         diagnostics.filter { it != genericDiagnostic }
     } else {
         diagnostics
+    }
+}
+
+private fun diagnosticForArgumentTypeMismatch(
+    source: KtSourceElement?,
+    expectedType: ConeKotlinType,
+    actualType: ConeKotlinType,
+    isMismatchDueToNullability: Boolean,
+    candidate: AbstractCallCandidate<*>,
+): KtDiagnostic {
+    val symbol = candidate.symbol as FirCallableSymbol
+    val receiverType = (candidate.chosenExtensionReceiver ?: candidate.dispatchReceiver)?.expression?.resolvedType
+
+    return if (expectedType is ConeCapturedType &&
+        expectedType.constructor.projection.kind.let { it == ProjectionKind.OUT || it == ProjectionKind.STAR } &&
+        receiverType != null &&
+        // Ensure we report an actual argument type mismatch of the candidate and not a lambda return expression
+        candidate.argumentMapping.keys.any { it.expression.source == source }
+    ) {
+        FirErrors.MEMBER_PROJECTED_OUT.createOn(
+            source,
+            receiverType,
+            expectedType.projectionKindAsString(),
+            symbol.originalOrSelf(),
+        )
+    } else {
+        FirErrors.ARGUMENT_TYPE_MISMATCH.createOn(
+            source,
+            expectedType,
+            // For lambda expressions, use their resolved type because `rootCause.actualType` can contain unresolved types
+            actualType,
+            isMismatchDueToNullability
+        )
     }
 }
 
@@ -471,7 +536,7 @@ private fun ConstraintSystemError.toDiagnostic(
     source: KtSourceElement?,
     qualifiedAccessSource: KtSourceElement?,
     typeContext: ConeTypeContext,
-    candidate: AbstractCandidate,
+    candidate: AbstractCallCandidate<*>,
 ): KtDiagnostic? {
     return when (this) {
         is NewConstraintError -> {
@@ -494,11 +559,12 @@ private fun ConstraintSystemError.toDiagnostic(
 
             val typeMismatchDueToNullability = typeContext.isTypeMismatchDueToNullability(lowerConeType, upperConeType)
             argument?.let {
-                return FirErrors.ARGUMENT_TYPE_MISMATCH.createOn(
-                    reportOn ?: it.source ?: source,
-                    lowerConeType.removeTypeVariableTypes(typeContext),
-                    upperConeType.removeTypeVariableTypes(typeContext),
-                    typeMismatchDueToNullability
+                return diagnosticForArgumentTypeMismatch(
+                    source = reportOn ?: it.source ?: source,
+                    expectedType = lowerConeType.removeTypeVariableTypes(typeContext),
+                    actualType = upperConeType.removeTypeVariableTypes(typeContext),
+                    isMismatchDueToNullability = typeMismatchDueToNullability,
+                    candidate = candidate
                 )
             }
 
@@ -508,7 +574,7 @@ private fun ConstraintSystemError.toDiagnostic(
                         if (!lowerConeType.isNullableNothing)
                             lowerConeType
                         else
-                            upperConeType.withNullability(ConeNullability.NULLABLE, typeContext)
+                            upperConeType.withNullability(nullable = true, typeContext)
 
                     FirErrors.TYPE_MISMATCH.createOn(
                         qualifiedAccessSource ?: source,
@@ -541,13 +607,6 @@ private fun ConstraintSystemError.toDiagnostic(
                     ?: candidate.sourceOfCallToSymbolWith(this.typeVariable as ConeTypeVariable)
                     ?: source,
                 typeVariableName,
-            )
-        }
-
-        is NoSuccessfulFork -> {
-            FirErrors.INFERENCE_UNSUCCESSFUL_FORK.createOn(
-                source,
-                position.initialConstraint.asStringWithoutPosition(),
             )
         }
 
@@ -589,7 +648,7 @@ private fun ConstraintSystemError.toDiagnostic(
     }
 }
 
-private fun AbstractCandidate.sourceOfCallToSymbolWith(
+private fun AbstractCallCandidate<*>.sourceOfCallToSymbolWith(
     typeVariable: ConeTypeVariable,
 ): KtSourceElement? {
     if (typeVariable !is ConeTypeParameterBasedTypeVariable) return null
@@ -645,6 +704,8 @@ private fun ConeSimpleDiagnostic.getFactory(source: KtSourceElement?): KtDiagnos
         DiagnosticKind.ReturnNotAllowed -> FirErrors.RETURN_NOT_ALLOWED
         DiagnosticKind.NotAFunctionLabel -> FirErrors.NOT_A_FUNCTION_LABEL
         DiagnosticKind.UnresolvedLabel -> FirErrors.UNRESOLVED_LABEL
+        DiagnosticKind.AmbiguousLabel -> FirErrors.AMBIGUOUS_LABEL
+        DiagnosticKind.LabelNameClash -> FirErrors.LABEL_NAME_CLASH
         DiagnosticKind.NoThis -> FirErrors.NO_THIS
         DiagnosticKind.IllegalConstExpression -> FirErrors.ILLEGAL_CONST_EXPRESSION
         DiagnosticKind.IllegalUnderscore -> FirErrors.ILLEGAL_UNDERSCORE
@@ -664,7 +725,7 @@ private fun ConeSimpleDiagnostic.getFactory(source: KtSourceElement?): KtDiagnos
         DiagnosticKind.JumpOutsideLoop -> FirErrors.BREAK_OR_CONTINUE_OUTSIDE_A_LOOP
         DiagnosticKind.NotLoopLabel -> FirErrors.NOT_A_LOOP_LABEL
         DiagnosticKind.VariableExpected -> FirErrors.VARIABLE_EXPECTED
-        DiagnosticKind.ValueParameterWithNoTypeAnnotation -> FirErrors.VALUE_PARAMETER_WITH_NO_TYPE_ANNOTATION
+        DiagnosticKind.ValueParameterWithNoTypeAnnotation -> FirErrors.VALUE_PARAMETER_WITHOUT_EXPLICIT_TYPE
         DiagnosticKind.CannotInferParameterType -> FirErrors.CANNOT_INFER_PARAMETER_TYPE
         DiagnosticKind.IllegalProjectionUsage -> FirErrors.ILLEGAL_PROJECTION_USAGE
         DiagnosticKind.MissingStdlibClass -> FirErrors.MISSING_STDLIB_CLASS
@@ -684,7 +745,7 @@ private fun ConeSimpleDiagnostic.getFactory(source: KtSourceElement?): KtDiagnos
         DiagnosticKind.EnumEntryAsType -> FirErrors.ENUM_ENTRY_AS_TYPE
         DiagnosticKind.NotASupertype -> FirErrors.NOT_A_SUPERTYPE
         DiagnosticKind.SuperNotAvailable -> FirErrors.SUPER_NOT_AVAILABLE
-        DiagnosticKind.AnnotationNotAllowed -> FirErrors.ANNOTATION_IN_WHERE_CLAUSE_ERROR
+        DiagnosticKind.AnnotationInWhereClause -> FirErrors.ANNOTATION_IN_WHERE_CLAUSE_ERROR
         DiagnosticKind.UnresolvedSupertype,
         DiagnosticKind.UnresolvedExpandedType,
         DiagnosticKind.Other -> FirErrors.OTHER_ERROR

@@ -5,6 +5,7 @@
 
 package kotlin.text
 
+import kotlin.native.internal.escapeAnalysis.Escapes
 import kotlin.native.internal.GCUnsafeCall
 
 /** Appends [value] to this [StringBuilder], followed by a line feed character (`\n`). */
@@ -38,48 +39,50 @@ public actual inline fun StringBuilder.appendLine(value: Float): StringBuilder =
 public actual inline fun StringBuilder.appendLine(value: Double): StringBuilder = append(value).appendLine()
 
 
-@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6")
+@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6", hiddenSince = "2.1")
 @Deprecated("Use appendLine instead", ReplaceWith("appendLine(it)"))
 public fun StringBuilder.appendln(it: String): StringBuilder = appendLine(it)
 
-@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6")
+@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6", hiddenSince = "2.1")
 @Deprecated("Use appendLine instead", ReplaceWith("appendLine(it)"))
 public fun StringBuilder.appendln(it: Boolean): StringBuilder = appendLine(it)
 
-@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6")
+@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6", hiddenSince = "2.1")
 @Deprecated("Use appendLine instead", ReplaceWith("appendLine(it)"))
 public fun StringBuilder.appendln(it: Byte): StringBuilder = appendLine(it)
 
-@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6")
+@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6", hiddenSince = "2.1")
 @Deprecated("Use appendLine instead", ReplaceWith("appendLine(it)"))
 public fun StringBuilder.appendln(it: Short): StringBuilder = appendLine(it)
 
-@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6")
+@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6", hiddenSince = "2.1")
 @Deprecated("Use appendLine instead", ReplaceWith("appendLine(it)"))
 public fun StringBuilder.appendln(it: Int): StringBuilder = appendLine(it)
 
-@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6")
+@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6", hiddenSince = "2.1")
 @Deprecated("Use appendLine instead", ReplaceWith("appendLine(it)"))
 public fun StringBuilder.appendln(it: Long): StringBuilder = appendLine(it)
 
-@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6")
+@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6", hiddenSince = "2.1")
 @Deprecated("Use appendLine instead", ReplaceWith("appendLine(it)"))
 public fun StringBuilder.appendln(it: Float): StringBuilder = appendLine(it)
 
-@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6")
+@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6", hiddenSince = "2.1")
 @Deprecated("Use appendLine instead", ReplaceWith("appendLine(it)"))
 public fun StringBuilder.appendln(it: Double): StringBuilder = appendLine(it)
 
-@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6")
+@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6", hiddenSince = "2.1")
 @Deprecated("Use appendLine instead", ReplaceWith("appendLine(it)"))
 public fun StringBuilder.appendln(it: Any?): StringBuilder = appendLine(it)
 
-@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6")
+@DeprecatedSinceKotlin(warningSince = "1.4", errorSince = "1.6", hiddenSince = "2.1")
 @Deprecated("Use appendLine instead", ReplaceWith("appendLine()"))
 public fun StringBuilder.appendln(): StringBuilder = appendLine()
 
 @GCUnsafeCall("Kotlin_StringBuilder_insertString")
-internal external fun insertString(array: CharArray, distIndex: Int, value: String, sourceIndex: Int, count: Int): Int
+@Escapes.Nothing
+internal actual external fun insertString(array: CharArray, destinationIndex: Int, value: String, sourceIndex: Int, count: Int): Int
 
 @GCUnsafeCall("Kotlin_StringBuilder_insertInt")
-internal external fun insertInt(array: CharArray, start: Int, value: Int): Int
+@Escapes.Nothing
+internal actual external fun insertInt(array: CharArray, start: Int, value: Int): Int

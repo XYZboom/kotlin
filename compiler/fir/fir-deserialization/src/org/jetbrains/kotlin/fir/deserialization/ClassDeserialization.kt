@@ -18,7 +18,6 @@ import org.jetbrains.kotlin.fir.declarations.utils.isCompanion
 import org.jetbrains.kotlin.fir.declarations.utils.moduleName
 import org.jetbrains.kotlin.fir.declarations.utils.sourceElement
 import org.jetbrains.kotlin.fir.resolve.providers.getRegularClassSymbolByClassId
-import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.resolve.transformers.setLazyPublishedVisibility
 import org.jetbrains.kotlin.fir.scopes.FirScopeProvider
 import org.jetbrains.kotlin.fir.symbols.ConeTypeParameterLookupTag
@@ -26,13 +25,10 @@ import org.jetbrains.kotlin.fir.symbols.impl.FirEnumEntrySymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
-import org.jetbrains.kotlin.fir.types.ConeClassLikeType
-import org.jetbrains.kotlin.fir.types.ConeTypeProjection
+import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
-import org.jetbrains.kotlin.fir.types.coneTypeSafe
 import org.jetbrains.kotlin.fir.types.impl.ConeClassLikeTypeImpl
 import org.jetbrains.kotlin.fir.types.impl.ConeTypeParameterTypeImpl
-import org.jetbrains.kotlin.fir.types.toLookupTag
 import org.jetbrains.kotlin.metadata.ProtoBuf
 import org.jetbrains.kotlin.metadata.SerializationPluginMetadataExtensions
 import org.jetbrains.kotlin.metadata.deserialization.*
@@ -76,7 +72,9 @@ fun deserializeClassToSymbol(
         isCompanion = kind == ProtoBuf.Class.Kind.COMPANION_OBJECT
         isInner = Flags.IS_INNER.get(flags)
         isData = Flags.IS_DATA.get(classProto.flags)
-        isInline = Flags.IS_VALUE_CLASS.get(classProto.flags)
+        // During serialization, we store only IS_VALUE_CLASS without distinguishing if it in fact was inline or value class
+        // During deserialization, we anyway interpret this flag as isValue, because inline classes are deprecated
+        isValue = Flags.IS_VALUE_CLASS.get(classProto.flags)
         isExternal = Flags.IS_EXTERNAL_CLASS.get(classProto.flags)
         isFun = Flags.IS_FUN_INTERFACE.get(classProto.flags)
     }
@@ -84,7 +82,7 @@ fun deserializeClassToSymbol(
     val annotationDeserializer = defaultAnnotationDeserializer ?: FirBuiltinAnnotationDeserializer(session)
     val platformConstDeserializer =
         session.deserializationExtension?.createConstDeserializer(containerSource, session, serializerExtensionProtocol)
-    val constDeserializer = platformConstDeserializer ?: FirConstDeserializer(session, serializerExtensionProtocol)
+    val constDeserializer = platformConstDeserializer ?: FirConstDeserializer(serializerExtensionProtocol)
     val context =
         parentContext?.childContext(
             classProto.typeParameterList,
@@ -181,7 +179,7 @@ fun deserializeClassToSymbol(
                 val property = buildEnumEntry {
                     this.moduleData = moduleData
                     this.origin = FirDeclarationOrigin.Library
-                    returnTypeRef = buildResolvedTypeRef { type = enumType }
+                    returnTypeRef = buildResolvedTypeRef { coneType = enumType }
                     name = enumEntryName
                     this.symbol = FirEnumEntrySymbol(CallableId(classId, enumEntryName))
                     this.status = FirResolvedDeclarationStatusImpl(
@@ -217,7 +215,7 @@ fun deserializeClassToSymbol(
 
         companionObjectSymbol = (declarations.firstOrNull { it is FirRegularClass && it.isCompanion } as FirRegularClass?)?.symbol
 
-        contextReceivers.addAll(classDeserializer.createContextReceiversForClass(classProto))
+        contextParameters.addAll(classDeserializer.createContextParametersForClass(classProto, origin, symbol))
     }.apply {
         if (isSealed) {
             val inheritors = classProto.sealedSubclassFqNameList.map { nameIndex ->
@@ -227,9 +225,12 @@ fun deserializeClassToSymbol(
         }
 
         valueClassRepresentation =
-            classProto.loadValueClassRepresentation(context.nameResolver, context.typeTable, context.typeDeserializer::simpleType) { name ->
+            classProto.loadValueClassRepresentation(
+                context.nameResolver,
+                context.typeTable,
+                { context.typeDeserializer.rigidType(it) }) { name ->
                 val member = declarations.singleOrNull { it is FirProperty && it.receiverParameter == null && it.name == name }
-                (member as FirProperty?)?.returnTypeRef?.coneTypeSafe()
+                (member as FirProperty?)?.returnTypeRef?.coneType as ConeRigidType
             } ?: computeValueClassRepresentation(this, session)
 
         replaceAnnotations(
@@ -249,7 +250,7 @@ fun deserializeClassToSymbol(
         if (!Flags.HAS_ENUM_ENTRIES.get(flags)) {
             hasNoEnumEntriesAttr = true
         }
-
+        deserializeCompilerPluginMetadata(context, classProto, ProtoBuf.Class::getCompilerPluginDataList)
         setLazyPublishedVisibility(session)
     }
 }
@@ -270,12 +271,12 @@ private val ARRAY_CLASSES: Set<Name> = setOf(
 fun FirRegularClassBuilder.addCloneForArrayIfNeeded(classId: ClassId, dispatchReceiver: ConeClassLikeType?, session: FirSession) {
     if (classId.packageFqName != StandardClassIds.BASE_KOTLIN_PACKAGE) return
     if (classId.shortClassName !in ARRAY_CLASSES) return
-    if (session.symbolProvider.getRegularClassSymbolByClassId(StandardClassIds.Cloneable) == null) return
+    if (session.getRegularClassSymbolByClassId(StandardClassIds.Cloneable) == null) return
     superTypeRefs += buildResolvedTypeRef {
-        type = ConeClassLikeTypeImpl(
+        coneType = ConeClassLikeTypeImpl(
             StandardClassIds.Cloneable.toLookupTag(),
             typeArguments = ConeTypeProjection.EMPTY_ARRAY,
-            isNullable = false
+            isMarkedNullable = false
         )
     }
     declarations += buildSimpleFunction {
@@ -286,16 +287,16 @@ fun FirRegularClassBuilder.addCloneForArrayIfNeeded(classId: ClassId, dispatchRe
             val typeArguments = if (classId.shortClassName == ARRAY) {
                 arrayOf(
                     ConeTypeParameterTypeImpl(
-                        ConeTypeParameterLookupTag(this@addCloneForArrayIfNeeded.typeParameters.first().symbol), isNullable = false
+                        ConeTypeParameterLookupTag(this@addCloneForArrayIfNeeded.typeParameters.first().symbol), isMarkedNullable = false
                     )
                 )
             } else {
                 emptyArray()
             }
-            type = ConeClassLikeTypeImpl(
+            coneType = ConeClassLikeTypeImpl(
                 classId.toLookupTag(),
                 typeArguments = typeArguments,
-                isNullable = false
+                isMarkedNullable = false
             )
         }
         status = FirResolvedDeclarationStatusImpl(Visibilities.Public, Modality.FINAL, EffectiveVisibility.Public).apply {

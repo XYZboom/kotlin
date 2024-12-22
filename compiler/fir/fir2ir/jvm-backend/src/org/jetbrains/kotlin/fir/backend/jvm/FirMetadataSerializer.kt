@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.fir.backend.jvm
 import org.jetbrains.kotlin.KtFakeSourceElementKind
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
+import org.jetbrains.kotlin.backend.jvm.localDelegatedProperties
 import org.jetbrains.kotlin.backend.jvm.metadata.MetadataSerializer
 import org.jetbrains.kotlin.codegen.ClassBuilderMode
 import org.jetbrains.kotlin.codegen.serialization.JvmSerializationBindings
@@ -18,7 +19,7 @@ import org.jetbrains.kotlin.fir.backend.FirMetadataSource
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.builder.*
 import org.jetbrains.kotlin.fir.resolve.ScopeSession
-import org.jetbrains.kotlin.fir.resolve.toFirRegularClass
+import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.serialization.FirElementAwareStringTable
 import org.jetbrains.kotlin.fir.serialization.FirElementSerializer
 import org.jetbrains.kotlin.fir.serialization.TypeApproximatorForMetadataSerializer
@@ -33,7 +34,7 @@ import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.protobuf.MessageLite
 import org.jetbrains.kotlin.types.AbstractTypeApproximator
 import org.jetbrains.kotlin.types.TypeApproximatorConfiguration
-import org.jetbrains.kotlin.utils.metadataVersion
+import org.jetbrains.kotlin.util.metadataVersion
 import org.jetbrains.org.objectweb.asm.Type
 import org.jetbrains.org.objectweb.asm.commons.Method
 
@@ -47,7 +48,7 @@ fun makeFirMetadataSerializerForIrClass(
     actualizedExpectDeclarations: Set<FirDeclaration>?
 ): FirMetadataSerializer {
     val approximator = TypeApproximatorForMetadataSerializer(session)
-    val localDelegatedProperties = context.localDelegatedProperties[irClass.attributeOwnerId]?.mapNotNull {
+    val localDelegatedProperties = irClass.localDelegatedProperties?.mapNotNull {
         (it.owner.metadata as? FirMetadataSource.Property)?.fir?.copyToFreeProperty(approximator)
     } ?: emptyList()
     val firSerializerExtension = FirJvmSerializerExtension(
@@ -57,7 +58,7 @@ fun makeFirMetadataSerializerForIrClass(
         localDelegatedProperties,
         approximator,
         components,
-        FirJvmElementAwareStringTable(context.defaultTypeMapper, components, context.isEnclosedInConstructor.toList())
+        FirJvmElementAwareStringTable(context.defaultTypeMapper, components)
     )
     return FirMetadataSerializer(
         context.state.globalSerializationBindings,
@@ -86,13 +87,12 @@ fun makeLocalFirMetadataSerializerForMetadataSource(
 
     val stringTable = object : JvmStringTable(null), FirElementAwareStringTable {
         override fun getLocalClassIdReplacement(firClass: FirClass): ClassId =
-            ((firClass as? FirRegularClass)?.containingClassForLocal()?.toFirRegularClass(session) ?: firClass)
+            ((firClass as? FirRegularClass)?.containingClassForLocal()?.toRegularClassSymbol(session)?.fir ?: firClass)
                 .symbol.classId
     }
 
     val firSerializerExtension = FirJvmSerializerExtension(
-        session, serializationBindings, emptyList(), approximator, scopeSession,
-        globalSerializationBindings,
+        session, serializationBindings, emptyList(), scopeSession, globalSerializationBindings,
         configuration.getBoolean(JVMConfigurationKeys.USE_TYPE_TABLE),
         targetId.name,
         ClassBuilderMode.FULL,
@@ -229,6 +229,7 @@ private fun FirFunction.copyToFreeAnonymousFunction(approximator: AbstractTypeAp
         receiverParameter = function.receiverParameter?.let { receiverParameter ->
             buildReceiverParameterCopy(receiverParameter) {
                 typeRef = receiverParameter.typeRef.approximated(approximator, typeParameterSet, toSuper = false)
+                symbol = FirReceiverParameterSymbol()
             }
         }
 
@@ -266,7 +267,6 @@ private fun FirPropertyAccessor.copyToFreeAccessor(
             }
         }
         annotations += accessor.annotations
-        typeParameters += typeParameterSet
     }
 }
 
@@ -283,6 +283,7 @@ internal fun FirProperty.copyToFreeProperty(approximator: AbstractTypeApproximat
         receiverParameter = property.receiverParameter?.let { receiverParameter ->
             buildReceiverParameterCopy(receiverParameter) {
                 typeRef = receiverParameter.typeRef.approximated(approximator, typeParameterSet, toSuper = false)
+                symbol = FirReceiverParameterSymbol()
             }
         }
         name = property.name
@@ -325,7 +326,7 @@ private fun ConeKotlinType.collectTypeParameters(c: MutableCollection<FirTypePar
             upperBound.collectTypeParameters(c)
         }
         is ConeClassLikeType ->
-            for (projection in type.typeArguments) {
+            for (projection in typeArguments) {
                 if (projection is ConeKotlinTypeProjection) {
                     projection.type.collectTypeParameters(c)
                 }

@@ -25,13 +25,12 @@ import org.jetbrains.kotlin.fir.resolve.isInvoke
 import org.jetbrains.kotlin.fir.resolve.isIterator
 import org.jetbrains.kotlin.fir.resolve.isIteratorHasNext
 import org.jetbrains.kotlin.fir.resolve.isIteratorNext
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirSyntheticPropertySymbol
+import org.jetbrains.kotlin.fir.types.ConeClassLikeLookupTag
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin.GeneratedByPlugin
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
-import org.jetbrains.kotlin.ir.expressions.IrStatementOriginImpl
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.SpecialNames
 import org.jetbrains.kotlin.name.StandardClassIds
@@ -40,8 +39,10 @@ import org.jetbrains.kotlin.util.OperatorNameConventions
 // ----------------------------------- declaration origins -----------------------------------
 
 fun FirClass.irOrigin(c: Fir2IrComponents): IrDeclarationOrigin = when {
-    c.firProvider.getFirClassifierContainerFileIfAny(symbol) != null -> IrDeclarationOrigin.DEFINED
+    // In Kmp scenario, it's possible to find a non-null containing file even for a Java class,
+    // in case it's an actualization of a Kotlin expect class
     isJava -> IrDeclarationOrigin.IR_EXTERNAL_JAVA_DECLARATION_STUB
+    c.firProvider.getFirClassifierContainerFileIfAny(symbol) != null -> IrDeclarationOrigin.DEFINED
     else -> when (val origin = origin) {
         is FirDeclarationOrigin.Plugin -> GeneratedByPlugin(origin.key)
         else -> IrDeclarationOrigin.IR_EXTERNAL_DECLARATION_STUB
@@ -89,7 +90,6 @@ private val nameToOperationConventionOrigin: Map<Name, IrStatementOrigin> = mapO
     OperatorNameConventions.MINUS to IrStatementOrigin.MINUS,
     OperatorNameConventions.TIMES to IrStatementOrigin.MUL,
     OperatorNameConventions.DIV to IrStatementOrigin.DIV,
-    OperatorNameConventions.MOD to IrStatementOrigin.PERC,
     OperatorNameConventions.REM to IrStatementOrigin.PERC,
     OperatorNameConventions.RANGE_TO to IrStatementOrigin.RANGE,
     OperatorNameConventions.RANGE_UNTIL to IrStatementOrigin.RANGE_UNTIL,
@@ -117,10 +117,10 @@ internal fun FirReference.statementOrigin(): IrStatementOrigin? = when (this) {
                 IrStatementOrigin.NOT_IN
 
             source?.kind is KtFakeSourceElementKind.DesugaredIncrementOrDecrement ->
-                incOrDeclSourceKindToIrStatementOrigin[source?.kind]
+                incOrDecSourceKindToIrStatementOrigin[source?.kind]
 
             source?.kind is KtFakeSourceElementKind.DesugaredPrefixSecondGetReference ->
-                incOrDeclSourceKindToIrStatementOrigin[source?.kind]
+                incOrDecSourceKindToIrStatementOrigin[source?.kind]
 
             source?.elementType == KtNodeTypes.OPERATION_REFERENCE ->
                 nameToOperationConventionOrigin[symbol.callableId.callableName]
@@ -157,7 +157,7 @@ private val PREFIX_POSTFIX_ORIGIN_MAP: Map<NameWithElementType, IrStatementOrigi
 )
 
 fun FirVariableAssignment.getIrAssignmentOrigin(): IrStatementOrigin {
-    incOrDeclSourceKindToIrStatementOrigin[source?.kind]?.let { return it }
+    incOrDecSourceKindToIrStatementOrigin[source?.kind]?.let { return it }
     augmentedAssignSourceKindToIrStatementOrigin[source?.kind]?.let { return it }
     val callableName = getCallableNameFromIntClassIfAny() ?: return IrStatementOrigin.EQ
     PREFIX_POSTFIX_ORIGIN_MAP[callableName to source?.elementType]?.let { return it }
@@ -197,7 +197,7 @@ val augmentedAssignSourceKindToIrStatementOrigin: Map<KtFakeSourceElementKind.De
     KtFakeSourceElementKind.DesugaredRemAssign to IrStatementOrigin.PERCEQ
 )
 
-val incOrDeclSourceKindToIrStatementOrigin: Map<KtFakeSourceElementKind, IrStatementOrigin> = mapOf(
+val incOrDecSourceKindToIrStatementOrigin: Map<KtFakeSourceElementKind, IrStatementOrigin> = mapOf(
     KtFakeSourceElementKind.DesugaredPrefixInc to IrStatementOrigin.PREFIX_INCR,
     KtFakeSourceElementKind.DesugaredPostfixInc to IrStatementOrigin.POSTFIX_INCR,
     KtFakeSourceElementKind.DesugaredPrefixDec to IrStatementOrigin.PREFIX_DECR,

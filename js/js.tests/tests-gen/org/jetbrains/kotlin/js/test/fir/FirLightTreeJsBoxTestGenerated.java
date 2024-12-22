@@ -690,6 +690,12 @@ public class FirLightTreeJsBoxTestGenerated extends AbstractFirLightTreeJsBoxTes
       }
 
       @Test
+      @TestMetadata("keywordEscaping.kt")
+      public void testKeywordEscaping() {
+        runTest("js/js.translator/testData/box/closure/inlineAnonymousFunctions/keywordEscaping.kt");
+      }
+
+      @Test
       @TestMetadata("lambdaChain.kt")
       public void testLambdaChain() {
         runTest("js/js.translator/testData/box/closure/inlineAnonymousFunctions/lambdaChain.kt");
@@ -705,6 +711,18 @@ public class FirLightTreeJsBoxTestGenerated extends AbstractFirLightTreeJsBoxTes
       @TestMetadata("localParameterInCallback.kt")
       public void testLocalParameterInCallback() {
         runTest("js/js.translator/testData/box/closure/inlineAnonymousFunctions/localParameterInCallback.kt");
+      }
+
+      @Test
+      @TestMetadata("superInLambda.kt")
+      public void testSuperInLambda() {
+        runTest("js/js.translator/testData/box/closure/inlineAnonymousFunctions/superInLambda.kt");
+      }
+
+      @Test
+      @TestMetadata("superInLambdaNoArrows.kt")
+      public void testSuperInLambdaNoArrows() {
+        runTest("js/js.translator/testData/box/closure/inlineAnonymousFunctions/superInLambdaNoArrows.kt");
       }
 
       @Test
@@ -984,6 +1002,12 @@ public class FirLightTreeJsBoxTestGenerated extends AbstractFirLightTreeJsBoxTes
     @TestMetadata("suspendMethodWithSuperCall.kt")
     public void testSuspendMethodWithSuperCall() {
       runTest("js/js.translator/testData/box/coroutines/suspendMethodWithSuperCall.kt");
+    }
+
+    @Test
+    @TestMetadata("tailCallOptimization.kt")
+    public void testTailCallOptimization() {
+      runTest("js/js.translator/testData/box/coroutines/tailCallOptimization.kt");
     }
 
     @Test
@@ -5901,6 +5925,12 @@ public class FirLightTreeJsBoxTestGenerated extends AbstractFirLightTreeJsBoxTes
     }
 
     @Test
+    @TestMetadata("jsCodeInLambda.kt")
+    public void testJsCodeInLambda() {
+      runTest("js/js.translator/testData/box/inline/jsCodeInLambda.kt");
+    }
+
+    @Test
     @TestMetadata("jsCodeVarDeclared.kt")
     public void testJsCodeVarDeclared() {
       runTest("js/js.translator/testData/box/inline/jsCodeVarDeclared.kt");
@@ -6030,12 +6060,6 @@ public class FirLightTreeJsBoxTestGenerated extends AbstractFirLightTreeJsBoxTes
     @TestMetadata("privateProperty.kt")
     public void testPrivateProperty() {
       runTest("js/js.translator/testData/box/inline/privateProperty.kt");
-    }
-
-    @Test
-    @TestMetadata("recursiveDependency.kt")
-    public void testRecursiveDependency() {
-      runTest("js/js.translator/testData/box/inline/recursiveDependency.kt");
     }
 
     @Test
@@ -7364,6 +7388,30 @@ public class FirLightTreeJsBoxTestGenerated extends AbstractFirLightTreeJsBoxTes
     @TestMetadata("labelSiblingClash.kt")
     public void testLabelSiblingClash() {
       runTest("js/js.translator/testData/box/jsCode/labelSiblingClash.kt");
+    }
+
+    @Test
+    @TestMetadata("lambdaCrossInline.kt")
+    public void testLambdaCrossInline() {
+      runTest("js/js.translator/testData/box/jsCode/lambdaCrossInline.kt");
+    }
+
+    @Test
+    @TestMetadata("lambdaInline.kt")
+    public void testLambdaInline() {
+      runTest("js/js.translator/testData/box/jsCode/lambdaInline.kt");
+    }
+
+    @Test
+    @TestMetadata("lambdaNoInline.kt")
+    public void testLambdaNoInline() {
+      runTest("js/js.translator/testData/box/jsCode/lambdaNoInline.kt");
+    }
+
+    @Test
+    @TestMetadata("lambdaNonLocalReturn.kt")
+    public void testLambdaNonLocalReturn() {
+      runTest("js/js.translator/testData/box/jsCode/lambdaNonLocalReturn.kt");
     }
 
     @Test
@@ -9441,12 +9489,6 @@ public class FirLightTreeJsBoxTestGenerated extends AbstractFirLightTreeJsBoxTes
     public void testUnaryOnIntPropertyAsStatement() {
       runTest("js/js.translator/testData/box/operatorOverloading/unaryOnIntPropertyAsStatement.kt");
     }
-
-    @Test
-    @TestMetadata("usingModInCaseModAssignNotAvailable.kt")
-    public void testUsingModInCaseModAssignNotAvailable() {
-      runTest("js/js.translator/testData/box/operatorOverloading/usingModInCaseModAssignNotAvailable.kt");
-    }
   }
 
   @Nested
@@ -10278,6 +10320,12 @@ public class FirLightTreeJsBoxTestGenerated extends AbstractFirLightTreeJsBoxTes
     @TestMetadata("findAssociatedObject.kt")
     public void testFindAssociatedObject() {
       runTest("js/js.translator/testData/box/reflection/findAssociatedObject.kt");
+    }
+
+    @Test
+    @TestMetadata("findAssociatedObjectAndDCE.kt")
+    public void testFindAssociatedObjectAndDCE() {
+      runTest("js/js.translator/testData/box/reflection/findAssociatedObjectAndDCE.kt");
     }
 
     @Test

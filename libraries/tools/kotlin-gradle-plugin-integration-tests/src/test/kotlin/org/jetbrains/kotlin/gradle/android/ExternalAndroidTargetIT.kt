@@ -24,8 +24,14 @@ import kotlin.test.fail
 // This integration allows AGP to configure android target in MPP.
 @AndroidTestVersions(
     minVersion = TestVersions.AGP.AGP_82,
-    maxVersion = TestVersions.AGP.AGP_85,
-    additionalVersions = [TestVersions.AGP.AGP_84],
+    maxVersion = TestVersions.AGP.AGP_88,
+    additionalVersions = [
+        TestVersions.AGP.AGP_83,
+        TestVersions.AGP.AGP_84,
+        TestVersions.AGP.AGP_85,
+        TestVersions.AGP.AGP_86,
+        TestVersions.AGP.AGP_87,
+    ],
 )
 @AndroidGradlePluginTests
 class ExternalAndroidTargetIT : KGPBaseTest() {
@@ -101,11 +107,12 @@ class ExternalAndroidTargetIT : KGPBaseTest() {
         project(
             "externalAndroidTarget-project2project",
             gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
+            buildOptions = defaultBuildOptions
+                .copy(androidVersion = androidVersion),
             buildJdk = jdkVersion.location,
             localRepoDir = localRepoDir
         ) {
-            build("publish", buildOptions = buildOptions.copy(configurationCache = true)) {
+            build("publish", buildOptions = buildOptions.copy(configurationCache = BuildOptions.ConfigurationCacheValue.ENABLED)) {
                 val pomFile = localRepoDir.resolve("app/app-android/1.0/app-android-1.0.pom")
                 assertFileExists(pomFile)
 

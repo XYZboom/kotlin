@@ -104,6 +104,7 @@ class KotlinDaemonIT : KGPDaemonsBaseTest() {
 
     @DisplayName("On Kotlin daemon OOM helpful message is displayed")
     @GradleTest
+    @Disabled("KTI-2127 Flaky test displaySpecialMessageOnOOM")
     fun displaySpecialMessageOnOOM(gradleVersion: GradleVersion) {
         project(
             "kotlinProject",
@@ -112,7 +113,7 @@ class KotlinDaemonIT : KGPDaemonsBaseTest() {
             buildOptions = defaultBuildOptions.copy(logLevel = LogLevel.INFO)
         ) {
             gradleProperties.append(
-                "\nkotlin.daemon.jvmargs=-Xmx12m"
+                "\nkotlin.daemon.jvmargs=-Xmx16m"
             )
 
             buildAndFail("assemble") {
@@ -139,7 +140,7 @@ class KotlinDaemonIT : KGPDaemonsBaseTest() {
     }
 
     @DisplayName("KT-56789: Kotlin daemon does not triggers OOM in Metaspace on multiple invocations")
-    @JdkVersions(versions = [JavaVersion.VERSION_11])
+    @JdkVersions(versions = [JavaVersion.VERSION_17])
     @GradleWithJdkTest
     @GradleTestVersions(minVersion = TestVersions.Gradle.MAX_SUPPORTED)
     fun testMultipleCompilations(gradleVersion: GradleVersion, jdk: JdkVersions.ProvidedJdk) {

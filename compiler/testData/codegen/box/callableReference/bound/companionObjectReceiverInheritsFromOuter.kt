@@ -1,5 +1,4 @@
 // LANGUAGE: +ContextReceivers
-// IGNORE_BACKEND_K1: JS, NATIVE
 // SKIP_NODE_JS
 
 open class A {

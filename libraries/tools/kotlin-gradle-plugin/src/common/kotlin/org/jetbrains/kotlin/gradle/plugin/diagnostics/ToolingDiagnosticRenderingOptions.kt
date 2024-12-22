@@ -16,6 +16,7 @@ internal class ToolingDiagnosticRenderingOptions(
     val suppressedWarningIds: List<String>,
     val suppressedErrorIds: List<String>,
     val showStacktrace: Boolean,
+    val showSeverityEmoji: Boolean,
 ) : Serializable {
     companion object {
         fun forProject(project: Project): ToolingDiagnosticRenderingOptions {
@@ -26,16 +27,17 @@ internal class ToolingDiagnosticRenderingOptions(
 
                     // IDEA launches sync with `--stacktrace` option, but we don't want to
                     // spam stacktraces in build toolwindow
-                    project.isInIdeaSync -> false
+                    project.isInIdeaSync.get() -> false
 
                     else -> project.gradle.startParameter.showStacktrace > ShowStacktrace.INTERNAL_EXCEPTIONS
                 }
 
                 ToolingDiagnosticRenderingOptions(
-                    internalDiagnosticsUseParsableFormat,
-                    suppressedGradlePluginWarnings,
-                    suppressedGradlePluginErrors,
-                    showStacktrace
+                    useParsableFormat = internalDiagnosticsUseParsableFormat,
+                    suppressedWarningIds = suppressedGradlePluginWarnings,
+                    suppressedErrorIds = suppressedGradlePluginErrors,
+                    showStacktrace = showStacktrace,
+                    showSeverityEmoji = !project.isInIdeaSync.get()
                 )
             }
         }

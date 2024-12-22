@@ -29,6 +29,7 @@ internal class FirStringConcatenationCallImpl(
     override val source: KtSourceElement?,
     override var annotations: MutableOrEmptyList<FirAnnotation>,
     override var argumentList: FirArgumentList,
+    override val interpolationPrefix: String,
 ) : FirStringConcatenationCall() {
     @OptIn(UnresolvedExpressionTypeAccess::class)
     override val coneTypeOrNull: ConeKotlinType? = StandardClassIds.String.constructClassLikeType()
@@ -57,5 +58,7 @@ internal class FirStringConcatenationCallImpl(
         argumentList = newArgumentList
     }
 
-    override fun replaceConeTypeOrNull(newConeTypeOrNull: ConeKotlinType?) {}
+    override fun replaceConeTypeOrNull(newConeTypeOrNull: ConeKotlinType?) {
+        require(newConeTypeOrNull == coneTypeOrNull) { "${javaClass.simpleName}.replaceConeTypeOrNull() called with invalid type '${newConeTypeOrNull}'. Current type is '$coneTypeOrNull'" }
+    }
 }

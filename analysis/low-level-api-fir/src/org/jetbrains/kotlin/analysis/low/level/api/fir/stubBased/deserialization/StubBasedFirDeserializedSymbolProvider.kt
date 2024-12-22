@@ -1,38 +1,39 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.analysis.low.level.api.fir.stubBased.deserialization
 
-import com.intellij.openapi.project.Project
 import com.intellij.psi.search.GlobalSearchScope
+import org.jetbrains.kotlin.analysis.api.platform.declarations.createDeclarationProvider
+import org.jetbrains.kotlin.analysis.api.platform.packages.createPackageProvider
 import org.jetbrains.kotlin.analysis.low.level.api.fir.caches.getNotNullValueForNotNullContext
-import org.jetbrains.kotlin.analysis.low.level.api.fir.project.structure.llFirModuleData
+import org.jetbrains.kotlin.analysis.low.level.api.fir.projectStructure.LLFirModuleData
+import org.jetbrains.kotlin.analysis.low.level.api.fir.projectStructure.llFirModuleData
 import org.jetbrains.kotlin.analysis.low.level.api.fir.providers.LLFirKotlinSymbolProvider
+import org.jetbrains.kotlin.analysis.low.level.api.fir.sessions.LLFirSession
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.LLFirKotlinSymbolNamesProvider
-import org.jetbrains.kotlin.analysis.providers.createDeclarationProvider
-import org.jetbrains.kotlin.analysis.providers.createPackageProvider
-import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.caches.FirCache
 import org.jetbrains.kotlin.fir.caches.firCachesFactory
 import org.jetbrains.kotlin.fir.caches.getValue
 import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
-import org.jetbrains.kotlin.fir.deserialization.SingleModuleDataProvider
+import org.jetbrains.kotlin.fir.isNewPlaceForBodyGeneration
 import org.jetbrains.kotlin.fir.java.deserialization.KotlinBuiltins
 import org.jetbrains.kotlin.fir.realPsi
 import org.jetbrains.kotlin.fir.resolve.providers.FirSymbolNamesProvider
 import org.jetbrains.kotlin.fir.resolve.providers.FirSymbolProviderInternals
 import org.jetbrains.kotlin.fir.scopes.FirKotlinScopeProvider
+import org.jetbrains.kotlin.fir.scopes.kotlinScopeProvider
 import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.load.kotlin.FacadeClassSource
 import org.jetbrains.kotlin.name.*
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getTopmostParentOfType
+import org.jetbrains.kotlin.psi.stubs.KotlinClassOrObjectStub
+import org.jetbrains.kotlin.psi.stubs.KotlinClassStub
 import org.jetbrains.kotlin.psi.stubs.impl.*
-import org.jetbrains.kotlin.resolve.jvm.JvmClassName
 import org.jetbrains.kotlin.serialization.deserialization.builtins.BuiltInSerializerProtocol
-import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedContainerSource
 import org.jetbrains.kotlin.utils.addToStdlib.ifNotEmpty
 
 typealias DeserializedTypeAliasPostProcessor = (FirTypeAliasSymbol) -> Unit
@@ -50,25 +51,24 @@ typealias DeserializedTypeAliasPostProcessor = (FirTypeAliasSymbol) -> Unit
  * Same as [JvmClassFileBasedSymbolProvider], resulting fir elements are already resolved.
  */
 internal open class StubBasedFirDeserializedSymbolProvider(
-    session: FirSession,
-    moduleDataProvider: SingleModuleDataProvider,
-    private val kotlinScopeProvider: FirKotlinScopeProvider,
-    project: Project,
+    session: LLFirSession,
+    private val deserializedContainerSourceProvider: DeserializedContainerSourceProvider,
     scope: GlobalSearchScope,
-
     // A workaround for KT-63718. It should be removed with KT-64236.
     isFallbackDependenciesProvider: Boolean,
 ) : LLFirKotlinSymbolProvider(session) {
-    private val moduleData = moduleDataProvider.getModuleData(null)
+    private val kotlinScopeProvider: FirKotlinScopeProvider get() = session.kotlinScopeProvider
+    private val moduleData: LLFirModuleData get() = session.llFirModuleData
 
-    final override val declarationProvider = project.createDeclarationProvider(
+    final override val declarationProvider = session.project.createDeclarationProvider(
         scope,
-        contextualModule = session.llFirModuleData.ktModule.takeIf { !isFallbackDependenciesProvider },
+        contextualModule = session.ktModule.takeIf { !isFallbackDependenciesProvider },
     )
 
-    override val symbolNamesProvider: FirSymbolNamesProvider = LLFirKotlinSymbolNamesProvider.cached(session, declarationProvider)
-
     override val allowKotlinPackage: Boolean get() = true
+
+    override val symbolNamesProvider: FirSymbolNamesProvider =
+        LLFirKotlinSymbolNamesProvider.cached(session, declarationProvider, allowKotlinPackage)
 
     private val typeAliasCache: FirCache<ClassId, FirTypeAliasSymbol?, StubBasedFirDeserializationContext?> =
         session.firCachesFactory.createCacheWithPostCompute(
@@ -88,7 +88,7 @@ internal open class StubBasedFirDeserializedSymbolProvider(
     private val functionCache = session.firCachesFactory.createCache(::loadFunctionsByCallableId)
     private val propertyCache = session.firCachesFactory.createCache(::loadPropertiesByCallableId)
 
-    final override val packageProvider = project.createPackageProvider(scope)
+    final override val packageProvider = session.project.createPackageProvider(scope)
 
     /**
      * Computes the origin for the declarations coming from [file].
@@ -152,10 +152,16 @@ internal open class StubBasedFirDeserializedSymbolProvider(
                 StubBasedAnnotationDeserializer(session),
                 kotlinScopeProvider,
                 parentContext = parentContext,
-                containerSource = JvmStubDeserializedContainerSource(classId),
+                containerSource = deserializedContainerSourceProvider.getClassContainerSource(classId),
                 deserializeNestedClass = this::getClass,
                 initialOrigin = parentContext?.initialOrigin ?: getDeclarationOriginFor(classLikeDeclaration.containingKtFile)
             )
+
+            val classStub = classLikeDeclaration.stub as? KotlinClassStub
+                ?: loadStubByElement<KotlinClassOrObjectStub<KtClassOrObject>?, KtClassOrObject>(
+                    classLikeDeclaration
+                ) as? KotlinClassStub
+            symbol.fir.isNewPlaceForBodyGeneration = classStub?.isClsStubCompiledToJvmDefaultImplementation()
 
             return symbol
         }
@@ -172,10 +178,11 @@ internal open class StubBasedFirDeserializedSymbolProvider(
             for (function in topLevelFunctions) {
                 val functionStub = function.stub as? KotlinFunctionStubImpl ?: loadStubByElement(function)
                 val functionFile = function.containingKtFile
-                val containerSource = getContainerSource(functionFile, functionStub?.origin)
                 val functionOrigin = getDeclarationOriginFor(functionFile)
+                val containerSource =
+                    deserializedContainerSourceProvider.getFacadeContainerSource(functionFile, functionStub?.origin, functionOrigin)
 
-                if (functionOrigin != FirDeclarationOrigin.BuiltIns &&
+                if (!functionOrigin.isBuiltIns &&
                     containerSource is FacadeClassSource &&
                     containerSource.className.internalName in KotlinBuiltins
                 ) {
@@ -198,44 +205,18 @@ internal open class StubBasedFirDeserializedSymbolProvider(
             for (property in topLevelProperties) {
                 val propertyStub = property.stub as? KotlinPropertyStubImpl ?: loadStubByElement(property)
                 val propertyFile = property.containingKtFile
-                val containerSource = getContainerSource(propertyFile, propertyStub?.origin)
                 val propertyOrigin = getDeclarationOriginFor(propertyFile)
+                val containerSource = deserializedContainerSourceProvider.getFacadeContainerSource(
+                    propertyFile,
+                    propertyStub?.origin,
+                    propertyOrigin,
+                )
 
                 val symbol = FirPropertySymbol(callableId)
                 val rootContext = StubBasedFirDeserializationContext
                     .createRootContext(session, moduleData, callableId, property, symbol, propertyOrigin, containerSource)
 
                 add(rootContext.memberDeserializer.loadProperty(property, null, symbol).symbol)
-            }
-        }
-    }
-
-    private fun getContainerSource(file: KtFile, origin: KotlinStubOrigin?): DeserializedContainerSource {
-        if (getDeclarationOriginFor(file) == FirDeclarationOrigin.BuiltIns) {
-            require(origin is KotlinStubOrigin.Facade) {
-                "Expected builtins file to have Facade origin, got origin=$origin instead"
-            }
-
-            return JvmStubDeserializedBuiltInsContainerSource(
-                facadeClassName = JvmClassName.byInternalName(origin.className)
-            )
-        }
-
-        return when (origin) {
-            is KotlinStubOrigin.Facade -> {
-                val className = JvmClassName.byInternalName(origin.className)
-                JvmStubDeserializedFacadeContainerSource(className, facadeClassName = null)
-            }
-            is KotlinStubOrigin.MultiFileFacade -> {
-                val className = JvmClassName.byInternalName(origin.className)
-                val facadeClassName = JvmClassName.byInternalName(origin.facadeClassName)
-                JvmStubDeserializedFacadeContainerSource(className, facadeClassName)
-            }
-            else -> {
-                val virtualFile = file.virtualFile
-                val classId = ClassId(file.packageFqName, Name.identifier(virtualFile.nameWithoutExtension))
-                val className = JvmClassName.byClassId(classId)
-                JvmStubDeserializedFacadeContainerSource(className, facadeClassName = null)
             }
         }
     }
@@ -309,10 +290,12 @@ internal open class StubBasedFirDeserializedSymbolProvider(
         destination += propertyCache.getValue(callableId, properties)
     }
 
-    override fun getPackage(fqName: FqName): FqName? =
-        fqName.takeIf { packageProvider.doesKotlinOnlyPackageExist(fqName) }
+    override fun hasPackage(fqName: FqName): Boolean =
+        packageProvider.doesKotlinOnlyPackageExist(fqName)
 
     override fun getClassLikeSymbolByClassId(classId: ClassId): FirClassLikeSymbol<*>? {
+        getCachedClassLikeSymbol(classId)?.let { return it }
+
         if (!symbolNamesProvider.mayHaveTopLevelClassifier(classId)) return null
 
         classId.takeIf(ClassId::isNestedClass)?.outermostClassId?.let { outermostClassId ->
@@ -320,21 +303,26 @@ internal open class StubBasedFirDeserializedSymbolProvider(
             getClassLikeSymbolByClassId(outermostClassId)
 
             // Nested declarations already loaded
-            val computedValue = classCache.getValueIfComputed(classId) ?: typeAliasCache.getValueIfComputed(classId)
-            computedValue?.let { return it }
+            getCachedClassLikeSymbol(classId)?.let { return it }
         }
 
         return getClass(classId) ?: getTypeAlias(classId)
     }
 
+    private fun getCachedClassLikeSymbol(classId: ClassId): FirClassLikeSymbol<*>? {
+        return classCache.getValueIfComputed(classId) ?: typeAliasCache.getValueIfComputed(classId)
+    }
+
     @FirSymbolProviderInternals
     override fun getClassLikeSymbolByClassId(classId: ClassId, classLikeDeclaration: KtClassLikeDeclaration): FirClassLikeSymbol<*>? {
+        val cache = if (classLikeDeclaration is KtClassOrObject) classCache else typeAliasCache
+        cache.getValueIfComputed(classId)?.let { return it }
+
         val topmostClassLikeDeclaration = classLikeDeclaration.takeIf {
             classId.isNestedClass
         }?.getTopmostParentOfType<KtClassLikeDeclaration>()
 
         val outermostClassId = topmostClassLikeDeclaration?.getClassId()
-        val cache = if (classLikeDeclaration is KtClassOrObject) classCache else typeAliasCache
         if (outermostClassId != null) {
             // We have to load root declaration to initialize nested classes correctly
             getClassLikeSymbolByClassId(outermostClassId, topmostClassLikeDeclaration)

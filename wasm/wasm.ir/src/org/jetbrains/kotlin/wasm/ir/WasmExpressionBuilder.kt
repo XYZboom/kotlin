@@ -7,6 +7,13 @@ package org.jetbrains.kotlin.wasm.ir
 
 import org.jetbrains.kotlin.wasm.ir.source.location.SourceLocation
 
+internal fun WasmOp.isBlockStart(): Boolean = when (this) {
+    WasmOp.BLOCK, WasmOp.LOOP, WasmOp.IF, WasmOp.TRY, WasmOp.TRY_TABLE -> true
+    else -> false
+}
+
+internal fun WasmOp.isBlockEnd(): Boolean = this == WasmOp.END
+
 /**
  * Class for building a wasm instructions list.
  *
@@ -18,10 +25,20 @@ import org.jetbrains.kotlin.wasm.ir.source.location.SourceLocation
  *     - at least, an API user has to think about what to pass a location
  *     - it's not taken from some context-like thing implicitly, so you will not get it implicitly from a wrong context/scope.
  */
-abstract class WasmExpressionBuilder {
-    abstract fun buildInstr(op: WasmOp, location: SourceLocation, vararg immediates: WasmImmediate)
+class WasmExpressionBuilder(val expression: MutableList<WasmInstr>, val skipCommentInstructions: Boolean = false) {
+    private var _numberOfNestedBlocks = 0
 
-    abstract var numberOfNestedBlocks: Int
+    fun buildInstr(op: WasmOp, location: SourceLocation, vararg immediates: WasmImmediate) {
+        if (op.isBlockStart()) {
+            _numberOfNestedBlocks++
+        } else if (op.isBlockEnd()) {
+            _numberOfNestedBlocks--
+        }
+        expression += WasmInstrWithLocation(op, immediates.toList(), location)
+    }
+
+    val numberOfNestedBlocks: Int
+        get() = _numberOfNestedBlocks
 
     fun buildConstI32(value: Int, location: SourceLocation) {
         buildInstr(WasmOp.I32_CONST, location, WasmImmediate.ConstI32(value))
@@ -49,7 +66,6 @@ abstract class WasmExpressionBuilder {
 
     @Suppress("UNUSED_PARAMETER")
     inline fun buildBlock(label: String?, resultType: WasmType? = null, body: (Int) -> Unit) {
-        numberOfNestedBlocks++
         buildInstr(WasmOp.BLOCK, SourceLocation.NoLocation("BLOCK"), WasmImmediate.BlockType.Value(resultType))
         body(numberOfNestedBlocks)
         buildEnd()
@@ -57,7 +73,6 @@ abstract class WasmExpressionBuilder {
 
     @Suppress("UNUSED_PARAMETER")
     inline fun buildLoop(label: String?, resultType: WasmType? = null, body: (Int) -> Unit) {
-        numberOfNestedBlocks++
         buildInstr(WasmOp.LOOP, SourceLocation.NoLocation("LOOP"), WasmImmediate.BlockType.Value(resultType))
         body(numberOfNestedBlocks)
         buildEnd()
@@ -69,7 +84,6 @@ abstract class WasmExpressionBuilder {
 
     @Suppress("UNUSED_PARAMETER")
     fun buildIf(label: String?, resultType: WasmType? = null) {
-        numberOfNestedBlocks++
         buildInstrWithNoLocation(WasmOp.IF, WasmImmediate.BlockType.Value(resultType))
     }
 
@@ -78,13 +92,11 @@ abstract class WasmExpressionBuilder {
     }
 
     fun buildBlock(resultType: WasmType? = null): Int {
-        numberOfNestedBlocks++
         buildInstrWithNoLocation(WasmOp.BLOCK, WasmImmediate.BlockType.Value(resultType))
         return numberOfNestedBlocks
     }
 
     fun buildEnd() {
-        numberOfNestedBlocks--
         buildInstrWithNoLocation(WasmOp.END)
     }
 
@@ -124,13 +136,16 @@ abstract class WasmExpressionBuilder {
         buildBrInstr(WasmOp.BR, absoluteBlockLevel, location)
     }
 
-    fun buildThrow(tagIdx: Int, location: SourceLocation) {
+    fun buildThrow(tagIdx: WasmSymbol<Int>, location: SourceLocation) {
         buildInstr(WasmOp.THROW, location, WasmImmediate.TagIdx(tagIdx))
+    }
+
+    fun buildThrowRef(location: SourceLocation) {
+        buildInstr(WasmOp.THROW_REF, location)
     }
 
     @Suppress("UNUSED_PARAMETER")
     fun buildTry(label: String?, resultType: WasmType? = null) {
-        numberOfNestedBlocks++
         buildInstrWithNoLocation(WasmOp.TRY, WasmImmediate.BlockType.Value(resultType))
     }
 
@@ -140,7 +155,6 @@ abstract class WasmExpressionBuilder {
         catches: List<WasmImmediate.Catch>,
         resultType: WasmType? = null
     ) {
-        numberOfNestedBlocks++
         buildInstrWithNoLocation(
             WasmOp.TRY_TABLE,
             WasmImmediate.BlockType.Value(resultType),
@@ -149,16 +163,19 @@ abstract class WasmExpressionBuilder {
         )
     }
 
-    fun createNewCatch(tagIdx: Int, absoluteBlockLevel: Int) =
+    fun createNewCatch(tagIdx: WasmSymbol<Int>, absoluteBlockLevel: Int) =
         createNewCatchImmediate(WasmImmediate.Catch.CatchType.CATCH, absoluteBlockLevel, tagIdx)
 
     fun createNewCatchAll(absoluteBlockLevel: Int) =
         createNewCatchImmediate(WasmImmediate.Catch.CatchType.CATCH_ALL, absoluteBlockLevel)
 
+    fun createNewCatchAllRef(absoluteBlockLevel: Int) =
+        createNewCatchImmediate(WasmImmediate.Catch.CatchType.CATCH_ALL_REF, absoluteBlockLevel)
+
     private fun createNewCatchImmediate(
         catchType: WasmImmediate.Catch.CatchType,
         absoluteBlockLevel: Int,
-        tagIdx: Int? = null
+        tagIdx: WasmSymbol<Int>? = null
     ): WasmImmediate.Catch {
         val relativeLevel = numberOfNestedBlocks - absoluteBlockLevel
         assert(relativeLevel >= 0) { "Negative relative block index" }
@@ -172,7 +189,7 @@ abstract class WasmExpressionBuilder {
         )
     }
 
-    fun buildCatch(tagIdx: Int) {
+    fun buildCatch(tagIdx: WasmSymbol<Int>) {
         buildInstrWithNoLocation(WasmOp.CATCH, WasmImmediate.TagIdx(tagIdx))
     }
 
@@ -264,14 +281,30 @@ abstract class WasmExpressionBuilder {
     }
 
     inline fun commentPreviousInstr(text: () -> String) {
-        buildInstr(WasmOp.PSEUDO_COMMENT_PREVIOUS_INSTR, SourceLocation.NoLocation("Pseudo-instruction"), WasmImmediate.ConstString(text()))
+        if (!skipCommentInstructions) {
+            buildInstr(
+                WasmOp.PSEUDO_COMMENT_PREVIOUS_INSTR,
+                SourceLocation.NoLocation("Pseudo-instruction"),
+                WasmImmediate.ConstString(text())
+            )
+        }
     }
 
     inline fun commentGroupStart(text: () -> String) {
-        buildInstr(WasmOp.PSEUDO_COMMENT_GROUP_START, SourceLocation.NoLocation("Pseudo-instruction"), WasmImmediate.ConstString(text()))
+        if (!skipCommentInstructions) {
+            buildInstr(WasmOp.PSEUDO_COMMENT_GROUP_START, SourceLocation.NoLocation("Pseudo-instruction"), WasmImmediate.ConstString(text()))
+        }
     }
 
     fun commentGroupEnd() {
-        buildInstr(WasmOp.PSEUDO_COMMENT_GROUP_END, SourceLocation.NoLocation("Pseudo-instruction"))
+        if (!skipCommentInstructions) {
+            buildInstr(WasmOp.PSEUDO_COMMENT_GROUP_END, SourceLocation.NoLocation("Pseudo-instruction"))
+        }
     }
+}
+
+inline fun buildWasmExpression(body: WasmExpressionBuilder.() -> Unit): MutableList<WasmInstr> {
+    val res = mutableListOf<WasmInstr>()
+    WasmExpressionBuilder(res).body()
+    return res
 }

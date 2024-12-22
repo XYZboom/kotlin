@@ -1,4 +1,6 @@
+// RUN_PIPELINE_TILL: BACKEND
 // FIR_IDENTICAL
+
 // FILE: use.kt
 package one
 
@@ -10,19 +12,19 @@ fun getStructureElementFor() {
     }
 }
 
-// FILE: SuperJava.java
+// FILE: one/SuperJava.java
 package one;
 
 public class SuperJava {
 }
 
-// FILE: Child1.java
+// FILE: one/Child1.java
 package one;
 
 public class Child1 extends SuperJava implements Cloneable {
 }
 
-// FILE: Child2.java
+// FILE: one/Child2.java
 package one;
 
 public class Child2 extends SuperJava implements Cloneable {

@@ -21,12 +21,23 @@ import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualCheckingCompatibil
 import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualMatchingCompatibility
 
 internal object IrActualizationErrors {
-    val NO_ACTUAL_FOR_EXPECT by error2<PsiElement, String, ModuleDescriptor>()
-    val AMBIGUOUS_ACTUALS by error2<PsiElement, String, ModuleDescriptor>()
-    val EXPECT_ACTUAL_MISMATCH by error3<PsiElement, String, String, ExpectActualMatchingCompatibility.Mismatch>()
-    val EXPECT_ACTUAL_INCOMPATIBILITY by error3<PsiElement, String, String, ExpectActualCheckingCompatibility.Incompatible<*>>()
-    val ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT by warning3<PsiElement, IrSymbol, IrSymbol, ExpectActualAnnotationsIncompatibilityType<IrConstructorCall>>()
-    val ACTUAL_ANNOTATION_CONFLICTING_DEFAULT_ARGUMENT_VALUE by error1<PsiElement, IrValueParameter>()
+    val NO_ACTUAL_FOR_EXPECT by error2<PsiElement, String, ModuleDescriptor>(SourceElementPositioningStrategies.EXPECT_ACTUAL_MODIFIER)
+    val AMBIGUOUS_ACTUALS by error2<PsiElement, String, ModuleDescriptor>(SourceElementPositioningStrategies.EXPECT_ACTUAL_MODIFIER)
+    val EXPECT_ACTUAL_MISMATCH by error3<PsiElement, String, String, ExpectActualMatchingCompatibility.Mismatch>(
+        SourceElementPositioningStrategies.EXPECT_ACTUAL_MODIFIER
+    )
+    val EXPECT_ACTUAL_INCOMPATIBILITY by error3<PsiElement, String, String, ExpectActualCheckingCompatibility.Incompatible<*>>(
+        SourceElementPositioningStrategies.EXPECT_ACTUAL_MODIFIER
+    )
+    val ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT by warning3<PsiElement, IrSymbol, IrSymbol, ExpectActualAnnotationsIncompatibilityType<IrConstructorCall>>(
+        SourceElementPositioningStrategies.EXPECT_ACTUAL_MODIFIER
+    )
+    val ACTUAL_ANNOTATION_CONFLICTING_DEFAULT_ARGUMENT_VALUE by error1<PsiElement, IrValueParameter>(SourceElementPositioningStrategies.EXPECT_ACTUAL_MODIFIER)
+    val JAVA_DIRECT_ACTUAL_WITHOUT_EXPECT by error1<PsiElement, IrSymbol>(SourceElementPositioningStrategies.EXPECT_ACTUAL_MODIFIER)
+    val KOTLIN_ACTUAL_ANNOTATION_MISSING by error1<PsiElement, IrSymbol>(SourceElementPositioningStrategies.EXPECT_ACTUAL_MODIFIER)
+
+    val JAVA_DIRECT_ACTUALIZATION_DEFAULT_PARAMETERS_IN_EXPECT_FUNCTION by error1<PsiElement, IrSymbol>()
+    val JAVA_DIRECT_ACTUALIZATION_DEFAULT_PARAMETERS_IN_ACTUAL_FUNCTION by error1<PsiElement, IrSymbol>()
 
     init {
         RootDiagnosticRendererFactory.registerFactory(KtDefaultIrActualizationErrorMessages)
@@ -69,11 +80,30 @@ internal object KtDefaultIrActualizationErrorMessages : BaseDiagnosticRendererFa
             IrDiagnosticRenderers.SYMBOL_OWNER_DECLARATION_FQ_NAME,
             IrActualizationDiagnosticRenderers.EXPECT_ACTUAL_ANNOTATION_INCOMPATIBILITY,
         )
-
         map.put(
             IrActualizationErrors.ACTUAL_ANNOTATION_CONFLICTING_DEFAULT_ARGUMENT_VALUE,
             "Parameter ''{0}'' has conflicting values in expected and actual annotations.",
             IrDiagnosticRenderers.DECLARATION_NAME,
+        )
+        map.put(
+            IrActualizationErrors.JAVA_DIRECT_ACTUAL_WITHOUT_EXPECT,
+            "Java direct actual ''{0}'' has no corresponding expected declaration",
+            IrDiagnosticRenderers.SYMBOL_OWNER_DECLARATION_FQ_NAME,
+        )
+        map.put(
+            IrActualizationErrors.KOTLIN_ACTUAL_ANNOTATION_MISSING,
+            "Respective Java declaration ''{0}'' must be marked with '@kotlin.jvm.KotlinActual'",
+            IrDiagnosticRenderers.SYMBOL_OWNER_DECLARATION_FQ_NAME,
+        )
+        map.put(
+            IrActualizationErrors.JAVA_DIRECT_ACTUALIZATION_DEFAULT_PARAMETERS_IN_EXPECT_FUNCTION,
+            "Default parameters in expect function ''{0}'' are not allowed since the function is actualized via '@KotlinActual' annotation",
+            IrDiagnosticRenderers.SYMBOL_OWNER_DECLARATION_FQ_NAME,
+        )
+        map.put(
+            IrActualizationErrors.JAVA_DIRECT_ACTUALIZATION_DEFAULT_PARAMETERS_IN_ACTUAL_FUNCTION,
+            "Default parameters in actual function ''{0}'' are not allowed since the actualization is done via '@KotlinActual' annotation",
+            IrDiagnosticRenderers.SYMBOL_OWNER_DECLARATION_FQ_NAME,
         )
     }
 }

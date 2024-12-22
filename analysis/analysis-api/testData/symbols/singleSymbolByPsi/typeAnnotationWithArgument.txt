@@ -1,6 +1,7 @@
-KtFunctionSymbol:
-  annotationsList: []
-  callableIdIfNonLocal: /foo
+KaNamedFunctionSymbol:
+  annotations: []
+  callableId: /foo
+  compilerVisibility: Public
   contextReceivers: []
   contractEffects: []
   hasStableParameterNames: true
@@ -16,27 +17,28 @@ KtFunctionSymbol:
   isStatic: false
   isSuspend: false
   isTailRec: false
+  location: TOP_LEVEL
   modality: FINAL
   name: foo
   origin: SOURCE
   receiverParameter: null
-  returnType: KtUsualClassType:
-    annotationsList: []
-    ownTypeArguments: [
-      KtUsualClassType:
-        annotationsList: [
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: [
+      KaUsualClassType:
+        annotations: [
           Anno5(s = "1")
             psi: KtAnnotationEntry
         ]
-        ownTypeArguments: []
+        typeArguments: []
         type: @R|Anno5|(s = String(1))  kotlin/Int
     ]
     type: kotlin/collections/List<@R|Anno5|(s = String(1))  kotlin/Int>?
-  symbolKind: TOP_LEVEL
   typeParameters: []
   valueParameters: []
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(typeAnnotationWithArgument.kt)
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(typeAnnotationWithArgument.kt)
   getContainingJvmClassName: TypeAnnotationWithArgumentKt
-  getContainingModule: KtSourceModule "Sources of main"
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
   deprecationStatus: null

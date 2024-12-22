@@ -11,9 +11,13 @@ import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.descriptors.Visibility
+import org.jetbrains.kotlin.descriptors.isAnnotationClass
 import org.jetbrains.kotlin.mpp.*
+import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.SpecialNames
+import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.resolve.calls.mpp.AbstractExpectActualMatcher.matchSingleExpectAgainstPotentialActuals
+import org.jetbrains.kotlin.resolve.checkers.OptInNames
 import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualCheckingCompatibility
 import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualMatchingCompatibility
 import org.jetbrains.kotlin.types.model.TypeSubstitutorMarker
@@ -111,11 +115,11 @@ object AbstractExpectActualChecker {
 
         if (!areCompatibleClassKinds(expectClassSymbol, actualClass)) return ExpectActualCheckingCompatibility.ClassKind
 
-        if (!equalBy(expectClassSymbol, actualClass) { listOf(it.isCompanion, it.isInner, it.isInline || it.isValue) }) {
+        if (!equalBy(expectClassSymbol, actualClass) { listOf(it.isCompanion, it.isInner, it.isInlineOrValue) }) {
             return ExpectActualCheckingCompatibility.ClassModifiers
         }
 
-        if (expectClassSymbol.isFun && !actualClass.isFun && actualClass.isNotSamInterface()) {
+        if (expectClassSymbol.isFun && (!actualClass.isFun || !actualClass.isSamInterface())) {
             return ExpectActualCheckingCompatibility.FunInterfaceModifier
         }
 
@@ -126,11 +130,11 @@ object AbstractExpectActualChecker {
         }
 
         if (!areCompatibleModalities(expectClassSymbol.modality, actualClass.modality)) {
-            return ExpectActualCheckingCompatibility.Modality
+            return ExpectActualCheckingCompatibility.Modality(expectClassSymbol.modality, actualClass.modality)
         }
 
         if (!areCompatibleClassVisibilities(expectClassSymbol, actualClass)) {
-            return ExpectActualCheckingCompatibility.Visibility
+            return ExpectActualCheckingCompatibility.Visibility(expectClassSymbol.visibility, actualClass.visibility)
         }
 
         val substitutor = createExpectActualTypeParameterSubstitutor(
@@ -148,6 +152,10 @@ object AbstractExpectActualChecker {
 
         if (!areCompatibleSupertypes(expectClassSymbol, actualClass, substitutor)) {
             return ExpectActualCheckingCompatibility.Supertypes
+        }
+
+        if (isIllegalRequiresOptInAnnotation(on = actualClass, expectClassSymbol, languageVersionSettings)) {
+            return ExpectActualCheckingCompatibility.IllegalRequiresOpt
         }
 
         getClassScopesIncompatibility(expectClassSymbol, actualClass, substitutor, languageVersionSettings)?.let { return it }
@@ -175,37 +183,38 @@ object AbstractExpectActualChecker {
         substitutor: TypeSubstitutorMarker,
         languageVersionSettings: LanguageVersionSettings,
     ): ExpectActualCheckingCompatibility.Incompatible<*>? {
-        val mismatchedMembers =
-            arrayListOf<Pair<DeclarationSymbolMarker, Map<ExpectActualMatchingCompatibility.Mismatch, List<DeclarationSymbolMarker?>>>>()
-        val incompatibleMembers =
-            arrayListOf<Pair<DeclarationSymbolMarker, Map<ExpectActualCheckingCompatibility.Incompatible<*>, List<DeclarationSymbolMarker?>>>>()
+        val mismatchedMembers: ArrayList<Pair<DeclarationSymbolMarker, Map<ExpectActualMatchingCompatibility.Mismatch, List<DeclarationSymbolMarker?>>>> =
+            ArrayList()
+        val incompatibleMembers: ArrayList<Pair<DeclarationSymbolMarker, Map<ExpectActualCheckingCompatibility.Incompatible<*>, List<DeclarationSymbolMarker?>>>> =
+            ArrayList()
 
         val actualMembersByName = actualClassSymbol.collectAllMembers(isActualDeclaration = true).groupBy { nameOf(it) }
+        val expectMembers = expectClassSymbol.collectAllMembers(isActualDeclaration = false)
+            // private expect constructors are yet allowed KT-68688
+            .filterNot { it is CallableSymbolMarker && it !is ConstructorSymbolMarker && it.visibility == Visibilities.Private }
+        matchAndCheckExpectMembersAgainstPotentialActuals(
+            expectClassSymbol,
+            actualClassSymbol,
+            substitutor,
+            languageVersionSettings,
+            expectMembers,
+            actualMembersByName,
+            outToMismatchedMembers = mismatchedMembers,
+            outToIncompatibleMembers = incompatibleMembers
+        )
 
-        outer@ for (expectMember in expectClassSymbol.collectAllMembers(isActualDeclaration = false)) {
-            val actualMembers = getPossibleActualsByExpectName(expectMember, actualMembersByName)
-
-            val matched = matchSingleExpectAgainstPotentialActuals(
-                expectMember,
-                actualMembers,
-                substitutor,
-                expectClassSymbol,
-                actualClassSymbol,
-                mismatchedMembers,
-            )
-
-            matched.forEach {
-                checkSingleExpectAgainstMatchedActual(
-                    expectMember,
-                    it,
-                    substitutor,
-                    expectClassSymbol,
-                    actualClassSymbol,
-                    incompatibleMembers,
-                    languageVersionSettings,
-                )
-            }
-        }
+        val actualStaticMembersByName = actualClassSymbol.collectAllStaticCallables(isActualDeclaration = true).groupBy { nameOf(it) }
+        val expectStaticMembers = expectClassSymbol.collectAllStaticCallables(isActualDeclaration = false)
+        matchAndCheckExpectMembersAgainstPotentialActuals(
+            expectClassSymbol,
+            actualClassSymbol,
+            substitutor,
+            languageVersionSettings,
+            expectStaticMembers,
+            actualStaticMembersByName,
+            outToMismatchedMembers = mismatchedMembers,
+            outToIncompatibleMembers = incompatibleMembers
+        )
 
         if (expectClassSymbol.classKind == ClassKind.ENUM_CLASS) {
             val aEntries = expectClassSymbol.collectEnumEntryNames()
@@ -219,6 +228,41 @@ object AbstractExpectActualChecker {
         return when (mismatchedMembers.isNotEmpty() || incompatibleMembers.isNotEmpty()) {
             true -> ExpectActualCheckingCompatibility.ClassScopes(mismatchedMembers, incompatibleMembers)
             false -> null
+        }
+    }
+
+    private fun ExpectActualMatchingContext<*>.matchAndCheckExpectMembersAgainstPotentialActuals(
+        expectClassSymbol: RegularClassSymbolMarker,
+        actualClassSymbol: RegularClassSymbolMarker,
+        substitutor: TypeSubstitutorMarker,
+        languageVersionSettings: LanguageVersionSettings,
+        expectMembers: List<DeclarationSymbolMarker>,
+        actualMembersByName: Map<Name, List<DeclarationSymbolMarker>>,
+        // out
+        outToMismatchedMembers: ArrayList<Pair<DeclarationSymbolMarker, Map<ExpectActualMatchingCompatibility.Mismatch, List<DeclarationSymbolMarker?>>>>,
+        outToIncompatibleMembers: ArrayList<Pair<DeclarationSymbolMarker, Map<ExpectActualCheckingCompatibility.Incompatible<*>, List<DeclarationSymbolMarker?>>>>
+    ) {
+        for (expectMember in expectMembers) {
+            val actualMembers = getPossibleActualsByExpectName(expectMember, actualMembersByName)
+            val matched = matchSingleExpectAgainstPotentialActuals(
+                expectMember,
+                actualMembers,
+                substitutor,
+                expectClassSymbol,
+                actualClassSymbol,
+                outToMismatchedMembers
+            )
+            for (it in matched) {
+                checkSingleExpectAgainstMatchedActual(
+                    expectMember,
+                    it,
+                    substitutor,
+                    expectClassSymbol,
+                    actualClassSymbol,
+                    outToIncompatibleMembers,
+                    languageVersionSettings
+                )
+            }
         }
     }
 
@@ -321,7 +365,7 @@ object AbstractExpectActualChecker {
                 actualContainingClass?.modality
             )
         ) {
-            return ExpectActualCheckingCompatibility.Modality
+            return ExpectActualCheckingCompatibility.Modality(expectModality, actualModality)
         }
 
         if (!areCompatibleCallableVisibilities(
@@ -332,7 +376,7 @@ object AbstractExpectActualChecker {
                 languageVersionSettings
             )
         ) {
-            return ExpectActualCheckingCompatibility.Visibility
+            return ExpectActualCheckingCompatibility.Visibility(expectDeclaration.visibility, actualDeclaration.visibility)
         }
 
         getTypeParametersVarianceOrReifiedIncompatibility(expectedTypeParameters, actualTypeParameters)?.let { return it }
@@ -391,6 +435,10 @@ object AbstractExpectActualChecker {
                 // do nothing, entries are matched only by name
             }
 
+            actualDeclaration.isJavaField && expectDeclaration.canBeActualizedByJavaField -> {
+                // no specific checks, actualization by Java field is permitted in a limited well-known number of cases
+            }
+
             else -> error("Unsupported declarations: $expectDeclaration, $actualDeclaration")
         }
 
@@ -447,9 +495,15 @@ object AbstractExpectActualChecker {
         expectModality: Modality?,
         expectContainingClassModality: Modality?,
         actualVisibility: Visibility,
-        languageVersionSettings: LanguageVersionSettings,
+        languageVersionSettings: LanguageVersionSettings
     ): Boolean {
-        val compare = Visibilities.compare(expectVisibility, actualVisibility)
+        // In the case of actualization by a Java declaration such as a field or a method normalize the Java visibility
+        // to the closest Kotlin visibility.Example: "protected_and_package" -> "protected".
+        val normalizedExpectVisibility = expectVisibility.normalize()
+        val normalizedActualVisibility = actualVisibility.normalize()
+
+        val compare = Visibilities.compare(normalizedExpectVisibility, normalizedActualVisibility)
+
         val effectiveModality =
             when (languageVersionSettings.supportsFeature(LanguageFeature.SupportEffectivelyFinalInExpectActualVisibilityCheck)) {
                 true -> effectiveModality(expectModality, expectContainingClassModality)
@@ -525,7 +579,7 @@ object AbstractExpectActualChecker {
             !equalBy(expected, actual) { p -> p.isLateinit } -> ExpectActualCheckingCompatibility.PropertyLateinitModifier
             expected.isConst && !actual.isConst -> ExpectActualCheckingCompatibility.PropertyConstModifier
             !arePropertySettersWithCompatibleVisibilities(expected, actual, expectContainingClass, languageVersionSettings) ->
-                ExpectActualCheckingCompatibility.PropertySetterVisibility
+                ExpectActualCheckingCompatibility.PropertySetterVisibility(expected.setter?.visibility, actual.setter?.visibility)
             else -> null
         }
     }
@@ -543,7 +597,7 @@ object AbstractExpectActualChecker {
             expectedSetter.modality,
             expectContainingClass?.modality,
             actualSetter.visibility,
-            languageVersionSettings
+            languageVersionSettings,
         )
     }
 
@@ -561,10 +615,21 @@ object AbstractExpectActualChecker {
         selector(first) == selector(second)
 
     private fun ExpectActualMatchingContext<*>.isCtorless(regularClass: RegularClassSymbolMarker): Boolean {
-        return regularClass.getMembersForExpectClass(SpecialNames.INIT).isEmpty()
+        return regularClass.getCallablesForExpectClass(SpecialNames.INIT).isEmpty()
     }
 
     private fun ExpectActualMatchingContext<*>.isFinal(regularClassSymbolMarker: RegularClassSymbolMarker): Boolean {
         return regularClassSymbolMarker.modality == Modality.FINAL
     }
+}
+
+fun ExpectActualMatchingContext<*>.isIllegalRequiresOptInAnnotation(
+    on: RegularClassSymbolMarker, // actual or expect
+    expect: RegularClassSymbolMarker,
+    languageVersionSettings: LanguageVersionSettings,
+): Boolean {
+    return languageVersionSettings.supportsFeature(LanguageFeature.MultiplatformRestrictions) &&
+            on.classKind.isAnnotationClass &&
+            expect.annotations.none { it.classId == StandardClassIds.Annotations.OptionalExpectation } &&
+            on.annotations.any { it.classId == OptInNames.REQUIRES_OPT_IN_CLASS_ID }
 }

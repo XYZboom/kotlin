@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.ir.overrides
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.symbols.IrTypeParameterSymbol
 import org.jetbrains.kotlin.ir.symbols.IrValueParameterSymbol
+import org.jetbrains.kotlin.ir.symbols.impl.IrFieldSymbolImpl
 import org.jetbrains.kotlin.ir.symbols.impl.IrTypeParameterSymbolImpl
 import org.jetbrains.kotlin.ir.symbols.impl.IrValueParameterSymbolImpl
 import org.jetbrains.kotlin.ir.util.TypeRemapper
@@ -40,17 +41,14 @@ internal class FakeOverrideCopier(
             isExternal = declaration.isExternal,
         ).apply {
             parent = parentClass
-            contextReceiverParametersCount = declaration.contextReceiverParametersCount
             annotations = declaration.copyAnnotations()
             typeParameters = declaration.typeParameters.map { copyTypeParameter(it, this) }
             for ((i, thisTypeParameter) in typeParameters.withIndex()) {
                 val otherTypeParameter = declaration.typeParameters[i]
                 thisTypeParameter.superTypes = otherTypeParameter.superTypes.map(typeRemapper::remapType)
             }
-            dispatchReceiverParameter = declaration.dispatchReceiverParameter?.let { copyValueParameter(it, this) }
-            extensionReceiverParameter = declaration.extensionReceiverParameter?.let { copyValueParameter(it, this) }
+            parameters = declaration.parameters.map { copyValueParameter(it, this) }
             returnType = typeRemapper.remapType(declaration.returnType)
-            valueParameters = declaration.valueParameters.map { copyValueParameter(it, this) }
         }
     }
 
@@ -72,8 +70,11 @@ internal class FakeOverrideCopier(
         ).apply {
             parent = parentClass
             annotations = declaration.copyAnnotations()
-            this.getter = declaration.getter?.let(::copySimpleFunction)
-            this.setter = declaration.setter?.let(::copySimpleFunction)
+            getter = declaration.getter?.let(::copySimpleFunction)
+            setter = declaration.setter?.let(::copySimpleFunction)
+            if (getter == null) {
+                backingField = declaration.backingField?.let(::copyBackingField)
+            }
         }
     }
 
@@ -82,11 +83,11 @@ internal class FakeOverrideCopier(
             startOffset = parentClass.startOffset,
             endOffset = parentClass.endOffset,
             origin = IrDeclarationOrigin.DEFINED,
+            kind = declaration.kind,
             name = declaration.name,
             type = typeRemapper.remapType(declaration.type),
             isAssignable = declaration.isAssignable,
             symbol = IrValueParameterSymbolImpl(null),
-            index = declaration.index,
             varargElementType = declaration.varargElementType?.let(typeRemapper::remapType),
             isCrossinline = declaration.isCrossinline,
             isNoinline = declaration.isNoinline,
@@ -112,5 +113,21 @@ internal class FakeOverrideCopier(
             typeParameters[declaration.symbol] = symbol
             parent = newParent
             annotations = declaration.copyAnnotations()
+        }
+
+    private fun copyBackingField(declaration: IrField): IrField =
+        declaration.factory.createField(
+            startOffset = parentClass.startOffset,
+            endOffset = parentClass.endOffset,
+            origin = declaration.origin,
+            name = declaration.name,
+            visibility = declaration.visibility,
+            symbol = IrFieldSymbolImpl(null),
+            type = typeRemapper.remapType(declaration.type),
+            isFinal = declaration.isFinal,
+            isStatic = declaration.isStatic,
+            isExternal = declaration.isExternal,
+        ).apply {
+            parent = parentClass
         }
 }

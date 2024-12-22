@@ -42,11 +42,10 @@ FILE: [ResolvedTo(IMPORTS)] nestedClassFunction.kt
             }
 
             public final [ResolvedTo(BODY_RESOLVE)] fun test([ResolvedTo(BODY_RESOLVE)] b: R|B|): R|kotlin/Unit| {
-                R|test/consume<Inapplicable(INAPPLICABLE): test/consume>#|(R|<local>/b|)
+                R|test/consume<Inapplicable(UNSAFE_CALL): test/consume>#|(R|<local>/b|)
             }
 
         }
 
     }
-    public final [ResolvedTo(CONTRACTS)] fun consume([ResolvedTo(CONTRACTS)] obj: R|kotlin/Any|): R|kotlin/Unit| {
-    }
+    public final [ResolvedTo(CONTRACTS)] fun consume([ResolvedTo(CONTRACTS)] obj: R|kotlin/Any|): R|kotlin/Unit| { LAZY_BLOCK }

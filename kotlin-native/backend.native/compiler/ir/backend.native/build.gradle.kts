@@ -8,12 +8,13 @@ dependencies {
     api(project(":compiler:ir.tree"))
 
     compileOnly(jpsModel())
+    compileOnly(project(":compiler:cli-common"))
+    compileOnly(commonDependency("org.jetbrains.intellij.deps:log4j")) { isTransitive = false }
 
     implementation(commonDependency("com.fasterxml:aalto-xml")) { isTransitive = false }
     implementation(commonDependency("org.codehaus.woodstox:stax2-api")) { isTransitive = false }
     implementation(commonDependency("org.jetbrains.intellij.deps.fastutil:intellij-deps-fastutil")) { isTransitive = false }
-    implementation(commonDependency("org.jetbrains.intellij.deps:jdom"))
-    implementation(commonDependency("org.jetbrains.intellij.deps:log4j")) { isTransitive = false }
+    implementation(intellijJDom())
     implementation(intellijCore())
     implementation(project(":compiler:cli"))
     implementation(project(":compiler:fir:fir-serialization"))
@@ -27,7 +28,7 @@ dependencies {
     implementation(project(":compiler:util"))
     implementation(project(":core:compiler.common.native"))
     implementation(project(":core:descriptors"))
-    implementation(project(":kotlin-native:llvmInterop", "llvmInteropStubs"))
+    implementation(project(":kotlin-native:llvmInterop"))
     implementation(project(":kotlin-util-klib"))
     implementation(project(":kotlin-util-klib-metadata"))
     implementation(project(":native:base"))

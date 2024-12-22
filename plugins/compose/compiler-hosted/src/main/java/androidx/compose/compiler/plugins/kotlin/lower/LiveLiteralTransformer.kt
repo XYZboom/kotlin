@@ -30,68 +30,11 @@ import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.IrImplementationDetail
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
-import org.jetbrains.kotlin.ir.builders.declarations.IrFunctionBuilder
-import org.jetbrains.kotlin.ir.builders.declarations.addConstructor
-import org.jetbrains.kotlin.ir.builders.declarations.addFunction
-import org.jetbrains.kotlin.ir.builders.declarations.addGetter
-import org.jetbrains.kotlin.ir.builders.declarations.addProperty
-import org.jetbrains.kotlin.ir.builders.declarations.addValueParameter
-import org.jetbrains.kotlin.ir.builders.declarations.buildClass
-import org.jetbrains.kotlin.ir.builders.declarations.buildField
-import org.jetbrains.kotlin.ir.builders.irBlock
-import org.jetbrains.kotlin.ir.builders.irBlockBody
-import org.jetbrains.kotlin.ir.builders.irCall
-import org.jetbrains.kotlin.ir.builders.irDelegatingConstructorCall
-import org.jetbrains.kotlin.ir.builders.irGet
-import org.jetbrains.kotlin.ir.builders.irGetField
-import org.jetbrains.kotlin.ir.builders.irIfNull
-import org.jetbrains.kotlin.ir.builders.irReturn
-import org.jetbrains.kotlin.ir.builders.irSet
-import org.jetbrains.kotlin.ir.builders.irSetField
-import org.jetbrains.kotlin.ir.builders.irString
-import org.jetbrains.kotlin.ir.builders.irTemporary
-import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
-import org.jetbrains.kotlin.ir.declarations.IrAnonymousInitializer
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
-import org.jetbrains.kotlin.ir.declarations.IrEnumEntry
-import org.jetbrains.kotlin.ir.declarations.IrFactory
-import org.jetbrains.kotlin.ir.declarations.IrFile
-import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
-import org.jetbrains.kotlin.ir.declarations.IrProperty
-import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
-import org.jetbrains.kotlin.ir.declarations.IrValueParameter
-import org.jetbrains.kotlin.ir.declarations.IrVariable
-import org.jetbrains.kotlin.ir.expressions.IrBlock
-import org.jetbrains.kotlin.ir.expressions.IrBlockBody
-import org.jetbrains.kotlin.ir.expressions.IrBody
-import org.jetbrains.kotlin.ir.expressions.IrBranch
-import org.jetbrains.kotlin.ir.expressions.IrCall
-import org.jetbrains.kotlin.ir.expressions.IrComposite
-import org.jetbrains.kotlin.ir.expressions.IrConst
-import org.jetbrains.kotlin.ir.expressions.IrConstKind
-import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
-import org.jetbrains.kotlin.ir.expressions.IrDelegatingConstructorCall
-import org.jetbrains.kotlin.ir.expressions.IrElseBranch
-import org.jetbrains.kotlin.ir.expressions.IrEnumConstructorCall
-import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.ir.expressions.IrLoop
-import org.jetbrains.kotlin.ir.expressions.IrSetField
-import org.jetbrains.kotlin.ir.expressions.IrSetValue
-import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
-import org.jetbrains.kotlin.ir.expressions.IrStringConcatenation
-import org.jetbrains.kotlin.ir.expressions.IrTry
-import org.jetbrains.kotlin.ir.expressions.IrVararg
-import org.jetbrains.kotlin.ir.expressions.IrVarargElement
-import org.jetbrains.kotlin.ir.expressions.IrWhen
-import org.jetbrains.kotlin.ir.expressions.impl.IrBranchImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrElseBranchImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrGetObjectValueImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrStringConcatenationImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrVarargImpl
-import org.jetbrains.kotlin.ir.expressions.impl.copyWithOffsets
+import org.jetbrains.kotlin.ir.builders.*
+import org.jetbrains.kotlin.ir.builders.declarations.*
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.expressions.impl.*
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.symbols.impl.IrSimpleFunctionSymbolImpl
@@ -99,17 +42,7 @@ import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.makeNullable
 import org.jetbrains.kotlin.ir.types.typeWith
-import org.jetbrains.kotlin.ir.util.DeepCopySymbolRemapper
-import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
-import org.jetbrains.kotlin.ir.util.addChild
-import org.jetbrains.kotlin.ir.util.constructors
-import org.jetbrains.kotlin.ir.util.copyTo
-import org.jetbrains.kotlin.ir.util.createParameterDeclarations
-import org.jetbrains.kotlin.ir.util.defaultType
-import org.jetbrains.kotlin.ir.util.getPropertyGetter
-import org.jetbrains.kotlin.ir.util.isAnnotationClass
-import org.jetbrains.kotlin.ir.util.parentAsClass
-import org.jetbrains.kotlin.ir.util.primaryConstructor
+import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.load.kotlin.PackagePartClassUtils
 import org.jetbrains.kotlin.name.Name
@@ -166,16 +99,14 @@ open class LiveLiteralTransformer(
     private val usePerFileEnabledFlag: Boolean,
     private val keyVisitor: DurableKeyVisitor,
     context: IrPluginContext,
-    symbolRemapper: DeepCopySymbolRemapper,
     metrics: ModuleMetrics,
     stabilityInferencer: StabilityInferencer,
     featureFlags: FeatureFlags,
-) :
-    AbstractComposeLowering(context, symbolRemapper, metrics, stabilityInferencer, featureFlags),
+) : AbstractComposeLowering(context, metrics, stabilityInferencer, featureFlags),
     ModuleLoweringPass {
 
-    override fun lower(module: IrModuleFragment) {
-        module.transformChildrenVoid(this)
+    override fun lower(irModule: IrModuleFragment) {
+        irModule.transformChildrenVoid(this)
     }
 
     private val liveLiteral =
@@ -218,30 +149,28 @@ open class LiveLiteralTransformer(
 
     private fun irLiveLiteralInfoAnnotation(
         key: String,
-        offset: Int
+        offset: Int,
     ): IrConstructorCall = IrConstructorCallImpl(
         UNDEFINED_OFFSET,
         UNDEFINED_OFFSET,
         liveLiteralInfoAnnotation.defaultType,
         liveLiteralInfoAnnotation.constructors.single(),
-        0,
-        0,
-        2
+        typeArgumentsCount = 0,
+        constructorTypeArgumentsCount = 0
     ).apply {
         putValueArgument(0, irConst(key))
         putValueArgument(1, irConst(offset))
     }
 
     private fun irLiveLiteralFileInfoAnnotation(
-        file: String
+        file: String,
     ): IrConstructorCall = IrConstructorCallImpl(
         UNDEFINED_OFFSET,
         UNDEFINED_OFFSET,
         liveLiteralFileInfoAnnotation.defaultType,
         liveLiteralFileInfoAnnotation.constructors.single(),
-        0,
-        0,
-        1
+        typeArgumentsCount = 0,
+        constructorTypeArgumentsCount = 0
     ).apply {
         putValueArgument(0, irConst(file))
     }
@@ -251,7 +180,7 @@ open class LiveLiteralTransformer(
         key: String,
         literalValue: IrExpression,
         literalType: IrType,
-        startOffset: Int
+        startOffset: Int,
     ): IrSimpleFunction {
         val clazz = liveLiteralsClass!!
         val stateType = stateInterface.owner.typeWith(literalType).makeNullable()
@@ -373,7 +302,7 @@ open class LiveLiteralTransformer(
                                     defaultProp.getter!!.symbol
                                 )
                             )
-                            putTypeArgument(0, literalType)
+                            typeArguments[0] = literalType
                         }
                         val c = irTemporary(liveLiteralCall)
                         +irSet(
@@ -392,7 +321,6 @@ open class LiveLiteralTransformer(
                     literalType,
                     stateGetValue,
                     stateGetValue.owner.typeParameters.size,
-                    stateGetValue.owner.valueParameters.size,
                     IrStatementOrigin.FOR_LOOP_ITERATOR
                 ).apply {
                     dispatchReceiver = b
@@ -403,7 +331,7 @@ open class LiveLiteralTransformer(
         }
     }
 
-    override fun visitConst(expression: IrConst<*>): IrExpression {
+    override fun visitConst(expression: IrConst): IrExpression {
         when (expression.kind) {
             IrConstKind.Null -> return expression
             else -> {
@@ -431,12 +359,12 @@ open class LiveLiteralTransformer(
 
             error(
                 "Duplicate live literal key found: $key\n" +
-                    "Caused by element at: " +
-                    "${src.filePath}:${src.startLineNumber}:${src.startColumnNumber}\n" +
-                    "If you encounter this error, please file a bug at " +
-                    "https://issuetracker.google.com/issues?q=componentid:610764\n" +
-                    "Try adding the `@NoLiveLiterals` annotation around the surrounding code to " +
-                    "avoid this exception."
+                        "Caused by element at: " +
+                        "${src.filePath}:${src.startLineNumber}:${src.startColumnNumber}\n" +
+                        "If you encounter this error, please file a bug at " +
+                        "https://issuetracker.google.com/issues?q=componentid:610764\n" +
+                        "Try adding the `@NoLiveLiterals` annotation around the surrounding code to " +
+                        "avoid this exception."
             )
         }
         // If live literals are enabled, don't do anything
@@ -458,8 +386,7 @@ open class LiveLiteralTransformer(
             expression.endOffset,
             expression.type,
             getter.symbol,
-            getter.symbol.owner.typeParameters.size,
-            getter.symbol.owner.valueParameters.size
+            getter.symbol.owner.typeParameters.size
         ).apply {
             dispatchReceiver = irGetLiveLiteralsClass(expression.startOffset, expression.endOffset)
         }
@@ -505,7 +432,7 @@ open class LiveLiteralTransformer(
                     // the kotlin file class lowering produces, prefixed with `LiveLiterals$`.
                     name = Name.identifier("LiveLiterals${"$"}$shortName")
                 }.also {
-                    it.createParameterDeclarations()
+                    it.createThisReceiverParameter()
 
                     // store the full file path to the file that this class is associated with in an
                     // annotation on the class. This will be used by tooling to associate the keys
@@ -594,7 +521,7 @@ open class LiveLiteralTransformer(
     }
 
     override fun visitDelegatingConstructorCall(
-        expression: IrDelegatingConstructorCall
+        expression: IrDelegatingConstructorCall,
     ): IrExpression {
         val owner = expression.symbol.owner
 
@@ -731,7 +658,8 @@ open class LiveLiteralTransformer(
             // in these cases, the compiler relies on a certain structure for the condition
             // expression, so we only touch the body
             IrStatementOrigin.WHILE_LOOP,
-            IrStatementOrigin.FOR_LOOP_INNER_WHILE -> enter("loop") {
+            IrStatementOrigin.FOR_LOOP_INNER_WHILE,
+            -> enter("loop") {
                 loop.body = enter("body") { loop.body?.transform(this, null) }
                 loop
             }
@@ -828,7 +756,8 @@ open class LiveLiteralTransformer(
             // The compiler relies on a certain structure for the "iterator" instantiation in For
             // loops, so we avoid transforming the first statement in this case
             IrStatementOrigin.FOR_LOOP,
-            IrStatementOrigin.FOR_LOOP_INNER_WHILE -> {
+            IrStatementOrigin.FOR_LOOP_INNER_WHILE,
+            -> {
                 expression.statements[1] =
                     expression.statements[1].transform(this, null) as IrStatement
                 expression

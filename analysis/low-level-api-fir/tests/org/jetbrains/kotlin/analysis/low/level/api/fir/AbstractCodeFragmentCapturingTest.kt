@@ -13,7 +13,7 @@ import org.jetbrains.kotlin.analysis.low.level.api.fir.compile.CodeFragmentCaptu
 import org.jetbrains.kotlin.analysis.low.level.api.fir.test.configurators.AnalysisApiFirSourceTestConfigurator
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.codeFragment
 import org.jetbrains.kotlin.analysis.test.framework.base.AbstractAnalysisApiBasedTest
-import org.jetbrains.kotlin.analysis.test.framework.project.structure.KtTestModule
+import org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModule
 import org.jetbrains.kotlin.analysis.test.framework.utils.indented
 import org.jetbrains.kotlin.diagnostics.Severity
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
@@ -38,7 +38,7 @@ abstract class AbstractCodeFragmentCapturingTest : AbstractAnalysisApiBasedTest(
         val firCodeFragment = firFile.codeFragment
         firCodeFragment.lazyResolveToPhase(FirResolvePhase.BODY_RESOLVE)
 
-        val frontendDiagnostics = mainFile.collectDiagnosticsForFile(resolveSession, DiagnosticCheckerFilter.ONLY_COMMON_CHECKERS)
+        val frontendDiagnostics = mainFile.collectDiagnosticsForFile(resolveSession, DiagnosticCheckerFilter.ONLY_DEFAULT_CHECKERS)
         val frontendErrors = frontendDiagnostics.filter { it.severity == Severity.ERROR }
 
         require(frontendErrors.isEmpty()) {

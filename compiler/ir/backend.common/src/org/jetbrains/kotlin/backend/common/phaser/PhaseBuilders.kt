@@ -5,17 +5,18 @@
 
 package org.jetbrains.kotlin.backend.common.phaser
 
-import org.jetbrains.kotlin.backend.common.CommonBackendContext
-import org.jetbrains.kotlin.backend.common.LoggingContext
+import org.jetbrains.kotlin.backend.common.LoweringContext
+import org.jetbrains.kotlin.config.LoggingContext
 import org.jetbrains.kotlin.backend.common.ModuleLoweringPass
+import org.jetbrains.kotlin.config.phaser.*
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 
 // Phase composition.
-private class CompositePhase<Context : CommonBackendContext, Input, Output>(
+private class CompositePhase<Context : LoggingContext, Input, Output>(
     val phases: List<CompilerPhase<Context, Any?, Any?>>
 ) : CompilerPhase<Context, Input, Output> {
 
-    override fun invoke(phaseConfig: PhaseConfigurationService, phaserState: PhaserState<Input>, context: Context, input: Input): Output {
+    override fun invoke(phaseConfig: PhaseConfig, phaserState: PhaserState<Input>, context: Context, input: Input): Output {
         @Suppress("UNCHECKED_CAST") var currentState = phaserState as PhaserState<Any?>
         var result = phases.first().invoke(phaseConfig, currentState, context, input)
         for ((previous, next) in phases.zip(phases.drop(1))) {
@@ -30,14 +31,14 @@ private class CompositePhase<Context : CommonBackendContext, Input, Output>(
         return result as Output
     }
 
-    override fun getNamedSubphases(startDepth: Int): List<Pair<Int, AbstractNamedCompilerPhase<Context, *, *>>> =
+    override fun getNamedSubphases(startDepth: Int): List<Pair<Int, NamedCompilerPhase<Context, *, *>>> =
         phases.flatMap { it.getNamedSubphases(startDepth) }
 
     override val stickyPostconditions get() = phases.last().stickyPostconditions
 }
 
 @Suppress("UNCHECKED_CAST")
-infix fun <Context : CommonBackendContext, Input, Mid, Output> CompilerPhase<Context, Input, Mid>.then(
+infix fun <Context : LoggingContext, Input, Mid, Output> CompilerPhase<Context, Input, Mid>.then(
     other: CompilerPhase<Context, Mid, Output>
 ): CompilerPhase<Context, Input, Output> {
     val unsafeThis = this as CompilerPhase<Context, Any?, Any?>
@@ -47,22 +48,20 @@ infix fun <Context : CommonBackendContext, Input, Mid, Output> CompilerPhase<Con
 
 fun <Context : LoggingContext, Input, Output> createSimpleNamedCompilerPhase(
     name: String,
-    description: String,
     preactions: Set<Action<Input, Context>> = emptySet(),
     postactions: Set<Action<Output, Context>> = emptySet(),
-    prerequisite: Set<AbstractNamedCompilerPhase<*, *, *>> = emptySet(),
-    outputIfNotEnabled: (PhaseConfigurationService, PhaserState<Input>, Context, Input) -> Output,
+    prerequisite: Set<NamedCompilerPhase<*, *, *>> = emptySet(),
+    outputIfNotEnabled: (PhaseConfig, PhaserState<Input>, Context, Input) -> Output,
     op: (Context, Input) -> Output
 ): SimpleNamedCompilerPhase<Context, Input, Output> = object : SimpleNamedCompilerPhase<Context, Input, Output>(
     name,
-    description,
     preactions = preactions,
     postactions = postactions.map { f ->
         fun(actionState: ActionState, data: Pair<Input, Output>, context: Context) = f(actionState, data.second, context)
     }.toSet(),
     prerequisite = prerequisite,
 ) {
-    override fun outputIfNotEnabled(phaseConfig: PhaseConfigurationService, phaserState: PhaserState<Input>, context: Context, input: Input): Output =
+    override fun outputIfNotEnabled(phaseConfig: PhaseConfig, phaserState: PhaserState<Input>, context: Context, input: Input): Output =
         outputIfNotEnabled(phaseConfig, phaserState, context, input)
 
     override fun phaseBody(context: Context, input: Input): Output =
@@ -71,41 +70,35 @@ fun <Context : LoggingContext, Input, Output> createSimpleNamedCompilerPhase(
 
 fun <Context : LoggingContext, Input> createSimpleNamedCompilerPhase(
     name: String,
-    description: String,
     preactions: Set<Action<Input, Context>> = emptySet(),
     postactions: Set<Action<Input, Context>> = emptySet(),
-    prerequisite: Set<AbstractNamedCompilerPhase<*, *, *>> = emptySet(),
+    prerequisite: Set<NamedCompilerPhase<*, *, *>> = emptySet(),
     op: (Context, Input) -> Unit
 ): SimpleNamedCompilerPhase<Context, Input, Unit> = object : SimpleNamedCompilerPhase<Context, Input, Unit>(
     name,
-    description,
     preactions = preactions,
     postactions = postactions.map { f ->
         fun(actionState: ActionState, data: Pair<Input, Unit>, context: Context) = f(actionState, data.first, context)
     }.toSet(),
     prerequisite = prerequisite,
 ) {
-    override fun outputIfNotEnabled(phaseConfig: PhaseConfigurationService, phaserState: PhaserState<Input>, context: Context, input: Input) {}
+    override fun outputIfNotEnabled(phaseConfig: PhaseConfig, phaserState: PhaserState<Input>, context: Context, input: Input) {}
 
     override fun phaseBody(context: Context, input: Input): Unit =
         op(context, input)
 }
 
-internal val defaultConditions = setOf(defaultDumper, validationAction)
-
-fun <Context : CommonBackendContext> makeIrModulePhase(
+fun <Context : LoweringContext> makeIrModulePhase(
     lowering: (Context) -> ModuleLoweringPass,
     name: String,
-    description: String,
-    prerequisite: Set<AbstractNamedCompilerPhase<Context, *, *>> = emptySet(),
+    prerequisite: Set<NamedCompilerPhase<Context, *, *>> = emptySet(),
     preconditions: Set<Action<IrModuleFragment, Context>> = emptySet(),
     postconditions: Set<Action<IrModuleFragment, Context>> = emptySet(),
 ): SimpleNamedCompilerPhase<Context, IrModuleFragment, IrModuleFragment> =
     createSimpleNamedCompilerPhase(
         name = name,
-        description = description,
-        preactions = defaultConditions + preconditions,
-        postactions = defaultConditions + postconditions,
+        preactions = DEFAULT_IR_ACTIONS + preconditions,
+        postactions = DEFAULT_IR_ACTIONS + postconditions,
         prerequisite = prerequisite,
         outputIfNotEnabled = { _, _, _, irModule -> irModule },
         op = { context, irModule ->

@@ -91,6 +91,12 @@ public class FirNativeGCTestGenerated extends AbstractNativeBlackBoxTest {
   }
 
   @Test
+  @TestMetadata("ExternalRCRefTest.kt")
+  public void testExternalRCRefTest() {
+    runTest("native/native.tests/testData/gc/ExternalRCRefTest.kt");
+  }
+
+  @Test
   @TestMetadata("gcStats.kt")
   public void testGcStats() {
     runTest("native/native.tests/testData/gc/gcStats.kt");
@@ -106,6 +112,12 @@ public class FirNativeGCTestGenerated extends AbstractNativeBlackBoxTest {
   @TestMetadata("lazy3.kt")
   public void testLazy3() {
     runTest("native/native.tests/testData/gc/lazy3.kt");
+  }
+
+  @Test
+  @TestMetadata("memoryDump.kt")
+  public void testMemoryDump() {
+    runTest("native/native.tests/testData/gc/memoryDump.kt");
   }
 
   @Test
@@ -130,6 +142,12 @@ public class FirNativeGCTestGenerated extends AbstractNativeBlackBoxTest {
   @TestMetadata("worker10.kt")
   public void testWorker10() {
     runTest("native/native.tests/testData/gc/worker10.kt");
+  }
+
+  @Test
+  @TestMetadata("workerCancelJobsWithGC.kt")
+  public void testWorkerCancelJobsWithGC() {
+    runTest("native/native.tests/testData/gc/workerCancelJobsWithGC.kt");
   }
 
   @Test

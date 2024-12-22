@@ -6,23 +6,18 @@
 package org.jetbrains.kotlin.parcelize
 
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
-import org.jetbrains.kotlin.backend.common.ir.addExtensionReceiver
+import org.jetbrains.kotlin.backend.common.ir.createExtensionReceiver
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.InlineClassRepresentation
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.declarations.*
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
-import org.jetbrains.kotlin.ir.declarations.IrFactory
-import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
-import org.jetbrains.kotlin.ir.declarations.IrPackageFragment
-import org.jetbrains.kotlin.ir.declarations.createEmptyExternalPackageFragment
-import org.jetbrains.kotlin.ir.declarations.impl.IrExternalPackageFragmentImpl
+import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
 import org.jetbrains.kotlin.ir.symbols.*
 import org.jetbrains.kotlin.ir.types.*
-import org.jetbrains.kotlin.ir.util.createImplicitParameterDeclarationWithWrappedDescriptor
+import org.jetbrains.kotlin.ir.util.createThisReceiverParameter
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
@@ -53,6 +48,7 @@ class AndroidSymbols(
     private val androidOs: IrPackageFragment = createPackage("android.os")
     private val androidUtil: IrPackageFragment = createPackage("android.util")
     private val androidText: IrPackageFragment = createPackage("android.text")
+    private val runtimePackage: IrPackageFragment = createPackage("kotlinx.parcelize")
 
     private val androidOsBundle: IrClassSymbol =
         createClass(androidOs, "Bundle", ClassKind.CLASS, Modality.FINAL)
@@ -62,6 +58,9 @@ class AndroidSymbols(
 
     val androidOsParcel: IrClassSymbol =
         createClass(androidOs, "Parcel", ClassKind.CLASS, Modality.FINAL)
+
+    val directInitializerMarker: IrClassSymbol =
+        createClass(runtimePackage,"DirectInitializerMarker", ClassKind.OBJECT, Modality.FINAL)
 
     private val androidOsParcelFileDescriptor: IrClassSymbol =
         createClass(androidOs, "ParcelFileDescriptor", ClassKind.CLASS, Modality.OPEN)
@@ -171,7 +170,7 @@ class AndroidSymbols(
         kind = ClassKind.INTERFACE
         modality = Modality.ABSTRACT
     }.apply {
-        createImplicitParameterDeclarationWithWrappedDescriptor()
+        createThisReceiverParameter()
         val t = addTypeParameter("T", irBuiltIns.anyNType)
         parent = androidOsParcelable.owner
 
@@ -198,7 +197,7 @@ class AndroidSymbols(
     }.apply {
         parent = kotlinJvm
         addGetter().apply {
-            addExtensionReceiver(irBuiltIns.kClassClass.starProjectedType)
+            parameters += createExtensionReceiver(irBuiltIns.kClassClass.starProjectedType)
             returnType = javaLangClass.defaultType
         }
     }.symbol
@@ -521,10 +520,7 @@ class AndroidSymbols(
     ): IrSimpleFunctionSymbol {
         val callableId = CallableId(kotlinxCollectionsImmutable, Name.identifier(functionName))
         return pluginContext.referenceFunctions(callableId)
-            .firstOrNull {
-                it.owner.extensionReceiverParameter?.type?.classFqName == receiver &&
-                        it.owner.valueParameters.isEmpty()
-            }
+            .firstOrNull { it.owner.parameters.singleOrNull()?.type?.classFqName == receiver }
             ?: error("Function from kotlinx.collections.immutable is not found on classpath: $callableId")
     }
 
@@ -571,7 +567,7 @@ class AndroidSymbols(
         isValue = isValueClass
     }.apply {
         parent = irPackage
-        createImplicitParameterDeclarationWithWrappedDescriptor()
+        createThisReceiverParameter()
     }.symbol
 
     fun createBuilder(

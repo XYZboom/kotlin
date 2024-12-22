@@ -25,6 +25,12 @@ public class ScriptWithCustomDefBlackBoxCodegenTestGenerated extends AbstractScr
   }
 
   @Test
+  @TestMetadata("annotations.test.kts")
+  public void testAnnotations_test() {
+    runTest("plugins/scripting/scripting-tests/testData/codegen/testScripts/annotations.test.kts");
+  }
+
+  @Test
   @TestMetadata("declarationsOrderExtension.test.kts")
   public void testDeclarationsOrderExtension_test() {
     runTest("plugins/scripting/scripting-tests/testData/codegen/testScripts/declarationsOrderExtension.test.kts");
@@ -58,6 +64,12 @@ public class ScriptWithCustomDefBlackBoxCodegenTestGenerated extends AbstractScr
   @TestMetadata("params.test.kts")
   public void testParams_test() {
     runTest("plugins/scripting/scripting-tests/testData/codegen/testScripts/params.test.kts");
+  }
+
+  @Test
+  @TestMetadata("reflect.test.kts")
+  public void testReflect_test() {
+    runTest("plugins/scripting/scripting-tests/testData/codegen/testScripts/reflect.test.kts");
   }
 
   @Test

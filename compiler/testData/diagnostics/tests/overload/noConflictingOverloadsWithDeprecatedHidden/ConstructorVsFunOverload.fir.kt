@@ -1,13 +1,14 @@
+// RUN_PIPELINE_TILL: BACKEND
 // constructor vs. fun overload
 
-// FILE: J.java
+// FILE: constructorVsFun/J.java
 package constructorVsFun;
 
 public class J {
     public J(String s) {}
 }
 
-// FILE: G.java
+// FILE: constructorVsFun/G.java
 package constructorVsFun;
 
 public class G {

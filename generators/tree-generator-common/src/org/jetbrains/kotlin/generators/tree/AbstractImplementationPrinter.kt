@@ -6,26 +6,31 @@
 package org.jetbrains.kotlin.generators.tree
 
 import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.generators.tree.imports.ImportCollecting
 import org.jetbrains.kotlin.generators.tree.printer.*
 import org.jetbrains.kotlin.utils.SmartPrinter
 import org.jetbrains.kotlin.utils.addToStdlib.ifNotEmpty
 import org.jetbrains.kotlin.utils.withIndent
 
-abstract class AbstractImplementationPrinter<Implementation, Element, ImplementationField>(
+abstract class AbstractImplementationPrinter<Implementation, Element, Field>(
     private val printer: ImportCollectingPrinter,
 )
-        where Implementation : AbstractImplementation<Implementation, Element, ImplementationField>,
-              Element : AbstractElement<Element, *, Implementation>,
-              ImplementationField : AbstractField<*> {
+        where Implementation : AbstractImplementation<Implementation, Element, Field>,
+              Element : AbstractElement<Element, Field, Implementation>,
+              Field : AbstractField<Field> {
+
 
     protected abstract val implementationOptInAnnotation: ClassRef<*>
 
-    protected abstract val pureAbstractElementType: ClassRef<*>
+    protected abstract fun getPureAbstractElementType(implementation: Implementation): ClassRef<*>
 
     protected open val separateFieldsWithBlankLine: Boolean
         get() = false
 
-    protected abstract fun makeFieldPrinter(printer: ImportCollectingPrinter): AbstractFieldPrinter<ImplementationField>
+    protected open fun ImportCollecting.parentConstructorArguments(implementation: Implementation): List<String> =
+        emptyList()
+
+    protected abstract fun makeFieldPrinter(printer: ImportCollectingPrinter): AbstractFieldPrinter<Field>
 
     protected open fun ImportCollectingPrinter.printAdditionalMethods(implementation: Implementation) {
     }
@@ -55,7 +60,7 @@ abstract class AbstractImplementationPrinter<Implementation, Element, Implementa
 
             val kind = implementation.kind ?: error("Expected non-null element kind")
             print("${kind.title} ${implementation.typeName}")
-            print(implementation.element.params.typeParameters(end = " "))
+            print(implementation.element.params.typeParameters())
 
             val isInterface = kind == ImplementationKind.Interface || kind == ImplementationKind.SealedInterface
             val isAbstract = kind == ImplementationKind.AbstractClass || kind == ImplementationKind.SealedClass
@@ -100,15 +105,9 @@ abstract class AbstractImplementationPrinter<Implementation, Element, Implementa
                 print(")")
             }
 
-            print(" : ")
-            if (implementation.needPureAbstractElement) {
-                print(pureAbstractElementType.render(), "(), ")
-            }
-            print(
-                implementation.allParents.joinToString { parent ->
-                    "${parent.withSelfArgs().render()}${parent.kind.braces()}"
-                }
-            )
+            val parentRefs = listOfNotNull(getPureAbstractElementType(implementation).takeIf { implementation.needPureAbstractElement }) +
+                    implementation.allParents.map { it.withSelfArgs() }
+            printInheritanceClause(parentRefs, parentConstructorArguments(implementation))
             val printer = SmartPrinter(StringBuilder())
             withNewPrinter(printer) {
                 val bodyFieldPrinter = makeFieldPrinter(this)
@@ -123,7 +122,7 @@ abstract class AbstractImplementationPrinter<Implementation, Element, Implementa
                             field,
                             inImplementation = true,
                             override = true,
-                            modality = Modality.ABSTRACT.takeIf { isAbstract }
+                            modality = Modality.ABSTRACT.takeIf { isAbstract },
                         )
                     }
 

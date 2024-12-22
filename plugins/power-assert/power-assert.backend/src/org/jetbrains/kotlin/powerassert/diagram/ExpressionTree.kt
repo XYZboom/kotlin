@@ -19,9 +19,14 @@
 
 package org.jetbrains.kotlin.powerassert.diagram
 
+import org.jetbrains.kotlin.constant.EvaluatedConstTracker
 import org.jetbrains.kotlin.ir.BuiltInOperatorNames
 import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
+import org.jetbrains.kotlin.ir.declarations.IrVariable
+import org.jetbrains.kotlin.ir.declarations.nameWithPackage
 import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.util.dump
 import org.jetbrains.kotlin.ir.util.dumpKotlinLike
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
 
@@ -45,64 +50,180 @@ abstract class Node {
     }
 }
 
-class AndNode : Node() {
-    override fun toString() = "AndNode"
+class ConstantNode(
+    val expression: IrExpression,
+) : Node() {
+    override fun toString() = "ConstantNode(${expression.dumpKotlinLike()})"
 }
 
-class OrNode : Node() {
-    override fun toString() = "OrNode"
+class ExpressionNode(
+    val expression: IrExpression,
+) : Node() {
+    override fun toString() = "ExpressionNode(${expression.dumpKotlinLike()})"
 }
 
-class ExpressionNode : Node() {
-    private val _expressions = mutableListOf<IrExpression>()
-    val expressions: List<IrExpression> = _expressions
-
-    fun add(expression: IrExpression) {
-        _expressions.add(expression)
-    }
-
-    override fun toString() = "ExpressionNode(${_expressions.map { it.dumpKotlinLike() }})"
+class ChainNode : Node() {
+    override fun toString() = "ChainNode"
 }
 
-fun buildTree(expression: IrExpression): Node? {
+class WhenNode(
+    val expression: IrExpression,
+) : Node() {
+    override fun toString() = "WhenNode(${expression.dumpKotlinLike()})"
+}
+
+class ElvisNode(
+    val expression: IrExpression,
+    val variable: IrVariable,
+) : Node() {
+    override fun toString() = "ElvisNode(${expression.dumpKotlinLike()})"
+}
+
+fun buildTree(
+    constTracker: EvaluatedConstTracker?,
+    sourceFile: SourceFile,
+    expression: IrExpression,
+    surroundingCall: IrCall? = null,
+): Node? {
     class RootNode : Node() {
         override fun toString() = "RootNode"
     }
 
+    fun IrConst.isEvaluatedConst(): Boolean =
+        constTracker?.load(startOffset, endOffset, sourceFile.irFile.nameWithPackage) != null
+
     val tree = RootNode()
     expression.accept(
         object : IrElementVisitor<Unit, Node> {
+            private var currentCall = surroundingCall
+
+            private fun IrExpression.isImplicitReceiverOf(irCall: IrCall): Boolean {
+                // In K1, an implicit receiver will either have a zero-width offset,
+                // or have the same start and end offsets as the call.
+                //
+                // In K2, the end offsets of the implicit receiver and the call will match,
+                // but the implicit receiver may start at the beginning of an explicit receiver,
+                // while the call starts at a later offset.
+
+                val arguments = irCall.arguments
+                val argumentIndex = arguments.indexOfFirst { this == it }
+                if (argumentIndex == -1) return false // Not an argument of the call.
+
+                val parameters = irCall.symbol.owner.parameters
+                val parameter = parameters[argumentIndex]
+                if (parameter.kind == IrParameterKind.Context) return true // Always implicit.
+                if (parameter.kind == IrParameterKind.Regular) return false // Never implicit.
+
+                if (startOffset == endOffset || endOffset == irCall.endOffset && startOffset == irCall.startOffset) return true
+                if (endOffset != irCall.endOffset) return false
+
+                val dispatchReceiver = parameters.firstOrNull { it.kind == IrParameterKind.DispatchReceiver }
+                    ?.let { arguments[it] } ?: return false
+                val extensionReceiver = parameters.firstOrNull { it.kind == IrParameterKind.ExtensionReceiver }
+                    ?.let { arguments[it] } ?: return false
+
+                return when (this) {
+                    dispatchReceiver -> startOffset == extensionReceiver.startOffset
+                    extensionReceiver -> startOffset == dispatchReceiver.startOffset
+                    else -> false
+                }
+            }
+
             override fun visitElement(element: IrElement, data: Node) {
                 element.acceptChildren(this, data)
             }
 
             override fun visitExpression(expression: IrExpression, data: Node) {
-                if (expression is IrFunctionExpression) return // Do not transform lambda expressions, especially their body
-
-                val node = data as? ExpressionNode ?: ExpressionNode().also { data.addChild(it) }
-                node.add(expression)
-                expression.acceptChildren(this, node)
+                val call = currentCall
+                if (call != null && expression.isImplicitReceiverOf(call)) {
+                    // Do not diagram implicit receivers.
+                    data.addChild(ConstantNode(expression))
+                } else if (expression is IrFunctionExpression) {
+                    // Do not transform lambda expressions, especially their body.
+                    data.addChild(ConstantNode(expression))
+                } else {
+                    val chainNode = data as? ChainNode ?: ChainNode().also { data.addChild(it) }
+                    expression.acceptChildren(this, chainNode)
+                    chainNode.addChild(ExpressionNode(expression))
+                }
             }
 
             override fun visitContainerExpression(expression: IrContainerExpression, data: Node) {
-                if (expression.origin == IrStatementOrigin.SAFE_CALL) {
-                    // Null safe expressions can be correctly navigated
-                    super.visitContainerExpression(expression, data)
-                } else {
-                    // Everything else is considered unsafe and terminates the expression tree
-                    val node = data as? ExpressionNode ?: ExpressionNode().also { data.addChild(it) }
-                    node.add(expression)
+                when (expression.origin) {
+                    IrStatementOrigin.SAFE_CALL -> {
+                        // Safe call operators only have their temporary variable processed
+                        val statements = expression.statements
+                        check(statements.size == 2) {
+                            "Expected the safe call expression to consist of exactly two statements.\n${expression.dump()}"
+                        }
+                        val variable = statements[0] as? IrVariable
+                            ?: error("Expected the first statement of the safe call expression to be a variable.\n${expression.dump()}")
+
+                        val chainNode = data as? ChainNode ?: ChainNode().also { data.addChild(it) }
+                        variable.acceptChildren(this, chainNode)
+                        chainNode.addChild(ExpressionNode(expression))
+                    }
+                    IrStatementOrigin.ELVIS -> {
+                        // Elvis operators are handled with a special node
+                        val statements = expression.statements
+                        check(statements.size == 2) {
+                            "Expected the elvis expression to consist of exactly two statements.\n${expression.dump()}"
+                        }
+                        val variable = statements[0] as? IrVariable
+                            ?: error("Expected the first statement of the elvis expression to be a variable.\n${expression.dump()}")
+                        val conditional = statements[1] as? IrWhen
+                            ?: error("Expected the second statement of the elvis expression to be a when.\n${expression.dump()}")
+
+                        val chainNode = data as? ChainNode ?: ChainNode().also { data.addChild(it) }
+                        variable.acceptChildren(this, chainNode)
+
+                        val elvisNode = ElvisNode(expression, variable)
+                        chainNode.addChild(elvisNode)
+
+                        // Elvis operators need special handing for fallback value,
+                        // as all other when-expression values are synthetic and either
+                        // constants or repeats of expressions already processed.
+                        val branches = conditional.branches
+                        check(branches.size == 2) {
+                            "Expected the when of the elvis expression to consist of exactly two branches.\n${expression.dump()}"
+                        }
+                        val nullBranch = branches[0]
+                        val notNullBranch = branches[1]
+
+                        // Make sure each branch results in 2 child nodes: condition and result.
+                        val whenNode = WhenNode(conditional).also { elvisNode.addChild(it) }
+                        whenNode.addChild(ConstantNode(nullBranch.condition)) // Constant node for the synthetic nullable condition.
+                        nullBranch.result.accept(this, whenNode)
+                        whenNode.addChild(ConstantNode(notNullBranch.condition)) // Constant node for the synthetic non-null condition.
+                        whenNode.addChild(ConstantNode(notNullBranch.result)) // Constant node for the synthetic non-null result.
+
+                        // Make sure elvis resulted in 4 child nodes.
+                        check(whenNode.children.size == 4) {
+                            "Expected the when of the elvis expression to consist of exactly two branches.\n${expression.dump()}"
+                        }
+                    }
+                    else -> {
+                        // Everything else is considered unsafe and terminates the expression tree
+                        data.addChild(ExpressionNode(expression))
+                    }
                 }
             }
 
             override fun visitTypeOperator(expression: IrTypeOperatorCall, data: Node) {
-                val node = data as? ExpressionNode ?: ExpressionNode().also { data.addChild(it) }
-                if (expression.operator in setOf(IrTypeOperator.INSTANCEOF, IrTypeOperator.NOT_INSTANCEOF)) {
-                    // Only include `is` and `!is` checks
-                    node.add(expression)
-                }
+                val chainNode = data as? ChainNode ?: ChainNode().also { data.addChild(it) }
 
-                expression.acceptChildren(this, node)
+                expression.acceptChildren(this, chainNode)
+
+                when (expression.operator) {
+                    // Only include `is` and `!is` checks and `as?` casts in the diagram.
+                    IrTypeOperator.INSTANCEOF,
+                    IrTypeOperator.NOT_INSTANCEOF,
+                    IrTypeOperator.SAFE_CAST,
+                        -> chainNode.addChild(ExpressionNode(expression))
+
+                    // Do not diagram other type operations.
+                    else -> chainNode.addChild(ConstantNode(expression))
+                }
             }
 
             override fun visitCall(expression: IrCall, data: Node) {
@@ -110,17 +231,23 @@ fun buildTree(expression: IrExpression): Node? {
                         && expression.origin == IrStatementOrigin.EXCLEQ
                 val isExcleqeq = expression.symbol.owner.name.asString() == BuiltInOperatorNames.EQEQEQ
                         && expression.origin == IrStatementOrigin.EXCLEQEQ
+
+                val previousCall = currentCall
+                currentCall = expression
+
                 if (isExcleq || isExcleqeq) {
                     // Skip the EQEQ/EQEQEQ part of a EXCLEQ/EXCLEQEQ call
                     expression.acceptChildren(this, data)
                 } else if (expression.origin == IrStatementOrigin.NOT_IN) {
                     // Exclude the wrapped "contains" call for `!in` operator expressions and only display the final result
-                    val node = data as? ExpressionNode ?: ExpressionNode().also { data.addChild(it) }
-                    node.add(expression)
-                    expression.dispatchReceiver!!.acceptChildren(this, node)
+                    val chainNode = data as? ChainNode ?: ChainNode().also { data.addChild(it) }
+                    expression.dispatchReceiver!!.acceptChildren(this, chainNode)
+                    chainNode.addChild(ExpressionNode(expression))
                 } else {
                     super.visitCall(expression, data)
                 }
+
+                currentCall = previousCall
             }
 
             override fun visitVararg(expression: IrVararg, data: Node) {
@@ -128,67 +255,33 @@ fun buildTree(expression: IrExpression): Node? {
                 expression.acceptChildren(this, data)
             }
 
-            override fun visitConst(expression: IrConst<*>, data: Node) {
-                // Do not include constants
+            override fun visitConst(expression: IrConst, data: Node) {
+                if (expression.isEvaluatedConst()) {
+                    // Constants evaluated by the compiler should be shown as they are not explicit in the source code.
+                    val chainNode = data as? ChainNode ?: ChainNode().also { data.addChild(it) }
+                    chainNode.addChild(ExpressionNode(expression))
+                } else {
+                    data.addChild(ConstantNode(expression))
+                }
             }
 
             override fun visitWhen(expression: IrWhen, data: Node) {
-                when (expression.origin) {
-                    IrStatementOrigin.ANDAND -> {
-                        // flatten `&&` expressions to be at the same level
-                        val node = data as? AndNode ?: AndNode().also { data.addChild(it) }
+                val whenNode = WhenNode(expression).also { data.addChild(it) }
 
-                        require(expression.branches.size == 2)
-                        val thenBranch = expression.branches[0]
+                for (branch in expression.branches) {
+                    // Each branch should result in 2 child nodes: a condition and a result.
+                    branch.condition.accept(this, whenNode)
+                    branch.result.accept(this, whenNode)
+                }
 
-                        thenBranch.condition.accept(this, node)
-                        thenBranch.result.accept(this, node)
-
-                        val elseBranchCondition = expression.branches[1].condition
-                        val elseBranchResult = expression.branches[1].result
-
-                        if (elseBranchCondition !is IrConst<*> || elseBranchCondition.value != true) {
-                            elseBranchCondition.accept(this, node)
-                        }
-
-                        if (elseBranchResult !is IrConst<*> || elseBranchResult.value != false) {
-                            elseBranchResult.accept(this, node)
-                        }
-                    }
-                    IrStatementOrigin.OROR -> {
-                        // flatten `||` expressions to be at the same level
-                        val node = data as? OrNode ?: OrNode().also { data.addChild(it) }
-
-                        require(expression.branches.size == 2)
-                        val thenBranchCondition = expression.branches[0].condition
-                        val thenBranchResult = expression.branches[0].result
-                        val elseBranchCondition = expression.branches[1].condition
-                        val elseBranchResult = expression.branches[1].result
-
-                        thenBranchCondition.accept(this, node)
-
-                        if (thenBranchResult !is IrConst<*> || thenBranchResult.value != true) {
-                            thenBranchResult.accept(this, node)
-                        }
-
-                        if (elseBranchCondition !is IrConst<*> || elseBranchCondition.value != true) {
-                            elseBranchCondition.accept(this, node)
-                        }
-
-                        if (elseBranchResult !is IrConst<*> || elseBranchResult.value != false) {
-                            elseBranchResult.accept(this, node)
-                        }
-                    }
-                    else -> {
-                        // Add as basic expression and terminate
-                        // TODO this has to be broken and not work in all cases...
-                        ExpressionNode().also { data.addChild(it) }
-                    }
+                // Make sure each branch resulted in 2 child nodes: condition and result.
+                check(whenNode.children.size == 2 * expression.branches.size) {
+                    "Expected the when of the elvis expression to consist of exactly two branches.\n${expression.dump()}"
                 }
             }
         },
         tree,
     )
 
-    return tree.children.singleOrNull()
+    return tree.children.singleOrNull()?.takeIf { it !is ConstantNode }
 }

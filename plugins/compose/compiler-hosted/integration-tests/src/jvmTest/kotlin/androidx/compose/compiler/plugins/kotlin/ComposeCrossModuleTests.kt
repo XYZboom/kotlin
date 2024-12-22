@@ -16,7 +16,6 @@
 
 package androidx.compose.compiler.plugins.kotlin
 
-import kotlin.test.assertFalse
 import org.jetbrains.kotlin.backend.common.output.OutputFile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -25,6 +24,8 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import kotlin.test.Ignore
+import kotlin.test.assertFalse
 
 @RunWith(Parameterized::class)
 class ComposeCrossModuleTests(useFir: Boolean) : AbstractCodegenTest(useFir) {
@@ -219,12 +220,12 @@ class ComposeCrossModuleTests(useFir: Boolean) : AbstractCodegenTest(useFir) {
             )
             assert(
                 !it.contains(
-                "INVOKESTATIC x/MakeComposableKt.makeComposable ()Lkotlin/jvm/functions/Function0;"
+                    "INVOKESTATIC x/MakeComposableKt.makeComposable ()Lkotlin/jvm/functions/Function0;"
                 )
             )
             assert(
                 it.contains(
-                "INVOKESTATIC x/MakeComposableKt.makeComposable ()Lkotlin/jvm/functions/Function2;"
+                    "INVOKESTATIC x/MakeComposableKt.makeComposable ()Lkotlin/jvm/functions/Function2;"
                 )
             )
         }
@@ -1067,8 +1068,8 @@ class ComposeCrossModuleTests(useFir: Boolean) : AbstractCodegenTest(useFir) {
             ),
             validate = {
                 assertFalse(
-                   it.contains("setContent"),
-                   message = "Property getter was resolved to a setter name"
+                    it.contains("setContent"),
+                    message = "Property getter was resolved to a setter name"
                 )
                 assertFalse(
                     it.contains("Lkotlin/jvm/functions/Function0"),
@@ -1224,11 +1225,168 @@ class ComposeCrossModuleTests(useFir: Boolean) : AbstractCodegenTest(useFir) {
         )
     }
 
+    @Ignore("b/357878245")
+    @Test
+    fun defaultParametersInFakeOverrideOpenComposableFunctions() {
+        compile(
+            mapOf(
+                "Base" to mapOf(
+                    "base/Base.kt" to """
+                    package base
+
+                    import androidx.compose.runtime.Composable
+
+                    open class Test {
+                        @Composable open fun Test(content: @Composable () -> Unit = {}) = content()
+                        open fun runTest(content: @Composable () -> Unit = {}) {}
+                    }
+                    """
+                ),
+                "Intermediate" to mapOf(
+                    "intermediate/Intermediate.kt" to """
+                    package intermediate
+
+                    import androidx.compose.runtime.Composable
+                    import base.Test
+
+                    open class DeviceTest : Test() {
+                        @Composable open fun DeviceTest(content: @Composable () -> Unit = {}) = content()
+                    }
+                    """
+                ),
+                "Main" to mapOf(
+                    "Main.kt" to """
+                    package main
+
+                    import base.Test
+                    import intermediate.DeviceTest
+                    import androidx.compose.runtime.Composable
+
+                    class MainTest : DeviceTest()
+
+                    @Composable fun CallWithDefaults(test: Test, deviceTest: DeviceTest, mainTest: MainTest) {
+                        test.runTest {
+                            test.Test()
+                            test.Test { }
+                            deviceTest.Test()
+                            deviceTest.DeviceTest()
+                            mainTest.Test()
+                            mainTest.DeviceTest()
+                        }
+                    }
+                    """
+                )
+            )
+        )
+    }
+
+    // regression test for https://issuetracker.google.com/issues/345261077
+    @Test
+    fun composableInferredReturnType() {
+        compile(
+            mapOf(
+                "Base" to mapOf(
+                    "base/Base.kt" to """
+                    package base
+
+                    import androidx.compose.runtime.Composable
+                    
+                    @Composable
+                    fun brokenMangling() = @Composable {
+                    }
+                    """
+                ),
+                "Main" to mapOf(
+                    "Main.kt" to """
+                    package main
+
+                    import androidx.compose.runtime.Composable
+                    import base.brokenMangling
+
+                    @Composable
+                    fun AppManglingPreview() {
+                        brokenMangling()()
+                    }
+                    """
+                )
+            ),
+            validate = {
+                assertTrue(
+                    "Composable lambda type should be implicitly resolved.",
+                    it.contains("INVOKESTATIC base/BaseKt.brokenMangling (Landroidx/compose/runtime/Composer;I)Lkotlin/jvm/functions/Function2;"),
+                )
+            }
+        )
+    }
+
+    @Test
+    fun inlineClassWithComposableLambda() {
+        compile(
+            mapOf(
+                "Base" to mapOf(
+                    "Base.kt" to """
+                        import androidx.compose.runtime.*
+                        import kotlin.jvm.JvmInline
+                        
+                        @JvmInline
+                        value class ComposableContent(val content: @Composable () -> Unit)
+                    """
+                ),
+                "Main" to mapOf(
+                    "Main.kt" to """
+                        import androidx.compose.runtime.*
+
+                        @Composable fun Test(content: ComposableContent) {
+                            content.content.invoke()
+                        }
+                    """
+                )
+            ),
+            validate = {}
+        )
+    }
+
+    @Test
+    fun defaultParamTypeConversionImplicitCast() {
+        compile(
+            mapOf(
+                "Main" to mapOf(
+                    "Main.kt" to """
+                    package main
+
+                    import androidx.compose.runtime.Composable
+                    
+                    @Composable fun Display(text: String) { }
+                    
+                    @Composable
+                    fun TestDefaultParamAccess(text: String = "hello") {
+                        Display(text)
+                    }
+                    """
+                )
+            ),
+            validate = {
+                assertTrue(
+                    "Default parameters conversion should not affect generated bytecode.",
+                    it.contains(
+                        """    LINENUMBER 10 L9
+    ALOAD 0
+    ALOAD 1
+    BIPUSH 14
+    ILOAD 4
+    IAND
+    INVOKESTATIC main/MainKt.Display (Ljava/lang/String;Landroidx/compose/runtime/Composer;I)V""",
+                    ),
+                )
+            }
+        )
+    }
+
     private fun compile(
         modules: Map<String, Map<String, String>>,
         dumpClasses: Boolean = false,
         flipLibraryFirSetting: Boolean = false, // compiles deps with k2 for k1 test and vice versa
-        validate: ((String) -> Unit)? = null
+        validate: ((String) -> Unit)? = null,
     ): List<OutputFile> {
         val libraryClasses = modules.filter { it.key != "Main" }.flatMap {
             classLoader(

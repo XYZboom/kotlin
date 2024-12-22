@@ -39,7 +39,7 @@ internal class FirErrorPropertyImpl(
     override var deprecationsProvider: DeprecationsProvider,
     override val containerSource: DeserializedContainerSource?,
     override val dispatchReceiverType: ConeSimpleKotlinType?,
-    override var contextReceivers: MutableOrEmptyList<FirContextReceiver>,
+    override var contextParameters: MutableOrEmptyList<FirValueParameter>,
     override val name: Name,
     override var backingField: FirBackingField?,
     override var annotations: MutableOrEmptyList<FirAnnotation>,
@@ -73,7 +73,7 @@ internal class FirErrorPropertyImpl(
     override fun <R, D> acceptChildren(visitor: FirVisitor<R, D>, data: D) {
         status.accept(visitor, data)
         returnTypeRef.accept(visitor, data)
-        contextReceivers.forEach { it.accept(visitor, data) }
+        contextParameters.forEach { it.accept(visitor, data) }
         backingField?.accept(visitor, data)
         annotations.forEach { it.accept(visitor, data) }
     }
@@ -81,6 +81,7 @@ internal class FirErrorPropertyImpl(
     override fun <D> transformChildren(transformer: FirTransformer<D>, data: D): FirErrorPropertyImpl {
         transformStatus(transformer, data)
         transformReturnTypeRef(transformer, data)
+        transformContextParameters(transformer, data)
         transformBackingField(transformer, data)
         transformOtherChildren(transformer, data)
         return this
@@ -101,6 +102,11 @@ internal class FirErrorPropertyImpl(
     }
 
     override fun <D> transformReceiverParameter(transformer: FirTransformer<D>, data: D): FirErrorPropertyImpl {
+        return this
+    }
+
+    override fun <D> transformContextParameters(transformer: FirTransformer<D>, data: D): FirErrorPropertyImpl {
+        contextParameters.transformInplace(transformer, data)
         return this
     }
 
@@ -131,7 +137,6 @@ internal class FirErrorPropertyImpl(
     }
 
     override fun <D> transformOtherChildren(transformer: FirTransformer<D>, data: D): FirErrorPropertyImpl {
-        contextReceivers.transformInplace(transformer, data)
         transformAnnotations(transformer, data)
         return this
     }
@@ -150,8 +155,8 @@ internal class FirErrorPropertyImpl(
         deprecationsProvider = newDeprecationsProvider
     }
 
-    override fun replaceContextReceivers(newContextReceivers: List<FirContextReceiver>) {
-        contextReceivers = newContextReceivers.toMutableOrEmpty()
+    override fun replaceContextParameters(newContextParameters: List<FirValueParameter>) {
+        contextParameters = newContextParameters.toMutableOrEmpty()
     }
 
     override fun replaceInitializer(newInitializer: FirExpression?) {}

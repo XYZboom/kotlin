@@ -254,18 +254,6 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
   }
 
   @Test
-  @TestMetadata("javaFieldsWithIntersectionTypes_k1.kt")
-  public void testJavaFieldsWithIntersectionTypes_k1() {
-    runTest("compiler/testData/codegen/bytecodeText/javaFieldsWithIntersectionTypes_k1.kt");
-  }
-
-  @Test
-  @TestMetadata("javaFields_k1.kt")
-  public void testJavaFields_k1() {
-    runTest("compiler/testData/codegen/bytecodeText/javaFields_k1.kt");
-  }
-
-  @Test
   @TestMetadata("javaStatics.kt")
   public void testJavaStatics() {
     runTest("compiler/testData/codegen/bytecodeText/javaStatics.kt");
@@ -686,6 +674,12 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
     @TestMetadata("checkcastAndInstanceOf.kt")
     public void testCheckcastAndInstanceOf() {
       runTest("compiler/testData/codegen/bytecodeText/boxingOptimization/checkcastAndInstanceOf.kt");
+    }
+
+    @Test
+    @TestMetadata("checkcastAndInstanceOf_before.kt")
+    public void testCheckcastAndInstanceOf_before() {
+      runTest("compiler/testData/codegen/bytecodeText/boxingOptimization/checkcastAndInstanceOf_before.kt");
     }
 
     @Test
@@ -1269,21 +1263,9 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
     }
 
     @Test
-    @TestMetadata("privateCompanionObjectAccessors_before.kt")
-    public void testPrivateCompanionObjectAccessors_before() {
-      runTest("compiler/testData/codegen/bytecodeText/companion/privateCompanionObjectAccessors_before.kt");
-    }
-
-    @Test
     @TestMetadata("protectedCompanionObjectAccessors_after.kt")
     public void testProtectedCompanionObjectAccessors_after() {
       runTest("compiler/testData/codegen/bytecodeText/companion/protectedCompanionObjectAccessors_after.kt");
-    }
-
-    @Test
-    @TestMetadata("protectedCompanionObjectAccessors_before.kt")
-    public void testProtectedCompanionObjectAccessors_before() {
-      runTest("compiler/testData/codegen/bytecodeText/companion/protectedCompanionObjectAccessors_before.kt");
     }
   }
 
@@ -1484,12 +1466,6 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
     @TestMetadata("nonConstValHasNoDefaultValue_after.kt")
     public void testNonConstValHasNoDefaultValue_after() {
       runTest("compiler/testData/codegen/bytecodeText/constProperty/nonConstValHasNoDefaultValue_after.kt");
-    }
-
-    @Test
-    @TestMetadata("nonConstValHasNoDefaultValue_before.kt")
-    public void testNonConstValHasNoDefaultValue_before() {
-      runTest("compiler/testData/codegen/bytecodeText/constProperty/nonConstValHasNoDefaultValue_before.kt");
     }
   }
 
@@ -3346,6 +3322,12 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
       }
 
       @Test
+      @TestMetadata("forInRangeToUByteMaxValue.kt")
+      public void testForInRangeToUByteMaxValue() {
+        runTest("compiler/testData/codegen/bytecodeText/forLoop/unsigned/forInRangeToUByteMaxValue.kt");
+      }
+
+      @Test
       @TestMetadata("forInRangeToUIntMaxValue.kt")
       public void testForInRangeToUIntMaxValue() {
         runTest("compiler/testData/codegen/bytecodeText/forLoop/unsigned/forInRangeToUIntMaxValue.kt");
@@ -3355,6 +3337,12 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
       @TestMetadata("forInRangeToULongMaxValue.kt")
       public void testForInRangeToULongMaxValue() {
         runTest("compiler/testData/codegen/bytecodeText/forLoop/unsigned/forInRangeToULongMaxValue.kt");
+      }
+
+      @Test
+      @TestMetadata("forInRangeToUShortMaxValue.kt")
+      public void testForInRangeToUShortMaxValue() {
+        runTest("compiler/testData/codegen/bytecodeText/forLoop/unsigned/forInRangeToUShortMaxValue.kt");
       }
 
       @Test
@@ -4019,12 +4007,6 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
     }
 
     @Test
-    @TestMetadata("noReturnTypeMangling.kt")
-    public void testNoReturnTypeMangling() {
-      runTest("compiler/testData/codegen/bytecodeText/inlineClasses/noReturnTypeMangling.kt");
-    }
-
-    @Test
     @TestMetadata("nonOverridingMethodsAreCalledByInlineClass.kt")
     public void testNonOverridingMethodsAreCalledByInlineClass() {
       runTest("compiler/testData/codegen/bytecodeText/inlineClasses/nonOverridingMethodsAreCalledByInlineClass.kt");
@@ -4160,6 +4142,12 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
     @TestMetadata("unboxMethodCalledByInlineClass.kt")
     public void testUnboxMethodCalledByInlineClass() {
       runTest("compiler/testData/codegen/bytecodeText/inlineClasses/unboxMethodCalledByInlineClass.kt");
+    }
+
+    @Test
+    @TestMetadata("withReturnTypeMangling.kt")
+    public void testWithReturnTypeMangling() {
+      runTest("compiler/testData/codegen/bytecodeText/inlineClasses/withReturnTypeMangling.kt");
     }
   }
 
@@ -4299,12 +4287,6 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
     }
 
     @Test
-    @TestMetadata("byteSmartCast_before.kt")
-    public void testByteSmartCast_before() {
-      runTest("compiler/testData/codegen/bytecodeText/intrinsicsCompare/byteSmartCast_before.kt");
-    }
-
-    @Test
     @TestMetadata("charSmartCast.kt")
     public void testCharSmartCast() {
       runTest("compiler/testData/codegen/bytecodeText/intrinsicsCompare/charSmartCast.kt");
@@ -4317,21 +4299,9 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
     }
 
     @Test
-    @TestMetadata("differentTypes_before.kt")
-    public void testDifferentTypes_before() {
-      runTest("compiler/testData/codegen/bytecodeText/intrinsicsCompare/differentTypes_before.kt");
-    }
-
-    @Test
     @TestMetadata("intSmartCast_after.kt")
     public void testIntSmartCast_after() {
       runTest("compiler/testData/codegen/bytecodeText/intrinsicsCompare/intSmartCast_after.kt");
-    }
-
-    @Test
-    @TestMetadata("intSmartCast_before.kt")
-    public void testIntSmartCast_before() {
-      runTest("compiler/testData/codegen/bytecodeText/intrinsicsCompare/intSmartCast_before.kt");
     }
 
     @Test
@@ -4344,12 +4314,6 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
     @TestMetadata("shortSmartCast_after.kt")
     public void testShortSmartCast_after() {
       runTest("compiler/testData/codegen/bytecodeText/intrinsicsCompare/shortSmartCast_after.kt");
-    }
-
-    @Test
-    @TestMetadata("shortSmartCast_before.kt")
-    public void testShortSmartCast_before() {
-      runTest("compiler/testData/codegen/bytecodeText/intrinsicsCompare/shortSmartCast_before.kt");
     }
   }
 
@@ -6140,18 +6104,6 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
     @TestMetadata("bigEnum.kt")
     public void testBigEnum() {
       runTest("compiler/testData/codegen/bytecodeText/whenEnumOptimization/bigEnum.kt");
-    }
-
-    @Test
-    @TestMetadata("differentEnumClasses.kt")
-    public void testDifferentEnumClasses() {
-      runTest("compiler/testData/codegen/bytecodeText/whenEnumOptimization/differentEnumClasses.kt");
-    }
-
-    @Test
-    @TestMetadata("differentEnumClasses2.kt")
-    public void testDifferentEnumClasses2() {
-      runTest("compiler/testData/codegen/bytecodeText/whenEnumOptimization/differentEnumClasses2.kt");
     }
 
     @Test

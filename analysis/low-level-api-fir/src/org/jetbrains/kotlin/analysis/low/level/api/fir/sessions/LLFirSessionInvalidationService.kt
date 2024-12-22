@@ -8,25 +8,42 @@ package org.jetbrains.kotlin.analysis.low.level.api.fir.sessions
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.util.PsiModificationTracker
-import org.jetbrains.kotlin.analysis.project.structure.*
-import org.jetbrains.kotlin.analysis.providers.KotlinAnchorModuleProvider
-import org.jetbrains.kotlin.analysis.providers.analysisMessageBus
-import org.jetbrains.kotlin.analysis.providers.topics.*
+import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
+import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KotlinAnchorModuleProvider
+import org.jetbrains.kotlin.analysis.api.platform.analysisMessageBus
+import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinCodeFragmentContextModificationListener
+import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinGlobalModuleStateModificationListener
+import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinGlobalSourceModuleStateModificationListener
+import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinGlobalSourceOutOfBlockModificationListener
+import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModuleOutOfBlockModificationListener
+import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModuleStateModificationKind
+import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModuleStateModificationListener
+import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinGlobalScriptModuleStateModificationListener
+import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KotlinModuleDependentsProvider
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileModule
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaLibraryModule
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaScriptDependencyModule
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaScriptModule
 
 /**
- * [LLFirSessionInvalidationService] listens to [modification events][KotlinTopics] and invalidates [LLFirSession]s which depend on the
- * modified [KtModule]. Its invalidation functions should always be invoked in a **write action** because invalidation affects multiple
- * sessions in [LLFirSessionCache] and the cache has to be kept consistent.
+ * [LLFirSessionInvalidationService] listens to [modification events][org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModificationTopics]
+ * and invalidates [LLFirSession]s which depend on the modified [KaModule].
+ *
+ * Its invalidation functions should always be invoked in a **write action** because invalidation affects multiple sessions in
+ * [LLFirSessionCache] and the cache has to be kept consistent. The exception is [invalidateAll] – it is called from a stop-the-world
+ * cache invalidation (see `KaFirStopWorldCacheCleaner` in Analysis API K2) when it's guaranteed no threads perform code analysis.
  */
-internal class LLFirSessionInvalidationService(private val project: Project) {
+@KaImplementationDetail
+class LLFirSessionInvalidationService(private val project: Project) {
     internal class LLKotlinModuleStateModificationListener(val project: Project) : KotlinModuleStateModificationListener {
-        override fun onModification(module: KtModule, modificationKind: KotlinModuleStateModificationKind) {
+        override fun onModification(module: KaModule, modificationKind: KotlinModuleStateModificationKind) {
             getInstance(project).invalidate(module)
         }
     }
 
     internal class LLKotlinModuleOutOfBlockModificationListener(val project: Project) : KotlinModuleOutOfBlockModificationListener {
-        override fun onModification(module: KtModule) {
+        override fun onModification(module: KaModule) {
             getInstance(project).invalidate(module)
         }
     }
@@ -52,7 +69,7 @@ internal class LLFirSessionInvalidationService(private val project: Project) {
     }
 
     internal class LLKotlinCodeFragmentContextModificationListener(val project: Project) : KotlinCodeFragmentContextModificationListener {
-        override fun onModification(module: KtModule) {
+        override fun onModification(module: KaModule) {
             getInstance(project).invalidateContextualDanglingFileSessions(module)
         }
     }
@@ -60,6 +77,13 @@ internal class LLFirSessionInvalidationService(private val project: Project) {
     internal class LLPsiModificationTrackerListener(val project: Project) : PsiModificationTracker.Listener {
         override fun modificationCountChanged() {
             getInstance(project).invalidateUnstableDanglingFileSessions()
+        }
+    }
+
+    internal class LLKotlinGlobalScriptModuleStateModificationListener(val project: Project) :
+        KotlinGlobalScriptModuleStateModificationListener {
+        override fun onModification() {
+            getInstance(project).invalidateScriptSessions()
         }
     }
 
@@ -75,7 +99,7 @@ internal class LLFirSessionInvalidationService(private val project: Project) {
      *
      * Per the contract of [LLFirSessionInvalidationService], [invalidate] may only be called from a write action.
      */
-    private fun invalidate(module: KtModule) {
+    private fun invalidate(module: KaModule) = performInvalidation {
         ApplicationManager.getApplication().assertWriteAccessAllowed()
 
         sessionInvalidationEventPublisher.collectSessionsAndPublishInvalidationEvent {
@@ -94,11 +118,11 @@ internal class LLFirSessionInvalidationService(private val project: Project) {
             //  - Script dependencies are also not linked via dependents yet, so any script dependency modification may affect any script.
             //  - Scripts may depend on libraries, and the IDE module dependents provider doesn't provide script dependents for libraries
             //    yet.
-            if (module is KtScriptModule || module is KtScriptDependencyModule || module is KtLibraryModule) {
+            if (module is KaScriptModule || module is KaScriptDependencyModule || module is KaLibraryModule) {
                 sessionCache.removeAllScriptSessions()
             }
 
-            if (module is KtDanglingFileModule) {
+            if (module is KaDanglingFileModule) {
                 sessionCache.removeContextualDanglingFileSessions(module)
             } else {
                 sessionCache.removeAllDanglingFileSessions()
@@ -106,9 +130,15 @@ internal class LLFirSessionInvalidationService(private val project: Project) {
         }
     }
 
-    private fun invalidateAll(includeLibraryModules: Boolean) {
-        ApplicationManager.getApplication().assertWriteAccessAllowed()
+    private fun invalidateScriptSessions() = sessionCache.removeAllScriptSessions()
 
+    /**
+     * Invalidates all cached sessions. If [includeLibraryModules] is `true`, also invalidates sessions for libraries.
+     *
+     * The method must be called in a write action, or in the case if the caller can guarantee no other threads can perform invalidation or
+     * code analysis until the invalidation is complete.
+     */
+    fun invalidateAll(includeLibraryModules: Boolean) = performInvalidation {
         // When anchor modules are configured and `includeLibraryModules` is `false`, we get a situation where the anchor module session
         // will be invalidated (because it is a source session), while its library dependents won't be invalidated. But such library
         // sessions also need to be invalidated because they depend on the anchor module.
@@ -116,18 +146,18 @@ internal class LLFirSessionInvalidationService(private val project: Project) {
         // Invalidating anchor modules before all source sessions has the advantage that `invalidate`'s session existence check will work,
         // so we do not have to invalidate dependent sessions if the anchor module does not exist in the first place.
         if (!includeLibraryModules) {
-            val anchorModules = KotlinAnchorModuleProvider.getInstance(project)?.getAllAnchorModules()
+            val anchorModules = KotlinAnchorModuleProvider.getInstance(project)?.getAllAnchorModulesIfComputed()
             anchorModules?.forEach(::invalidate)
         }
 
         sessionCache.removeAllSessions(includeLibraryModules)
 
         // We could take `includeLibraryModules` into account here, but this will make the global session invalidation event more
-        // complicated to handle, and it isn't currently necessary for `KtFirAnalysisSession` invalidation to be more granular.
+        // complicated to handle, and it isn't currently necessary for `KaFirSession` invalidation to be more granular.
         project.analysisMessageBus.syncPublisher(LLFirSessionInvalidationTopics.SESSION_INVALIDATION).afterGlobalInvalidation()
     }
 
-    private fun invalidateContextualDanglingFileSessions(contextModule: KtModule) {
+    private fun invalidateContextualDanglingFileSessions(contextModule: KaModule) = performInvalidation {
         ApplicationManager.getApplication().assertWriteAccessAllowed()
 
         sessionInvalidationEventPublisher.collectSessionsAndPublishInvalidationEvent {
@@ -135,11 +165,26 @@ internal class LLFirSessionInvalidationService(private val project: Project) {
         }
     }
 
-    private fun invalidateUnstableDanglingFileSessions() {
+    private fun invalidateUnstableDanglingFileSessions() = performInvalidation {
         ApplicationManager.getApplication().assertWriteAccessAllowed()
 
         // We don't need to publish any session invalidation events for unstable dangling file modules.
         sessionCache.removeUnstableDanglingFileSessions()
+    }
+
+    /**
+     * Ensures that the invalidated [block] does not run concurrently.
+     *
+     * Invalidation caused by a listener only happens in a write action. However, `KaFirCacheCleaner` can perform immediate invalidation
+     * from outside one if there are no ongoing analyses. There might happen a situation when both an invalidation listener and the
+     * stop-world cache cleaner request invalidation at once.
+     *
+     * The synchronization protects concurrent-unsafe cleanup in [SessionStorage].
+     */
+    private inline fun performInvalidation(block: () -> Unit) {
+        synchronized(this) {
+            block()
+        }
     }
 
     companion object {

@@ -10,6 +10,8 @@ import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.componentFunctionSymbol
 import org.jetbrains.kotlin.fir.declarations.utils.isInline
+import org.jetbrains.kotlin.fir.declarations.utils.isInlineOrValue
+import org.jetbrains.kotlin.fir.declarations.utils.isValue
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.fir.expressions.FirBlock
 import org.jetbrains.kotlin.fir.expressions.FirStatement
@@ -22,7 +24,7 @@ import org.jetbrains.kotlin.fir.symbols.lazyResolveToPhase
 import org.jetbrains.kotlin.fir.symbols.lazyResolveToPhaseWithCallableMembers
 import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.types.coneType
-import org.jetbrains.kotlin.fir.types.toSymbol
+import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.utils.exceptions.withFirEntry
 import org.jetbrains.kotlin.fir.visitors.transformSingle
 import org.jetbrains.kotlin.util.PrivateForInline
@@ -247,11 +249,16 @@ abstract class AbstractFirStatusResolveTransformer(
         }
     }
 
+    override fun transformDanglingModifierList(
+        danglingModifierList: FirDanglingModifierList,
+        data: FirResolvedDeclarationStatus?,
+    ): FirDanglingModifierList = danglingModifierList
+
     override fun transformTypeAlias(
         typeAlias: FirTypeAlias,
         data: FirResolvedDeclarationStatus?
     ): FirStatement = whileAnalysing(session, typeAlias) {
-        typeAlias.typeParameters.forEach { transformDeclaration(it, data) }
+        typeAlias.typeParameters.forEach { it.transformSingle(this, data) }
         typeAlias.transformStatus(this, statusResolver.resolveStatus(typeAlias, containingClass, isLocal = false))
         return transformDeclaration(typeAlias, data) as FirTypeAlias
     }
@@ -317,13 +324,21 @@ abstract class AbstractFirStatusResolveTransformer(
     }
 
     fun transformValueClassRepresentation(firClass: FirClass) {
-        if (firClass is FirRegularClass && firClass.isInline) {
+        if (firClass is FirRegularClass && firClass.isInlineOrValue) {
             firClass.valueClassRepresentation = computeValueClassRepresentation(firClass, session)
         }
     }
 
     fun transformClassStatus(firClass: FirClass) {
         firClass.transformStatus(this, statusResolver.resolveStatus(firClass, containingClass, isLocal = false))
+    }
+
+    override fun transformReplSnippet(
+        replSnippet: FirReplSnippet,
+        data: FirResolvedDeclarationStatus?,
+    ): FirReplSnippet {
+        replSnippet.body.transformChildren(this, data)
+        return super.transformReplSnippet(replSnippet, data)
     }
 
     open fun forceResolveStatusesOfSupertypes(regularClass: FirClass) {

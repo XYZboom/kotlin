@@ -32,6 +32,11 @@ import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.getArrayElementType
+import org.jetbrains.kotlin.ir.util.isSubtypeOf
+import org.jetbrains.kotlin.ir.util.isSubtypeOfClass
+import org.jetbrains.kotlin.ir.util.isNullable
+import org.jetbrains.kotlin.ir.util.isBoxedArray
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
@@ -42,19 +47,19 @@ import org.jetbrains.org.objectweb.asm.Opcodes
 import org.jetbrains.org.objectweb.asm.commons.Method
 import java.lang.invoke.LambdaMetafactory
 
-// After this pass runs there are only four kinds of IrTypeOperatorCalls left:
-//
-// - IMPLICIT_CAST
-// - SAFE_CAST with reified type parameters
-// - INSTANCEOF with non-nullable type operand or reified type parameters
-// - CAST with non-nullable argument, nullable type operand, or reified type parameters
-//
-// The latter two correspond to the instanceof/checkcast instructions on the JVM, except for
-// the presence of reified type parameters.
-@PhaseDescription(
-    name = "TypeOperatorLowering",
-    description = "Lower IrTypeOperatorCalls to (implicit) casts and instanceof checks"
-)
+/**
+ * Lowers [IrTypeOperatorCall]s to (implicit) casts and instanceof checks.
+ *
+ * After this pass runs, there are only four kinds of [IrTypeOperatorCall]s left:
+ *
+ * - `IMPLICIT_CAST`
+ * - `SAFE_CAST` with reified type parameters
+ * - `INSTANCEOF` with non-nullable type operand or reified type parameters
+ * - `CAST` with non-nullable argument, nullable type operand, or reified type parameters
+ *
+ * The latter two correspond to the `instanceof`/`checkcast` instructions on the JVM, except for the presence of reified type parameters.
+ */
+@PhaseDescription(name = "TypeOperatorLowering")
 internal class TypeOperatorLowering(private val backendContext: JvmBackendContext) :
     FileLoweringPass, IrBuildingTransformer(backendContext) {
 
@@ -173,7 +178,7 @@ internal class TypeOperatorLowering(private val backendContext: JvmBackendContex
         bootstrapMethodArguments: List<IrExpression>
     ) =
         irCall(backendContext.ir.symbols.jvmIndyIntrinsic, dynamicCall.type).apply {
-            putTypeArgument(0, dynamicCall.type)
+            typeArguments[0] = dynamicCall.type
             putValueArgument(0, dynamicCall)
             putValueArgument(1, jvmMethodHandle(bootstrapMethodHandle))
             putValueArgument(2, irVararg(context.irBuiltIns.anyType, bootstrapMethodArguments))
@@ -446,8 +451,8 @@ internal class TypeOperatorLowering(private val backendContext: JvmBackendContex
                     // Inline class type arguments are stored as their underlying representation.
                     val unboxedType = expectedType.unboxInlineClass()
                     irCall(backendContext.ir.symbols.unsafeCoerceIntrinsic).also { coercion ->
-                        coercion.putTypeArgument(0, unboxedType)
-                        coercion.putTypeArgument(1, expectedType)
+                        coercion.typeArguments[0] = unboxedType
+                        coercion.typeArguments[1] = expectedType
                         coercion.putValueArgument(0, capturedArg)
                     }
                 } else {
@@ -471,7 +476,7 @@ internal class TypeOperatorLowering(private val backendContext: JvmBackendContex
         val startOffset = call.startOffset
         val endOffset = call.endOffset
 
-        val samType = call.getTypeArgument(0) as? IrSimpleType
+        val samType = call.typeArguments[0] as? IrSimpleType
             ?: fail("'samType' is expected to be a simple type")
 
         val samMethodRef = call.getValueArgument(0) as? IrRawFunctionReference
@@ -641,9 +646,6 @@ internal class TypeOperatorLowering(private val backendContext: JvmBackendContex
                         dynamicCallArguments.add(refDispatchReceiver)
                         argumentStart++
                     }
-                }
-                else -> {
-                    throw AssertionError("Unexpected function: ${targetFun.render()}")
                 }
             }
 

@@ -1,4 +1,6 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // LANGUAGE: -JavaTypeParameterDefaultRepresentationWithDNN
+// ISSUE: KT-67651
 // FULL_JDK
 
 // FILE: JavaBox.java

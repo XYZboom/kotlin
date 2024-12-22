@@ -18,7 +18,7 @@ import org.jetbrains.kotlin.test.directives.DiagnosticsDirectives
 import org.jetbrains.kotlin.test.directives.FirDiagnosticsDirectives
 import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives
 import org.jetbrains.kotlin.test.directives.WasmEnvironmentConfigurationDirectives
-import org.jetbrains.kotlin.test.frontend.fir.Fir2IrWasmResultsConverter
+import org.jetbrains.kotlin.test.frontend.fir.Fir2IrResultsConverter
 import org.jetbrains.kotlin.test.frontend.fir.FirFrontendFacade
 import org.jetbrains.kotlin.test.frontend.fir.FirMetaInfoDiffSuppressor
 import org.jetbrains.kotlin.test.frontend.fir.FirOutputArtifact
@@ -32,11 +32,12 @@ import org.jetbrains.kotlin.test.services.AdditionalSourceProvider
 import org.jetbrains.kotlin.test.services.EnvironmentConfigurator
 import org.jetbrains.kotlin.test.services.configuration.WasmEnvironmentConfiguratorJs
 import org.jetbrains.kotlin.test.services.configuration.WasmEnvironmentConfiguratorWasi
-import org.jetbrains.kotlin.wasm.test.converters.FirWasmKlibBackendFacade
+import org.jetbrains.kotlin.wasm.test.converters.FirWasmKlibSerializerFacade
 import org.jetbrains.kotlin.wasm.test.converters.WasmBackendFacade
 import org.jetbrains.kotlin.wasm.test.handlers.WasiBoxRunner
 import org.jetbrains.kotlin.wasm.test.handlers.WasmBoxRunner
 import org.jetbrains.kotlin.wasm.test.handlers.WasmDebugRunner
+import org.jetbrains.kotlin.wasm.test.providers.WasmJsSteppingTestAdditionalSourceProvider
 
 abstract class AbstractFirWasmTest(
     targetPlatform: TargetPlatform,
@@ -49,10 +50,10 @@ abstract class AbstractFirWasmTest(
         get() = ::FirFrontendFacade
 
     override val frontendToBackendConverter: Constructor<Frontend2BackendConverter<FirOutputArtifact, IrBackendInput>>
-        get() = ::Fir2IrWasmResultsConverter
+        get() = ::Fir2IrResultsConverter
 
     override val backendFacade: Constructor<BackendFacade<IrBackendInput, BinaryArtifacts.KLib>>
-        get() = ::FirWasmKlibBackendFacade
+        get() = ::FirWasmKlibSerializerFacade
 
     override val afterBackendFacade: Constructor<AbstractTestFacade<BinaryArtifacts.KLib, BinaryArtifacts.Wasm>>
         get() = ::WasmBackendFacade
@@ -130,8 +131,10 @@ open class AbstractFirWasmJsSteppingTest : AbstractFirWasmJsTest(
 
     override fun TestConfigurationBuilder.configuration() {
         commonConfigurationForWasmBlackBoxCodegenTest()
+        useAdditionalSourceProviders(::WasmJsSteppingTestAdditionalSourceProvider)
         defaultDirectives {
             +WasmEnvironmentConfigurationDirectives.GENERATE_SOURCE_MAP
+            +WasmEnvironmentConfigurationDirectives.SOURCE_MAP_INCLUDE_MAPPINGS_FROM_UNAVAILABLE_FILES
         }
     }
 }
@@ -148,6 +151,13 @@ open class AbstractFirWasmWasiTest(
 
     override val additionalSourceProvider: Constructor<AdditionalSourceProvider>?
         get() = ::WasmWasiBoxTestHelperSourceProvider
+
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        builder.defaultDirectives {
+            +WasmEnvironmentConfigurationDirectives.GENERATE_DWARF
+        }
+    }
 }
 
 open class AbstractFirWasmWasiCodegenBoxTest : AbstractFirWasmWasiTest(

@@ -9,10 +9,13 @@ import org.gradle.testkit.runner.BuildResult
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.commonizer.CommonizerTarget
 import org.jetbrains.kotlin.gradle.testbase.*
+import org.jetbrains.kotlin.gradle.testbase.BuildOptions.ConfigurationCacheValue
+import org.jetbrains.kotlin.gradle.util.TaskInstantiationTrackingBuildService
 import org.jetbrains.kotlin.gradle.util.WithSourceSetCommonizerDependencies
 import org.jetbrains.kotlin.gradle.util.reportSourceSetCommonizerDependencies
 import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.target.KonanTarget
+import org.jetbrains.kotlin.test.TestMetadata
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
@@ -61,7 +64,6 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
 
     @DisplayName("Compile project with project mode")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun compileDependencyModeProject(
         gradleVersion: GradleVersion,
         @TempDir localRepo: Path,
@@ -78,7 +80,6 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
 
     @DisplayName("Compile project with repository mode")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun compileDependencyModeRepository(
         gradleVersion: GradleVersion,
         @TempDir localRepo: Path,
@@ -142,7 +143,6 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
 
     @DisplayName("Source set dependency in project mode")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun sourceSetDependencyProjectMode(gradleVersion: GradleVersion) {
         project(cinteropProjectName, gradleVersion) {
             reportSourceSetCommonizerDependencies(
@@ -169,7 +169,6 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
 
     @DisplayName("Source set dependency in repository mode")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun sourceSetDependencyRepositoryMode(
         gradleVersion: GradleVersion,
         @TempDir localRepo: Path,
@@ -208,6 +207,7 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
                         KonanTarget.LINUX_ARM64,
                         KonanTarget.LINUX_X64,
                         KonanTarget.IOS_ARM64,
+                        KonanTarget.IOS_SIMULATOR_ARM64,
                         KonanTarget.IOS_X64,
                         KonanTarget.MACOS_X64,
                         KonanTarget.MINGW_X64
@@ -224,6 +224,7 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
                             KonanTarget.LINUX_ARM64,
                             KonanTarget.LINUX_X64,
                             KonanTarget.IOS_ARM64,
+                            KonanTarget.IOS_SIMULATOR_ARM64,
                             KonanTarget.IOS_X64,
                             KonanTarget.MACOS_X64
                         )
@@ -237,6 +238,7 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
                         CommonizerTarget(
                             KonanTarget.IOS_ARM64,
                             KonanTarget.IOS_X64,
+                            KonanTarget.IOS_SIMULATOR_ARM64,
                             KonanTarget.MACOS_X64
                         )
                     )
@@ -248,7 +250,8 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
                     .assertTargetOnAllDependencies(
                         CommonizerTarget(
                             KonanTarget.IOS_ARM64,
-                            KonanTarget.IOS_X64
+                            KonanTarget.IOS_X64,
+                            KonanTarget.IOS_SIMULATOR_ARM64,
                         )
                     )
             }
@@ -277,6 +280,7 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
                         KonanTarget.LINUX_X64,
                         KonanTarget.IOS_ARM64,
                         KonanTarget.IOS_X64,
+                        KonanTarget.IOS_SIMULATOR_ARM64,
                         KonanTarget.MACOS_X64,
                         KonanTarget.MINGW_X64
                     )
@@ -293,6 +297,7 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
                             KonanTarget.LINUX_X64,
                             KonanTarget.IOS_ARM64,
                             KonanTarget.IOS_X64,
+                            KonanTarget.IOS_SIMULATOR_ARM64,
                             KonanTarget.MACOS_X64,
                         )
                     )
@@ -301,14 +306,19 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
             listOf("iosMain", "iosTest").forEach { sourceSetName ->
                 getCommonizerDependencies(sourceSetName).withoutNativeDistributionDependencies(defaultBuildOptions.konanDataDir!!)
                     .assertDependencyFilesMatches(".*cinterop-simple.*", ".*cinterop-withPosix.*")
-                    .assertTargetOnAllDependencies(CommonizerTarget(KonanTarget.IOS_ARM64, KonanTarget.IOS_X64))
+                    .assertTargetOnAllDependencies(
+                        CommonizerTarget(
+                            KonanTarget.IOS_ARM64,
+                            KonanTarget.IOS_X64,
+                            KonanTarget.IOS_SIMULATOR_ARM64
+                        )
+                    )
             }
         }
     }
 
     @DisplayName("UP-TO-DATE transformations for P3 subproject")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun transformationsUpToDateOnP3(
         gradleVersion: GradleVersion,
         @TempDir localRepo: Path,
@@ -358,7 +368,6 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
 
     @DisplayName("UP-TO-DATE transformations on adding/removing targets in repositories mode")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun upToDateTransformationsAddingRemovingTargetRepositoriesMode(
         gradleVersion: GradleVersion,
         @TempDir localRepo: Path,
@@ -371,7 +380,6 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
 
     @DisplayName("UP-TO-DATE transformations on adding/removing targets in project mode")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun upToDateTransformationsAddingRemovingTargetRepositoriesMode(gradleVersion: GradleVersion) {
         project(cinteropProjectName, gradleVersion) {
             testUpToDateTransformationOnRemovingOrAddingTargets(projectDependencyMode)
@@ -411,7 +419,7 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
     }
 
     private fun TestProject.testUpToDateOnChangingConsumerTargets(
-        dependencyMode: String
+        dependencyMode: String,
     ) {
         build(":p2:transformCommonMainCInteropDependenciesMetadata", dependencyMode)
 
@@ -443,6 +451,25 @@ class MppCInteropDependencyTransformationIT : KGPBaseTest() {
 
         build(":p2:transformCommonMainCInteropDependenciesMetadata", dependencyMode) {
             assertTasksUpToDate(":p2:transformCommonMainCInteropDependenciesMetadata")
+        }
+    }
+
+    @DisplayName("KT-71328: no tasks instantiated at execution time during CInterop GMT")
+    @TestMetadata("kt-71328")
+    @GradleTest
+    fun testNoTasksInstantiatedAtExecutionTimeCinteropGmt(gradleVersion: GradleVersion) {
+        // configuration cache may hide the problem,
+        // especially from Gradle 8.0 as it started to serialize the state even before the first execution
+        // so disabling it in this test is mandatory
+        val buildOptions = defaultBuildOptions.copy(configurationCache = ConfigurationCacheValue.DISABLED)
+        project("kt-71328", gradleVersion, buildOptions = buildOptions) {
+            val projectsToApply = listOf(this, subProject("lib"))
+            for (testProject in projectsToApply) {
+                testProject.buildScriptInjection {
+                    TaskInstantiationTrackingBuildService.trackInstantiationInProject(project)
+                }
+            }
+            build(":transformNativeMainCInteropDependenciesMetadata")
         }
     }
 }

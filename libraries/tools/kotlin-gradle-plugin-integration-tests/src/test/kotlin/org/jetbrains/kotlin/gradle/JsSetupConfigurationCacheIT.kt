@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.gradle
 
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.testbase.*
+import org.jetbrains.kotlin.gradle.testbase.BuildOptions.ConfigurationCacheProblems
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.condition.OS
 
@@ -20,14 +21,13 @@ class JsSetupConfigurationCacheIT : KGPBaseTest() {
 
     override val defaultBuildOptions =
         super.defaultBuildOptions.copy(
-            configurationCache = true,
-            configurationCacheProblems = BaseGradleIT.ConfigurationCacheProblems.FAIL
+            configurationCache = BuildOptions.ConfigurationCacheValue.ENABLED,
+            configurationCacheProblems = ConfigurationCacheProblems.FAIL
         )
 
     // hack to be run on Mac m*
     @DisplayName("Check Node.JS setup on different platforms")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun checkNodeJsSetup(gradleVersion: GradleVersion) {
         project(
             "kotlin-js-browser-project",
@@ -45,7 +45,6 @@ class JsSetupConfigurationCacheIT : KGPBaseTest() {
     // hack to be run on Mac m*
     @DisplayName("Check Node.JS setup on different platforms with Yarn")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun checkNodeJsSetupYarn(gradleVersion: GradleVersion) {
         project(
             "kotlin-js-browser-project",

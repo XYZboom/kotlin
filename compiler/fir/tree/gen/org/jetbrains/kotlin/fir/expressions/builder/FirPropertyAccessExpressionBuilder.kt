@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.fir.diagnostics.ConeDiagnostic
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirPropertyAccessExpression
+import org.jetbrains.kotlin.fir.expressions.UnresolvedExpressionTypeAccess
 import org.jetbrains.kotlin.fir.expressions.impl.FirPropertyAccessExpressionImpl
 import org.jetbrains.kotlin.fir.references.FirReference
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
@@ -30,7 +31,7 @@ class FirPropertyAccessExpressionBuilder : FirQualifiedAccessExpressionBuilder, 
     override var coneTypeOrNull: ConeKotlinType? = null
     override val annotations: MutableList<FirAnnotation> = mutableListOf()
     lateinit var calleeReference: FirReference
-    override val contextReceiverArguments: MutableList<FirExpression> = mutableListOf()
+    override val contextArguments: MutableList<FirExpression> = mutableListOf()
     override val typeArguments: MutableList<FirTypeProjection> = mutableListOf()
     override var explicitReceiver: FirExpression? = null
     override var dispatchReceiver: FirExpression? = null
@@ -44,7 +45,7 @@ class FirPropertyAccessExpressionBuilder : FirQualifiedAccessExpressionBuilder, 
             coneTypeOrNull,
             annotations.toMutableOrEmpty(),
             calleeReference,
-            contextReceiverArguments.toMutableOrEmpty(),
+            contextArguments.toMutableOrEmpty(),
             typeArguments.toMutableOrEmpty(),
             explicitReceiver,
             dispatchReceiver,
@@ -62,4 +63,23 @@ inline fun buildPropertyAccessExpression(init: FirPropertyAccessExpressionBuilde
         callsInPlace(init, InvocationKind.EXACTLY_ONCE)
     }
     return FirPropertyAccessExpressionBuilder().apply(init).build()
+}
+
+@OptIn(ExperimentalContracts::class, UnresolvedExpressionTypeAccess::class)
+inline fun buildPropertyAccessExpressionCopy(original: FirPropertyAccessExpression, init: FirPropertyAccessExpressionBuilder.() -> Unit): FirPropertyAccessExpression {
+    contract {
+        callsInPlace(init, InvocationKind.EXACTLY_ONCE)
+    }
+    val copyBuilder = FirPropertyAccessExpressionBuilder()
+    copyBuilder.coneTypeOrNull = original.coneTypeOrNull
+    copyBuilder.annotations.addAll(original.annotations)
+    copyBuilder.calleeReference = original.calleeReference
+    copyBuilder.contextArguments.addAll(original.contextArguments)
+    copyBuilder.typeArguments.addAll(original.typeArguments)
+    copyBuilder.explicitReceiver = original.explicitReceiver
+    copyBuilder.dispatchReceiver = original.dispatchReceiver
+    copyBuilder.extensionReceiver = original.extensionReceiver
+    copyBuilder.source = original.source
+    copyBuilder.nonFatalDiagnostics.addAll(original.nonFatalDiagnostics)
+    return copyBuilder.apply(init).build()
 }

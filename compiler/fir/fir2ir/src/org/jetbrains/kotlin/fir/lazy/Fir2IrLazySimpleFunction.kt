@@ -6,13 +6,9 @@
 package org.jetbrains.kotlin.fir.lazy
 
 import org.jetbrains.kotlin.fir.backend.Fir2IrComponents
-import org.jetbrains.kotlin.fir.backend.utils.contextReceiversForFunctionOrContainingProperty
-import org.jetbrains.kotlin.fir.backend.generators.Fir2IrCallableDeclarationsGenerator
-import org.jetbrains.kotlin.fir.backend.generators.FirBasedFakeOverrideGenerator
-import org.jetbrains.kotlin.fir.backend.generators.generateOverriddenFunctionSymbols
+import org.jetbrains.kotlin.fir.backend.utils.contextParametersForFunctionOrContainingProperty
 import org.jetbrains.kotlin.fir.backend.lazyMappedFunctionListVar
 import org.jetbrains.kotlin.fir.backend.toIrType
-import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
 import org.jetbrains.kotlin.fir.initialSignatureAttr
@@ -25,8 +21,6 @@ import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedContainerSource
 
-@OptIn(FirBasedFakeOverrideGenerator::class) // only for lazy
-@Suppress("DELEGATED_MEMBER_HIDES_SUPERTYPE_OVERRIDE") // K2 warning suppression, TODO: KT-62472
 class Fir2IrLazySimpleFunction(
     c: Fir2IrComponents,
     startOffset: Int,
@@ -41,6 +35,7 @@ class Fir2IrLazySimpleFunction(
     init {
         symbol.bind(this)
         classifierStorage.preCacheTypeParameters(fir)
+        this.contextReceiverParametersCount = fir.contextParametersForFunctionOrContainingProperty().size
     }
 
     override var annotations: List<IrConstructorCall> by createLazyAnnotations()
@@ -50,90 +45,26 @@ class Fir2IrLazySimpleFunction(
         set(_) = mutationNotSupported()
 
     override var returnType: IrType by lazyVar(lock) {
-        fir.returnTypeRef.toIrType(typeConverter)
+        fir.symbol.resolvedReturnTypeRef.toIrType(typeConverter)
     }
 
-    override var dispatchReceiverParameter: IrValueParameter? by lazyVar(lock) {
-        val containingClass = parent as? IrClass
-        if (containingClass != null && shouldHaveDispatchReceiver(containingClass)) {
-            val thisType = Fir2IrCallableDeclarationsGenerator.computeDispatchReceiverType(
-                this,
-                fir,
-                containingClass,
-                c
-            )
-            createThisReceiverParameter(thisType ?: error("No dispatch receiver receiver for function"))
-        } else null
-    }
+    override var overriddenSymbols: List<IrSimpleFunctionSymbol> by symbolsMappingForLazyClasses.lazyMappedFunctionListVar(lock) lazy@{
+        if (firParent == null || parent !is Fir2IrLazyClass) return@lazy emptyList()
 
-    override var extensionReceiverParameter: IrValueParameter? by lazyVar(lock) {
-        fir.receiverParameter?.let {
-            createThisReceiverParameter(it.typeRef.toIrType(typeConverter), it)
-        }
-    }
-
-    override var contextReceiverParametersCount: Int = fir.contextReceiversForFunctionOrContainingProperty().size
-
-    override var valueParameters: List<IrValueParameter> by lazyVar(lock) {
-        declarationStorage.enterScope(this.symbol)
-
-        buildList {
-            callablesGenerator.addContextReceiverParametersTo(
-                fir.contextReceiversForFunctionOrContainingProperty(),
-                this@Fir2IrLazySimpleFunction,
-                this@buildList
-            )
-
-            fir.valueParameters.mapIndexedTo(this) { index, valueParameter ->
-                callablesGenerator.createIrParameter(
-                    valueParameter, index + contextReceiverParametersCount, skipDefaultParameter = isFakeOverride
-                ).apply {
-                    this.parent = this@Fir2IrLazySimpleFunction
-                }
-            }
-        }.apply {
-            declarationStorage.leaveScope(this@Fir2IrLazySimpleFunction.symbol)
-        }
-    }
-
-    override var overriddenSymbols: List<IrSimpleFunctionSymbol> by symbolsMappingForLazyClasses.lazyMappedFunctionListVar(lock) {
-        when (configuration.useFirBasedFakeOverrideGenerator) {
-            true -> computeOverriddenUsingFir2IrFakeOverrideGenerator()
-            false -> computeOverriddenSymbolsForIrFakeOverrideGenerator()
-        }
-    }
-
-    // TODO: drop this function after migration to IR f/o generator will be complete (KT-64202)
-    private fun computeOverriddenUsingFir2IrFakeOverrideGenerator(): List<IrSimpleFunctionSymbol> {
-        if (firParent == null) return emptyList()
-        if (isFakeOverride && parent is Fir2IrLazyClass) {
-            fakeOverrideGenerator.calcBaseSymbolsForFakeOverrideFunction(
-                firParent, this, fir.symbol
-            )
-            fakeOverrideGenerator.getOverriddenSymbolsForFakeOverride(this)?.let {
-                assert(!it.contains(symbol)) { "Cannot add function $symbol to its own overriddenSymbols" }
-                return it
-            }
-        }
-        return fir.generateOverriddenFunctionSymbols(firParent, c)
-    }
-
-    private fun computeOverriddenSymbolsForIrFakeOverrideGenerator(): List<IrSimpleFunctionSymbol> {
-        if (firParent == null || parent !is Fir2IrLazyClass) return emptyList()
         val baseFunctionWithDispatchReceiverTag =
-            fakeOverrideGenerator.computeBaseSymbolsWithContainingClass(firParent, fir.symbol)
-        return baseFunctionWithDispatchReceiverTag.map { (symbol, dispatchReceiverLookupTag) ->
+            lazyFakeOverrideGenerator.computeFakeOverrideKeys(firParent, fir.symbol)
+        baseFunctionWithDispatchReceiverTag.map { (symbol, dispatchReceiverLookupTag) ->
             declarationStorage.getIrFunctionSymbol(symbol, dispatchReceiverLookupTag) as IrSimpleFunctionSymbol
         }
     }
 
     override val initialSignatureFunction: IrFunction? by lazy {
-        val originalFunction = fir.initialSignatureAttr as? FirFunction ?: return@lazy null
+        val originalFunction = fir.initialSignatureAttr ?: return@lazy null
         val lookupTag = firParent?.symbol?.toLookupTag()
 
         // `initialSignatureFunction` is not called during fir2ir conversion
         @OptIn(UnsafeDuringIrConstructionAPI::class)
-        declarationStorage.getIrFunctionSymbol(originalFunction.symbol, lookupTag).owner.also {
+        declarationStorage.getIrFunctionSymbol(originalFunction, lookupTag).owner.also {
             check(it !== this) { "Initial function can not be the same as remapped function" }
         }
     }

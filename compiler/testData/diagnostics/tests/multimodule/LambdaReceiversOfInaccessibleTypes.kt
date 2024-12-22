@@ -1,3 +1,5 @@
+// RUN_PIPELINE_TILL: FRONTEND
+// LATEST_LV_DIFFERENCE
 // MODULE: start
 // FILE: start.kt
 

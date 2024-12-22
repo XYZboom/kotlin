@@ -676,6 +676,11 @@ public class ParsingTestGenerated extends AbstractParsingTest {
       runTest("compiler/testData/psi/StringTemplates.kt");
     }
 
+    @TestMetadata("suggestGuardSyntax.kt")
+    public void testSuggestGuardSyntax() {
+      runTest("compiler/testData/psi/suggestGuardSyntax.kt");
+    }
+
     @TestMetadata("Super.kt")
     public void testSuper() {
       runTest("compiler/testData/psi/Super.kt");
@@ -2891,6 +2896,21 @@ public class ParsingTestGenerated extends AbstractParsingTest {
 
       public void testAllFilesPresentInStringTemplates() {
         KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/psi/stringTemplates"), Pattern.compile("^(.*)\\.kts?$"), null, true);
+      }
+
+      @TestMetadata("IncorrectMultiDollarInterpolationCode.kt")
+      public void testIncorrectMultiDollarInterpolationCode() {
+        runTest("compiler/testData/psi/stringTemplates/IncorrectMultiDollarInterpolationCode.kt");
+      }
+
+      @TestMetadata("IncorrectPaddedMultiDollarInterpolationCode.kt")
+      public void testIncorrectPaddedMultiDollarInterpolationCode() {
+        runTest("compiler/testData/psi/stringTemplates/IncorrectPaddedMultiDollarInterpolationCode.kt");
+      }
+
+      @TestMetadata("MultiDollarBacktick.kt")
+      public void testMultiDollarBacktick() {
+        runTest("compiler/testData/psi/stringTemplates/MultiDollarBacktick.kt");
       }
 
       @TestMetadata("RawStringsWithManyQuotes.kt")

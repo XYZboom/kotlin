@@ -15,19 +15,19 @@ import org.jetbrains.kotlin.ir.declarations.copyAttributes
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrBlockImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrFunctionReferenceImpl
-import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
+import org.jetbrains.kotlin.ir.visitors.IrTransformer
 
 class ProvisionalFunctionExpressionLoweringContext(
     val startOffset: Int? = null,
     val endOffset: Int? = null
 )
 
-@PhaseDescription(
-    name = "FunctionExpression",
-    description = "Transform IrFunctionExpression to a local function reference"
-)
+/**
+ * Transforms [IrFunctionExpression] to a block with a local function and a reference to it.
+ */
+@PhaseDescription(name = "FunctionExpression")
 class ProvisionalFunctionExpressionLowering(@Suppress("UNUSED_PARAMETER", "unused") context: CommonBackendContext) :
-    IrElementTransformer<ProvisionalFunctionExpressionLoweringContext>,
+    IrTransformer<ProvisionalFunctionExpressionLoweringContext>(),
     BodyLoweringPass {
 
     override fun lower(irBody: IrBody, container: IrDeclaration) {
@@ -72,7 +72,6 @@ class ProvisionalFunctionExpressionLowering(@Suppress("UNUSED_PARAMETER", "unuse
                     startOffset, endOffset, type,
                     function.symbol,
                     typeArgumentsCount = 0,
-                    valueArgumentsCount = function.valueParameters.size,
                     reflectionTarget = null,
                     origin = origin
                 ).copyAttributes(expression)

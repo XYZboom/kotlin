@@ -8,6 +8,8 @@ package org.jetbrains.kotlin.gradle.plugin.sources
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.jetbrains.kotlin.gradle.dsl.multiplatformExtensionOrNull
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.PreparedKotlinToolingDiagnosticsCollector
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.kotlinToolingDiagnosticsCollector
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.jetbrains.kotlin.gradle.targets.metadata.dependsOnClosureWithInterCompilationDependencies
 import org.jetbrains.kotlin.gradle.utils.contains
@@ -33,8 +35,9 @@ internal val InternalKotlinSourceSet.metadataTransformation: GranularMetadataTra
     }
 
     val granularMetadataTransformation = GranularMetadataTransformation(
-        params = GranularMetadataTransformation.Params(project, this),
-        parentSourceSetVisibilityProvider = parentSourceSetVisibilityProvider
+        params = GranularMetadataTransformation.Params(project, this, transformProjectDependencies = false),
+        parentSourceSetVisibilityProvider = parentSourceSetVisibilityProvider,
+        kotlinToolingDiagnosticsCollector = PreparedKotlinToolingDiagnosticsCollector.create(project)
     )
 
     @Suppress("DEPRECATION")

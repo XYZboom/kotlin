@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // ISSUE: KT-63068
 fun Int.f() {
     this<!UNRESOLVED_LABEL!>@Int<!>
@@ -6,7 +7,7 @@ fun Int.f() {
 var Int.p: Int
     get() {
         this<!UNRESOLVED_LABEL!>@Int<!>
-        <!RETURN_NOT_ALLOWED!>return@p<!> 42
+        return<!UNRESOLVED_LABEL!>@p<!> 42
     }
     set(value) {
         this<!UNRESOLVED_LABEL!>@Int<!>
@@ -16,7 +17,7 @@ class X {
     var Int.p: Int
         get() {
             this<!UNRESOLVED_LABEL!>@Int<!>
-            <!RETURN_NOT_ALLOWED!>return@p<!> 42
+            return<!UNRESOLVED_LABEL!>@p<!> 42
         }
         set(value) {
             this<!UNRESOLVED_LABEL!>@Int<!>

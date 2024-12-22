@@ -6,21 +6,20 @@
 package org.jetbrains.kotlin.gradle.targets.js.npm.tasks
 
 import org.gradle.api.DefaultTask
-import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import org.gradle.work.DisableCachingByDefault
 import org.gradle.work.NormalizeLineEndings
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsExtension
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.PackageManagerEnvironment
+import org.jetbrains.kotlin.gradle.targets.js.npm.NodeJsEnvironment
 import org.jetbrains.kotlin.gradle.targets.js.npm.NpmProject
 import org.jetbrains.kotlin.gradle.targets.js.npm.UsesKotlinNpmResolutionManager
-import org.jetbrains.kotlin.gradle.targets.js.npm.asNodeJsEnvironment
-import org.jetbrains.kotlin.gradle.targets.js.npm.resolver.KotlinRootNpmResolver
+import org.jetbrains.kotlin.gradle.targets.js.npm.resolver.KotlinCompilationNpmResolution
 import org.jetbrains.kotlin.gradle.utils.getFile
-import org.jetbrains.kotlin.gradle.utils.listProperty
-import org.jetbrains.kotlin.gradle.utils.providerWithLazyConvention
 import java.io.File
 
 @DisableCachingByDefault
@@ -34,29 +33,24 @@ abstract class RootPackageJsonTask :
     // Only in configuration phase
     // Not part of configuration caching
 
-    private val nodeJs
-        get() = project.rootProject.kotlinNodeJsExtension
+    @get:Internal
+    internal abstract val rootPackageDirectory: DirectoryProperty
 
-    private val rootResolver: KotlinRootNpmResolver
-        get() = nodeJs.resolver
+    @get:Internal
+    internal abstract val projectPackagesDirectory: DirectoryProperty
 
-    private val packagesDir: Provider<Directory>
-        get() = nodeJs.projectPackagesDirectory
+    @get:Internal
+    internal abstract val rootPackageManagerEnvironment: Property<PackageManagerEnvironment>
 
-    // -----
+    @get:Internal
+    internal abstract val rootNodeJsEnvironment: Property<NodeJsEnvironment>
 
-    private val nodeJsEnvironment by lazy {
-        nodeJs.requireConfigured().asNodeJsEnvironment
-    }
-
-    private val packageManagerEnv by lazy {
-        nodeJs.packageManagerExtension.get().environment
-    }
+    @get:Internal
+    internal abstract val compilationsNpmResolution: ListProperty<KotlinCompilationNpmResolution>
 
     @get:OutputFile
-    val rootPackageJsonFile: Provider<RegularFile> =
-        nodeJs.rootPackageDirectory.map { it.file(NpmProject.PACKAGE_JSON) }
-
+    val rootPackageJsonFile: Provider<RegularFile> = rootPackageDirectory
+        .map { it.file(NpmProject.PACKAGE_JSON) }
 
     @Deprecated(
         "This property is deprecated and will be removed in future. Use rootPackageJsonFile instead",
@@ -66,29 +60,29 @@ abstract class RootPackageJsonTask :
     val rootPackageJson: File
         get() = rootPackageJsonFile.getFile()
 
-    @get:Internal
-    internal val components by lazy {
-        rootResolver.allResolvedConfigurations
-    }
-
     @get:PathSensitive(PathSensitivity.RELATIVE)
     @get:IgnoreEmptyDirectories
     @get:NormalizeLineEndings
     @get:InputFiles
-    val packageJsonFiles: ListProperty<RegularFile> = project.objects.listProperty<RegularFile>().value(
-        project.objects.providerWithLazyConvention {
-            rootResolver.projectResolvers.values
-                .flatMap { it.compilationResolvers }
-                .map { it.npmProject.name }
-                .map { name ->
-                    packagesDir.map { dir -> dir.dir(name).file(NpmProject.PACKAGE_JSON) }.get()
-                }
-        }
-    )
+    val packageJsonFiles: List<RegularFile> by lazy {
+        projectPackagesDirectory
+            .zip(compilationsNpmResolution) { packagesDir, compilationsNpmResolution ->
+                compilationsNpmResolution
+                    .map { resolution ->
+                        val name = resolution.npmProjectName
+                        packagesDir.dir(name).file(NpmProject.PACKAGE_JSON)
+                    }
+            }
+            .get()
+    }
 
     @TaskAction
     fun resolve() {
-        npmResolutionManager.get().prepare(logger, nodeJsEnvironment, packageManagerEnv, components)
+        npmResolutionManager.get().prepare(
+            logger,
+            rootNodeJsEnvironment.get(),
+            rootPackageManagerEnvironment.get()
+        )
     }
 
     companion object {

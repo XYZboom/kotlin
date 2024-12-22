@@ -5,7 +5,6 @@
 
 package org.jetbrains.kotlin.ir.backend.js.dce
 
-import org.jetbrains.kotlin.ir.util.inlineFunction
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.backend.js.JsCommonBackendContext
 import org.jetbrains.kotlin.ir.backend.js.utils.hasJsPolyfill
@@ -53,12 +52,9 @@ abstract class UsefulDeclarationProcessor(
             expression.symbol.owner.enqueue(data, "raw function access")
         }
 
-        override fun visitBlock(expression: IrBlock, data: IrDeclaration) {
-            super.visitBlock(expression, data)
-
-            if (expression is IrReturnableBlock) {
-                expression.inlineFunction?.addToUsefulPolyfilledDeclarations()
-            }
+        override fun visitInlinedFunctionBlock(inlinedBlock: IrInlinedFunctionBlock, data: IrDeclaration) {
+            super.visitInlinedFunctionBlock(inlinedBlock, data)
+            inlinedBlock.inlineFunctionSymbol?.owner?.addToUsefulPolyfilledDeclarations()
         }
 
         override fun visitFieldAccess(expression: IrFieldAccessExpression, data: IrDeclaration) {
@@ -105,8 +101,7 @@ abstract class UsefulDeclarationProcessor(
         addReachabilityInfoIfNeeded(from, this, description, isContagiousOverridableDeclaration)
 
         if (isContagiousOverridableDeclaration) {
-            @Suppress("USELESS_CAST") // K2 warning suppression, TODO: KT-62472
-            contagiousReachableDeclarations.add(this as IrOverridableDeclaration<*>)
+            contagiousReachableDeclarations.add(this)
         }
 
         if (!isReachable()) {

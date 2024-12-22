@@ -9,28 +9,15 @@ import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.FirSessionComponent
-import org.jetbrains.kotlin.fir.declarations.FirClass
-import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
-import org.jetbrains.kotlin.fir.declarations.FirRegularClass
-import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
-import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
-import org.jetbrains.kotlin.fir.declarations.hasAnnotation
-import org.jetbrains.kotlin.fir.declarations.utils.delegateFields
-import org.jetbrains.kotlin.fir.declarations.utils.isData
-import org.jetbrains.kotlin.fir.declarations.utils.isExpect
-import org.jetbrains.kotlin.fir.declarations.utils.isInline
+import org.jetbrains.kotlin.fir.declarations.*
+import org.jetbrains.kotlin.fir.declarations.impl.FirPrimaryConstructor
+import org.jetbrains.kotlin.fir.declarations.utils.*
 import org.jetbrains.kotlin.fir.resolve.*
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeRawScopeSubstitutor
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
 import org.jetbrains.kotlin.fir.resolve.substitution.substitutorByMap
 import org.jetbrains.kotlin.fir.scopes.impl.*
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag
-import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirClassifierSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.symbols.lazyResolveToPhaseWithCallableMembers
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.name.Name
@@ -57,6 +44,14 @@ class FirKotlinScopeProvider(
         }
 
         return scopeSession.getOrBuild(useSiteSession to klass.symbol, USE_SITE) {
+            // Optimization for enum entries that don't declare any members: just use the supertype scope.
+            // Otherwise, we'll get quadratic memory consumption as every enum entry contains every enum entry's name in its callable name
+            // cache.
+            if (klass.classKind == ClassKind.ENUM_ENTRY && klass.declarations.singleOrNull() is FirPrimaryConstructor) {
+                klass.superConeTypes.singleOrNull()?.scopeForSupertype(useSiteSession, scopeSession, klass, memberRequiredPhase)
+                    ?.let { return@getOrBuild FirTrivialEnumEntryScope(klass, it) }
+            }
+
             val declaredScope = useSiteSession.declaredMemberScope(klass, memberRequiredPhase)
             val possiblyDelegatedDeclaredMemberScope = declaredMemberScopeDecorator(
                 klass,
@@ -73,7 +68,7 @@ class FirKotlinScopeProvider(
             }
             val declaredMemberScopeWithPossiblySynthesizedMembers =
                 // Related: https://youtrack.jetbrains.com/issue/KT-20427#focus=Comments-27-8652759.0-0
-                if (klass is FirRegularClass && !klass.isExpect && (klass.isData || klass.isInline)) {
+                if (klass is FirRegularClass && !klass.isExpect && (klass.isData || klass.isInlineOrValue)) {
                     // See also KT-58926 (we apply delegation first, and data/value classes after it)
                     FirClassAnySynthesizedMemberScope(useSiteSession, possiblyDelegatedDeclaredMemberScope, klass, scopeSession)
                 } else {
@@ -94,13 +89,26 @@ class FirKotlinScopeProvider(
         }
     }
 
-    override fun getStaticMemberScopeForCallables(
+    override fun getStaticCallableMemberScope(
         klass: FirClass,
         useSiteSession: FirSession,
         scopeSession: ScopeSession
+    ): FirContainingNamesAwareScope? = getStaticCallableMemberScopeImpl(klass, useSiteSession, scopeSession, forBackend = false)
+
+    override fun getStaticCallableMemberScopeForBackend(
+        klass: FirClass,
+        useSiteSession: FirSession,
+        scopeSession: ScopeSession,
+    ): FirContainingNamesAwareScope? = getStaticCallableMemberScopeImpl(klass, useSiteSession, scopeSession, forBackend = true)
+
+    private fun getStaticCallableMemberScopeImpl(
+        klass: FirClass,
+        useSiteSession: FirSession,
+        scopeSession: ScopeSession,
+        forBackend: Boolean
     ): FirContainingNamesAwareScope? {
-        return when (klass.classKind) {
-            ClassKind.ENUM_CLASS -> FirNameAwareOnlyCallablesScope(
+        return when {
+            klass.classKind == ClassKind.ENUM_CLASS -> FirNameAwareOnlyCallablesScope(
                 FirStaticScope(
                     useSiteSession.declaredMemberScope(
                         klass,
@@ -108,6 +116,12 @@ class FirKotlinScopeProvider(
                     )
                 )
             )
+            forBackend -> {
+                val superClass = klass.superConeTypes.firstNotNullOfOrNull {
+                    it.fullyExpandedType(useSiteSession).toRegularClassSymbol(useSiteSession)?.takeIf { it.classKind == ClassKind.CLASS }
+                }?.fir
+                superClass?.staticScopeForBackend(useSiteSession, scopeSession)
+            }
             else -> null
         }
     }
@@ -152,6 +166,14 @@ class FirKotlinScopeProvider(
 
         override val scopeOwnerLookupNames: List<String>
             get() = declaredMemberScope.scopeOwnerLookupNames
+
+        @DelicateScopeAPI
+        override fun withReplacedSessionOrNull(newSession: FirSession, newScopeSession: ScopeSession): PlatformDependentFilteringScope {
+            return PlatformDependentFilteringScope(
+                declaredMemberScope.withReplacedSessionOrNull(newSession, newScopeSession) ?: declaredMemberScope,
+                newSession
+            )
+        }
     }
 }
 
@@ -218,7 +240,7 @@ fun ConeKotlinType.scopeForSupertype(
     if (this !is ConeClassLikeType) return null
     if (this is ConeErrorType) return null
 
-    val symbol = lookupTag.toSymbol(useSiteSession) as? FirRegularClassSymbol ?: return null
+    val symbol = lookupTag.toRegularClassSymbol(useSiteSession) ?: return null
 
     val substitutor = substitutorForSuperType(useSiteSession, symbol)
 
@@ -236,7 +258,7 @@ fun ConeKotlinType.scopeForSupertype(
 
 fun ConeClassLikeType.substitutorForSuperType(useSiteSession: FirSession, classTypeSymbol: FirRegularClassSymbol): ConeSubstitutor {
     return when {
-        this.type.attributes.contains(CompilerConeAttributes.RawType) -> ConeRawScopeSubstitutor(useSiteSession)
+        this.attributes.contains(CompilerConeAttributes.RawType) -> ConeRawScopeSubstitutor(useSiteSession)
         else -> substitutor(classTypeSymbol, this, useSiteSession)
     }
 }

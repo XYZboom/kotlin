@@ -1,8 +1,9 @@
-KtNamedClassOrObjectSymbol:
-  annotationsList: []
-  classIdIfNonLocal: A
+KaNamedClassSymbol:
+  annotations: []
+  classId: A
   classKind: CLASS
   companionObject: null
+  compilerVisibility: Public
   contextReceivers: []
   isActual: false
   isData: false
@@ -11,43 +12,49 @@ KtNamedClassOrObjectSymbol:
   isFun: false
   isInline: false
   isInner: false
+  location: TOP_LEVEL
   modality: OPEN
   name: A
   origin: SOURCE
   superTypes: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: kotlin/Any
   ]
-  symbolKind: TOP_LEVEL
   typeParameters: []
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(similarGenericSignature.kt)
-  getContainingModule: KtSourceModule "Sources of main"
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(similarGenericSignature.kt)
+  getContainingModule: KaSourceModule "Sources of main"
   annotationApplicableTargets: null
   deprecationStatus: null
 
-KtTypeParameterSymbol:
-  annotationsList: []
+KaTypeParameterSymbol:
+  annotations: []
+  compilerVisibility: Local
+  isActual: false
+  isExpect: false
   isReified: false
+  location: LOCAL
+  modality: FINAL
   name: J
   origin: SOURCE
-  typeParameters: []
   upperBounds: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: A
   ]
   variance: INVARIANT
-  getContainingFileSymbol: KtFileSymbol(similarGenericSignature.kt)
-  getContainingModule: KtSourceModule "Sources of main"
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(similarGenericSignature.kt)
+  getContainingModule: KaSourceModule "Sources of main"
   deprecationStatus: null
 
-KtFunctionSymbol:
-  annotationsList: []
-  callableIdIfNonLocal: /foo
+KaNamedFunctionSymbol:
+  annotations: []
+  callableId: /foo
+  compilerVisibility: Public
   contextReceivers: []
   contractEffects: []
   hasStableParameterNames: true
@@ -63,63 +70,95 @@ KtFunctionSymbol:
   isStatic: false
   isSuspend: false
   isTailRec: false
+  location: TOP_LEVEL
   modality: FINAL
   name: foo
   origin: SOURCE
   receiverParameter: null
-  returnType: KtTypeParameterType:
-    annotationsList: []
+  returnType: KaTypeParameterType:
+    annotations: []
     type: J
-  symbolKind: TOP_LEVEL
   typeParameters: [
-    KtTypeParameterSymbol(J)
+    KaTypeParameterSymbol:
+      annotations: []
+      compilerVisibility: Local
+      isActual: false
+      isExpect: false
+      isReified: false
+      location: LOCAL
+      modality: FINAL
+      name: J
+      origin: SOURCE
+      upperBounds: [
+        KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: A
+      ]
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(similarGenericSignature.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecationStatus: null
   ]
   valueParameters: [
-    KtValueParameterSymbol:
-      annotationsList: []
-      callableIdIfNonLocal: null
+    KaValueParameterSymbol:
+      annotations: []
+      callableId: null
+      compilerVisibility: Public
       contextReceivers: []
       generatedPrimaryConstructorProperty: null
       hasDefaultValue: false
+      isActual: false
       isCrossinline: false
+      isExpect: false
       isExtension: false
       isImplicitLambdaParameter: false
       isNoinline: false
+      isVal: true
       isVararg: false
+      location: LOCAL
+      modality: FINAL
       name: j
       origin: SOURCE
       receiverParameter: null
-      returnType: KtTypeParameterType:
-        annotationsList: []
+      returnType: KaTypeParameterType:
+        annotations: []
         type: J
-      symbolKind: LOCAL
-      typeParameters: []
-      getContainingFileSymbol: KtFileSymbol(similarGenericSignature.kt)
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(similarGenericSignature.kt)
       getContainingJvmClassName: SimilarGenericSignatureKt
-      getContainingModule: KtSourceModule "Sources of main"
+      getContainingModule: KaSourceModule "Sources of main"
       deprecationStatus: null
   ]
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(similarGenericSignature.kt)
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(similarGenericSignature.kt)
   getContainingJvmClassName: SimilarGenericSignatureKt
-  getContainingModule: KtSourceModule "Sources of main"
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
   deprecationStatus: null
 
-KtTypeParameterSymbol:
-  annotationsList: []
+KaTypeParameterSymbol:
+  annotations: []
+  compilerVisibility: Local
+  isActual: false
+  isExpect: false
   isReified: false
+  location: LOCAL
+  modality: FINAL
   name: T
   origin: SOURCE
-  typeParameters: []
   upperBounds: []
   variance: INVARIANT
-  getContainingFileSymbol: KtFileSymbol(similarGenericSignature.kt)
-  getContainingModule: KtSourceModule "Sources of main"
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(similarGenericSignature.kt)
+  getContainingModule: KaSourceModule "Sources of main"
   deprecationStatus: null
 
-KtFunctionSymbol:
-  annotationsList: []
-  callableIdIfNonLocal: /foo
+KaNamedFunctionSymbol:
+  annotations: []
+  callableId: /foo
+  compilerVisibility: Public
   contextReceivers: []
   contractEffects: []
   hasStableParameterNames: true
@@ -135,44 +174,65 @@ KtFunctionSymbol:
   isStatic: false
   isSuspend: false
   isTailRec: false
+  location: TOP_LEVEL
   modality: FINAL
   name: foo
   origin: SOURCE
   receiverParameter: null
-  returnType: KtTypeParameterType:
-    annotationsList: []
+  returnType: KaTypeParameterType:
+    annotations: []
     type: T
-  symbolKind: TOP_LEVEL
   typeParameters: [
-    KtTypeParameterSymbol(T)
+    KaTypeParameterSymbol:
+      annotations: []
+      compilerVisibility: Local
+      isActual: false
+      isExpect: false
+      isReified: false
+      location: LOCAL
+      modality: FINAL
+      name: T
+      origin: SOURCE
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(similarGenericSignature.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecationStatus: null
   ]
   valueParameters: [
-    KtValueParameterSymbol:
-      annotationsList: []
-      callableIdIfNonLocal: null
+    KaValueParameterSymbol:
+      annotations: []
+      callableId: null
+      compilerVisibility: Public
       contextReceivers: []
       generatedPrimaryConstructorProperty: null
       hasDefaultValue: false
+      isActual: false
       isCrossinline: false
+      isExpect: false
       isExtension: false
       isImplicitLambdaParameter: false
       isNoinline: false
+      isVal: true
       isVararg: false
+      location: LOCAL
+      modality: FINAL
       name: j
       origin: SOURCE
       receiverParameter: null
-      returnType: KtTypeParameterType:
-        annotationsList: []
+      returnType: KaTypeParameterType:
+        annotations: []
         type: T
-      symbolKind: LOCAL
-      typeParameters: []
-      getContainingFileSymbol: KtFileSymbol(similarGenericSignature.kt)
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(similarGenericSignature.kt)
       getContainingJvmClassName: SimilarGenericSignatureKt
-      getContainingModule: KtSourceModule "Sources of main"
+      getContainingModule: KaSourceModule "Sources of main"
       deprecationStatus: null
   ]
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(similarGenericSignature.kt)
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(similarGenericSignature.kt)
   getContainingJvmClassName: SimilarGenericSignatureKt
-  getContainingModule: KtSourceModule "Sources of main"
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
   deprecationStatus: null

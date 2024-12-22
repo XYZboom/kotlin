@@ -16,7 +16,7 @@
 
 package org.jetbrains.kotlin.backend.common.lower
 
-import org.jetbrains.kotlin.backend.common.BackendContext
+import org.jetbrains.kotlin.backend.common.LoweringContext
 import org.jetbrains.kotlin.backend.common.BodyLoweringPass
 import org.jetbrains.kotlin.backend.common.collectTailRecursionCalls
 import org.jetbrains.kotlin.ir.IrElement
@@ -29,9 +29,9 @@ import org.jetbrains.kotlin.ir.symbols.IrValueParameterSymbol
 import org.jetbrains.kotlin.ir.transformStatement
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.util.deepCopyWithSymbols
-import org.jetbrains.kotlin.ir.util.explicitParameters
 import org.jetbrains.kotlin.ir.util.getArgumentsWithIr
 import org.jetbrains.kotlin.ir.util.patchDeclarationParents
+import org.jetbrains.kotlin.ir.util.defaultValueForType
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
@@ -41,7 +41,7 @@ import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
  *
  * Note: it currently can't handle local functions and classes declared in default arguments.
  */
-open class TailrecLowering(val context: BackendContext) : BodyLoweringPass {
+open class TailrecLowering(val context: LoweringContext) : BodyLoweringPass {
     override fun lower(irBody: IrBody, container: IrDeclaration) {
         if (container is IrFunction) {
             // Lower local declarations
@@ -91,7 +91,7 @@ private fun TailrecLowering.lowerTailRecursionCalls(irFunction: IrFunction) {
         // `SharedVariablesLowering`), and that we can't do. So we have to create new `var`s for this purpose.
         // TODO: an optimization pass will rewrite the types of vars back since the lambdas are guaranteed to be inlined
         //  in place (otherwise they can't jump to the start of the function at all), so this is all a waste of CPU time.
-        val parameterToVariable = irFunction.explicitParameters.associateWith {
+        val parameterToVariable = irFunction.parameters.associateWith {
             if (someCallsAreFromOtherFunctions || !it.isAssignable)
                 createTmpVariable(irGet(it), nameHint = it.symbol.suggestVariableName(), isMutable = true)
             else
@@ -135,7 +135,7 @@ private class BodyTransformer(
     private val tailRecursionCalls: Set<IrCall>,
 ) : VariableRemapper(parameterToVariable) {
 
-    val parameters = irFunction.explicitParameters
+    val parameters = irFunction.parameters
 
     override fun visitCall(expression: IrCall): IrExpression {
         expression.transformChildrenVoid(this)

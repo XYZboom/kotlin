@@ -8,12 +8,13 @@ package org.jetbrains.kotlin.jvm.abi
 import com.intellij.openapi.util.io.FileUtil
 import junit.framework.TestCase
 import org.jetbrains.kotlin.cli.common.ExitCode
+import org.jetbrains.kotlin.cli.common.messages.MessageCollectorImpl
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.codegen.CodegenTestUtil
 import org.jetbrains.kotlin.codegen.forTestCompile.ForTestCompileRuntime
 import org.jetbrains.kotlin.config.Services
 import org.jetbrains.kotlin.test.InTextDirectivesUtils
-import org.jetbrains.kotlin.test.KotlinTestUtils
+import org.jetbrains.kotlin.test.compileJavaFiles
 import java.io.File
 import kotlin.io.path.createTempDirectory
 
@@ -69,7 +70,7 @@ abstract class BaseJvmAbiTest : TestCase() {
 
         val directives = if (compilation.directives.exists()) compilation.directives.readText() else ""
 
-        val messageCollector = LocationReportingTestMessageCollector()
+        val messageCollector = MessageCollectorImpl()
         val compiler = K2JVMCompiler()
         val args = compiler.createArguments().apply {
             freeArgs = listOf(compilation.srcDir.canonicalPath)
@@ -98,16 +99,14 @@ abstract class BaseJvmAbiTest : TestCase() {
             destination = compilation.destinationDir.canonicalPath
             noSourceDebugExtension = InTextDirectivesUtils.findStringWithPrefixes(directives, "// NO_SOURCE_DEBUG_EXTENSION") != null
 
-            if (InTextDirectivesUtils.findStringWithPrefixes(directives, "// USE_K2") != null) {
-                useK2 = true
-            }
             if (InTextDirectivesUtils.findStringWithPrefixes(directives, "// INHERIT_MULTIFILE_PARTS") != null) {
                 inheritMultifileParts = true
             }
         }
         val exitCode = compiler.exec(messageCollector, Services.EMPTY, args)
         if (exitCode != ExitCode.OK || messageCollector.errors.isNotEmpty()) {
-            val errorLines = listOf("Could not compile $compilation", "Exit code: $exitCode", "Errors:") + messageCollector.errors
+            val errorLines = listOf("Could not compile $compilation", "Exit code: $exitCode", "Errors:") +
+                    messageCollector.errors.map { "e: ${it.location}: ${it.message}" }
             error(errorLines.joinToString("\n"))
         }
 
@@ -123,7 +122,7 @@ abstract class BaseJvmAbiTest : TestCase() {
                 "-d",
                 compilation.javaDestinationDir.canonicalPath
             )
-            KotlinTestUtils.compileJavaFiles(javaFiles, javacOptions)
+            compileJavaFiles(javaFiles, javacOptions).assertSuccessful()
             FileUtil.copyDir(compilation.javaDestinationDir, compilation.destinationDir)
             FileUtil.copyDir(compilation.javaDestinationDir, compilation.abiDir)
         }

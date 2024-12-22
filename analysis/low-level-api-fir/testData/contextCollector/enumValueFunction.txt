@@ -26,15 +26,13 @@ Tower Data Context:
                 FirNamedFunctionSymbol public final static fun valueOf(value: R|kotlin/String|): R|Foo|
                 FirNamedFunctionSymbol public final static fun values(): R|kotlin/Array<Foo>|
             Properties:
-                FirEnumEntrySymbol public final static enum entry VALUE: R|Foo| = object : R|Foo|
+                FirEnumEntrySymbol public final static enum entry VALUE: R|Foo|
                 FirPropertySymbol public final static val entries: R|kotlin/enums/EnumEntries<Foo>|
                     public get(): R|kotlin/enums/EnumEntries<Foo>|
     Element 9
         Implicit receiver:
             FirAnonymousObjectSymbol object : R|Foo|
                 Type: <anonymous>
-    Element 10
-        Scope: FirLocalScope
 
 FILE: [ResolvedTo(IMPORTS)] enumValueFunction.kt
     public final [ResolvedTo(STATUS)] enum class Foo : R|kotlin/Enum<Foo>| {

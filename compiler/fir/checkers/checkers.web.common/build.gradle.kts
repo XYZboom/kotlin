@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     id("jps-compatible")
+    id("generated-sources")
 }
 
 dependencies {
@@ -20,7 +21,8 @@ dependencies {
 sourceSets {
     "main" {
         projectDefault()
-        generatedDir()
     }
     "test" { none() }
 }
+
+generatedDiagnosticContainersAndCheckerComponents()

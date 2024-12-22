@@ -13,16 +13,15 @@ import org.jetbrains.kotlin.ir.symbols.*
 import org.jetbrains.kotlin.ir.symbols.impl.*
 
 private fun <SymbolOwner : IrSymbolOwner, Symbol : IrBindableSymbol<*, SymbolOwner>> IdSignatureSymbolTableSlice(lock: IrLock) =
-    SymbolTableSlice.Flat<IdSignature, SymbolOwner, Symbol>(lock) { it.signature != null }
+    SymbolTableSlice.Flat<IdSignature, SymbolOwner, Symbol>(lock) { key, _ -> key.isPubliclyVisible }
 
 @OptIn(SymbolTableInternals::class)
 open class SymbolTable(
-    val signaturer: IdSignatureComposer?, // TODO: This is `null` only in FIR2IR. Make non-nullable again after KT-64990 is fixed.
+    val signaturer: IdSignatureComposer?, // TODO: This is `null` only in FIR2IR. Consider to update API in the scope of KT-68475
     val irFactory: IrFactory,
     val nameProvider: NameProvider = NameProvider.DEFAULT,
-) : ReferenceSymbolTable {
     val lock: IrLock = IrLock()
-
+) : ReferenceSymbolTable {
     private val scriptSlice = IdSignatureSymbolTableSlice<IrScript, IrScriptSymbol>(lock)
     private val classSlice = IdSignatureSymbolTableSlice<IrClass, IrClassSymbol>(lock)
     private val constructorSlice = IdSignatureSymbolTableSlice<IrConstructor, IrConstructorSymbol>(lock)
@@ -59,10 +58,6 @@ open class SymbolTable(
         )
     }
 
-    fun referenceScript(signature: IdSignature): IrScriptSymbol {
-        return scriptSlice.referenced(signature) { IrScriptSymbolImpl(signature = signature) }
-    }
-
     // ------------------------------------ class ------------------------------------
 
     fun declareClass(
@@ -75,10 +70,6 @@ open class SymbolTable(
             symbolFactory,
             classFactory
         )
-    }
-
-    fun declareClassWithSignature(signature: IdSignature, symbol: IrClassSymbol) {
-        classSlice.set(signature, symbol)
     }
 
     fun declareClassIfNotExists(
@@ -137,14 +128,6 @@ open class SymbolTable(
         constructorFactory: (IrConstructorSymbol) -> IrConstructor,
     ): IrConstructor {
         return constructorSlice.declareIfNotExists(signature, symbolFactory, constructorFactory)
-    }
-
-    fun declareConstructorWithSignature(signature: IdSignature, symbol: IrConstructorSymbol) {
-        constructorSlice.set(signature, symbol)
-    }
-
-    fun referenceConstructorIfAny(signature: IdSignature): IrConstructorSymbol? {
-        return constructorSlice.get(signature)
     }
 
     override fun referenceConstructor(signature: IdSignature): IrConstructorSymbol {
@@ -223,10 +206,6 @@ open class SymbolTable(
         )
     }
 
-    fun declareFieldWithSignature(signature: IdSignature, symbol: IrFieldSymbol) {
-        fieldSlice.set(signature, symbol)
-    }
-
     override fun referenceField(signature: IdSignature): IrFieldSymbol {
         return referenceFieldImpl(
             signature,
@@ -269,14 +248,6 @@ open class SymbolTable(
         propertyFactory: (IrPropertySymbol) -> IrProperty,
     ): IrProperty {
         return propertySlice.declareIfNotExists(signature, symbolFactory, propertyFactory)
-    }
-
-    fun declarePropertyWithSignature(signature: IdSignature, symbol: IrPropertySymbol) {
-        propertySlice.set(signature, symbol)
-    }
-
-    fun referencePropertyIfAny(signature: IdSignature): IrPropertySymbol? {
-        return propertySlice.get(signature)
     }
 
     override fun referenceProperty(signature: IdSignature): IrPropertySymbol {
@@ -368,24 +339,12 @@ open class SymbolTable(
         return functionSlice.declareIfNotExists(signature, symbolFactory, functionFactory)
     }
 
-    fun declareSimpleFunctionWithSignature(signature: IdSignature, symbol: IrSimpleFunctionSymbol) {
-        functionSlice.set(signature, symbol)
-    }
-
-    fun referenceSimpleFunctionIfAny(signature: IdSignature): IrSimpleFunctionSymbol? =
-        functionSlice.get(signature)
-
     override fun referenceSimpleFunction(signature: IdSignature): IrSimpleFunctionSymbol {
         return referenceSimpleFunctionImpl(
             signature,
             { IrSimpleFunctionSymbolImpl(signature = signature) },
             { IrSimpleFunctionSymbolImpl().also { it.privateSignature = signature } }
         )
-    }
-
-    @DelicateSymbolTableApi
-    fun removeSimpleFunction(function: IrSimpleFunctionSymbol) {
-        function.signature?.let { functionSlice.remove(it) }
     }
 
     @SymbolTableInternals

@@ -28,7 +28,12 @@ class ConeContractRenderer : KtContractDescriptionVisitor<Unit, Nothing?, ConeKo
     fun render(contractDescription: FirContractDescription) {
         printer.pushIndent()
         printer.newLine()
-        val prefix = if (contractDescription is FirResolvedContractDescription) "R|" else ""
+        val prefix = when (contractDescription) {
+            is FirResolvedContractDescription -> "R|"
+            is FirErrorContractDescription -> "E|"
+            else -> ""
+        }
+
         printer.print("[${prefix}Contract description]")
         when (contractDescription) {
             is FirLegacyRawContractDescription -> render(contractDescription)
@@ -37,6 +42,7 @@ class ConeContractRenderer : KtContractDescriptionVisitor<Unit, Nothing?, ConeKo
                 printer.println()
                 render(contractDescription)
             }
+            is FirErrorContractDescription -> {}
         }
         printer.popIndent()
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrDelegatingConstructorCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolDescriptor
 import org.jetbrains.kotlin.ir.symbols.impl.IrConstructorSymbolImpl
 import org.jetbrains.kotlin.ir.symbols.impl.IrSimpleFunctionSymbolImpl
 import org.jetbrains.kotlin.ir.util.*
@@ -20,6 +21,7 @@ import org.jetbrains.kotlin.psi.KtBlockCodeFragment
 import org.jetbrains.kotlin.psi2ir.generators.Generator
 import org.jetbrains.kotlin.psi2ir.generators.GeneratorContext
 import org.jetbrains.kotlin.psi2ir.generators.createBodyGenerator
+import org.jetbrains.kotlin.psi2ir.generators.setThisReceiverParameter
 import org.jetbrains.kotlin.resolve.BindingContextUtils
 import org.jetbrains.kotlin.types.KotlinType
 
@@ -44,12 +46,7 @@ open class FragmentDeclarationGenerator(
                 Modality.FINAL
             )
         }.buildWithScope { irClass ->
-            irClass.thisReceiver = context.symbolTable.descriptorExtension.declareValueParameter(
-                startOffset, endOffset,
-                IrDeclarationOrigin.INSTANCE_RECEIVER,
-                classDescriptor.thisAsReceiverParameter,
-                classDescriptor.thisAsReceiverParameter.type.toIrType()
-            )
+            irClass.setThisReceiverParameter(context)
 
             generatePrimaryConstructor(irClass)
 

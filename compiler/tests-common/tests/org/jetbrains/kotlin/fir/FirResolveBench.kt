@@ -324,7 +324,7 @@ class FirResolveBench(val withProgress: Boolean, val listener: BenchListener? = 
 
                     override fun visitResolvedTypeRef(resolvedTypeRef: FirResolvedTypeRef) {
                         resolvedTypes++
-                        val type = resolvedTypeRef.type
+                        val type = resolvedTypeRef.coneType
                         if (type is ConeErrorType || type is ConeErrorType) {
                             errorTypes++
                             if (resolvedTypeRef is FirErrorTypeRef && resolvedTypeRef.diagnostic is ConeUnreportedDuplicateDiagnostic) {
@@ -483,7 +483,10 @@ fun RTableContext.RTableRowContext.linePerSecondCell(linePerSec: Double) {
     cell(df.format(linePerSec))
 }
 fun RTableContext.RTableRowContext.linePerSecondCell(lines: Int, time: Long, timeUnit: TableTimeUnit = TableTimeUnit.NS) {
-    val linePerSec = lines / TableTimeUnit.S.convert(time, from = timeUnit)
+    val linePerSec = when (time) {
+        0L -> 0.0
+        else -> lines / TableTimeUnit.S.convert(time, from = timeUnit)
+    }
     linePerSecondCell(linePerSec)
 }
 

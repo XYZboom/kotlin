@@ -5,10 +5,11 @@
 
 package org.jetbrains.kotlin.analysis.api.impl.base.test.cases.components.typeCreator
 
-import org.jetbrains.kotlin.analysis.api.renderer.types.impl.KtTypeRendererForDebug
+import org.jetbrains.kotlin.analysis.api.renderer.types.impl.KaTypeRendererForDebug
+import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.test.framework.base.AbstractAnalysisApiBasedTest
-import org.jetbrains.kotlin.analysis.test.framework.project.structure.KtTestModule
-import org.jetbrains.kotlin.analysis.test.framework.services.TypeParser
+import org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModule
+import org.jetbrains.kotlin.analysis.test.framework.services.TypeParser.parseTypeFromString
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
 import org.jetbrains.kotlin.test.directives.model.SimpleDirectivesContainer
@@ -28,13 +29,13 @@ abstract class AbstractBuildClassTypeTest : AbstractAnalysisApiBasedTest() {
     override fun doTestByMainFile(mainFile: KtFile, mainModule: KtTestModule, testServices: TestServices) {
         val typeString = mainModule.testModule.directives.singleValue(Directives.CLASS_TYPE)
         val actual = analyseForTest(mainFile) {
-            val ktType = TypeParser.parseTypeFromString(typeString, mainFile, mainFile)
+            val ktType = parseTypeFromString(typeString, mainFile, mainFile)
             buildString {
-                appendLine("originalTypeString: $typeString")
+                appendLine("OriginalTypeString: $typeString")
                 appendLine(
-                    "ktType: ${
+                    "${KaType::class.simpleName}: ${
                         ktType.render(
-                            renderer = KtTypeRendererForDebug.WITH_QUALIFIED_NAMES,
+                            renderer = KaTypeRendererForDebug.WITH_QUALIFIED_NAMES,
                             position = Variance.INVARIANT,
                         )
                     }"

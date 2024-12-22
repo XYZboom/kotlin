@@ -1,6 +1,8 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // FIR_IDENTICAL
 // TARGET_BACKEND: JVM
-// FILE: Bar.java
+
+// FILE: one/two/Bar.java
 package one.two;
 
 public class Bar {

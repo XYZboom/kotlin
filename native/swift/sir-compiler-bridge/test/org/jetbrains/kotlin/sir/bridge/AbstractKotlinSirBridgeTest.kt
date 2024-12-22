@@ -9,6 +9,8 @@ import com.intellij.testFramework.TestDataFile
 import org.jetbrains.kotlin.sir.*
 import org.jetbrains.kotlin.sir.builder.*
 import org.jetbrains.kotlin.sir.util.SirSwiftModule
+import org.jetbrains.kotlin.sir.util.addChild
+import org.jetbrains.kotlin.sir.util.swiftName
 import org.jetbrains.kotlin.test.services.JUnit5Assertions
 import org.jetbrains.kotlin.test.util.KtTestUtil
 import java.io.File
@@ -22,12 +24,40 @@ abstract class AbstractKotlinSirBridgeTest {
 
         val requests = parseRequestsFromTestDir(testPathFull)
 
-        val generator = createBridgeGenerator()
+        val generator = createBridgeGenerator(object : SirTypeNamer {
+            override fun swiftFqName(type: SirType): String {
+                return when (type) {
+                    is SirNominalType -> {
+                        require(type.typeDeclaration.origin is SirOrigin.ExternallyDefined)
+                        type.typeDeclaration.name
+                    }
+                    is SirFunctionalType -> {
+                        // todo: KT-72993
+                        (listOf("function") + type.parameterTypes.map { swiftFqName(it) }).joinToString("_")
+                    }
+                    else -> error("Unsupported type: $type")
+                }
+            }
+
+            override fun kotlinFqName(type: SirType): String {
+                return when (type) {
+                    is SirNominalType -> {
+                        require(type.typeDeclaration.origin is SirOrigin.ExternallyDefined)
+                        type.typeDeclaration.name
+                    }
+                    is SirFunctionalType -> {
+                        // todo: KT-72993
+                        (listOf("function") + type.parameterTypes.map { kotlinFqName(it) }).joinToString("_")
+                    }
+                    else -> error("Unsupported type: $type")
+                }
+            }
+        })
         val kotlinBridgePrinter = createKotlinBridgePrinter()
         val cBridgePrinter = createCBridgePrinter()
 
         requests.forEach { request ->
-            generator.generate(request)?.let {
+            generator.generateBridges(request).forEach {
                 kotlinBridgePrinter.add(it)
                 cBridgePrinter.add(it)
             }
@@ -43,37 +73,74 @@ abstract class AbstractKotlinSirBridgeTest {
 
 private val lineSeparator: String = System.getProperty("line.separator")
 
-private fun parseRequestsFromTestDir(testDir: File): List<BridgeRequest> =
+private fun parseRequestsFromTestDir(testDir: File): List<FunctionBridgeRequest> =
     testDir.listFiles()
         ?.filter { it.extension == "properties" && it.name.startsWith("request") }
         ?.map { readRequestFromFile(it) }
-        ?.sortedBy { it.bridgeName }
+        ?.sortedWith(StableBridgeRequestComparator)
         ?: emptyList()
 
 private fun parseType(typeName: String): SirType {
-    return when (typeName.lowercase()) {
-        "boolean" -> SirSwiftModule.bool
+    val tn = typeName.lowercase()
 
-        "byte" -> SirSwiftModule.int8
-        "short" -> SirSwiftModule.int16
-        "int" -> SirSwiftModule.int32
-        "long" -> SirSwiftModule.int64
-
-        "ubyte" -> SirSwiftModule.uint8
-        "ushort" -> SirSwiftModule.uint16
-        "uint" -> SirSwiftModule.uint32
-        "ulong" -> SirSwiftModule.uint64
-
-        "any" -> buildClass {
-            name = "MyClass"
-            origin = SirOrigin.ExternallyDefined(name="MyClass")
+    return if (tn.startsWith("closure")) {
+        when (tn) {
+            "closure_void" -> {
+                SirFunctionalType(
+                    returnType = SirNominalType(SirSwiftModule.void),
+                    parameterTypes = emptyList(),
+                )
+            }
+            "closure_closure" -> {
+                SirFunctionalType(
+                    returnType = SirFunctionalType(
+                        returnType = SirNominalType(SirSwiftModule.void),
+                        parameterTypes = emptyList(),
+                    ),
+                    parameterTypes = emptyList(),
+                )
+            }
+            "closure_with_parameter" -> {
+                SirFunctionalType(
+                    returnType = SirNominalType(buildClass {
+                        name = "MyClass"
+                        origin = SirOrigin.ExternallyDefined(name = "MyClass")
+                    }),
+                    parameterTypes = listOf(SirNominalType(buildClass {
+                        name = "MyAnotherClass"
+                        origin = SirOrigin.ExternallyDefined(name = "MyAnotherClass")
+                    })),
+                )
+            }
+            else -> error("unknown tag for predefined closure")
         }
+    } else {
+        when (tn) {
+            "boolean" -> SirSwiftModule.bool
 
-        else -> error("Unknown type: $typeName")
-    }.let { SirNominalType(it) }
+            "byte" -> SirSwiftModule.int8
+            "short" -> SirSwiftModule.int16
+            "int" -> SirSwiftModule.int32
+            "long" -> SirSwiftModule.int64
+
+            "ubyte" -> SirSwiftModule.uint8
+            "ushort" -> SirSwiftModule.uint16
+            "uint" -> SirSwiftModule.uint32
+            "ulong" -> SirSwiftModule.uint64
+
+            "void" -> SirSwiftModule.void
+
+            "any" -> buildClass {
+                name = "MyClass"
+                origin = SirOrigin.ExternallyDefined(name = "MyClass")
+            }
+
+            else -> error("Unknown type: $typeName")
+        }.let { SirNominalType(it) }
+    }
 }
 
-private fun readRequestFromFile(file: File): BridgeRequest {
+private fun readRequestFromFile(file: File): FunctionBridgeRequest {
     val properties = Properties()
     file.bufferedReader().use(properties::load)
     val fqName = properties.getProperty("fqName").split('.')
@@ -94,46 +161,65 @@ private fun readRequestFromFile(file: File): BridgeRequest {
     val kind = BridgeRequestKind.valueOf(properties.getProperty("kind", "FUNCTION"))
 
     val callable = when (kind) {
-        BridgeRequestKind.FUNCTION -> buildFunction {
-            this.name = fqName.last()
-            this.returnType = returnType
-            this.parameters += parameters
-            this.kind = SirCallableKind.FUNCTION
-        }
-        BridgeRequestKind.PROPERTY_GETTER -> {
-            val getter = buildGetter {
-                this.kind = SirCallableKind.FUNCTION
+        BridgeRequestKind.FUNCTION -> {
+            val function = buildFunction {
+                this.name = fqName.last()
+                this.returnType = returnType
+                this.parameters += parameters
             }
 
-            getter.parent = buildVariable {
+            buildModule {
+                name = "BridgeTest"
+            }.apply {
+                addChild { function }
+            }
+
+            function
+        }
+        BridgeRequestKind.PROPERTY_GETTER -> {
+            val getter = buildGetter {}
+
+            val variable = buildVariable {
                 this.name = fqName.last()
                 this.type = returnType
                 check(parameters.isEmpty())
                 this.getter = getter
             }
 
+            getter.parent = variable
+
+            buildModule {
+                name = "BridgeTest"
+            }.apply {
+                addChild { variable }
+            }
+
             getter
         }
         BridgeRequestKind.PROPERTY_SETTER -> {
-            val setter = buildSetter {
-                this.kind = SirCallableKind.FUNCTION
-            }
+            val setter = buildSetter {}
 
-            setter.parent = buildVariable {
+            val variable = buildVariable {
                 this.name = fqName.last()
                 this.type = returnType
                 check(parameters.isEmpty())
-                this.getter = buildGetter {
-                    this.kind = SirCallableKind.FUNCTION
-                }
+                this.getter = buildGetter {}
                 this.setter = setter
+            }
+
+            setter.parent = variable
+
+            buildModule {
+                name = "BridgeTest"
+            }.apply {
+                addChild { variable }
             }
 
             setter
         }
     }
 
-    return BridgeRequest(callable, bridgeName, fqName)
+    return FunctionBridgeRequest(callable, bridgeName, fqName)
 }
 
 private enum class BridgeRequestKind {

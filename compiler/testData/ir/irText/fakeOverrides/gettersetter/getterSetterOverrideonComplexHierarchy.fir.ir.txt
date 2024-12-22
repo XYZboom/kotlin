@@ -4,7 +4,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.A [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java2'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:A modality:ABSTRACT visibility:public superTypes:[<root>.Java1; <root>.Java2; <root>.KotlinInterface]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:A modality:ABSTRACT visibility:public superTypes:[<root>.Java1; <root>.Java2; <root>.KotlinInterface]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Java1
@@ -39,6 +39,9 @@ FILE fqName:<root> fileName:/1.kt
         public open fun toString (): kotlin.String declared in <root>.Java2
         public open fun toString (): kotlin.String declared in <root>.KotlinInterface
       $this: VALUE_PARAMETER name:<this> type:kotlin.Any
+    PROPERTY FAKE_OVERRIDE name:b visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final b: kotlin.Boolean declared in <root>.Java2
     PROPERTY FAKE_OVERRIDE name:b visibility:public modality:ABSTRACT [fake_override,var]
       overridden:
         public abstract b: kotlin.Boolean declared in <root>.KotlinInterface
@@ -82,7 +85,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.B [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java2'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:B modality:FINAL visibility:public superTypes:[<root>.Java1; <root>.Java2; <root>.KotlinInterface]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:B modality:FINAL visibility:public superTypes:[<root>.Java1; <root>.Java2; <root>.KotlinInterface]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Java1
@@ -117,6 +120,9 @@ FILE fqName:<root> fileName:/1.kt
         public open fun toString (): kotlin.String declared in <root>.Java2
         public open fun toString (): kotlin.String declared in <root>.KotlinInterface
       $this: VALUE_PARAMETER name:<this> type:kotlin.Any
+    PROPERTY FAKE_OVERRIDE name:b visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final b: kotlin.Boolean declared in <root>.Java2
   CLASS CLASS name:C modality:FINAL visibility:public superTypes:[<root>.Java2; <root>.KotlinInterface; <root>.KotlinInterface2]
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:<root>.C
     PROPERTY name:b visibility:public modality:OPEN [var]
@@ -148,7 +154,7 @@ FILE fqName:<root> fileName:/1.kt
       VALUE_PARAMETER name:b index:0 type:kotlin.Boolean
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java2'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:C modality:FINAL visibility:public superTypes:[<root>.Java2; <root>.KotlinInterface; <root>.KotlinInterface2]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:C modality:FINAL visibility:public superTypes:[<root>.Java2; <root>.KotlinInterface; <root>.KotlinInterface2]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Java2
@@ -185,12 +191,15 @@ FILE fqName:<root> fileName:/1.kt
       BLOCK_BODY
         RETURN type=kotlin.Nothing from='public open fun isB (): kotlin.Boolean declared in <root>.C'
           CONST Boolean type=kotlin.Boolean value=true
+    PROPERTY FAKE_OVERRIDE name:b visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final b: kotlin.Boolean declared in <root>.Java2
   CLASS CLASS name:D modality:ABSTRACT visibility:public superTypes:[<root>.Java1; <root>.Java2; <root>.Java3]
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:<root>.D
     CONSTRUCTOR visibility:public <> () returnType:<root>.D [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java2'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:D modality:ABSTRACT visibility:public superTypes:[<root>.Java1; <root>.Java2; <root>.Java3]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:D modality:ABSTRACT visibility:public superTypes:[<root>.Java1; <root>.Java2; <root>.Java3]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Java1
@@ -232,12 +241,15 @@ FILE fqName:<root> fileName:/1.kt
         public open fun toString (): kotlin.String declared in <root>.Java2
         public open fun toString (): kotlin.String declared in <root>.Java3
       $this: VALUE_PARAMETER name:<this> type:kotlin.Any
+    PROPERTY FAKE_OVERRIDE name:b visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final b: kotlin.Boolean declared in <root>.Java2
   CLASS CLASS name:E modality:FINAL visibility:public superTypes:[<root>.Java1; <root>.Java2; <root>.Java3]
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:<root>.E
     CONSTRUCTOR visibility:public <> () returnType:<root>.E [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java2'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:E modality:FINAL visibility:public superTypes:[<root>.Java1; <root>.Java2; <root>.Java3]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:E modality:FINAL visibility:public superTypes:[<root>.Java1; <root>.Java2; <root>.Java3]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Java1
@@ -280,12 +292,15 @@ FILE fqName:<root> fileName:/1.kt
       $this: VALUE_PARAMETER name:<this> type:<root>.E
       VALUE_PARAMETER name:t index:0 type:kotlin.Any?
       BLOCK_BODY
+    PROPERTY FAKE_OVERRIDE name:b visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final b: kotlin.Boolean declared in <root>.Java2
   CLASS CLASS name:F modality:ABSTRACT visibility:public superTypes:[<root>.Java2; <root>.Java4]
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:<root>.F
     CONSTRUCTOR visibility:public <> () returnType:<root>.F [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java2'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:F modality:ABSTRACT visibility:public superTypes:[<root>.Java2; <root>.Java4]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:F modality:ABSTRACT visibility:public superTypes:[<root>.Java2; <root>.Java4]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Java2
@@ -315,6 +330,9 @@ FILE fqName:<root> fileName:/1.kt
         public open fun toString (): kotlin.String declared in <root>.Java2
         public open fun toString (): kotlin.String declared in <root>.Java4
       $this: VALUE_PARAMETER name:<this> type:kotlin.Any
+    PROPERTY FAKE_OVERRIDE name:b visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final b: kotlin.Boolean declared in <root>.Java2
     PROPERTY FAKE_OVERRIDE name:b visibility:public modality:ABSTRACT [fake_override,var]
       overridden:
         public abstract b: kotlin.Boolean declared in <root>.Java4
@@ -360,7 +378,7 @@ FILE fqName:<root> fileName:/1.kt
       VALUE_PARAMETER name:b index:0 type:kotlin.Boolean
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java2'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:G modality:FINAL visibility:public superTypes:[<root>.Java2; <root>.Java4]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:G modality:FINAL visibility:public superTypes:[<root>.Java2; <root>.Java4]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Java2
@@ -393,12 +411,15 @@ FILE fqName:<root> fileName:/1.kt
       BLOCK_BODY
         RETURN type=kotlin.Nothing from='public open fun getA (): kotlin.Int declared in <root>.G'
           CONST Int type=kotlin.Int value=10
+    PROPERTY FAKE_OVERRIDE name:b visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final b: kotlin.Boolean declared in <root>.Java2
   CLASS CLASS name:H modality:ABSTRACT visibility:public superTypes:[<root>.Java4; <root>.KotlinInterface2]
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:<root>.H
     CONSTRUCTOR visibility:public <> () returnType:<root>.H [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in kotlin.Any'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:H modality:ABSTRACT visibility:public superTypes:[<root>.Java4; <root>.KotlinInterface2]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:H modality:ABSTRACT visibility:public superTypes:[<root>.Java4; <root>.KotlinInterface2]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Java4
@@ -462,7 +483,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.I [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in kotlin.Any'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:I modality:FINAL visibility:public superTypes:[<root>.Java4; <root>.KotlinInterface2]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:I modality:FINAL visibility:public superTypes:[<root>.Java4; <root>.KotlinInterface2]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Java4
@@ -488,7 +509,7 @@ FILE fqName:<root> fileName:/1.kt
     CONSTRUCTOR visibility:public <> () returnType:<root>.J [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java2'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:J modality:ABSTRACT visibility:public superTypes:[<root>.KotlinInterface3; <root>.Java2]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:J modality:ABSTRACT visibility:public superTypes:[<root>.KotlinInterface3; <root>.Java2]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.KotlinInterface3
@@ -525,12 +546,15 @@ FILE fqName:<root> fileName:/1.kt
         public open fun toString (): kotlin.String declared in <root>.KotlinInterface3
         public open fun toString (): kotlin.String declared in <root>.Java2
       $this: VALUE_PARAMETER name:<this> type:kotlin.Any
+    PROPERTY FAKE_OVERRIDE name:b visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final b: kotlin.Boolean declared in <root>.Java2
   CLASS CLASS name:K modality:FINAL visibility:public superTypes:[<root>.KotlinInterface3; <root>.Java2]
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:<root>.K
     CONSTRUCTOR visibility:public <> () returnType:<root>.K [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java2'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:K modality:FINAL visibility:public superTypes:[<root>.KotlinInterface3; <root>.Java2]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:K modality:FINAL visibility:public superTypes:[<root>.KotlinInterface3; <root>.Java2]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.KotlinInterface3
@@ -568,12 +592,15 @@ FILE fqName:<root> fileName:/1.kt
       $this: VALUE_PARAMETER name:<this> type:<root>.K
       VALUE_PARAMETER name:t index:0 type:kotlin.Any?
       BLOCK_BODY
+    PROPERTY FAKE_OVERRIDE name:b visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final b: kotlin.Boolean declared in <root>.Java2
   CLASS CLASS name:L modality:ABSTRACT visibility:public superTypes:[<root>.Java2; <root>.Java5]
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:<root>.L
     CONSTRUCTOR visibility:public <> () returnType:<root>.L [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java2'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:L modality:ABSTRACT visibility:public superTypes:[<root>.Java2; <root>.Java5]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:L modality:ABSTRACT visibility:public superTypes:[<root>.Java2; <root>.Java5]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Java2
@@ -610,12 +637,15 @@ FILE fqName:<root> fileName:/1.kt
         public open fun toString (): kotlin.String declared in <root>.Java2
         public open fun toString (): kotlin.String declared in <root>.Java5
       $this: VALUE_PARAMETER name:<this> type:kotlin.Any
+    PROPERTY FAKE_OVERRIDE name:b visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final b: kotlin.Boolean declared in <root>.Java2
   CLASS CLASS name:M modality:FINAL visibility:public superTypes:[<root>.Java2; <root>.Java5]
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:<root>.M
     CONSTRUCTOR visibility:public <> () returnType:<root>.M [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Java2'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:M modality:FINAL visibility:public superTypes:[<root>.Java2; <root>.Java5]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:M modality:FINAL visibility:public superTypes:[<root>.Java2; <root>.Java5]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Java2
@@ -653,6 +683,9 @@ FILE fqName:<root> fileName:/1.kt
       $this: VALUE_PARAMETER name:<this> type:<root>.M
       VALUE_PARAMETER name:t index:0 type:kotlin.Any
       BLOCK_BODY
+    PROPERTY FAKE_OVERRIDE name:b visibility:protected/*protected and package*/ modality:FINAL [fake_override,var]
+      overridden:
+        protected/*protected and package*/ final b: kotlin.Boolean declared in <root>.Java2
   CLASS INTERFACE name:KotlinInterface modality:ABSTRACT visibility:public superTypes:[kotlin.Any]
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:<root>.KotlinInterface
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]

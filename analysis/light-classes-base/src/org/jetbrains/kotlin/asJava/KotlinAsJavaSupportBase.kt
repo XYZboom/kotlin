@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -14,7 +14,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import org.jetbrains.kotlin.analyzer.KotlinModificationTrackerService
 import org.jetbrains.kotlin.asJava.classes.KtLightClass
 import org.jetbrains.kotlin.asJava.classes.KtLightClassForFacade
 import org.jetbrains.kotlin.asJava.classes.shouldNotBeVisibleAsLightClass
@@ -75,18 +74,16 @@ abstract class KotlinAsJavaSupportBase<TModule : Any>(protected val project: Pro
 
     protected abstract fun createInstanceOfDecompiledLightFacade(facadeFqName: FqName, files: List<KtFile>): KtLightClassForFacade?
 
-    protected open fun projectWideOutOfBlockModificationTracker(): ModificationTracker {
-        return KotlinModificationTrackerService.getInstance(project).outOfBlockModificationTracker
-    }
+    abstract fun projectWideOutOfBlockModificationTracker(): ModificationTracker
 
-    protected open fun outOfBlockModificationTracker(element: PsiElement): ModificationTracker {
+    open fun outOfBlockModificationTracker(element: PsiElement): ModificationTracker {
         return projectWideOutOfBlockModificationTracker()
     }
 
-    protected abstract fun librariesTracker(element: PsiElement): ModificationTracker
+    abstract fun librariesTracker(element: PsiElement): ModificationTracker
 
     override fun getLightFacade(file: KtFile): KtLightClassForFacade? = ifValid(file) {
-        CachedValuesManager.getCachedValue(file) {
+        cacheLightClass(file) {
             cachedValueResult(createLightFacade(file))
         }
     }
@@ -186,7 +183,7 @@ abstract class KotlinAsJavaSupportBase<TModule : Any>(protected val project: Pro
     }
 
     override fun getLightClass(classOrObject: KtClassOrObject): KtLightClass? = ifValid(classOrObject) {
-        CachedValuesManager.getCachedValue(classOrObject) {
+        cacheLightClass(classOrObject) {
             cachedValueResult(createLightClass(classOrObject))
         }
     }
@@ -204,8 +201,12 @@ abstract class KotlinAsJavaSupportBase<TModule : Any>(protected val project: Pro
 
     protected abstract fun createInstanceOfLightScript(script: KtScript): KtLightClass?
 
+    protected open fun <E : KtElement, R : KtLightClass> cacheLightClass(element: E, provider: CachedValueProvider<R>): R? {
+        return CachedValuesManager.getCachedValue(element, provider)
+    }
+
     override fun getLightClassForScript(script: KtScript): KtLightClass? = ifValid(script) {
-        CachedValuesManager.getCachedValue(script) {
+        cacheLightClass(script) {
             cachedValueResult(createLightScript(script))
         }
     }
@@ -222,6 +223,13 @@ abstract class KotlinAsJavaSupportBase<TModule : Any>(protected val project: Pro
         }
 
         return findFilesForScript(scriptFqName, scope).mapNotNull { getLightClassForScript(it) }
+    }
+
+    companion object {
+        @JvmStatic
+        fun getInstance(project: Project): KotlinAsJavaSupportBase<*> {
+            return KotlinAsJavaSupport.getInstance(project) as KotlinAsJavaSupportBase<*>
+        }
     }
 }
 

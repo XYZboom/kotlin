@@ -15,9 +15,8 @@ import org.jetbrains.kotlin.kapt3.base.KaptContext
 import org.jetbrains.kotlin.kapt3.base.javac.KaptJavaLogBase
 import org.jetbrains.kotlin.kapt3.base.parseJavaFiles
 import org.jetbrains.kotlin.kapt3.javac.KaptJavaFileObject
-import org.jetbrains.kotlin.kapt3.test.KaptTestDirectives
 import org.jetbrains.kotlin.kapt3.test.KaptTestDirectives.EXPECTED_ERROR
-import org.jetbrains.kotlin.kapt3.test.handlers.ClassFileToSourceKaptStubHandler
+import org.jetbrains.kotlin.kapt3.test.handlers.KaptStubConverterHandler
 import org.jetbrains.kotlin.kapt3.test.handlers.removeMetadataAnnotationContents
 import org.jetbrains.kotlin.kapt3.test.messageCollectorProvider
 import org.jetbrains.kotlin.test.Assertions
@@ -42,18 +41,11 @@ internal class Kapt4Handler(testServices: TestServices) : AnalysisHandler<Kapt4C
 
     override fun processModule(module: TestModule, info: Kapt4ContextBinaryArtifact) {
         val stubs = info.kaptStubs.map { it.source }
-        val actualRaw = stubs.joinToString(ClassFileToSourceKaptStubHandler.FILE_SEPARATOR)
+        val actualRaw = stubs.joinToString(KaptStubConverterHandler.FILE_SEPARATOR)
         val actual = StringUtil.convertLineSeparators(actualRaw.trim { it <= ' ' })
             .trimTrailingWhitespacesAndAddNewlineAtEOF()
             .let { removeMetadataAnnotationContents(it) }
 
-        val validate = KaptTestDirectives.NO_VALIDATION !in module.directives
-        if (validate) {
-            val (kaptContext) = info
-            val convertedFiles = getJavaFiles(info)
-            kaptContext.javaLog.interceptorData.files = convertedFiles.associateBy { it.sourceFile }
-            kaptContext.compiler.enterTrees(convertedFiles)
-        }
         assertions.assertAll(
             { assertions.checkTxt(module, actual) },
             {
@@ -106,7 +98,7 @@ internal class Kapt4Handler(testServices: TestServices) : AnalysisHandler<Kapt4C
         }
     }
 
-    private fun getJavaFiles(
+    private fun TestModule.getJavaFiles(
         info: Kapt4ContextBinaryArtifact
     ): List<JCTree.JCCompilationUnit> {
         val (kaptContext, kaptStubs) = info
@@ -140,8 +132,8 @@ internal class Kapt4Handler(testServices: TestServices) : AnalysisHandler<Kapt4C
 
     override fun processAfterAllModules(someAssertionWasFailed: Boolean) {}
 
-    private fun createTempJavaFile(name: String, text: String): File {
-        return testServices.sourceFileProvider.javaSourceDirectory.resolve(name).also {
+    private fun TestModule.createTempJavaFile(name: String, text: String): File {
+        return testServices.sourceFileProvider.getJavaSourceDirectoryForModule(this).resolve(name).also {
             it.writeText(text)
         }
     }

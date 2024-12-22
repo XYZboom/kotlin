@@ -6,7 +6,10 @@
 package org.jetbrains.kotlin.gradle
 
 import org.gradle.util.GradleVersion
-import org.jetbrains.kotlin.gradle.testbase.*
+import org.jetbrains.kotlin.gradle.testbase.GradleTest
+import org.jetbrains.kotlin.gradle.testbase.TestProject
+import org.jetbrains.kotlin.gradle.testbase.assertFileExists
+import org.jetbrains.kotlin.gradle.testbase.build
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DisplayName
 import kotlin.io.path.appendText
@@ -18,24 +21,12 @@ class Kapt4IT : Kapt3IT() {
     override val defaultBuildOptions = super.defaultBuildOptions.copyEnsuringK2()
 
     override fun TestProject.customizeProject() {
-        forceKapt4()
+        forceK2Kapt()
     }
 
-    @Disabled("Doesn't make sense in Kapt 4")
+    @Disabled("KT-71786: K2KAPT task does not fail")
     @GradleTest
-    override fun useGeneratedKotlinSourceK2(gradleVersion: GradleVersion) {}
-
-    @Disabled("Doesn't make sense in Kapt 4")
-    @GradleTest
-    override fun fallBackModeWithUseK2(gradleVersion: GradleVersion) {}
-
-    @Disabled("Doesn't make sense in Kapt 4")
-    @GradleTest
-    override fun fallBackModeWithLanguageVersion2_0(gradleVersion: GradleVersion) {}
-
-    @Disabled("Doesn't make sense in Kapt 4")
-    @GradleTest
-    override fun useK2KaptProperty(gradleVersion: GradleVersion) {}
+    override fun testFailOnTopLevelSyntaxError(gradleVersion: GradleVersion) {}
 
     @DisplayName("KT-61879: K2 KAPT works with proguarded compiler jars and enum class")
     @GradleTest
@@ -55,55 +46,26 @@ class Kapt4ClassLoadersCacheIT : Kapt3ClassLoadersCacheIT() {
     override val defaultBuildOptions = super.defaultBuildOptions.copyEnsuringK2()
 
     override fun TestProject.customizeProject() {
-        forceKapt4()
+        forceK2Kapt()
     }
 
-    @Disabled("Enable when KT-61845 is fixed")
+    @Disabled("KT-71786: K2KAPT task does not fail")
     @GradleTest
-    override fun testKt18799(gradleVersion: GradleVersion) {}
-
-    @Disabled("Doesn't make sense in Kapt 4")
-    @GradleTest
-    override fun useGeneratedKotlinSourceK2(gradleVersion: GradleVersion) {}
-
-    @Disabled("Doesn't make sense in Kapt 4")
-    @GradleTest
-    override fun fallBackModeWithUseK2(gradleVersion: GradleVersion) {}
-
-    @Disabled("Doesn't make sense in Kapt 4")
-    @GradleTest
-    override fun fallBackModeWithLanguageVersion2_0(gradleVersion: GradleVersion) {}
+    override fun testFailOnTopLevelSyntaxError(gradleVersion: GradleVersion) {}
 }
 
-fun TestProject.forceKapt4() {
+fun TestProject.forceK1Kapt() {
+    forceK2Kapt(false)
+}
+
+fun TestProject.forceK2Kapt() {
+    forceK2Kapt(true)
+}
+
+private fun TestProject.forceK2Kapt(value: Boolean) {
     projectPath.walk().forEach {
         when (it.fileName.name) {
-            "build.gradle" -> it.appendText(
-                """
-                
-                try {
-                    Class.forName('org.jetbrains.kotlin.gradle.tasks.KotlinCompile')
-                    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                       compilerOptions.freeCompilerArgs.addAll(['-Xuse-kapt4', '-Xsuppress-version-warnings'])
-                    }
-                } catch(ClassNotFoundException ignore) {
-                }
-                
-                """.trimIndent()
-            )
-            "build.gradle.kts" -> it.appendText(
-                """
-                
-                try {
-                    Class.forName("org.jetbrains.kotlin.gradle.tasks.KotlinCompile")
-                    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile::class.java).configureEach {
-                       compilerOptions.freeCompilerArgs.addAll(listOf("-Xuse-kapt4", "-Xsuppress-version-warnings"))
-                    }
-                } catch(ignore: ClassNotFoundException) {
-                }
-                
-                """.trimIndent()
-            )
+            "gradle.properties" -> it.appendText("\nkapt.use.k2=$value\n")
         }
     }
 }

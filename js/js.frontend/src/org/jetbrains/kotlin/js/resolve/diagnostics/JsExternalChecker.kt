@@ -28,11 +28,14 @@ import org.jetbrains.kotlin.resolve.isInlineClassType
 import org.jetbrains.kotlin.resolve.source.getPsi
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.TypeUtils
+import org.jetbrains.kotlin.types.typeUtil.isUnsignedNumberType
 
-class JsExternalChecker(private val allowCompanionInInterface: Boolean) : DeclarationChecker {
+class JsExternalChecker(
+    private val allowCompanionInInterface: Boolean,
+    private val allowUnsignedTypes: Boolean
+) : DeclarationChecker {
     companion object {
-        val DEFINED_EXTERNALLY_PROPERTY_NAMES = JsStandardClassIds.Callables.definedExternallyPropertyNames
-            .map { it.asSingleFqName().toUnsafe() }
+        val DEFINED_EXTERNALLY_PROPERTY_NAME = JsStandardClassIds.Callables.JsDefinedExternally.asSingleFqName().toUnsafe()
     }
 
     override fun check(declaration: KtDeclaration, descriptor: DeclarationDescriptor, context: DeclarationCheckerContext) {
@@ -142,7 +145,10 @@ class JsExternalChecker(private val allowCompanionInInterface: Boolean) : Declar
             else
                 ErrorsJs.INLINE_CLASS_IN_EXTERNAL_DECLARATION
 
-        reportOnParametersAndReturnTypesIf(valueClassInExternalDiagnostic, KotlinType::isInlineClassType)
+        reportOnParametersAndReturnTypesIf(valueClassInExternalDiagnostic) {
+            it.isInlineClassType() && (!it.isUnsignedNumberType() || !allowUnsignedTypes)
+        }
+
         if (!context.languageVersionSettings.supportsFeature(LanguageFeature.JsEnableExtensionFunctionInExternals)) {
             reportOnParametersAndReturnTypesIf(ErrorsJs.EXTENSION_FUNCTION_IN_EXTERNAL_DECLARATION, KotlinType::isExtensionFunctionType)
         }
@@ -275,6 +281,6 @@ class JsExternalChecker(private val allowCompanionInInterface: Boolean) : Declar
     private fun KtExpression.isDefinedExternallyExpression(bindingContext: BindingContext): Boolean {
         val descriptor = getResolvedCall(bindingContext)?.resultingDescriptor as? PropertyDescriptor ?: return false
         val container = descriptor.containingDeclaration as? PackageFragmentDescriptor ?: return false
-        return DEFINED_EXTERNALLY_PROPERTY_NAMES.any { container.fqNameUnsafe == it.parent() && descriptor.name == it.shortName() }
+        return DEFINED_EXTERNALLY_PROPERTY_NAME.let { container.fqNameUnsafe == it.parent() && descriptor.name == it.shortName() }
     }
 }

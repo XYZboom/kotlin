@@ -13,7 +13,8 @@ import org.jetbrains.kotlin.gradle.DeprecatedTargetPresetApi
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.InternalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.PRESETS_API_IS_DEPRECATED_MESSAGE
-import org.jetbrains.kotlin.gradle.internal.syncCommonOptions
+import org.jetbrains.kotlin.gradle.internal.dsl.KotlinMultiplatformSourceSetConventionsImpl
+import org.jetbrains.kotlin.gradle.internal.syncCommonMultiplatformOptions
 import org.jetbrains.kotlin.gradle.plugin.*
 import org.jetbrains.kotlin.gradle.plugin.KotlinPluginLifecycle.Stage.AfterFinaliseDsl
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
@@ -23,8 +24,7 @@ import org.jetbrains.kotlin.gradle.plugin.hierarchy.redundantDependsOnEdgesTrack
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.jetbrains.kotlin.gradle.targets.android.internal.InternalKotlinTargetPreset
 import org.jetbrains.kotlin.gradle.targets.android.internal.internal
-import org.jetbrains.kotlin.gradle.utils.configureExperimentalTryNext
-import org.jetbrains.kotlin.gradle.utils.newInstance
+import org.jetbrains.kotlin.gradle.utils.KotlinCommonCompilerOptionsDefault
 import javax.inject.Inject
 
 @Suppress("DEPRECATION")
@@ -41,13 +41,13 @@ abstract class KotlinMultiplatformExtension
     KotlinMultiplatformSourceSetConventions by KotlinMultiplatformSourceSetConventionsImpl {
     @Deprecated(
         PRESETS_API_IS_DEPRECATED_MESSAGE,
-        level = DeprecationLevel.WARNING,
+        level = DeprecationLevel.ERROR,
     )
     override val presets: NamedDomainObjectCollection<KotlinTargetPreset<*>> = project.container(KotlinTargetPreset::class.java)
 
     final override val targets: NamedDomainObjectCollection<KotlinTarget> = project.container(KotlinTarget::class.java)
 
-    @Deprecated("Because only IR compiler is left, no more necessary to know about compiler type in properties")
+    @Deprecated("Because only the IR compiler is left, it's no longer necessary to know about the compiler type in properties")
     override val compilerTypeFromProperties: KotlinJsCompilerType? = null
 
     internal suspend fun awaitTargets(): NamedDomainObjectCollection<KotlinTarget> {
@@ -170,7 +170,7 @@ abstract class KotlinMultiplatformExtension
     @DeprecatedTargetPresetApi
     @Deprecated(
         KotlinToolingDiagnostics.TargetFromPreset.DEPRECATION_MESSAGE,
-        level = DeprecationLevel.WARNING
+        level = DeprecationLevel.ERROR
     )
     fun <T : KotlinTarget> targetFromPreset(
         preset: KotlinTargetPreset<T>,
@@ -188,7 +188,7 @@ abstract class KotlinMultiplatformExtension
     @DeprecatedTargetPresetApi
     @Deprecated(
         KotlinToolingDiagnostics.TargetFromPreset.DEPRECATION_MESSAGE,
-        level = DeprecationLevel.WARNING
+        level = DeprecationLevel.ERROR
     )
     fun <T : KotlinTarget> targetFromPreset(
         preset: KotlinTargetPreset<T>,
@@ -206,7 +206,7 @@ abstract class KotlinMultiplatformExtension
     @DeprecatedTargetPresetApi
     @Deprecated(
         KotlinToolingDiagnostics.TargetFromPreset.DEPRECATION_MESSAGE,
-        level = DeprecationLevel.WARNING
+        level = DeprecationLevel.ERROR
     )
     fun <T : KotlinTarget> targetFromPreset(preset: KotlinTargetPreset<T>): T {
         warnAboutTargetFromPresetDeprecation()
@@ -218,7 +218,7 @@ abstract class KotlinMultiplatformExtension
     @DeprecatedTargetPresetApi
     @Deprecated(
         KotlinToolingDiagnostics.TargetFromPreset.DEPRECATION_MESSAGE,
-        level = DeprecationLevel.WARNING
+        level = DeprecationLevel.ERROR
     )
     fun <T : KotlinTarget> targetFromPreset(preset: KotlinTargetPreset<T>, name: String): T {
         warnAboutTargetFromPresetDeprecation()
@@ -231,7 +231,7 @@ abstract class KotlinMultiplatformExtension
     @DeprecatedTargetPresetApi
     @Deprecated(
         KotlinToolingDiagnostics.TargetFromPreset.DEPRECATION_MESSAGE,
-        level = DeprecationLevel.WARNING
+        level = DeprecationLevel.ERROR
     )
     fun <T : KotlinTarget> targetFromPreset(preset: KotlinTargetPreset<T>, configure: Action<T>): T {
         warnAboutTargetFromPresetDeprecation()
@@ -245,22 +245,19 @@ abstract class KotlinMultiplatformExtension
         KotlinSoftwareComponentWithCoordinatesAndPublication(project, "kotlin", targets)
     }
 
-    @ExperimentalKotlinGradlePluginApi
-    override val compilerOptions: KotlinCommonCompilerOptions = project.objects
-        .newInstance<KotlinCommonCompilerOptionsDefault>()
-        .configureExperimentalTryNext(project)
-        .also {
-            syncCommonOptions(it)
-        }
+    override val compilerOptions: KotlinCommonCompilerOptions =
+        project.objects.KotlinCommonCompilerOptionsDefault(project)
+            .also {
+                syncCommonMultiplatformOptions(it)
+            }
 }
 
-@DeprecatedTargetPresetApi
 @KotlinGradlePluginPublicDsl
 interface TargetsFromPresetExtension : NamedDomainObjectCollection<KotlinTarget> {
 
     @Deprecated(
         KotlinToolingDiagnostics.FromPreset.DEPRECATION_MESSAGE,
-        level = DeprecationLevel.WARNING,
+        level = DeprecationLevel.ERROR,
     )
     fun <T : KotlinTarget> fromPreset(
         preset: KotlinTargetPreset<T>,
@@ -268,19 +265,19 @@ interface TargetsFromPresetExtension : NamedDomainObjectCollection<KotlinTarget>
         configureAction: T.() -> Unit = {},
     ): T
 
-    @Suppress("DeprecatedCallableAddReplaceWith", "DEPRECATION")
+    @Suppress("DeprecatedCallableAddReplaceWith")
     @Deprecated(
         KotlinToolingDiagnostics.FromPreset.DEPRECATION_MESSAGE,
-        level = DeprecationLevel.WARNING,
+        level = DeprecationLevel.ERROR,
     )
     fun <T : KotlinTarget> fromPreset(
         preset: KotlinTargetPreset<T>,
         name: String,
-    ): T = fromPreset(preset, name) {}
+    ): T = @Suppress("DEPRECATION_ERROR") fromPreset(preset, name) {}
 
     @Deprecated(
         KotlinToolingDiagnostics.FromPreset.DEPRECATION_MESSAGE,
-        level = DeprecationLevel.WARNING,
+        level = DeprecationLevel.ERROR,
     )
     fun <T : KotlinTarget> fromPreset(
         preset: KotlinTargetPreset<T>,
@@ -310,19 +307,17 @@ internal abstract class DefaultTargetsFromPresetExtension @Inject constructor(
         return targetsContainer().configureOrCreate(name, preset.internal, configureAction)
     }
 
-    @Suppress("DEPRECATION")
     override fun <T : KotlinTarget> fromPreset(
         preset: KotlinTargetPreset<T>,
         name: String,
         configureAction: Action<T>,
-    ) = fromPreset(preset, name) {
+    ) = @Suppress("DEPRECATION_ERROR") fromPreset(preset, name) {
         configureAction.execute(this)
     }
 }
 
-@Suppress("DEPRECATION")
 private fun KotlinTarget.isProducedFromPreset(kotlinTargetPreset: KotlinTargetPreset<*>): Boolean =
-    preset == kotlinTargetPreset
+    internal._preset == kotlinTargetPreset
 
 internal fun <T : KotlinTarget> KotlinTargetsContainerWithPresets.configureOrCreate(
     targetName: String,
@@ -345,12 +340,10 @@ internal fun <T : KotlinTarget> KotlinTargetsContainerWithPresets.configureOrCre
         }
 
         else -> {
-            @Suppress("DEPRECATION")
+            // FIXME: KT-71529 - check if this diagnostic is actually reachable and cover with tests or remove
             throw InvalidUserCodeException(
                 "The target '$targetName' already exists, but it was not created with the '${targetPreset.name}' preset. " +
-                        "To configure it, access it by name in `kotlin.targets`" +
-                        (" or use the preset function '${existingTarget.preset?.name}'."
-                            .takeIf { existingTarget.preset != null } ?: ".")
+                        "To configure it, access it using targets API: https://kotl.in/target-configuration"
             )
         }
     }
@@ -358,4 +351,13 @@ internal fun <T : KotlinTarget> KotlinTargetsContainerWithPresets.configureOrCre
 
 internal val KotlinMultiplatformExtension.metadataTarget get() = metadata() as KotlinMetadataTarget
 
-internal val Collection<KotlinTarget>.platformTargets: List<KotlinTarget> get() = filter { it !is KotlinMetadataTarget }
+internal val Iterable<KotlinTarget>.platformTargets: List<KotlinTarget> get() = filter { it !is KotlinMetadataTarget }
+
+internal suspend fun KotlinMultiplatformExtension.awaitMetadataTarget(): KotlinMetadataTarget {
+    awaitTargets()
+    return metadataTarget
+}
+
+internal fun KotlinMultiplatformExtension.supportedAppleTargets() = targets
+    .withType(KotlinNativeTarget::class.java)
+    .matching { it.konanTarget.family.isAppleFamily }

@@ -5,20 +5,25 @@
 
 package org.jetbrains.kotlin.konan.test
 
-import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContextImpl
 import org.jetbrains.kotlin.backend.common.linkage.issues.checkNoUnboundSymbols
 import org.jetbrains.kotlin.backend.common.serialization.DescriptorByIdSignatureFinderImpl
 import org.jetbrains.kotlin.backend.konan.serialization.KonanManglerDesc
 import org.jetbrains.kotlin.backend.konan.serialization.KonanManglerIr
 import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.config.messageCollector
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporterFactory
+import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
 import org.jetbrains.kotlin.ir.linkage.IrDeserializer
 import org.jetbrains.kotlin.ir.linkage.partial.partialLinkageConfig
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
-import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.IdSignature
+import org.jetbrains.kotlin.ir.util.IdSignatureComposer
+import org.jetbrains.kotlin.ir.util.StubGeneratorExtensions
+import org.jetbrains.kotlin.ir.util.SymbolTable
 import org.jetbrains.kotlin.konan.test.blackbox.support.CastCompatibleKotlinNativeClassLoader
+import org.jetbrains.kotlin.library.KotlinLibrary
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi2ir.Psi2IrConfiguration
@@ -74,7 +79,7 @@ class ClassicFrontend2NativeIrConverter(
                 ignoreErrors = CodegenTestDirectives.IGNORE_ERRORS in module.directives,
                 configuration.partialLinkageConfig.isEnabled
             ),
-            configuration.irMessageLogger::checkNoUnboundSymbols
+            configuration.messageCollector::checkNoUnboundSymbols
         )
         val manglerDesc = KonanManglerDesc
         val konanIdSignaturerClass = kotlinNativeClass("org.jetbrains.kotlin.backend.konan.serialization.KonanIdSignaturer")
@@ -107,14 +112,8 @@ class ClassicFrontend2NativeIrConverter(
 
             override fun postProcess(inOrAfterLinkageStep: Boolean) = Unit
         }
-        val pluginExtensions = IrGenerationExtension.getInstances(project)
 
-        val moduleFragment = translator.generateModuleFragment(
-            generatorContext,
-            sourceFiles,
-            irProviders = listOf(irDeserializer),
-            linkerExtensions = pluginExtensions,
-        )
+        val moduleFragment = translator.generateModuleFragment(generatorContext, sourceFiles, listOf(irDeserializer))
 
         val pluginContext = IrPluginContextImpl(
             generatorContext.moduleDescriptor,
@@ -124,17 +123,23 @@ class ClassicFrontend2NativeIrConverter(
             generatorContext.typeTranslator,
             generatorContext.irBuiltIns,
             linker = irDeserializer,
-            diagnosticReporter = configuration.irMessageLogger
+            messageCollector = configuration.messageCollector
         )
 
-        return IrBackendInput.NativeBackendInput(
+        // N.B. The list of libraries to be written to manifest `depends=` property is not computed here.
+        // The reason for this is that there are no tests which could produce Kotlin/Native KLIBs with the classic frontend compiler.
+        // And there are no plans to add such tests in the future.
+        val usedLibrariesForManifest = emptyList<KotlinLibrary>()
+
+        @OptIn(ObsoleteDescriptorBasedAPI::class)
+        return IrBackendInput.NativeAfterFrontendBackendInput(
             moduleFragment,
             pluginContext,
-            diagnosticReporter = DiagnosticReporterFactory.createReporter(),
+            diagnosticReporter = DiagnosticReporterFactory.createReporter(configuration.messageCollector),
             descriptorMangler = (pluginContext.symbolTable as SymbolTable).signaturer!!.mangler,
             irMangler = KonanManglerIr,
-            firMangler = null,
-            metadataSerializer = null
+            metadataSerializer = null,
+            usedLibrariesForManifest = usedLibrariesForManifest,
         )
     }
 

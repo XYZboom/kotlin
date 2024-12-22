@@ -1,10 +1,10 @@
 RAW_FIR:
 FILE: [ResolvedTo(RAW_FIR)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=low/Anno.position] position: String): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -24,11 +24,11 @@ FILE: [ResolvedTo(RAW_FIR)] implicitTypeFromIncorrectSetterScript.kts
 
 IMPORTS:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=low/Anno.position] position: String): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -48,11 +48,11 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
 
 COMPILER_REQUIRED_ANNOTATIONS:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=low/Anno.position] position: String): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -72,11 +72,11 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
 
 COMPANION_GENERATION:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=low/Anno.position] position: String): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -96,11 +96,11 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
 
 SUPER_TYPES:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=low/Anno.position] position: String): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -120,11 +120,11 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
 
 TYPES:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] annotation class Anno : R|kotlin/Annotation| {
+        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=low/Anno.position] position: String): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -139,16 +139,16 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
 
         public? final? [ResolvedTo(TYPES)] var resolveMe: <implicit>
             public? [ResolvedTo(TYPES)] get(): <implicit> { LAZY_BLOCK }
-            public? [ResolvedTo(TYPES)] set([ResolvedTo(TYPES)] value: R|@R|low/Anno|(<strcat>(String(setter parameter type ), prop#))  kotlin/collections/List<@R|low/Anno|(<strcat>(String(setter nested parameter type ), prop#))  kotlin/collections/Collection<@R|low/Anno|(<strcat>(String(setter nested nested parameter type ), prop#))  kotlin/String>>|): R|kotlin/Unit| { LAZY_BLOCK }
+            public? [ResolvedTo(TYPES)] set([ResolvedTo(TYPES)] value: R|@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/List<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/Collection<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/String>>|): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 STATUS:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] annotation class Anno : R|kotlin/Annotation| {
+        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=low/Anno.position] position: String): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -163,16 +163,16 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
 
         public final [ResolvedTo(STATUS)] var resolveMe: <implicit>
             public [ResolvedTo(STATUS)] get(): <implicit> { LAZY_BLOCK }
-            public [ResolvedTo(STATUS)] set([ResolvedTo(STATUS)] value: R|@R|low/Anno|(<strcat>(String(setter parameter type ), prop#))  kotlin/collections/List<@R|low/Anno|(<strcat>(String(setter nested parameter type ), prop#))  kotlin/collections/Collection<@R|low/Anno|(<strcat>(String(setter nested nested parameter type ), prop#))  kotlin/String>>|): R|kotlin/Unit| { LAZY_BLOCK }
+            public [ResolvedTo(STATUS)] set([ResolvedTo(STATUS)] value: R|@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/List<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/Collection<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/String>>|): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 EXPECT_ACTUAL_MATCHING:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] annotation class Anno : R|kotlin/Annotation| {
+        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=low/Anno.position] position: String): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -187,16 +187,16 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
 
         public final [ResolvedTo(EXPECT_ACTUAL_MATCHING)] var resolveMe: <implicit>
             public [ResolvedTo(EXPECT_ACTUAL_MATCHING)] get(): <implicit> { LAZY_BLOCK }
-            public [ResolvedTo(EXPECT_ACTUAL_MATCHING)] set([ResolvedTo(EXPECT_ACTUAL_MATCHING)] value: R|@R|low/Anno|(<strcat>(String(setter parameter type ), prop#))  kotlin/collections/List<@R|low/Anno|(<strcat>(String(setter nested parameter type ), prop#))  kotlin/collections/Collection<@R|low/Anno|(<strcat>(String(setter nested nested parameter type ), prop#))  kotlin/String>>|): R|kotlin/Unit| { LAZY_BLOCK }
+            public [ResolvedTo(EXPECT_ACTUAL_MATCHING)] set([ResolvedTo(EXPECT_ACTUAL_MATCHING)] value: R|@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/List<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/Collection<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/String>>|): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 CONTRACTS:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] annotation class Anno : R|kotlin/Annotation| {
+        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=low/Anno.position] position: String): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -210,21 +210,17 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
             public? [ResolvedTo(RAW_FIR)] get(): <implicit>
 
         public final [ResolvedTo(CONTRACTS)] var resolveMe: <implicit>
-            public [ResolvedTo(CONTRACTS)] get(): <implicit> {
-                ^ field#
-            }
-            public [ResolvedTo(CONTRACTS)] set([ResolvedTo(CONTRACTS)] value: R|@R|low/Anno|(<strcat>(String(setter parameter type ), prop#))  kotlin/collections/List<@R|low/Anno|(<strcat>(String(setter nested parameter type ), prop#))  kotlin/collections/Collection<@R|low/Anno|(<strcat>(String(setter nested nested parameter type ), prop#))  kotlin/String>>|): R|kotlin/Unit| {
-                ^ value#
-            }
+            public [ResolvedTo(CONTRACTS)] get(): <implicit> { LAZY_BLOCK }
+            public [ResolvedTo(CONTRACTS)] set([ResolvedTo(CONTRACTS)] value: R|@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/List<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/Collection<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/String>>|): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 IMPLICIT_TYPES_BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] annotation class Anno : R|kotlin/Annotation| {
+        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=low/Anno.position] position: String): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -241,18 +237,18 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
             public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] get(): <ERROR TYPE REF: Unresolved name: field> {
                 ^ <Unresolved name: field>#
             }
-            public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] set([ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] value: R|@R|low/Anno|(<strcat>(String(setter parameter type ), prop#))  kotlin/collections/List<@R|low/Anno|(<strcat>(String(setter nested parameter type ), prop#))  kotlin/collections/Collection<@R|low/Anno|(<strcat>(String(setter nested nested parameter type ), prop#))  kotlin/String>>|): R|kotlin/Unit| {
+            public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] set([ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] value: R|@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/List<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/Collection<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/String>>|): R|kotlin/Unit| {
                 ^ value#
             }
 
 
 CONSTANT_EVALUATION:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] annotation class Anno : R|kotlin/Annotation| {
+        @R|kotlin/annotation/Target|[CompilerRequiredAnnotations](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final? [ResolvedTo(COMPILER_REQUIRED_ANNOTATIONS)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=low/Anno.position] position: String): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -269,18 +265,18 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
             public [ResolvedTo(CONSTANT_EVALUATION)] get(): <ERROR TYPE REF: Unresolved name: field> {
                 ^ <Unresolved name: field>#
             }
-            public [ResolvedTo(CONSTANT_EVALUATION)] set([ResolvedTo(CONSTANT_EVALUATION)] value: R|@R|low/Anno|(<strcat>(String(setter parameter type ), prop#))  kotlin/collections/List<@R|low/Anno|(<strcat>(String(setter nested parameter type ), prop#))  kotlin/collections/Collection<@R|low/Anno|(<strcat>(String(setter nested nested parameter type ), prop#))  kotlin/String>>|): R|kotlin/Unit| {
+            public [ResolvedTo(CONSTANT_EVALUATION)] set([ResolvedTo(CONSTANT_EVALUATION)] value: R|@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/List<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/collections/Collection<@R|low/Anno|(LAZY_EXPRESSION)  kotlin/String>>|): R|kotlin/Unit| {
                 ^ value#
             }
 
 
 ANNOTATION_ARGUMENTS:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @R|kotlin/annotation/Target|[Types](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final [ResolvedTo(STATUS)] annotation class Anno : R|kotlin/Annotation| {
+        @R|kotlin/annotation/Target|[Types](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=Anno] constructor([ResolvedTo(STATUS)] [CorrespondingProperty=low/Anno.position] position: R|kotlin/String|): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -304,11 +300,11 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
 
 BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @R|kotlin/annotation/Target|[Types](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final [ResolvedTo(STATUS)] annotation class Anno : R|kotlin/Annotation| {
+        @R|kotlin/annotation/Target|[Types](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=Anno] constructor([ResolvedTo(STATUS)] [CorrespondingProperty=low/Anno.position] position: R|kotlin/String|): R|low/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -332,11 +328,11 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeFromIncorrectSetterScript.kts
 
 FILE RAW TO BODY:
 FILE: [ResolvedTo(BODY_RESOLVE)] implicitTypeFromIncorrectSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(BODY_RESOLVE)] <script-implicitTypeFromIncorrectSetterScript.kts>
+        [ResolvedTo(BODY_RESOLVE)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(BODY_RESOLVE)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @R|kotlin/annotation/Target|[Types](allowedTargets = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|)) public final [ResolvedTo(BODY_RESOLVE)] annotation class Anno : R|kotlin/Annotation| {
+        @R|kotlin/annotation/Target|[Types](allowedTargets = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|)) public final [ResolvedTo(BODY_RESOLVE)] [ContainingScriptKey=FirScriptSymbol low.<script-implicitTypeFromIncorrectSetterScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Anno] constructor([ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=low/Anno.position] position: R|kotlin/String|): R|low/Anno| {
                 super<R|kotlin/Any|>()
             }

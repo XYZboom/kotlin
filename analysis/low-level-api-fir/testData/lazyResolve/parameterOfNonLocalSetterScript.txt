@@ -1,10 +1,10 @@
 RAW_FIR:
 FILE: [ResolvedTo(RAW_FIR)] parameterOfNonLocalSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] class X : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -18,11 +18,11 @@ FILE: [ResolvedTo(RAW_FIR)] parameterOfNonLocalSetterScript.kts
 
 IMPORTS:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] class X : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -36,11 +36,11 @@ FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
 
 COMPILER_REQUIRED_ANNOTATIONS:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] class X : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -54,11 +54,11 @@ FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
 
 COMPANION_GENERATION:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] class X : R|kotlin/Any| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -72,11 +72,11 @@ FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
 
 SUPER_TYPES:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(SUPER_TYPES)] class X : R|kotlin/Any| {
+        public final? [ResolvedTo(SUPER_TYPES)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -90,11 +90,11 @@ FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
 
 TYPES:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(TYPES)] class X : R|kotlin/Any| {
+        public final? [ResolvedTo(TYPES)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -108,11 +108,11 @@ FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
 
 STATUS:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] class X : R|kotlin/Any| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -126,11 +126,11 @@ FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
 
 EXPECT_ACTUAL_MATCHING:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] class X : R|kotlin/Any| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -144,91 +144,83 @@ FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
 
 CONTRACTS:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] class X : R|kotlin/Any| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final [ResolvedTo(CONTRACTS)] var x: R|kotlin/Int| = IntegerLiteral(2)
+            public final [ResolvedTo(CONTRACTS)] var x: R|kotlin/Int| = LAZY_EXPRESSION
                 public [ResolvedTo(CONTRACTS)] [ContainingClassKey=X] get(): R|kotlin/Int|
-                public [ResolvedTo(CONTRACTS)] [ContainingClassKey=X] set([ResolvedTo(CONTRACTS)] resolveMe: R|kotlin/Int|): R|kotlin/Unit| {
-                    ^ Unit#
-                }
+                public [ResolvedTo(CONTRACTS)] [ContainingClassKey=X] set([ResolvedTo(CONTRACTS)] resolveMe: R|kotlin/Int|): R|kotlin/Unit| { LAZY_BLOCK }
 
         }
 
 
 IMPLICIT_TYPES_BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] class X : R|kotlin/Any| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] var x: R|kotlin/Int| = IntegerLiteral(2)
+            public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] var x: R|kotlin/Int| = LAZY_EXPRESSION
                 public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] [ContainingClassKey=X] get(): R|kotlin/Int|
-                public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] [ContainingClassKey=X] set([ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] resolveMe: R|kotlin/Int|): R|kotlin/Unit| {
-                    ^ Unit#
-                }
+                public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] [ContainingClassKey=X] set([ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] resolveMe: R|kotlin/Int|): R|kotlin/Unit| { LAZY_BLOCK }
 
         }
 
 
 CONSTANT_EVALUATION:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] class X : R|kotlin/Any| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final [ResolvedTo(CONSTANT_EVALUATION)] var x: R|kotlin/Int| = IntegerLiteral(2)
+            public final [ResolvedTo(CONSTANT_EVALUATION)] var x: R|kotlin/Int| = LAZY_EXPRESSION
                 public [ResolvedTo(CONSTANT_EVALUATION)] [ContainingClassKey=X] get(): R|kotlin/Int|
-                public [ResolvedTo(CONSTANT_EVALUATION)] [ContainingClassKey=X] set([ResolvedTo(CONSTANT_EVALUATION)] resolveMe: R|kotlin/Int|): R|kotlin/Unit| {
-                    ^ Unit#
-                }
+                public [ResolvedTo(CONSTANT_EVALUATION)] [ContainingClassKey=X] set([ResolvedTo(CONSTANT_EVALUATION)] resolveMe: R|kotlin/Int|): R|kotlin/Unit| { LAZY_BLOCK }
 
         }
 
 
 ANNOTATION_ARGUMENTS:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] class X : R|kotlin/Any| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
 
-            public final [ResolvedTo(ANNOTATION_ARGUMENTS)] var x: R|kotlin/Int| = IntegerLiteral(2)
+            public final [ResolvedTo(ANNOTATION_ARGUMENTS)] var x: R|kotlin/Int| = LAZY_EXPRESSION
                 public [ResolvedTo(ANNOTATION_ARGUMENTS)] [ContainingClassKey=X] get(): R|kotlin/Int|
-                public [ResolvedTo(ANNOTATION_ARGUMENTS)] [ContainingClassKey=X] set([ResolvedTo(ANNOTATION_ARGUMENTS)] resolveMe: R|kotlin/Int|): R|kotlin/Unit| {
-                    ^ Unit#
-                }
+                public [ResolvedTo(ANNOTATION_ARGUMENTS)] [ContainingClassKey=X] set([ResolvedTo(ANNOTATION_ARGUMENTS)] resolveMe: R|kotlin/Int|): R|kotlin/Unit| { LAZY_BLOCK }
 
         }
 
 
 BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] class X : R|kotlin/Any| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=X] constructor(): R|X| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -244,11 +236,11 @@ FILE: [ResolvedTo(IMPORTS)] parameterOfNonLocalSetterScript.kts
 
 FILE RAW TO BODY:
 FILE: [ResolvedTo(BODY_RESOLVE)] parameterOfNonLocalSetterScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(BODY_RESOLVE)] <script-parameterOfNonLocalSetterScript.kts>
+        [ResolvedTo(BODY_RESOLVE)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(BODY_RESOLVE)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(BODY_RESOLVE)] class X : R|kotlin/Any| {
+        public final [ResolvedTo(BODY_RESOLVE)] [ContainingScriptKey=FirScriptSymbol <script-parameterOfNonLocalSetterScript.kts>] class X : R|kotlin/Any| {
             public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=X] constructor(): R|X| {
                 super<R|kotlin/Any|>()
             }
@@ -260,3 +252,4 @@ FILE: [ResolvedTo(BODY_RESOLVE)] parameterOfNonLocalSetterScript.kts
                 }
 
         }
+

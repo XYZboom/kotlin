@@ -15,18 +15,17 @@ import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.kotlin.gradle.internal.ConfigurationPhaseAware
 import org.jetbrains.kotlin.gradle.logging.kotlinInfo
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsEnv
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.NpmApiExtension
 
 open class NpmExtension(
     val project: Project,
+    val nodeJsRoot: NodeJsRootExtension
 ) : ConfigurationPhaseAware<NpmEnv>(), NpmApiExtension<NpmEnvironment, Npm> {
     init {
         check(project == project.rootProject)
-    }
-
-    private val gradleHome = project.gradle.gradleUserHomeDir.also {
-        project.logger.kotlinInfo("Storing cached files in $it")
+        project.logger.kotlinInfo("Storing cached files in ${project.gradle.gradleUserHomeDir}")
     }
 
     override val packageManager: Npm by lazy {
@@ -38,9 +37,7 @@ open class NpmExtension(
     }
 
     override val additionalInstallOutput: FileCollection = project.objects.fileCollection().from(
-        {
-            nodeJsEnvironment.get().rootPackageDir.resolve("package-lock.json")
-        }
+        nodeJsRoot.rootPackageDirectory.map { it.file("package-lock.json") }
     )
 
     override val preInstallTasks: ListProperty<TaskProvider<*>> = project.objects.listProperty(TaskProvider::class.java)

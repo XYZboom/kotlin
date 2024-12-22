@@ -70,7 +70,7 @@ object FirEqualityCompatibilityChecker : FirEqualityOperatorCallChecker(MppCheck
 
     private fun checkEqualityApplicability(l: TypeInfo, r: TypeInfo, context: CheckerContext): Applicability {
         val oneIsBuiltin = l.isBuiltin || r.isBuiltin
-        val oneIsIdentityLess = l.isIdentityLess || r.isIdentityLess
+        val oneIsIdentityLess = l.isIdentityLess(context.session) || r.isIdentityLess(context.session)
 
         // The compiler should only check comparisons
         // when builtins are involved.
@@ -84,11 +84,11 @@ object FirEqualityCompatibilityChecker : FirEqualityOperatorCallChecker(MppCheck
     }
 
     private fun checkIdentityApplicability(l: TypeInfo, r: TypeInfo, context: CheckerContext): Applicability {
-        val oneIsNotNull = !l.type.isNullable || !r.type.isNullable
+        val oneIsNotNull = !l.type.isMarkedOrFlexiblyNullable || !r.type.isMarkedOrFlexiblyNullable
 
         return when {
             l.type.isNullableNothing || r.type.isNullableNothing -> Applicability.APPLICABLE
-            l.isIdentityLess || r.isIdentityLess -> Applicability.INAPPLICABLE_AS_IDENTITY_LESS
+            l.isIdentityLess(context.session) || r.isIdentityLess(context.session) -> Applicability.INAPPLICABLE_AS_IDENTITY_LESS
             oneIsNotNull && shouldReportAsPerRules1(l, r, context) -> getInapplicabilityFor(l, r)
             else -> Applicability.APPLICABLE
         }
@@ -286,7 +286,7 @@ internal fun isCaseMissedByK1Intersector(a: TypeInfo, b: TypeInfo) =
 internal fun isCaseMissedByAdditionalK1IncompatibleEnumsCheck(a: ConeKotlinType, b: ConeKotlinType, session: FirSession): Boolean {
     return when {
         !a.isEnum(session) && !b.isEnum(session) -> true
-        a.isNullable && b.isNullable -> true
+        a.isMarkedOrFlexiblyNullable && b.isMarkedOrFlexiblyNullable -> true
         a.isNothingOrNullableNothing || b.isNothingOrNullableNothing -> true
         else -> !a.isClass(session) || !b.isClass(session)
     }

@@ -22,19 +22,18 @@ import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry
 import org.jetbrains.kotlin.gradle.dsl.KotlinSingleJavaTargetExtension
 import org.jetbrains.kotlin.gradle.dsl.kotlinExtension
 import org.jetbrains.kotlin.gradle.model.builder.KotlinModelBuilder
-import org.jetbrains.kotlin.gradle.plugin.internal.JavaSourceSetsAccessor
-import org.jetbrains.kotlin.gradle.plugin.internal.MavenPluginConfigurator
 import org.jetbrains.kotlin.gradle.plugin.internal.compatibilityConventionRegistrar
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
+import org.jetbrains.kotlin.gradle.plugin.mpp.publishing.PomDependenciesRewriter
+import org.jetbrains.kotlin.gradle.plugin.mpp.publishing.createDefaultPomDependenciesRewriterForTargetComponent
+import org.jetbrains.kotlin.gradle.plugin.mpp.publishing.rewriteKmpDependenciesInPomForTargetPublication
 import org.jetbrains.kotlin.gradle.plugin.sources.DefaultKotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.sources.KotlinSourceSetFactory
 import org.jetbrains.kotlin.gradle.tasks.InspectClassesForMultiModuleIC
 import org.jetbrains.kotlin.gradle.tasks.KotlinTasksProvider
 import org.jetbrains.kotlin.gradle.tasks.locateTask
 import org.jetbrains.kotlin.gradle.tasks.registerTask
-import org.jetbrains.kotlin.gradle.utils.whenEvaluated
-import org.jetbrains.kotlin.gradle.utils.archivePathCompatible
-import org.jetbrains.kotlin.gradle.utils.setAttribute
+import org.jetbrains.kotlin.gradle.utils.*
 
 const val PLUGIN_CLASSPATH_CONFIGURATION_NAME = "kotlinCompilerPluginClasspath"
 const val NATIVE_COMPILER_PLUGIN_CLASSPATH_CONFIGURATION_NAME = "kotlinNativeCompilerPluginClasspath"
@@ -42,16 +41,17 @@ const val COMPILER_CLASSPATH_CONFIGURATION_NAME = "kotlinCompilerClasspath"
 internal const val BUILD_TOOLS_API_CLASSPATH_CONFIGURATION_NAME = "kotlinBuildToolsApiClasspath"
 internal const val KLIB_COMMONIZER_CLASSPATH_CONFIGURATION_NAME = "kotlinKlibCommonizerClasspath"
 internal const val KOTLIN_NATIVE_BUNDLE_CONFIGURATION_NAME = "kotlinNativeBundleConfiguration"
+internal const val PSM_RESOLVABLE_CONFIGURATION_NAME = "projectStructureMetadataResolvableConfiguration"
 private const val JAVA_TEST_FIXTURES_PLUGIN_ID = "java-test-fixtures"
 
 internal abstract class AbstractKotlinPlugin(
     val tasksProvider: KotlinTasksProvider,
-    val registry: ToolingModelBuilderRegistry
+    val registry: ToolingModelBuilderRegistry,
 ) : Plugin<Project> {
 
     internal abstract fun buildSourceSetProcessor(
         project: Project,
-        compilation: KotlinCompilation<*>
+        compilation: KotlinCompilation<*>,
     ): KotlinSourceSetProcessor<*>
 
     override fun apply(project: Project) {
@@ -107,9 +107,7 @@ internal abstract class AbstractKotlinPlugin(
             inspectTask.classesListFile.disallowChanges()
 
             val sourceSetClassesDir = project
-                .variantImplementationFactory<JavaSourceSetsAccessor.JavaSourceSetsAccessorVariantFactory>()
-                .getInstance(project)
-                .sourceSetsIfAvailable
+                .javaSourceSetsIfAvailable
                 ?.findByName(SourceSet.MAIN_SOURCE_SET_NAME)
                 ?.output
                 ?.classesDirs
@@ -121,33 +119,19 @@ internal abstract class AbstractKotlinPlugin(
         classesTask.configure { it.finalizedBy(inspectTask) }
     }
 
-    private fun rewritePom(pom: MavenPom, rewriter: PomDependenciesRewriter, shouldRewritePom: Provider<Boolean>) {
-        pom.withXml { xml ->
-            if (shouldRewritePom.get())
-                rewriter.rewritePomMppDependenciesToActualTargetModules(xml)
-        }
-    }
-
     private fun rewriteMppDependenciesInPom(target: AbstractKotlinTarget) {
         val project = target.project
 
-        val shouldRewritePoms = project.provider {
-            PropertiesProvider(project).keepMppDependenciesIntactInPoms != true
-        }
-
         project.pluginManager.withPlugin("maven-publish") {
             project.extensions.configure(PublishingExtension::class.java) { publishing ->
-                val pomRewriter = PomDependenciesRewriter(project, target.kotlinComponents.single())
                 publishing.publications.withType(MavenPublication::class.java).all { publication ->
-                    rewritePom(publication.pom, pomRewriter, shouldRewritePoms)
+                    project.rewriteKmpDependenciesInPomForTargetPublication(
+                        component = target.kotlinComponents.single(),
+                        publication = publication
+                    )
                 }
             }
         }
-
-        project
-            .variantImplementationFactory<MavenPluginConfigurator.MavenPluginConfiguratorVariantFactory>()
-            .getInstance()
-            .applyConfiguration(project, target, shouldRewritePoms)
     }
 
     companion object {
@@ -155,7 +139,7 @@ internal abstract class AbstractKotlinPlugin(
 
         fun configureTarget(
             target: KotlinWithJavaTarget<*, *>,
-            buildSourceSetProcessor: (KotlinCompilation<*>) -> KotlinSourceSetProcessor<*>
+            buildSourceSetProcessor: (KotlinCompilation<*>) -> KotlinSourceSetProcessor<*>,
         ) {
             setUpJavaSourceSets(target)
             configureSourceSetDefaults(target, buildSourceSetProcessor)
@@ -164,13 +148,10 @@ internal abstract class AbstractKotlinPlugin(
 
         internal fun setUpJavaSourceSets(
             kotlinTarget: KotlinTarget,
-            duplicateJavaSourceSetsAsKotlinSourceSets: Boolean = true
+            duplicateJavaSourceSetsAsKotlinSourceSets: Boolean = true,
         ) {
             val project = kotlinTarget.project
-            val javaSourceSets = project
-                .variantImplementationFactory<JavaSourceSetsAccessor.JavaSourceSetsAccessorVariantFactory>()
-                .getInstance(project)
-                .sourceSets
+            val javaSourceSets = project.javaSourceSets
 
             @Suppress("DEPRECATION") val kotlinSourceSetDslName = when (kotlinTarget.platformType) {
                 KotlinPlatformType.js -> KOTLIN_JS_DSL_NAME
@@ -180,7 +161,12 @@ internal abstract class AbstractKotlinPlugin(
             javaSourceSets.all { javaSourceSet ->
                 val kotlinCompilation = kotlinTarget.compilations.maybeCreate(javaSourceSet.name)
 
+
                 if (duplicateJavaSourceSetsAsKotlinSourceSets) {
+                    project.configurations
+                        .findByName(javaSourceSet.apiElementsConfigurationName)
+                        ?.addSecondaryOutgoingJvmClassesVariant(project, kotlinCompilation)
+
                     val kotlinSourceSet = project.kotlinExtension.sourceSets.maybeCreate(kotlinCompilation.name)
                     kotlinSourceSet.kotlin.source(javaSourceSet.java)
 
@@ -207,7 +193,11 @@ internal abstract class AbstractKotlinPlugin(
                     project.compatibilityConventionRegistrar.addConvention(javaSourceSet, kotlinSourceSetDslName, kotlinSourceSet)
                     javaSourceSet.addExtension(kotlinSourceSetDslName, kotlinSourceSet.kotlin)
                 } else {
-                    project.compatibilityConventionRegistrar.addConvention(javaSourceSet, kotlinSourceSetDslName, kotlinCompilation.defaultSourceSet)
+                    project.compatibilityConventionRegistrar.addConvention(
+                        javaSourceSet,
+                        kotlinSourceSetDslName,
+                        kotlinCompilation.defaultSourceSet
+                    )
                     javaSourceSet.addExtension(kotlinSourceSetDslName, kotlinCompilation.defaultSourceSet.kotlin)
                 }
             }
@@ -260,7 +250,7 @@ internal abstract class AbstractKotlinPlugin(
         }
 
         private fun configureAttributes(
-            kotlinTarget: KotlinWithJavaTarget<*, *>
+            kotlinTarget: KotlinWithJavaTarget<*, *>,
         ) {
             val project = kotlinTarget.project
 
@@ -287,7 +277,7 @@ internal abstract class AbstractKotlinPlugin(
 
         private fun configureSourceSetDefaults(
             kotlinTarget: KotlinWithJavaTarget<*, *>,
-            buildSourceSetProcessor: (KotlinCompilation<*>) -> KotlinSourceSetProcessor<*>
+            buildSourceSetProcessor: (KotlinCompilation<*>) -> KotlinSourceSetProcessor<*>,
         ) {
             kotlinTarget.compilations.all { compilation ->
                 buildSourceSetProcessor(compilation).run()

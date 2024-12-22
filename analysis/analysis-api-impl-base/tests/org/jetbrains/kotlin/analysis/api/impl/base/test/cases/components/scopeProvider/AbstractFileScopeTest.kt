@@ -5,23 +5,23 @@
 
 package org.jetbrains.kotlin.analysis.api.impl.base.test.cases.components.scopeProvider
 
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
-import org.jetbrains.kotlin.analysis.api.scopes.KtScope
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.scopes.KaScope
 import org.jetbrains.kotlin.analysis.api.symbols.DebugSymbolRenderer
-import org.jetbrains.kotlin.analysis.test.framework.project.structure.KtTestModule
+import org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModule
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.test.services.TestServices
 import org.jetbrains.kotlin.test.services.assertions
 
 abstract class AbstractFileScopeTest : AbstractScopeTestBase() {
-    override fun KtAnalysisSession.getScope(mainFile: KtFile, testServices: TestServices): KtScope = mainFile.getFileSymbol().getFileScope()
+    override fun KaSession.getScope(mainFile: KtFile, testServices: TestServices): KaScope = mainFile.symbol.fileScope
 
     override fun doTestByMainFile(mainFile: KtFile, mainModule: KtTestModule, testServices: TestServices) {
         super.doTestByMainFile(mainFile, mainModule, testServices)
 
         analyseForTest(mainFile) {
-            val fileSymbol = mainFile.getFileSymbol()
-            val renderedFileSymbol = DebugSymbolRenderer(renderExtra = true).render(analysisSession, fileSymbol)
+            val fileSymbol = mainFile.symbol
+            val renderedFileSymbol = DebugSymbolRenderer(renderExtra = true).render(useSiteSession, fileSymbol)
             testServices.assertions.assertEqualsToTestDataFileSibling(renderedFileSymbol, extension = ".file_symbol.txt")
         }
     }

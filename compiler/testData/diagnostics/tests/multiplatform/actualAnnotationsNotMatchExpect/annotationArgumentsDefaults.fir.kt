@@ -1,3 +1,5 @@
+// LATEST_LV_DIFFERENCE
+// RUN_PIPELINE_TILL: BACKEND
 // MODULE: m1-common
 // FILE: common.kt
 annotation class Ann(val p: String = "")
@@ -7,5 +9,5 @@ expect fun explicitDefaultArgument()
 // MODULE: m1-jvm()()(m1-common)
 // FILE: jvm.kt
 // No special handling for this case
-<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>@Ann
-actual fun explicitDefaultArgument() {}<!>
+@Ann
+<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT, ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>actual<!> fun explicitDefaultArgument() {}

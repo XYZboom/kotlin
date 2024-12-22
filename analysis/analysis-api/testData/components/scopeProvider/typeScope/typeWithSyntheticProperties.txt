@@ -1,50 +1,51 @@
-expression: a
-KtType: A
+Expression: a
+KaType: A
 
-KtTypeScope:
-KtFunctionLikeSignature:
+KaTypeScope:
+KaFunctionSignature:
   receiverType = null
   returnType = kotlin.Int!
   symbol = /JavaClass.getValue(<dispatch receiver>: JavaClass): kotlin.Int!
   valueParameters = []
-  callableIdIfNonLocal = /JavaClass.getValue
-KtFunctionLikeSignature:
+  callableId = /JavaClass.getValue
+KaFunctionSignature:
   receiverType = null
   returnType = kotlin.Boolean
   symbol = kotlin/Any.equals(<dispatch receiver>: kotlin.Any, other: kotlin.Any?): kotlin.Boolean
   valueParameters = [
-    KtVariableLikeSignature:
+    KaVariableSignature:
       name = other
       receiverType = null
       returnType = kotlin.Any?
       symbol = other: kotlin.Any?
-      callableIdIfNonLocal = null
+      callableId = null
   ]
-  callableIdIfNonLocal = kotlin/Any.equals
-KtFunctionLikeSignature:
+  callableId = kotlin/Any.equals
+KaFunctionSignature:
   receiverType = null
   returnType = kotlin.Int
   symbol = kotlin/Any.hashCode(<dispatch receiver>: kotlin.Any): kotlin.Int
   valueParameters = []
-  callableIdIfNonLocal = kotlin/Any.hashCode
-KtFunctionLikeSignature:
+  callableId = kotlin/Any.hashCode
+KaFunctionSignature:
   receiverType = null
   returnType = kotlin.String
   symbol = kotlin/Any.toString(<dispatch receiver>: kotlin.Any): kotlin.String
   valueParameters = []
-  callableIdIfNonLocal = kotlin/Any.toString
-KtVariableLikeSignature:
+  callableId = kotlin/Any.toString
+KaVariableSignature:
   name = value
   receiverType = null
   returnType = kotlin.Int!
   symbol = val value: kotlin.Int!
-  callableIdIfNonLocal = /JavaClass.value
+  callableId = /JavaClass.value
 
 
 Declaration Scope:
-KtFunctionSymbol:
-  annotationsList: []
-  callableIdIfNonLocal: /JavaClass.getValue
+KaNamedFunctionSymbol:
+  annotations: []
+  callableId: /JavaClass.getValue
+  compilerVisibility: Public
   contextReceivers: []
   contractEffects: []
   hasStableParameterNames: false
@@ -60,20 +61,21 @@ KtFunctionSymbol:
   isStatic: false
   isSuspend: false
   isTailRec: false
+  location: CLASS
   modality: OPEN
   name: getValue
-  origin: JAVA
+  origin: JAVA_SOURCE
   receiverParameter: null
-  returnType: KtFlexibleType:
-    annotationsList: []
+  returnType: KaFlexibleType:
+    annotations: []
     type: kotlin/Int!
-  symbolKind: CLASS_MEMBER
   typeParameters: []
   valueParameters: []
-  visibility: Public
-KtFunctionSymbol:
-  annotationsList: []
-  callableIdIfNonLocal: kotlin/Any.equals
+  visibility: PUBLIC
+KaNamedFunctionSymbol:
+  annotations: []
+  callableId: kotlin/Any.equals
+  compilerVisibility: Public
   contextReceivers: []
   contractEffects: []
   hasStableParameterNames: true
@@ -89,42 +91,48 @@ KtFunctionSymbol:
   isStatic: false
   isSuspend: false
   isTailRec: false
+  location: CLASS
   modality: OPEN
   name: equals
   origin: LIBRARY
   receiverParameter: null
-  returnType: KtUsualClassType:
-    annotationsList: []
-    ownTypeArguments: []
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
     type: kotlin/Boolean
-  symbolKind: CLASS_MEMBER
   typeParameters: []
   valueParameters: [
-    KtValueParameterSymbol:
-      annotationsList: []
-      callableIdIfNonLocal: null
+    KaValueParameterSymbol:
+      annotations: []
+      callableId: null
+      compilerVisibility: Public
       contextReceivers: []
       generatedPrimaryConstructorProperty: null
       hasDefaultValue: false
+      isActual: false
       isCrossinline: false
+      isExpect: false
       isExtension: false
       isImplicitLambdaParameter: false
       isNoinline: false
+      isVal: true
       isVararg: false
+      location: LOCAL
+      modality: FINAL
       name: other
       origin: LIBRARY
       receiverParameter: null
-      returnType: KtUsualClassType:
-        annotationsList: []
-        ownTypeArguments: []
+      returnType: KaUsualClassType:
+        annotations: []
+        typeArguments: []
         type: kotlin/Any?
-      symbolKind: LOCAL
-      typeParameters: []
+      visibility: PUBLIC
   ]
-  visibility: Public
-KtFunctionSymbol:
-  annotationsList: []
-  callableIdIfNonLocal: kotlin/Any.hashCode
+  visibility: PUBLIC
+KaNamedFunctionSymbol:
+  annotations: []
+  callableId: kotlin/Any.hashCode
+  compilerVisibility: Public
   contextReceivers: []
   contractEffects: []
   hasStableParameterNames: true
@@ -140,21 +148,22 @@ KtFunctionSymbol:
   isStatic: false
   isSuspend: false
   isTailRec: false
+  location: CLASS
   modality: OPEN
   name: hashCode
   origin: LIBRARY
   receiverParameter: null
-  returnType: KtUsualClassType:
-    annotationsList: []
-    ownTypeArguments: []
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
     type: kotlin/Int
-  symbolKind: CLASS_MEMBER
   typeParameters: []
   valueParameters: []
-  visibility: Public
-KtFunctionSymbol:
-  annotationsList: []
-  callableIdIfNonLocal: kotlin/Any.toString
+  visibility: PUBLIC
+KaNamedFunctionSymbol:
+  annotations: []
+  callableId: kotlin/Any.toString
+  compilerVisibility: Public
   contextReceivers: []
   contractEffects: []
   hasStableParameterNames: true
@@ -170,64 +179,70 @@ KtFunctionSymbol:
   isStatic: false
   isSuspend: false
   isTailRec: false
+  location: CLASS
   modality: OPEN
   name: toString
   origin: LIBRARY
   receiverParameter: null
-  returnType: KtUsualClassType:
-    annotationsList: []
-    ownTypeArguments: []
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
     type: kotlin/String
-  symbolKind: CLASS_MEMBER
   typeParameters: []
   valueParameters: []
-  visibility: Public
-KtSyntheticJavaPropertySymbol:
-  annotationsList: []
+  visibility: PUBLIC
+KaSyntheticJavaPropertySymbol:
+  annotations: []
   backingFieldSymbol: null
-  callableIdIfNonLocal: /JavaClass.value
+  callableId: /JavaClass.value
+  compilerVisibility: Public
   contextReceivers: []
-  getter: KtPropertyGetterSymbol:
-    annotationsList: []
-    callableIdIfNonLocal: /JavaClass.getValue
+  getter: KaPropertyGetterSymbol:
+    annotations: []
+    callableId: /JavaClass.getValue
+    compilerVisibility: Public
     contextReceivers: []
     hasBody: false
     hasStableParameterNames: true
+    isActual: false
     isDefault: false
+    isExpect: false
     isExtension: false
     isInline: false
     isOverride: false
+    location: PROPERTY
     modality: OPEN
     origin: JAVA_SYNTHETIC_PROPERTY
     receiverParameter: null
-    returnType: KtFlexibleType:
-      annotationsList: []
+    returnType: KaFlexibleType:
+      annotations: []
       type: kotlin/Int!
-    symbolKind: ACCESSOR
-    typeParameters: []
     valueParameters: []
-    visibility: Public
+    visibility: PUBLIC
   hasBackingField: true
   hasGetter: true
   hasSetter: false
   initializer: null
+  isActual: false
   isDelegatedProperty: false
+  isExpect: false
   isExtension: false
+  isExternal: false
   isFromPrimaryConstructor: false
   isOverride: false
   isStatic: false
   isVal: true
-  javaGetterSymbol: KtFunctionSymbol(/JavaClass.getValue)
+  javaGetterSymbol: KaNamedFunctionSymbol(/JavaClass.getValue)
   javaSetterSymbol: null
+  location: CLASS
   modality: OPEN
   name: value
   origin: JAVA_SYNTHETIC_PROPERTY
   receiverParameter: null
-  returnType: KtFlexibleType:
-    annotationsList: []
+  returnType: KaFlexibleType:
+    annotations: []
     type: kotlin/Int!
   setter: null
-  symbolKind: CLASS_MEMBER
   typeParameters: []
-  visibility: Public
+  visibility: PUBLIC
 

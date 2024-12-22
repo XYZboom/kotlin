@@ -11,7 +11,7 @@ import org.jetbrains.kotlin.test.directives.model.SimpleDirectivesContainer
 
 object AnalysisApiTestDirectives : SimpleDirectivesContainer() {
     val MODULE_KIND by enumDirective<TestModuleKind>(
-        "Overrides the kind of `KtModule` that is built from the associated test module",
+        "Overrides the kind of `KaModule` that is built from the associated test module",
         applicability = DirectiveApplicability.Module,
     )
 
@@ -36,7 +36,17 @@ object AnalysisApiTestDirectives : SimpleDirectivesContainer() {
     )
 
     val CONTEXT_MODULE by stringDirective(
-        description = "Specifies the module name which should be treated as a context module for the current one",
+        description = "Specifies the module name used to find the 'context psi element' for this module",
+        applicability = DirectiveApplicability.Module
+    )
+
+    /*
+    Note: the 'contextElement' can be different from the 'contextModule'.
+    E.g., consider a multiplatform project where the contextElement is in 'commonMain', but the contextModule can be
+    configured as 'jvmMain'
+    */
+    val ANALYSIS_CONTEXT_MODULE by stringDirective(
+        description = "Specifies the module name which should be treated as a context module for the current one (can overwrite 'CONTEXT_MODULE')",
         applicability = DirectiveApplicability.Module
     )
 }

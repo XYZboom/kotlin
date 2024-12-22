@@ -1,3 +1,5 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // DIAGNOSTICS: -ACTUAL_WITHOUT_EXPECT
 // MODULE: m1-common
 // FILE: common.kt
@@ -17,9 +19,9 @@ expect class WithDefaultArgFromSuper : I {
     override fun methodWithDefaultArg(s: String)
 }
 
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect open class WithIncompatibility {
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> open class WithIncompatibility {
     fun foo(p: String = "common")
-}<!>
+}
 
 // MODULE: m2-jvm()()(m1-common)
 // FILE: jvm.kt

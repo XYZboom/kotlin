@@ -11,7 +11,6 @@ import org.jetbrains.kotlin.builtins.functions.FunctionClassDescriptor
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.incremental.components.NoLookupLocation
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
-import org.jetbrains.kotlin.ir.builders.declarations.UNDEFINED_PARAMETER_INDEX
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrPropertySymbol
@@ -288,11 +287,11 @@ class IrDescriptorBasedFunctionFactory(
             startOffset = offset,
             endOffset = offset,
             origin = classOrigin,
+            kind = IrParameterKind.DispatchReceiver,
             name = SpecialNames.THIS,
             type = typeTranslator.translateType(descriptor.type),
             isAssignable = false,
             symbol = IrValueParameterSymbolImpl(descriptor),
-            index = UNDEFINED_PARAMETER_INDEX,
             varargElementType = null,
             isCrossinline = false,
             isNoinline = false,
@@ -349,7 +348,6 @@ class IrDescriptorBasedFunctionFactory(
                     type = vType,
                     isAssignable = false,
                     symbol = vSymbol,
-                    index = i - 1,
                     varargElementType = null,
                     isCrossinline = false,
                     isNoinline = false,
@@ -390,7 +388,6 @@ class IrDescriptorBasedFunctionFactory(
             type = toIrType(type),
             isAssignable = false,
             symbol = IrValueParameterSymbolImpl(this),
-            index = indexOrMinusOne,
             varargElementType = (this as? ValueParameterDescriptor)?.varargElementType?.let(::toIrType),
             isCrossinline = isCrossinline,
             isNoinline = isNoinline,

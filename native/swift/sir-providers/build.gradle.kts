@@ -1,11 +1,9 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
-
 plugins {
     kotlin("jvm")
     id("jps-compatible")
 }
 
-description = "SIR Providers - family of classes, that transforms KtSymbol into corresponding SIR nodes"
+description = "SIR Providers - family of classes, that transforms KaSymbol into corresponding SIR nodes"
 
 kotlin {
     explicitApi()
@@ -23,13 +21,7 @@ sourceSets {
     "main" { projectDefault() }
 }
 
-tasks.withType<KotlinJvmCompile> {
-    compilerOptions.freeCompilerArgs.add("-Xcontext-receivers")
-}
-
-if (kotlinBuildProperties.isSwiftExportPluginPublishingEnabled) {
-    publish()
-}
+publish()
 
 runtimeJar()
 sourcesJar()

@@ -252,7 +252,7 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeWithInaccessibleAnnotation.kt
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): String
 
     }
-    public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] [PostponedSymbolsForAnnotationResolutionKey=[FirNamedFunctionSymbol usage/TopLevelObject.expectedType]] fun implicitType1(): R|@R|usage/Anno|(privateConstVal#)  kotlin/Int| {
+    public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] [PostponedSymbolsForAnnotationResolutionKey=[FirNamedFunctionSymbol usage/TopLevelObject.expectedType]] fun implicitType1(): R|@R|usage/Anno|(LAZY_EXPRESSION)  kotlin/Int| {
         ^implicitType1 Q|usage/TopLevelObject|.R|usage/TopLevelObject.expectedType|()
     }
     public final [ResolvedTo(STATUS)] object TopLevelObject : R|kotlin/Any| {
@@ -260,14 +260,12 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeWithInaccessibleAnnotation.kt
             LAZY_super<R|kotlin/Any|>
         }
 
-        public final [ResolvedTo(STATUS)] fun expectedType2(): R|@R|usage/Anno|(privateConstVal#)  kotlin/Int| { LAZY_BLOCK }
+        public final [ResolvedTo(STATUS)] fun expectedType2(): R|@R|usage/Anno|(LAZY_EXPRESSION)  kotlin/Int| { LAZY_BLOCK }
 
         private final const [ResolvedTo(STATUS)] val privateConstVal: <implicit> = LAZY_EXPRESSION
             private [ResolvedTo(STATUS)] [ContainingClassKey=TopLevelObject] get(): <implicit>
 
-        public final [ResolvedTo(CONTRACTS)] fun expectedType(): R|@R|usage/Anno|(privateConstVal#)  kotlin/Int| {
-            ^expectedType IntegerLiteral(4)
-        }
+        public final [ResolvedTo(CONTRACTS)] fun expectedType(): R|@R|usage/Anno|(LAZY_EXPRESSION)  kotlin/Int| { LAZY_BLOCK }
 
     }
     public? final? [ResolvedTo(RAW_FIR)] fun implicitType2(): <implicit> { LAZY_BLOCK }
@@ -283,7 +281,7 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeWithInaccessibleAnnotation.kt
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] get(): String
 
     }
-    public final [ResolvedTo(CONSTANT_EVALUATION)] [PostponedSymbolsForAnnotationResolutionKey=[FirNamedFunctionSymbol usage/TopLevelObject.expectedType]] fun implicitType1(): R|@R|usage/Anno|(privateConstVal#)  kotlin/Int| {
+    public final [ResolvedTo(CONSTANT_EVALUATION)] [PostponedSymbolsForAnnotationResolutionKey=[FirNamedFunctionSymbol usage/TopLevelObject.expectedType]] fun implicitType1(): R|@R|usage/Anno|(LAZY_EXPRESSION)  kotlin/Int| {
         ^implicitType1 Q|usage/TopLevelObject|.R|usage/TopLevelObject.expectedType|()
     }
     public final [ResolvedTo(STATUS)] object TopLevelObject : R|kotlin/Any| {
@@ -291,14 +289,12 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeWithInaccessibleAnnotation.kt
             LAZY_super<R|kotlin/Any|>
         }
 
-        public final [ResolvedTo(STATUS)] fun expectedType2(): R|@R|usage/Anno|(privateConstVal#)  kotlin/Int| { LAZY_BLOCK }
+        public final [ResolvedTo(STATUS)] fun expectedType2(): R|@R|usage/Anno|(LAZY_EXPRESSION)  kotlin/Int| { LAZY_BLOCK }
 
         private final const [ResolvedTo(STATUS)] val privateConstVal: <implicit> = LAZY_EXPRESSION
             private [ResolvedTo(STATUS)] [ContainingClassKey=TopLevelObject] get(): <implicit>
 
-        public final [ResolvedTo(CONTRACTS)] fun expectedType(): R|@R|usage/Anno|(privateConstVal#)  kotlin/Int| {
-            ^expectedType IntegerLiteral(4)
-        }
+        public final [ResolvedTo(CONTRACTS)] fun expectedType(): R|@R|usage/Anno|(LAZY_EXPRESSION)  kotlin/Int| { LAZY_BLOCK }
 
     }
     public? final? [ResolvedTo(RAW_FIR)] fun implicitType2(): <implicit> { LAZY_BLOCK }
@@ -322,14 +318,12 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeWithInaccessibleAnnotation.kt
             LAZY_super<R|kotlin/Any|>
         }
 
-        public final [ResolvedTo(STATUS)] fun expectedType2(): R|@R|usage/Anno|(privateConstVal#)  kotlin/Int| { LAZY_BLOCK }
+        public final [ResolvedTo(STATUS)] fun expectedType2(): R|@R|usage/Anno|(LAZY_EXPRESSION)  kotlin/Int| { LAZY_BLOCK }
 
         private final const [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] val privateConstVal: R|kotlin/String| = String(privateConstVal)
             private [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] [ContainingClassKey=TopLevelObject] get(): R|kotlin/String|
 
-        public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun expectedType(): R|@R|usage/Anno|(s = this@R|usage/TopLevelObject|.R|usage/TopLevelObject.privateConstVal|)  kotlin/Int| {
-            ^expectedType IntegerLiteral(4)
-        }
+        public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun expectedType(): R|@R|usage/Anno|(s = this@R|usage/TopLevelObject|.R|usage/TopLevelObject.privateConstVal|)  kotlin/Int| { LAZY_BLOCK }
 
     }
     public? final? [ResolvedTo(RAW_FIR)] fun implicitType2(): <implicit> { LAZY_BLOCK }
@@ -353,14 +347,12 @@ FILE: [ResolvedTo(IMPORTS)] implicitTypeWithInaccessibleAnnotation.kt
             LAZY_super<R|kotlin/Any|>
         }
 
-        public final [ResolvedTo(STATUS)] fun expectedType2(): R|@R|usage/Anno|(privateConstVal#)  kotlin/Int| { LAZY_BLOCK }
+        public final [ResolvedTo(STATUS)] fun expectedType2(): R|@R|usage/Anno|(LAZY_EXPRESSION)  kotlin/Int| { LAZY_BLOCK }
 
         private final const [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] val privateConstVal: R|kotlin/String| = String(privateConstVal)
             private [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] [ContainingClassKey=TopLevelObject] get(): R|kotlin/String|
 
-        public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun expectedType(): R|@R|usage/Anno|(s = this@R|usage/TopLevelObject|.R|usage/TopLevelObject.privateConstVal|)  kotlin/Int| {
-            ^expectedType IntegerLiteral(4)
-        }
+        public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun expectedType(): R|@R|usage/Anno|(s = this@R|usage/TopLevelObject|.R|usage/TopLevelObject.privateConstVal|)  kotlin/Int| { LAZY_BLOCK }
 
     }
     public? final? [ResolvedTo(RAW_FIR)] fun implicitType2(): <implicit> { LAZY_BLOCK }

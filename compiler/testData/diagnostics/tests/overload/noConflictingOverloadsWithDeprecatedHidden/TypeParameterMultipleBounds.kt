@@ -1,5 +1,4 @@
-// FIR_IDENTICAL
-
+// RUN_PIPELINE_TILL: FRONTEND
 import java.io.Serializable
 
 interface Test1 {

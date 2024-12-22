@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.fir.analysis.checkers.expression
 
 import org.jetbrains.kotlin.KtFakeSourceElementKind
 import org.jetbrains.kotlin.KtSourceElement
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
@@ -20,6 +21,7 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.expressions.FirCallableReferenceAccess
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
 import org.jetbrains.kotlin.fir.expressions.FirResolvedQualifier
+import org.jetbrains.kotlin.fir.expressions.unwrapSmartcastExpression
 import org.jetbrains.kotlin.fir.references.resolved
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
@@ -30,7 +32,7 @@ object FirCallableReferenceChecker : FirQualifiedAccessExpressionChecker(MppChec
     override fun check(expression: FirQualifiedAccessExpression, context: CheckerContext, reporter: DiagnosticReporter) {
         if (expression !is FirCallableReferenceAccess) return
 
-        if (expression.hasQuestionMarkAtLHS && expression.explicitReceiver !is FirResolvedQualifier) {
+        if (expression.hasQuestionMarkAtLHS && expression.explicitReceiver?.unwrapSmartcastExpression() !is FirResolvedQualifier) {
             reporter.reportOn(expression.source, FirErrors.SAFE_CALLABLE_REFERENCE_CALL, context)
         }
 
@@ -49,15 +51,20 @@ object FirCallableReferenceChecker : FirQualifiedAccessExpressionChecker(MppChec
         referredSymbol: FirBasedSymbol<*>,
         source: KtSourceElement,
         context: CheckerContext,
-        reporter: DiagnosticReporter
+        reporter: DiagnosticReporter,
     ) {
-        if (referredSymbol is FirConstructorSymbol && referredSymbol.getContainingClassSymbol(context.session)?.classKind == ClassKind.ANNOTATION_CLASS) {
+        if (referredSymbol is FirConstructorSymbol && referredSymbol.getContainingClassSymbol()?.classKind == ClassKind.ANNOTATION_CLASS) {
             reporter.reportOn(source, FirErrors.CALLABLE_REFERENCE_TO_ANNOTATION_CONSTRUCTOR, context)
         }
-        if ((referredSymbol as? FirCallableSymbol<*>)?.isExtensionMember == true &&
-            !referredSymbol.isLocalMember
-        ) {
-            reporter.reportOn(source, FirErrors.EXTENSION_IN_CLASS_REFERENCE_NOT_ALLOWED, referredSymbol, context)
+
+        if (referredSymbol is FirCallableSymbol) {
+            if (referredSymbol.isExtensionMember && !referredSymbol.isLocalMember) {
+                reporter.reportOn(source, FirErrors.EXTENSION_IN_CLASS_REFERENCE_NOT_ALLOWED, referredSymbol, context)
+            }
+
+            if (referredSymbol.resolvedContextParameters.isNotEmpty() && context.languageVersionSettings.supportsFeature(LanguageFeature.ContextParameters)) {
+                reporter.reportOn(source, FirErrors.CALLABLE_REFERENCE_TO_CONTEXTUAL_DECLARATION, referredSymbol, context)
+            }
         }
     }
 
@@ -72,7 +79,7 @@ object FirCallableReferenceChecker : FirQualifiedAccessExpressionChecker(MppChec
         if (referredSymbol !is FirCallableSymbol<*>) return
 
         val returnType = context.returnTypeCalculator.tryCalculateReturnType(referredSymbol)
-        if (returnType.type.hasCapture()) {
+        if (returnType.coneType.hasCapture()) {
             reporter.reportOn(source, FirErrors.MUTABLE_PROPERTY_WITH_CAPTURED_TYPE, context)
         }
     }

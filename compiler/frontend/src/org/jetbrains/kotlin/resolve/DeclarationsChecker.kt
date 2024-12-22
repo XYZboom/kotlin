@@ -30,6 +30,7 @@ import org.jetbrains.kotlin.diagnostics.Errors.*
 import org.jetbrains.kotlin.incremental.KotlinLookupLocation
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.getChildOfType
 import org.jetbrains.kotlin.psi.psiUtil.hasActualModifier
 import org.jetbrains.kotlin.psi.psiUtil.visibilityModifier
 import org.jetbrains.kotlin.resolve.BindingContext.*
@@ -262,6 +263,7 @@ class DeclarationsChecker(
         checkVarargParameters(trace, constructorDescriptor)
         checkConstructorVisibility(constructorDescriptor, declaration)
         checkExpectedClassConstructor(constructorDescriptor, declaration)
+        checkContextParameters(declaration.getChildOfType())
     }
 
     private fun checkExpectedClassConstructor(constructorDescriptor: ClassConstructorDescriptor, declaration: KtConstructor<*>) {
@@ -351,6 +353,7 @@ class DeclarationsChecker(
         checkPrimaryConstructor(classOrObject, classDescriptor)
 
         checkExpectDeclarationModifiers(classOrObject, classDescriptor)
+        checkContextParameters(classOrObject.contextReceiverList)
     }
 
     private fun checkLocalAnnotation(classDescriptor: ClassDescriptor, classOrObject: KtClassOrObject) {
@@ -502,7 +505,7 @@ class DeclarationsChecker(
         for (parameter in declaration.valueParameters) {
             trace.get(PRIMARY_CONSTRUCTOR_PARAMETER, parameter)?.let {
                 modifiersChecker.checkModifiersForDeclaration(parameter, it)
-                LateinitModifierApplicabilityChecker.checkLateinitModifierApplicability(trace, parameter, it, languageVersionSettings)
+                LateinitModifierApplicabilityChecker.checkLateinitModifierApplicability(trace, parameter, it)
             }
         }
 
@@ -617,7 +620,7 @@ class DeclarationsChecker(
         if (containingDeclaration is ClassDescriptor) {
             checkMemberProperty(property, propertyDescriptor, containingDeclaration)
         }
-        LateinitModifierApplicabilityChecker.checkLateinitModifierApplicability(trace, property, propertyDescriptor, languageVersionSettings)
+        LateinitModifierApplicabilityChecker.checkLateinitModifierApplicability(trace, property, propertyDescriptor)
         checkPropertyInitializer(property, propertyDescriptor)
         checkAccessors(property, propertyDescriptor)
         checkTypeParameterConstraints(property)
@@ -627,6 +630,7 @@ class DeclarationsChecker(
         checkImplicitCallableType(property, propertyDescriptor)
         checkExpectDeclarationModifiers(property, propertyDescriptor)
         checkBackingField(property)
+        checkContextParameters(property.contextReceiverList)
     }
 
     private fun checkExpectDeclarationModifiers(declaration: KtDeclaration, descriptor: MemberDescriptor) {
@@ -946,6 +950,7 @@ class DeclarationsChecker(
         }
 
         shadowedExtensionChecker.checkDeclaration(function, functionDescriptor)
+        checkContextParameters(function.contextReceiverList)
     }
 
     private fun checkExpectedFunction(function: KtNamedFunction, functionDescriptor: FunctionDescriptor) {
@@ -1073,6 +1078,12 @@ class DeclarationsChecker(
                 val parameterDeclaration = DescriptorToSourceUtils.descriptorToDeclaration(parameter) as? KtParameter ?: continue
                 trace.report(FORBIDDEN_VARARG_PARAMETER_TYPE.on(parameterDeclaration, varargElementType))
             }
+        }
+    }
+
+    private fun checkContextParameters(contextReceiverList: KtContextReceiverList?) {
+        if (!contextReceiverList?.contextParameters().isNullOrEmpty()) {
+            trace.report(CONTEXT_PARAMETERS_UNSUPPORTED.on(contextReceiverList))
         }
     }
 

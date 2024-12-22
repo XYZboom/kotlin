@@ -24,24 +24,17 @@ Tower Data Context:
             Classifiers:
                 FirRegularClassSymbol public final class Foo : R|kotlin/Any|
     Element 10
-        Context receivers:
-            FirScriptSymbol context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
-            SCRIPT: <script-insideClassBody.kts>
-                lval args: R|kotlin/Array<kotlin/String>|
-
-                public final class Foo : R|kotlin/Any|
+        Implicit receiver:
+            FirReceiverParameterSymbol <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
                 Type: kotlin.script.templates.standard.ScriptTemplateWithArgs
-                Label: <script>
     Element 11
         Implicit receiver:
             FirRegularClassSymbol public final class Foo : R|kotlin/Any|
                 Type: Foo
-    Element 12
-        Scope: FirLocalScope
 
-FILE: [ResolvedTo(IMPORTS)] insideClassBody.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
+FILE: [ResolvedTo(RAW_FIR)] insideClassBody.kts
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-insideClassBody.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
         public final? [ResolvedTo(RAW_FIR)] class Foo : R|kotlin/Any| {
@@ -52,7 +45,6 @@ FILE: [ResolvedTo(IMPORTS)] insideClassBody.kts
             public? final? [ResolvedTo(RAW_FIR)] val x: <implicit> = LAZY_EXPRESSION
                 public? [ResolvedTo(RAW_FIR)] get(): <implicit>
 
-            public final [ResolvedTo(BODY_RESOLVE)] fun foo(): R|kotlin/Unit| {
-            }
+            public? final? [ResolvedTo(RAW_FIR)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
 
         }

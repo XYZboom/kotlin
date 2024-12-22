@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.scripting.compiler.plugin.repl
 
 import com.intellij.core.JavaCoreProjectEnvironment
 import com.intellij.openapi.util.io.FileUtil
-import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.common.messages.GroupingMessageCollector
 import org.jetbrains.kotlin.cli.common.repl.ReplEvalResult
 import org.jetbrains.kotlin.cli.common.repl.replUnescapeLineBreaks
@@ -39,7 +38,7 @@ class ReplFromTerminal(
 
     private val writer get() = replConfiguration.writer
 
-    private val messageCollector = compilerConfiguration.getNotNull(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY)
+    private val messageCollector = compilerConfiguration.getNotNull(CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY)
 
     private fun doRun() {
         try {
@@ -48,8 +47,9 @@ class ReplFromTerminal(
                     "Welcome to Kotlin version ${KotlinCompilerVersion.VERSION} " +
                             "(JRE ${System.getProperty("java.runtime.version")})"
                 )
+                printlnWelcomeMessage("Warning: this REPL implementation is deprecated and will be removed soon.")
                 if (compilerConfiguration.getBoolean(CommonConfigurationKeys.USE_FIR)) {
-                    printlnWelcomeMessage("Warning: REPL is not yet compatible with the Kotlin version ${KotlinCompilerVersion.VERSION}, using '-language-version 1.9'.")
+                    printlnWelcomeMessage("Warning: REPL is not compatible with the Kotlin version ${KotlinCompilerVersion.VERSION}, using '-language-version 1.9'.")
                 }
                 printlnWelcomeMessage("Type :help for help, :quit for quit")
             }

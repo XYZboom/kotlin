@@ -1,6 +1,8 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // LANGUAGE: +WhenGuards
 // DIAGNOSTICS: -DUPLICATE_LABEL_IN_WHEN
 // FIR_DUMP
+// RENDER_DIAGNOSTICS_FULL_TEXT
 
 sealed class BooleanHolder(val value: Boolean)
 object True : BooleanHolder(true)

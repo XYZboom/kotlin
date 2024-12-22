@@ -1,22 +1,22 @@
 /*
- * Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.backend.konan.driver.phases
 
+import org.jetbrains.kotlin.backend.common.phaser.PhaseEngine
 import org.jetbrains.kotlin.backend.common.phaser.createSimpleNamedCompilerPhase
 import org.jetbrains.kotlin.backend.konan.KonanConfigKeys
 import org.jetbrains.kotlin.backend.konan.OutputFiles
 import org.jetbrains.kotlin.backend.konan.driver.PhaseContext
-import org.jetbrains.kotlin.backend.konan.driver.PhaseEngine
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
+import org.jetbrains.kotlin.konan.file.File
 import org.jetbrains.kotlin.konan.library.impl.buildLibrary
 import org.jetbrains.kotlin.library.KLIB_PROPERTY_HEADER
 import org.jetbrains.kotlin.library.KotlinAbiVersion
 import org.jetbrains.kotlin.library.KotlinLibraryVersioning
 import org.jetbrains.kotlin.library.metadata.KlibMetadataVersion
-import org.jetbrains.kotlin.util.removeSuffixIfPresent
 import java.util.*
 
 internal data class KlibWriterInput(
@@ -25,7 +25,7 @@ internal data class KlibWriterInput(
         val produceHeaderKlib: Boolean
 )
 internal val WriteKlibPhase = createSimpleNamedCompilerPhase<PhaseContext, KlibWriterInput>(
-        "WriteKlib", "Write klib output",
+        "WriteKlib",
 ) { context, input ->
     val config = context.config
     val configuration = config.configuration
@@ -37,11 +37,9 @@ internal val WriteKlibPhase = createSimpleNamedCompilerPhase<PhaseContext, KlibW
     val shortLibraryName = config.shortModuleName
     val abiVersion = KotlinAbiVersion.CURRENT
     val compilerVersion = KotlinCompilerVersion.getVersion().toString()
-    val libraryVersion = configuration.get(KonanConfigKeys.LIBRARY_VERSION)
     val metadataVersion = KlibMetadataVersion.INSTANCE.toString()
     val versions = KotlinLibraryVersioning(
             abiVersion = abiVersion,
-            libraryVersion = libraryVersion,
             compilerVersion = compilerVersion,
             metadataVersion = metadataVersion,
     )
@@ -68,6 +66,11 @@ internal val WriteKlibPhase = createSimpleNamedCompilerPhase<PhaseContext, KlibW
     val linkDependencies = if (context.config.metadataKlib) emptyList()
     else input.serializerOutput.neededLibraries
 
+    config.writeDependenciesOfProducedKlibTo?.let { path ->
+        val usedDependenciesFile = File(path)
+        usedDependenciesFile.writeLines(linkDependencies.map { it.libraryFile.canonicalPath })
+    }
+
     buildLibrary(
             natives = config.nativeLibraries,
             included = config.includeBinaries,
@@ -82,7 +85,6 @@ internal val WriteKlibPhase = createSimpleNamedCompilerPhase<PhaseContext, KlibW
             nopack = nopack,
             shortName = shortLibraryName,
             manifestProperties = manifestProperties,
-            dataFlowGraph = input.serializerOutput.dataFlowGraph
     )
 }
 

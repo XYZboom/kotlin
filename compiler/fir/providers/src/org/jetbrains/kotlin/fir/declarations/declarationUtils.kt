@@ -7,11 +7,8 @@ package org.jetbrains.kotlin.fir.declarations
 
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.util.PrivateForInline
-import org.jetbrains.kotlin.fir.declarations.utils.isInline
-import org.jetbrains.kotlin.fir.resolve.ScopeSession
-import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
-import org.jetbrains.kotlin.fir.resolve.scope
+import org.jetbrains.kotlin.fir.declarations.utils.isInlineOrValue
+import org.jetbrains.kotlin.fir.resolve.*
 import org.jetbrains.kotlin.fir.scopes.*
 import org.jetbrains.kotlin.fir.scopes.impl.declaredMemberScope
 import org.jetbrains.kotlin.fir.scopes.impl.importedFromObjectOrStaticData
@@ -21,9 +18,9 @@ import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.coneTypeSafe
 import org.jetbrains.kotlin.fir.types.isNullableAny
-import org.jetbrains.kotlin.fir.types.toSymbol
 import org.jetbrains.kotlin.fir.unwrapSubstitutionOverrides
 import org.jetbrains.kotlin.util.OperatorNameConventions
+import org.jetbrains.kotlin.util.PrivateForInline
 
 fun FirClass.constructors(session: FirSession): List<FirConstructorSymbol> {
     val result = mutableListOf<FirConstructorSymbol>()
@@ -50,7 +47,6 @@ fun FirClassSymbol<*>.collectEnumEntries(): Collection<FirEnumEntrySymbol> {
  * sequence of FirTypeAlias'es points to starting
  * with `this`. Or null if something goes wrong or we have anonymous object symbol.
  */
-@Suppress("NO_TAIL_CALLS_FOUND", "NON_TAIL_RECURSIVE_CALL") // K2 warning suppression, TODO: KT-62472
 tailrec fun FirClassLikeSymbol<*>.fullyExpandedClass(useSiteSession: FirSession): FirRegularClassSymbol? {
     return when (this) {
         is FirRegularClassSymbol -> this
@@ -73,13 +69,13 @@ fun FirBasedSymbol<*>.isPrimaryConstructorOfInlineOrValueClass(session: FirSessi
 fun FirConstructorSymbol.getConstructedClass(session: FirSession): FirRegularClassSymbol? {
     return resolvedReturnTypeRef.coneType
         .fullyExpandedType(session)
-        .toSymbol(session) as? FirRegularClassSymbol?
+        .toRegularClassSymbol(session)
 }
 
 fun FirRegularClassSymbol.isInlineOrValueClass(): Boolean {
     if (this.classKind != ClassKind.CLASS) return false
 
-    return isInline
+    return isInlineOrValue
 }
 
 @PrivateForInline
@@ -125,7 +121,7 @@ fun FirFunction.itOrExpectHasDefaultParameterValue(index: Int): Boolean =
 fun FirSimpleFunction.isEquals(session: FirSession): Boolean {
     if (name != OperatorNameConventions.EQUALS) return false
     if (valueParameters.size != 1) return false
-    if (contextReceivers.isNotEmpty()) return false
+    if (contextParameters.isNotEmpty()) return false
     if (receiverParameter != null) return false
     val parameter = valueParameters.first()
     return parameter.returnTypeRef.coneType.fullyExpandedType(session).isNullableAny

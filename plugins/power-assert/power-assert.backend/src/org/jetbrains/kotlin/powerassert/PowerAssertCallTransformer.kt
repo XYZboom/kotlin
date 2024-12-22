@@ -19,6 +19,8 @@
 
 package org.jetbrains.kotlin.powerassert
 
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
@@ -27,15 +29,17 @@ import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.builders.irCall
-import org.jetbrains.kotlin.ir.builders.irString
 import org.jetbrains.kotlin.ir.builders.parent
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrFunction
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.IrTypeParameterSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.isSubtypeOf
+import org.jetbrains.kotlin.ir.util.isSubtypeOfClass
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
@@ -48,60 +52,57 @@ import org.jetbrains.kotlin.powerassert.diagram.*
 class PowerAssertCallTransformer(
     private val sourceFile: SourceFile,
     private val context: IrPluginContext,
-    private val messageCollector: MessageCollector,
-    private val functions: Set<FqName>,
+    private val configuration: PowerAssertConfiguration,
 ) : IrElementTransformerVoidWithContext() {
     private val irTypeSystemContext = IrTypeSystemContextImpl(context.irBuiltIns)
 
     override fun visitCall(expression: IrCall): IrExpression {
         val function = expression.symbol.owner
         val fqName = function.kotlinFqName
-        if (function.valueParameters.isEmpty() || functions.none { fqName == it }) {
+        if (function.parameters.isEmpty() || configuration.functions.none { fqName == it }) {
             return super.visitCall(expression)
         }
 
         // Find a valid delegate function or do not translate
         // TODO better way to determine which delegate to actually use
         val delegates = findDelegates(function)
-        val delegate = delegates.maxByOrNull { it.function.valueParameters.size }
+        val delegate = delegates.maxByOrNull { delegate ->
+            delegate.function.parameters.count { it.kind == IrParameterKind.Regular }
+        }
         if (delegate == null) {
-            val valueTypesTruncated = function.valueParameters.subList(0, function.valueParameters.size - 1)
+            val regularParameters = function.parameters.filter { it.kind == IrParameterKind.Regular }
+            val valueTypesTruncated = regularParameters.subList(0, regularParameters.size - 1)
                 .joinToString("") { it.type.render() + ", " }
-            val valueTypesAll = function.valueParameters.joinToString("") { it.type.render() + ", " }
-            messageCollector.warn(
+            val valueTypesAll = regularParameters.joinToString("") { it.type.render() + ", " }
+            configuration.messageCollector.warn(
                 expression = expression,
                 message = """
-          |Unable to find overload of function $fqName for power-assert transformation callable as:
-          | - $fqName(${valueTypesTruncated}String)
-          | - $fqName($valueTypesTruncated() -> String)
-          | - $fqName(${valueTypesAll}String)
-          | - $fqName($valueTypesAll() -> String)
-        """.trimMargin(),
+                  |Unable to find overload of function $fqName for power-assert transformation callable as:
+                  | - $fqName(${valueTypesTruncated}String)
+                  | - $fqName($valueTypesTruncated() -> String)
+                  | - $fqName(${valueTypesAll}String)
+                  | - $fqName($valueTypesAll() -> String)
+                """.trimMargin(),
             )
             return super.visitCall(expression)
         }
 
-        val dispatchRoot =
-            if (expression.symbol.owner.isInfix) expression.dispatchReceiver?.let { buildTree(it) } else null
-        val extensionRoot =
-            if (expression.symbol.owner.isInfix) expression.extensionReceiver?.let { buildTree(it) } else null
         val messageArgument: IrExpression?
         val roots: List<Node?>
-        if (delegate.function.valueParameters.size == function.valueParameters.size) {
-            messageArgument = expression.getValueArgument(expression.valueArgumentsCount - 1)
-            roots = (0 until expression.valueArgumentsCount - 1)
-                .map { index -> expression.getValueArgument(index) }
-                .map { arg -> arg?.let { buildTree(it) } }
+        if (delegate.function.parameters.size == function.parameters.size) {
+            messageArgument = expression.arguments.last()
+            roots = expression.arguments
+                .subList(fromIndex = 0, toIndex = expression.arguments.lastIndex) // Exclude message argument.
+                .map { buildTree(it, expression) }
         } else {
             messageArgument = null
-            roots = (0 until expression.valueArgumentsCount)
-                .map { index -> expression.getValueArgument(index) }
-                .map { arg -> arg?.let { buildTree(it) } }
+            roots = expression.arguments
+                .map { buildTree(it, expression) }
         }
 
         // If all roots are null, there are no transformable parameters
-        if (dispatchRoot == null && extensionRoot == null && roots.all { it == null }) {
-            messageCollector.info(expression, "Expression is constant and will not be power-assert transformed")
+        if (roots.all { it == null }) {
+            configuration.messageCollector.info(expression, "Expression is constant and will not be power-assert transformed")
             return super.visitCall(expression)
         }
 
@@ -112,9 +113,12 @@ class PowerAssertCallTransformer(
             delegate = delegate,
             messageArgument = messageArgument,
             roots = roots,
-            dispatchRoot = dispatchRoot,
-            extensionRoot = extensionRoot,
         )
+    }
+
+    private fun buildTree(expression: IrExpression?, call: IrCall): Node? {
+        if (expression == null) return null
+        return buildTree(configuration.constTracker, sourceFile, expression, call)
     }
 
     private fun DeclarationIrBuilder.diagram(
@@ -122,52 +126,42 @@ class PowerAssertCallTransformer(
         delegate: FunctionDelegate,
         messageArgument: IrExpression?,
         roots: List<Node?>,
-        dispatchRoot: Node? = null,
-        extensionRoot: Node? = null,
     ): IrExpression {
         fun recursive(
             index: Int,
-            dispatch: IrExpression?,
-            extension: IrExpression?,
-            arguments: List<IrExpression?>,
-            variables: List<IrTemporaryVariable>,
+            arguments: PersistentList<IrExpression?>,
+            variables: PersistentList<IrTemporaryVariable>,
         ): IrExpression {
             if (index >= roots.size) {
-                val prefix = buildMessagePrefix(messageArgument, delegate.messageParameter, roots, call)
+                val prefix = buildMessagePrefix(messageArgument, delegate.messageParameter)
                     ?.deepCopyWithSymbols(parent)
                 val diagram = irDiagramString(sourceFile, prefix, call, variables)
-                return delegate.buildCall(this, call, dispatch, extension, arguments, diagram)
+                return delegate.buildCall(this, call, arguments, diagram)
             } else {
                 val root = roots[index]
                 if (root == null) {
-                    val newArguments = arguments + call.getValueArgument(index)
-                    return recursive(index + 1, dispatch, extension, newArguments, variables)
+                    val newArguments = arguments.add(call.arguments[index])
+                    return recursive(index + 1, newArguments, variables)
                 } else {
                     return buildDiagramNesting(sourceFile, root, variables) { argument, newVariables ->
-                        val newArguments = arguments + argument
-                        recursive(index + 1, dispatch, extension, newArguments, newVariables)
+                        val newArguments = arguments.add(argument)
+                        recursive(index + 1, newArguments, newVariables)
                     }
                 }
             }
         }
 
-        return buildDiagramNestingNullable(sourceFile, dispatchRoot) { dispatch, dispatchNewVariables ->
-            buildDiagramNestingNullable(sourceFile, extensionRoot, dispatchNewVariables) { extension, extensionNewVariables ->
-                recursive(0, dispatch, extension, emptyList(), extensionNewVariables)
-            }
-        }
+        return recursive(0, persistentListOf(), persistentListOf())
     }
 
     private fun DeclarationIrBuilder.buildMessagePrefix(
         messageArgument: IrExpression?,
         messageParameter: IrValueParameter,
-        roots: List<Node?>,
-        original: IrCall,
     ): IrExpression? {
-        return when {
-            messageArgument is IrConst<*> -> messageArgument
-            messageArgument is IrStringConcatenation -> messageArgument
-            messageArgument is IrGetValue -> {
+        return when (messageArgument) {
+            is IrConst -> messageArgument
+            is IrStringConcatenation -> messageArgument
+            is IrGetValue -> {
                 if (messageArgument.type.isAssignableTo(context.irBuiltIns.stringType)) {
                     return messageArgument
                 } else {
@@ -178,20 +172,18 @@ class PowerAssertCallTransformer(
                 }
             }
             // Kotlin Lambda or SAMs conversion lambda
-            messageArgument is IrFunctionExpression || messageArgument is IrTypeOperatorCall -> {
+            is IrFunctionExpression, is IrTypeOperatorCall -> {
                 val invoke = messageParameter.type.classOrNull!!.functions
                     .filter { !it.owner.isFakeOverride } // TODO best way to find single access method?
                     .single()
                 irCall(invoke).apply { dispatchReceiver = messageArgument }
             }
-            // TODO what should the default message be?
-            roots.size == 1 && original.getValueArgument(0)!!.type.isBoolean() -> irString("Assertion failed")
             else -> null
         }
     }
 
     private fun findDelegates(function: IrFunction): List<FunctionDelegate> {
-        val values = function.valueParameters
+        val values = function.parameters
         if (values.isEmpty()) return emptyList()
 
         // Java static functions require searching by class
@@ -206,23 +198,43 @@ class PowerAssertCallTransformer(
             .distinct()
 
         return possible.mapNotNull { overload ->
-            // Dispatch receivers must always match exactly
-            if (function.dispatchReceiverParameter?.type != overload.owner.dispatchReceiverParameter?.type) {
+            // Type parameters must be compatible.
+            if (function.typeParameters.size != overload.owner.typeParameters.size) {
                 return@mapNotNull null
             }
-
-            // Extension receiver may only be assignable
-            if (!function.extensionReceiverParameter?.type.isAssignableTo(overload.owner.extensionReceiverParameter?.type)) {
-                return@mapNotNull null
+            for (i in function.typeParameters.indices) {
+                val functionSuperTypes = function.typeParameters[i].superTypes
+                val overloadDefaultType = overload.owner.typeParameters[i].defaultType
+                if (functionSuperTypes.any { !it.isAssignableTo(overloadDefaultType) }) {
+                    return@mapNotNull null
+                }
             }
 
-            val parameters = overload.owner.valueParameters
+            fun IrType.remap(): IrType = remapTypeParameters(overload.owner, function)
+
+            // Value parameters must be compatible.
+            val parameters = overload.owner.parameters
             if (parameters.size !in values.size..values.size + 1) return@mapNotNull null
-            if (!parameters.zip(values).all { (param, value) -> value.type.isAssignableTo(param.type) }) {
-                return@mapNotNull null
+            for (i in values.indices) {
+                val value = values[i]
+                val parameter = parameters[i]
+                if (value.kind != parameter.kind) return@mapNotNull null
+
+                when (value.kind) {
+                    // Regular parameters may only be assignable.
+                    IrParameterKind.Regular,
+                        -> if (!value.type.isAssignableTo(parameter.type.remap())) return@mapNotNull null
+
+                    // All other parameter kinds must match exactly.
+                    IrParameterKind.DispatchReceiver,
+                    IrParameterKind.Context,
+                    IrParameterKind.ExtensionReceiver,
+                        -> if (value.type != parameter.type.remap()) return@mapNotNull null
+                }
             }
 
             val messageParameter = parameters.last()
+            if (messageParameter.kind != IrParameterKind.Regular) return@mapNotNull null
             return@mapNotNull when {
                 isStringSupertype(messageParameter.type) -> SimpleFunctionDelegate(overload, messageParameter)
                 isStringFunction(messageParameter.type) -> LambdaFunctionDelegate(overload, messageParameter)

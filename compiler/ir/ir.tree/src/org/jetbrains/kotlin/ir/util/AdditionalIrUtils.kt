@@ -11,11 +11,10 @@ import org.jetbrains.kotlin.ir.*
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.symbols.*
-import org.jetbrains.kotlin.ir.symbols.impl.IrClassSymbolImpl
+import org.jetbrains.kotlin.ir.types.isArray
 import org.jetbrains.kotlin.name.*
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.utils.filterIsInstanceAnd
-import java.io.File
 
 val IrConstructor.constructedClass get() = this.parent as IrClass
 
@@ -23,8 +22,8 @@ fun IrClassifierSymbol?.isArrayOrPrimitiveArray(builtins: IrBuiltIns): Boolean =
     this == builtins.arrayClass || this in builtins.primitiveArraysToPrimitiveTypes
 
 // Constructors can't be marked as inline in metadata, hence this check.
-fun IrFunction.isInlineArrayConstructor(builtIns: IrBuiltIns): Boolean =
-    this is IrConstructor && valueParameters.size == 2 && constructedClass.symbol.isArrayOrPrimitiveArray(builtIns)
+fun IrFunction.isInlineArrayConstructor(): Boolean =
+    this is IrConstructor && hasShape(regularParameters = 2) && constructedClass.defaultType.let { it.isArray() || it.isPrimitiveArray() }
 
 val IrDeclarationParent.fqNameForIrSerialization: FqName
     get() = when (this) {
@@ -60,6 +59,12 @@ private val IrDeclarationWithName.classIdImpl: ClassId?
     get() = when (val parent = this.parent) {
         is IrClass -> parent.classId?.createNestedClassId(this.name)
         is IrPackageFragment -> ClassId.topLevel(parent.packageFqName.child(this.name))
+        is IrScript -> {
+            // if the script is already lowered, use the target class as parent, otherwise use the package as parent, assuming that
+            // the script to class lowering will rewrite it correctly
+            parent.targetClass?.owner?.classId?.createNestedClassId(this.name)
+                ?: (parent.parent as? IrFile)?.packageFqName?.child(this.name)?.let { ClassId.topLevel(it) }
+        }
         else -> null
     }
 
@@ -92,20 +97,6 @@ private val IrDeclarationWithName.callableIdImpl: CallableId
             is IrPackageFragment -> CallableId(parent.packageFqName, name)
             else -> null
         } ?: error("$this has no callableId")
-    }
-
-@Suppress("unused")
-@Deprecated(
-    "This function is deprecated because it has confusing name and behavior. " +
-            "Please use IrDeclarationWithName.name or IrDeclaration.getNameWithAssert",
-    ReplaceWith("(this as? IrDeclarationWithName)?.name", "org.jetbrains.kotlin.ir.declarations.IrDeclarationWithName"),
-    DeprecationLevel.ERROR
-)
-val IrDeclaration.nameForIrSerialization: Name
-    get() = when (this) {
-        is IrDeclarationWithName -> this.name
-        is IrConstructor -> SpecialNames.INIT
-        else -> error(this)
     }
 
 fun IrDeclaration.getNameWithAssert(): Name =
@@ -153,7 +144,7 @@ fun IrDeclarationWithName.hasTopLevelEqualFqName(packageName: String, declaratio
     }
 
 fun IrSymbol.hasEqualFqName(fqName: FqName): Boolean {
-    return this is IrClassSymbol && with(signature as? IdSignature.CommonSignature ?: return false) {
+    return with(signature as? IdSignature.CommonSignature ?: return false) {
         // optimized version of FqName("$packageFqName.$declarationFqName") == fqName
         val fqNameAsString = fqName.asString()
         fqNameAsString.length == packageFqName.length + 1 + declarationFqName.length &&
@@ -164,11 +155,13 @@ fun IrSymbol.hasEqualFqName(fqName: FqName): Boolean {
 }
 
 private fun IrSymbol.hasTopLevelEqualFqName(packageName: String, declarationName: String): Boolean {
-    return this is IrClassSymbol && with(signature as? IdSignature.CommonSignature ?: return false) {
+    return with(signature as? IdSignature.CommonSignature ?: return false) {
         // optimized version of FqName("$packageFqName.$declarationFqName") == fqName
         packageFqName == packageName && declarationFqName == declarationName
     }
 }
+
+fun List<IrConstructorCall>.hasAnnotation(classId: ClassId): Boolean = hasAnnotation(classId.asSingleFqName())
 
 fun List<IrConstructorCall>.hasAnnotation(fqName: FqName): Boolean =
     any { it.annotationClass.hasEqualFqName(fqName) }
@@ -206,9 +199,6 @@ val IrDeclaration.isPropertyField get() =
 val IrDeclaration.isJvmInlineClassConstructor get() =
     this is IrSimpleFunction && name.asString() == "constructor-impl"
 
-val IrDeclaration.isTopLevelDeclaration get() =
-    parent !is IrDeclaration && !this.isPropertyAccessor && !this.isPropertyField
-
 val IrDeclaration.isAnonymousObject get() = this is IrClass && name == SpecialNames.NO_NAME_PROVIDED
 
 val IrDeclaration.isAnonymousFunction get() = this is IrSimpleFunction && name == SpecialNames.NO_NAME_PROVIDED
@@ -236,30 +226,6 @@ val IrDeclaration.isLocal: Boolean
 val IrDeclaration.module get() = this.descriptor.module
 
 const val SYNTHETIC_OFFSET = -2
-
-val File.lineStartOffsets: IntArray
-    get() {
-        // TODO: could be incorrect, if file is not in system's line terminator format.
-        // Maybe use (0..document.lineCount - 1)
-        //                .map { document.getLineStartOffset(it) }
-        //                .toIntArray()
-        // as in PSI.
-        val separatorLength = System.lineSeparator().length
-        val buffer = mutableListOf<Int>()
-        var currentOffset = 0
-        this.forEachLine { line ->
-            buffer.add(currentOffset)
-            currentOffset += line.length + separatorLength
-        }
-        buffer.add(currentOffset)
-        return buffer.toIntArray()
-    }
-
-val IrFileEntry.lineStartOffsets: IntArray
-    get() = when (this) {
-        is PsiIrFileEntry -> this.getLineOffsets()
-        else -> File(name).let { if (it.exists() && it.isFile) it.lineStartOffsets else IntArray(0) }
-    }
 
 class NaiveSourceBasedFileEntryImpl(
     override val name: String,

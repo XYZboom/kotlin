@@ -1,10 +1,10 @@
 RAW_FIR:
 FILE: [ResolvedTo(RAW_FIR)] localImplicitTypeUnavailableScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -19,11 +19,11 @@ FILE: [ResolvedTo(RAW_FIR)] localImplicitTypeUnavailableScript.kts
 
 IMPORTS:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -38,11 +38,11 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
 COMPILER_REQUIRED_ANNOTATIONS:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -57,11 +57,11 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
 COMPANION_GENERATION:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -76,11 +76,11 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
 SUPER_TYPES:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -95,11 +95,11 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
 TYPES:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -114,11 +114,11 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
 STATUS:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -133,11 +133,11 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
 EXPECT_ACTUAL_MATCHING:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -152,11 +152,11 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
 CONTRACTS:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -166,48 +166,16 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
         }
 
-        public final [ResolvedTo(CONTRACTS)] fun check(): R|kotlin/Unit| {
-            local final? [ResolvedTo(RAW_FIR)] class A : R|kotlin/Any| {
-                public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] constructor(): R|<local>/A| {
-                    super<R|kotlin/Any|>()
-                }
-
-                public? final? [ResolvedTo(RAW_FIR)] val bar: <implicit>
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] get(): <implicit> {
-                        ^ B#().foo#
-                    }
-
-                local final? inner [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] class B : R|kotlin/Any| {
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] <local>/A.constructor(): R|<local>/A.B| {
-                        super<R|kotlin/Any|>()
-                    }
-
-                    public? final? [ResolvedTo(RAW_FIR)] var foo: @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>? = Null(null)
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] get(): @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>?
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] set([ResolvedTo(RAW_FIR)] value: @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>?): R|kotlin/Unit|
-
-                    local final? inner [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] class C : R|kotlin/Any| {
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=C] <local>/A.B.constructor(): R|<local>/A.B.C| {
-                            super<R|kotlin/Any|>()
-                        }
-
-                    }
-
-                }
-
-            }
-
-            [ResolvedTo(RAW_FIR)] lval a: <implicit> = A#().bar#
-        }
+        public final [ResolvedTo(CONTRACTS)] fun check(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 IMPLICIT_TYPES_BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -217,48 +185,16 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
         }
 
-        public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] fun check(): R|kotlin/Unit| {
-            local final? [ResolvedTo(RAW_FIR)] class A : R|kotlin/Any| {
-                public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] constructor(): R|<local>/A| {
-                    super<R|kotlin/Any|>()
-                }
-
-                public? final? [ResolvedTo(RAW_FIR)] val bar: <implicit>
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] get(): <implicit> {
-                        ^ B#().foo#
-                    }
-
-                local final? inner [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] class B : R|kotlin/Any| {
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] <local>/A.constructor(): R|<local>/A.B| {
-                        super<R|kotlin/Any|>()
-                    }
-
-                    public? final? [ResolvedTo(RAW_FIR)] var foo: @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>? = Null(null)
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] get(): @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>?
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] set([ResolvedTo(RAW_FIR)] value: @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>?): R|kotlin/Unit|
-
-                    local final? inner [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] class C : R|kotlin/Any| {
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=C] <local>/A.B.constructor(): R|<local>/A.B.C| {
-                            super<R|kotlin/Any|>()
-                        }
-
-                    }
-
-                }
-
-            }
-
-            [ResolvedTo(RAW_FIR)] lval a: <implicit> = A#().bar#
-        }
+        public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] fun check(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 CONSTANT_EVALUATION:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -268,48 +204,16 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
         }
 
-        public final [ResolvedTo(CONSTANT_EVALUATION)] fun check(): R|kotlin/Unit| {
-            local final? [ResolvedTo(RAW_FIR)] class A : R|kotlin/Any| {
-                public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] constructor(): R|<local>/A| {
-                    super<R|kotlin/Any|>()
-                }
-
-                public? final? [ResolvedTo(RAW_FIR)] val bar: <implicit>
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] get(): <implicit> {
-                        ^ B#().foo#
-                    }
-
-                local final? inner [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] class B : R|kotlin/Any| {
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] <local>/A.constructor(): R|<local>/A.B| {
-                        super<R|kotlin/Any|>()
-                    }
-
-                    public? final? [ResolvedTo(RAW_FIR)] var foo: @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>? = Null(null)
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] get(): @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>?
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] set([ResolvedTo(RAW_FIR)] value: @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>?): R|kotlin/Unit|
-
-                    local final? inner [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] class C : R|kotlin/Any| {
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=C] <local>/A.B.constructor(): R|<local>/A.B.C| {
-                            super<R|kotlin/Any|>()
-                        }
-
-                    }
-
-                }
-
-            }
-
-            [ResolvedTo(RAW_FIR)] lval a: <implicit> = A#().bar#
-        }
+        public final [ResolvedTo(CONSTANT_EVALUATION)] fun check(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 ANNOTATION_ARGUMENTS:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        @Target[Unresolved](LAZY_EXPRESSION) public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=second/Anno.str] str: KClass<*>): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -319,48 +223,16 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
         }
 
-        public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun check(): R|kotlin/Unit| {
-            local final? [ResolvedTo(RAW_FIR)] class A : R|kotlin/Any| {
-                public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] constructor(): R|<local>/A| {
-                    super<R|kotlin/Any|>()
-                }
-
-                public? final? [ResolvedTo(RAW_FIR)] val bar: <implicit>
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] get(): <implicit> {
-                        ^ B#().foo#
-                    }
-
-                local final? inner [ResolvedTo(RAW_FIR)] [ContainingClassKey=A] class B : R|kotlin/Any| {
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] <local>/A.constructor(): R|<local>/A.B| {
-                        super<R|kotlin/Any|>()
-                    }
-
-                    public? final? [ResolvedTo(RAW_FIR)] var foo: @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>? = Null(null)
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] get(): @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>?
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] set([ResolvedTo(RAW_FIR)] value: @Anno[Unresolved](<getClass>(C#)) List<@Anno[Unresolved](<getClass>(C#)) Collection<@Anno[Unresolved](<getClass>(C#)) String>>?): R|kotlin/Unit|
-
-                    local final? inner [ResolvedTo(RAW_FIR)] [ContainingClassKey=B] class C : R|kotlin/Any| {
-                        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=C] <local>/A.B.constructor(): R|<local>/A.B.C| {
-                            super<R|kotlin/Any|>()
-                        }
-
-                    }
-
-                }
-
-            }
-
-            [ResolvedTo(RAW_FIR)] lval a: <implicit> = A#().bar#
-        }
+        public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun check(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @R|kotlin/annotation/Target|[Types](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final [ResolvedTo(STATUS)] annotation class Anno : R|kotlin/Annotation| {
+        @R|kotlin/annotation/Target|[Types](Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=Anno] constructor([ResolvedTo(STATUS)] [CorrespondingProperty=second/Anno.str] str: R|kotlin/reflect/KClass<*>|): R|second/Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -407,11 +279,11 @@ FILE: [ResolvedTo(IMPORTS)] localImplicitTypeUnavailableScript.kts
 
 FILE RAW TO BODY:
 FILE: [ResolvedTo(BODY_RESOLVE)] localImplicitTypeUnavailableScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(BODY_RESOLVE)] <script-localImplicitTypeUnavailableScript.kts>
+        [ResolvedTo(BODY_RESOLVE)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(BODY_RESOLVE)] lval args: R|kotlin/Array<kotlin/String>|
 
-        @R|kotlin/annotation/Target|[Types](allowedTargets = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|)) public final [ResolvedTo(BODY_RESOLVE)] annotation class Anno : R|kotlin/Annotation| {
+        @R|kotlin/annotation/Target|[Types](allowedTargets = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|)) public final [ResolvedTo(BODY_RESOLVE)] [ContainingScriptKey=FirScriptSymbol second.<script-localImplicitTypeUnavailableScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Anno] constructor([ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=second/Anno.str] str: R|kotlin/reflect/KClass<*>|): R|second/Anno| {
                 super<R|kotlin/Any|>()
             }
@@ -454,3 +326,4 @@ FILE: [ResolvedTo(BODY_RESOLVE)] localImplicitTypeUnavailableScript.kts
 
             [ResolvedTo(BODY_RESOLVE)] lval a: R|@R|second/Anno|(str = <getClass>(Q|<local>/A.B.C|))  kotlin/collections/List<@R|second/Anno|(str = <getClass>(Q|<local>/A.B.C|))  kotlin/collections/Collection<@R|second/Anno|(str = <getClass>(Q|<local>/A.B.C|))  kotlin/String>>?| = R|<local>/A.A|().R|<local>/bar|
         }
+

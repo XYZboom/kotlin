@@ -11,6 +11,8 @@ import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.parcelize.ParcelizeComponentRegistrar
 import org.jetbrains.kotlin.parcelize.ParcelizeConfigurationKeys
 import org.jetbrains.kotlin.parcelize.kotlinxImmutable
+import org.jetbrains.kotlin.parcelize.test.services.ParcelizeDirectives.ENABLE_PARCELIZE
+import org.jetbrains.kotlin.test.directives.model.SimpleDirectivesContainer
 import org.jetbrains.kotlin.test.model.FrontendKinds
 import org.jetbrains.kotlin.test.model.TestModule
 import org.jetbrains.kotlin.test.services.EnvironmentConfigurator
@@ -27,6 +29,7 @@ private fun getLibraryJar(classToDetect: String): File? = try {
 
 class ParcelizeEnvironmentConfigurator(testServices: TestServices) : EnvironmentConfigurator(testServices) {
     override fun configureCompilerConfiguration(configuration: CompilerConfiguration, module: TestModule) {
+        if (ENABLE_PARCELIZE !in module.directives) return
         val libPath = PathUtil.kotlinPathsForCompiler.libPath
         val runtimeLibrary = File(libPath, PathUtil.PARCELIZE_RUNTIME_PLUGIN_JAR_NAME)
         val androidExtensionsRuntimeLibrary = File(libPath, PathUtil.ANDROID_EXTENSIONS_RUNTIME_PLUGIN_JAR_NAME)
@@ -46,17 +49,26 @@ class ParcelizeEnvironmentConfigurator(testServices: TestServices) : Environment
         // Hard coding a name of an additional annotation for parcelize. Test that use this, need to provide the
         // additional annotations as part of the test sources.
         configuration.put(ParcelizeConfigurationKeys.ADDITIONAL_ANNOTATION, listOf("test.TriggerParcelize"))
+        // Allow bare value arguments for inherited classes.
+        configuration.put(ParcelizeConfigurationKeys.EXPERIMENTAL_CODE_GENERATION, true)
     }
 
     override fun CompilerPluginRegistrar.ExtensionStorage.registerCompilerExtensions(
         module: TestModule,
         configuration: CompilerConfiguration
     ) {
+        if (ENABLE_PARCELIZE !in module.directives) return
         val additionalAnnotation = configuration.get(ParcelizeConfigurationKeys.ADDITIONAL_ANNOTATION) ?: emptyList()
+        val experimentalCodeGeneration = configuration.get(ParcelizeConfigurationKeys.EXPERIMENTAL_CODE_GENERATION) ?: false
         ParcelizeComponentRegistrar.registerParcelizeComponents(
             this,
             additionalAnnotation,
+            experimentalCodeGeneration,
             useFir = module.frontendKind == FrontendKinds.FIR
         )
     }
+}
+
+object ParcelizeDirectives : SimpleDirectivesContainer() {
+    val ENABLE_PARCELIZE by directive("Enables parcelize plugin")
 }

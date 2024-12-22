@@ -10,7 +10,6 @@ import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
-import org.jetbrains.kotlin.ir.util.inlineDeclaration
 import org.jetbrains.kotlin.ir.util.isBuiltInSuspendCoroutine
 import org.jetbrains.kotlin.ir.util.isBuiltInSuspendCoroutineUninterceptedOrReturn
 import org.jetbrains.kotlin.ir.util.isFunctionInlining
@@ -26,8 +25,8 @@ abstract class IrInlineReferenceLocator(private val context: JvmBackendContext) 
     override fun visitFunctionAccess(expression: IrFunctionAccessExpression, data: IrDeclaration?) {
         val function = expression.symbol.owner
         if (function.isInlineFunctionCall(context)) {
-            for (parameter in function.valueParameters) {
-                val lambda = expression.getValueArgument(parameter.index)?.unwrapInlineLambda() ?: continue
+            for (parameter in function.parameters) {
+                val lambda = expression.arguments[parameter.indexInParameters]?.unwrapInlineLambda() ?: continue
                 visitInlineLambda(lambda, function, parameter, data!!)
             }
         }
@@ -109,15 +108,15 @@ class IrInlineScopeResolver(context: JvmBackendContext) : IrInlineReferenceLocat
         super.visitCall(expression, data)
     }
 
-    override fun visitBlock(expression: IrBlock, data: IrDeclaration?) {
-        if (expression is IrInlinedFunctionBlock && expression.isFunctionInlining()) {
-            val callee = expression.inlineDeclaration
+    override fun visitInlinedFunctionBlock(inlinedBlock: IrInlinedFunctionBlock, data: IrDeclaration?) {
+        if (inlinedBlock.isFunctionInlining()) {
+            val callee = inlinedBlock.inlineDeclaration
             if (callee is IrSimpleFunction && callee.isPrivateInline && data != null) {
                 (privateInlineFunctionCallSites.getOrPut(callee) { mutableSetOf() } as MutableSet).add(data)
             }
         }
 
-        super.visitBlock(expression, data)
+        super.visitInlinedFunctionBlock(inlinedBlock, data)
     }
 
     private inline val IrSimpleFunction.isPrivateInline

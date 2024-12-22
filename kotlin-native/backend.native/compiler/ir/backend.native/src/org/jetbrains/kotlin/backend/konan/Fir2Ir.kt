@@ -7,37 +7,28 @@ import org.jetbrains.kotlin.backend.konan.driver.phases.Fir2IrOutput
 import org.jetbrains.kotlin.backend.konan.driver.phases.FirOutput
 import org.jetbrains.kotlin.backend.konan.ir.KonanSymbols
 import org.jetbrains.kotlin.backend.konan.ir.SymbolOverIrLookupUtils
-import org.jetbrains.kotlin.backend.konan.serialization.KonanIdSignaturer
-import org.jetbrains.kotlin.backend.konan.serialization.KonanManglerDesc
 import org.jetbrains.kotlin.backend.konan.serialization.KonanManglerIr
 import org.jetbrains.kotlin.builtins.DefaultBuiltIns
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.konan.KonanBuiltIns
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.common.fir.FirDiagnosticsCompilerResultsReporter
+import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.descriptors.isEmpty
 import org.jetbrains.kotlin.descriptors.konan.isNativeStdlib
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporterFactory
-import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.backend.*
-import org.jetbrains.kotlin.fir.backend.native.FirNativeKotlinMangler
-import org.jetbrains.kotlin.fir.backend.native.interop.isExternalObjCClassProperty
-import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
-import org.jetbrains.kotlin.fir.declarations.FirProperty
-import org.jetbrains.kotlin.fir.declarations.utils.isLateInit
+import org.jetbrains.kotlin.fir.backend.DelicateDeclarationStorageApi
+import org.jetbrains.kotlin.fir.backend.Fir2IrConfiguration
+import org.jetbrains.kotlin.fir.backend.Fir2IrVisibilityConverter
 import org.jetbrains.kotlin.fir.descriptors.FirModuleDescriptor
 import org.jetbrains.kotlin.fir.pipeline.convertToIrAndActualize
-import org.jetbrains.kotlin.fir.references.FirReference
 import org.jetbrains.kotlin.incremental.components.LookupTracker
-import org.jetbrains.kotlin.ir.declarations.IrClass
+import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrExternalPackageFragment
-import org.jetbrains.kotlin.ir.declarations.IrMemberWithContainerSource
-import org.jetbrains.kotlin.ir.objcinterop.IrObjCOverridabilityCondition
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.types.IrTypeSystemContextImpl
-import org.jetbrains.kotlin.ir.util.SymbolTable
 import org.jetbrains.kotlin.ir.util.getPackageFragment
 import org.jetbrains.kotlin.library.isNativeStdlib
 import org.jetbrains.kotlin.library.metadata.KlibMetadataFactories
@@ -45,23 +36,6 @@ import org.jetbrains.kotlin.name.NativeForwardDeclarationKind
 import org.jetbrains.kotlin.storage.LockBasedStorageManager
 
 internal val KlibFactories = KlibMetadataFactories(::KonanBuiltIns, DynamicTypeDeserializer)
-
-internal object NativeFir2IrExtensions : Fir2IrExtensions {
-    override val irNeedsDeserialization = false
-    override val parametersAreAssignable: Boolean get() = false
-    override val externalOverridabilityConditions = listOf(IrObjCOverridabilityCondition)
-    override fun generateOrGetFacadeClass(declaration: IrMemberWithContainerSource, components: Fir2IrComponents) = null
-    override fun deserializeToplevelClass(irClass: IrClass, components: Fir2IrComponents) = false
-    override fun registerDeclarations(symbolTable: SymbolTable) {}
-    override fun findInjectedValue(calleeReference: FirReference, conversionScope: Fir2IrConversionScope) = null
-    override fun hasBackingField(property: FirProperty, session: FirSession): Boolean =
-            if (property.isExternalObjCClassProperty(session))
-                property.isLateInit
-            else
-                Fir2IrExtensions.Default.hasBackingField(property, session)
-
-    override fun isTrueStatic(declaration: FirCallableDeclaration, session: FirSession): Boolean = false
-}
 
 internal fun PhaseContext.fir2Ir(
         input: FirOutput.Full,
@@ -92,7 +66,8 @@ internal fun PhaseContext.fir2Ir(
         // Yes, just to all of them.
         moduleDescriptor.setDependencies(ArrayList(librariesDescriptors))
     }
-    val diagnosticsReporter = DiagnosticReporterFactory.createPendingReporter()
+    val messageCollector = configuration.getNotNull(CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY)
+    val diagnosticsReporter = DiagnosticReporterFactory.createPendingReporter(messageCollector)
 
     val fir2IrConfiguration = Fir2IrConfiguration.forKlibCompilation(configuration, diagnosticsReporter)
     val actualizedResult = input.firResult.convertToIrAndActualize(
@@ -100,12 +75,11 @@ internal fun PhaseContext.fir2Ir(
             fir2IrConfiguration,
             IrGenerationExtension.getInstances(config.project),
             irMangler = KonanManglerIr,
-            firMangler = FirNativeKotlinMangler,
             visibilityConverter = Fir2IrVisibilityConverter.Default,
             kotlinBuiltIns = builtInsModule ?: DefaultBuiltIns.Instance,
             specialAnnotationsProvider = null,
-            extraActualDeclarationExtractorInitializer = { null },
-            actualizerTypeContextProvider = ::IrTypeSystemContextImpl,
+            extraActualDeclarationExtractorsInitializer = { emptyList() },
+            typeSystemContextProvider = ::IrTypeSystemContextImpl,
     ).also {
         (it.irModuleFragment.descriptor as? FirModuleDescriptor)?.let { it.allDependencyModules = librariesDescriptors }
     }
@@ -140,7 +114,7 @@ internal fun PhaseContext.fir2Ir(
         }
     }
 
-    val symbols = createKonanSymbols(actualizedResult.components, actualizedResult.pluginContext)
+    val symbols = createKonanSymbols(actualizedResult.irBuiltIns)
 
     val renderDiagnosticNames = configuration.getBoolean(CLIConfigurationKeys.RENDER_DIAGNOSTIC_INTERNAL_NAME)
     FirDiagnosticsCompilerResultsReporter.reportToMessageCollector(diagnosticsReporter, messageCollector, renderDiagnosticNames)
@@ -153,10 +127,7 @@ internal fun PhaseContext.fir2Ir(
 }
 
 private fun PhaseContext.createKonanSymbols(
-        components: Fir2IrComponents,
-        pluginContext: Fir2IrPluginContext,
+        irBuiltIns: IrBuiltIns,
 ): KonanSymbols {
-    val symbolTable = SymbolTable(KonanIdSignaturer(KonanManglerDesc), pluginContext.irFactory)
-
-    return KonanSymbols(this, SymbolOverIrLookupUtils(), components.irBuiltIns, symbolTable.lazyWrapper)
+    return KonanSymbols(this, SymbolOverIrLookupUtils(), irBuiltIns, this.config.configuration)
 }

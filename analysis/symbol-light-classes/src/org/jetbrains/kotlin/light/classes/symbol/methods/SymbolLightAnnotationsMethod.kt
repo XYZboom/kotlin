@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -7,17 +7,18 @@ package org.jetbrains.kotlin.light.classes.symbol.methods
 
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
-import org.jetbrains.kotlin.analysis.api.symbols.KtPropertySymbol
-import org.jetbrains.kotlin.analysis.api.symbols.pointers.KtSymbolPointer
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
+import org.jetbrains.kotlin.analysis.api.symbols.pointers.KaSymbolPointer
 import org.jetbrains.kotlin.analysis.api.symbols.sourcePsiSafe
 import org.jetbrains.kotlin.asJava.builder.LightMemberOrigin
 import org.jetbrains.kotlin.asJava.classes.METHOD_INDEX_FOR_ANNOTATIONS
 import org.jetbrains.kotlin.asJava.classes.lazyPub
 import org.jetbrains.kotlin.asJava.elements.KtLightIdentifier
-import org.jetbrains.kotlin.descriptors.annotations.AnnotationUseSiteTarget
 import org.jetbrains.kotlin.light.classes.symbol.*
-import org.jetbrains.kotlin.light.classes.symbol.annotations.*
+import org.jetbrains.kotlin.light.classes.symbol.annotations.DeprecatedAdditionalAnnotationsProvider
+import org.jetbrains.kotlin.light.classes.symbol.annotations.GranularAnnotationsBox
+import org.jetbrains.kotlin.light.classes.symbol.annotations.SymbolAnnotationsProvider
 import org.jetbrains.kotlin.light.classes.symbol.classes.SymbolLightClassBase
 import org.jetbrains.kotlin.light.classes.symbol.modifierLists.GranularModifiersBox
 import org.jetbrains.kotlin.light.classes.symbol.modifierLists.SymbolLightMemberModifierList
@@ -33,15 +34,15 @@ internal class SymbolLightAnnotationsMethod private constructor(
     lightMemberOrigin: LightMemberOrigin?,
     containingClass: SymbolLightClassBase,
     private val containingPropertyDeclaration: KtCallableDeclaration?,
-    private val containingPropertySymbolPointer: KtSymbolPointer<KtPropertySymbol>,
+    private val containingPropertySymbolPointer: KaSymbolPointer<KaPropertySymbol>,
 ) : SymbolLightMethodBase(
     lightMemberOrigin,
     containingClass,
     METHOD_INDEX_FOR_ANNOTATIONS,
 ) {
     internal constructor(
-        ktAnalysisSession: KtAnalysisSession,
-        containingPropertySymbol: KtPropertySymbol,
+        ktAnalysisSession: KaSession,
+        containingPropertySymbol: KaPropertySymbol,
         lightMemberOrigin: LightMemberOrigin?,
         containingClass: SymbolLightClassBase,
     ) : this(
@@ -51,9 +52,8 @@ internal class SymbolLightAnnotationsMethod private constructor(
         containingPropertySymbolPointer = with(ktAnalysisSession) { containingPropertySymbol.createPointer() },
     )
 
-    context(KtAnalysisSession)
-    private fun propertySymbol(): KtPropertySymbol {
-        return containingPropertySymbolPointer.restoreSymbolOrThrowIfDisposed()
+    private fun KaSession.propertySymbol(): KaPropertySymbol {
+        return restoreSymbolOrThrowIfDisposed(containingPropertySymbolPointer)
     }
 
     private fun String.abiName(): String {
@@ -63,12 +63,12 @@ internal class SymbolLightAnnotationsMethod private constructor(
     private val _name: String by lazyPub {
         analyzeForLightClasses(ktModule) {
             val symbol = propertySymbol()
-            symbol.getJvmNameFromAnnotation(AnnotationUseSiteTarget.PROPERTY.toOptionalFilter()) ?: run {
-                val defaultName = symbol.name.identifier.let {
-                    if (containingClass.isAnnotationType) it else it.abiName()
-                }
-                symbol.computeJvmMethodName(defaultName, containingClass, AnnotationUseSiteTarget.PROPERTY)
+            val outerClass = this@SymbolLightAnnotationsMethod.containingClass
+            val defaultName = symbol.name.identifier.let {
+                if (outerClass.isAnnotationType) it else it.abiName()
             }
+
+            computeJvmMethodName(symbol = symbol, defaultName = defaultName)
         }
     }
 
@@ -79,7 +79,7 @@ internal class SymbolLightAnnotationsMethod private constructor(
     override val kotlinOrigin: KtDeclaration? get() = containingPropertyDeclaration
 
     private val _modifierList: PsiModifierList by lazyPub {
-        return@lazyPub containingPropertySymbolPointer.withSymbol(ktModule) { propertySymbol ->
+        containingPropertySymbolPointer.withSymbol(ktModule) { propertySymbol ->
             SymbolLightMemberModifierList(
                 containingDeclaration = this@SymbolLightAnnotationsMethod,
                 modifiersBox = GranularModifiersBox(mapOf(PsiModifier.STATIC to true)) { modifier ->
@@ -94,8 +94,7 @@ internal class SymbolLightAnnotationsMethod private constructor(
                 annotationsBox = GranularAnnotationsBox(
                     annotationsProvider = SymbolAnnotationsProvider(
                         ktModule = ktModule,
-                        annotatedSymbolPointer = propertySymbol.createPointer(),
-                        annotationUseSiteTargetFilter = AnnotationUseSiteTarget.PROPERTY.toOptionalFilter(),
+                        annotatedSymbolPointer = containingPropertySymbolPointer,
                     ),
                     additionalAnnotationsProvider = DeprecatedAdditionalAnnotationsProvider
                 ),
@@ -115,7 +114,7 @@ internal class SymbolLightAnnotationsMethod private constructor(
 
     override fun getNameIdentifier(): PsiIdentifier = _identifier
 
-    override fun getReturnType(): PsiType = PsiType.VOID
+    override fun getReturnType(): PsiType = PsiTypes.voidType()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

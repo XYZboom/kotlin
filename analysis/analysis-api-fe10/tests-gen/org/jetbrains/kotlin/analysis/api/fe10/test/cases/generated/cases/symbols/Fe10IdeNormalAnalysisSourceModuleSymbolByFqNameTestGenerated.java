@@ -17,7 +17,6 @@ import org.jetbrains.kotlin.analysis.test.framework.test.configurators.AnalysisS
 import org.jetbrains.kotlin.analysis.test.framework.test.configurators.AnalysisApiMode;
 import org.jetbrains.kotlin.analysis.api.impl.base.test.cases.symbols.AbstractSymbolByFqNameTest;
 import org.jetbrains.kotlin.test.TestMetadata;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -43,7 +42,19 @@ public class Fe10IdeNormalAnalysisSourceModuleSymbolByFqNameTestGenerated extend
 
   @Test
   public void testAllFilesPresentInSymbolByFqName() {
-    KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByFqName"), Pattern.compile("^(.+)\\.kt$"), null, true);
+    KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByFqName"), Pattern.compile("^(.+)\\.kt$"), null, true, "withTestCompilerPluginEnabled");
+  }
+
+  @Test
+  @TestMetadata("any.kt")
+  public void testAny() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByFqName/any.kt");
+  }
+
+  @Test
+  @TestMetadata("array.kt")
+  public void testArray() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByFqName/array.kt");
   }
 
   @Test
@@ -68,6 +79,12 @@ public class Fe10IdeNormalAnalysisSourceModuleSymbolByFqNameTestGenerated extend
   @TestMetadata("fileWalkDirectionEnum.kt")
   public void testFileWalkDirectionEnum() {
     runTest("analysis/analysis-api/testData/symbols/symbolByFqName/fileWalkDirectionEnum.kt");
+  }
+
+  @Test
+  @TestMetadata("intArray.kt")
+  public void testIntArray() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByFqName/intArray.kt");
   }
 
   @Test
@@ -107,30 +124,32 @@ public class Fe10IdeNormalAnalysisSourceModuleSymbolByFqNameTestGenerated extend
   }
 
   @Test
+  @TestMetadata("nothing.kt")
+  public void testNothing() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByFqName/nothing.kt");
+  }
+
+  @Test
+  @TestMetadata("samConstructorFromInterface.kt")
+  public void testSamConstructorFromInterface() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByFqName/samConstructorFromInterface.kt");
+  }
+
+  @Test
+  @TestMetadata("samConstructorFromTypeAlias.kt")
+  public void testSamConstructorFromTypeAlias() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByFqName/samConstructorFromTypeAlias.kt");
+  }
+
+  @Test
+  @TestMetadata("signatureEnhancementOuterClassBoundsToInner.kt")
+  public void testSignatureEnhancementOuterClassBoundsToInner() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByFqName/signatureEnhancementOuterClassBoundsToInner.kt");
+  }
+
+  @Test
   @TestMetadata("typealias.kt")
   public void testTypealias() {
     runTest("analysis/analysis-api/testData/symbols/symbolByFqName/typealias.kt");
-  }
-
-  @Nested
-  @TestMetadata("analysis/analysis-api/testData/symbols/symbolByFqName/withTestCompilerPluginEnabled")
-  @TestDataPath("$PROJECT_ROOT")
-  public class WithTestCompilerPluginEnabled {
-    @Test
-    public void testAllFilesPresentInWithTestCompilerPluginEnabled() {
-      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByFqName/withTestCompilerPluginEnabled"), Pattern.compile("^(.+)\\.kt$"), null, true);
-    }
-
-    @Test
-    @TestMetadata("companionWithFoo_commonModule.kt")
-    public void testCompanionWithFoo_commonModule() {
-      runTest("analysis/analysis-api/testData/symbols/symbolByFqName/withTestCompilerPluginEnabled/companionWithFoo_commonModule.kt");
-    }
-
-    @Test
-    @TestMetadata("myInterfaceSupertype.kt")
-    public void testMyInterfaceSupertype() {
-      runTest("analysis/analysis-api/testData/symbols/symbolByFqName/withTestCompilerPluginEnabled/myInterfaceSupertype.kt");
-    }
   }
 }

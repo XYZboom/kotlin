@@ -9,41 +9,33 @@ import org.jetbrains.kotlin.GeneratedDeclarationKey
 import org.jetbrains.kotlin.backend.common.extensions.IrGeneratedDeclarationsRegistrar
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.fir.*
-import org.jetbrains.kotlin.fir.backend.utils.startOffsetSkippingComments
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.builder.*
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.declarations.utils.classId
+import org.jetbrains.kotlin.fir.declarations.utils.compilerPluginMetadata
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
-import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotation
-import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotationArgumentMapping
-import org.jetbrains.kotlin.fir.expressions.builder.buildLiteralExpression
-import org.jetbrains.kotlin.fir.expressions.builder.buildExpressionStub
+import org.jetbrains.kotlin.fir.expressions.FirExpression
+import org.jetbrains.kotlin.fir.expressions.builder.*
+import org.jetbrains.kotlin.fir.lazy.AbstractFir2IrLazyDeclaration
+import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
 import org.jetbrains.kotlin.fir.resolve.defaultType
-import org.jetbrains.kotlin.fir.resolve.providers.getContainingFile
-import org.jetbrains.kotlin.fir.resolve.providers.toSymbol
-import org.jetbrains.kotlin.fir.resolve.toFirRegularClass
+import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
+import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
+import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.serialization.FirAdditionalMetadataProvider
 import org.jetbrains.kotlin.fir.serialization.providedDeclarationsForMetadataService
-import org.jetbrains.kotlin.fir.symbols.ConeClassifierLookupTag
-import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.impl.FirImplicitTypeRefImplWithoutSource
 import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.expressions.IrConst
-import org.jetbrains.kotlin.ir.expressions.IrConstKind
-import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
+import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.IrClassifierSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
-import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.types.ConstantValueKind
-import org.jetbrains.kotlin.utils.addToStdlib.runIf
 
 // opt-in is safe, this code runs after fir2ir is over and all symbols are bound
 @OptIn(UnsafeDuringIrConstructionAPI::class)
@@ -54,29 +46,47 @@ class Fir2IrIrGeneratedDeclarationsRegistrar(private val components: Fir2IrCompo
     private val implicitType: FirImplicitTypeRef
         get() = FirImplicitTypeRefImplWithoutSource
 
-    private val generatedIrDeclarationsByFileByOffset = mutableMapOf<String, MutableMap<Pair<Int, Int>, MutableList<IrConstructorCall>>>()
+    private val annotationsStorage = mutableMapOf<FirDeclaration, MutableList<IrConstructorCall>>()
+    private val annotationsOnParametersStorage = mutableMapOf<FirDeclaration, MutableMap<ChildDeclarationKind, MutableList<IrConstructorCall>>>()
 
-    private fun IrConstructorCall.hasOnlySupportedAnnotationArgumentTypes(): Boolean {
-        for (i in 0 until valueArgumentsCount) {
-            if (getValueArgument(i) !is IrConst<*>) {
-                return false
-            }
-        }
-        return true
+    private sealed class ChildDeclarationKind {
+        data class ValueParameter(val name: Name) : ChildDeclarationKind()
+        data class TypeParameter(val name: Name) : ChildDeclarationKind()
     }
 
     override fun addMetadataVisibleAnnotationsToElement(declaration: IrDeclaration, annotations: List<IrConstructorCall>) {
-        require(annotations.all { it.typeArgumentsCount == 0 && it.hasOnlySupportedAnnotationArgumentTypes() }) {
-            "Saving annotations with arguments from IR to metadata is only supported for basic constants. See KT-58968"
+        require(declaration.origin != IrDeclarationOrigin.FAKE_OVERRIDE) {
+            "FAKE_OVERRIDE declarations are not preserved in metadata and should not be marked with annotations"
+        }
+        require(annotations.all { it.typeArguments.isEmpty() }) {
+            "Saving annotations with type arguments from IR to metadata is not supported"
         }
         annotations.forEach {
             require(it.symbol.owner.constructedClass.isAnnotationClass) { "${it.render()} is not an annotation constructor call" }
         }
-        val fileFqName = declaration.file.nameWithPackage
-        val fileStorage = generatedIrDeclarationsByFileByOffset.getOrPut(fileFqName) { mutableMapOf() }
-        val storage = fileStorage.getOrPut(declaration.startOffset to declaration.endOffset) { mutableListOf() }
-        storage += annotations
+        val (firDeclaration, kind) = findFirDeclaration(declaration)
+
+        when (kind) {
+            null -> annotationsStorage.getOrPut(firDeclaration) { mutableListOf() } += annotations
+            else -> {
+                val storageForDeclaration = annotationsOnParametersStorage.getOrPut(firDeclaration) { mutableMapOf() }
+                storageForDeclaration.getOrPut(kind) { mutableListOf() } += annotations
+            }
+        }
         declaration.annotations += annotations
+    }
+
+    private fun findFirDeclaration(declaration: IrDeclaration): Pair<FirDeclaration, ChildDeclarationKind?> {
+        return when (declaration) {
+            is IrMetadataSourceOwner -> {
+                val firDeclaration = (declaration.metadata as? FirMetadataSource)?.fir
+                    ?: error("Fir declaration is not found for ${declaration.render()}")
+                firDeclaration to null
+            }
+            is IrValueParameter -> findFirDeclaration(declaration.parent as IrDeclaration).first to ChildDeclarationKind.ValueParameter(declaration.name)
+            is IrTypeParameter -> findFirDeclaration(declaration.parent as IrDeclaration).first to ChildDeclarationKind.TypeParameter(declaration.name)
+            else -> error("Declaration with annotations should be `IrMetadataSourceOwner`, `IrValueParameter` or `IrTypeParameter`")
+        }
     }
 
     override fun registerFunctionAsMetadataVisible(irFunction: IrSimpleFunction) {
@@ -97,6 +107,7 @@ class Fir2IrIrGeneratedDeclarationsRegistrar(private val components: Fir2IrCompo
                 isTailRec = irFunction.isTailrec
                 isSuspend = irFunction.isSuspend
             }
+            resolvePhase = FirResolvePhase.BODY_RESOLVE
             returnTypeRef = implicitType
             dispatchReceiverType = irFunction.parent.toFirClass()?.defaultType()
             // contextReceivers
@@ -113,6 +124,7 @@ class Fir2IrIrGeneratedDeclarationsRegistrar(private val components: Fir2IrCompo
                     containingDeclarationSymbol = this@buildSimpleFunction.symbol
                     variance = it.variance
                     isReified = it.isReified
+                    resolvePhase = FirResolvePhase.BODY_RESOLVE
                     // bounds
                     // annotations
                 }
@@ -134,11 +146,12 @@ class Fir2IrIrGeneratedDeclarationsRegistrar(private val components: Fir2IrCompo
                                 coneTypeOrNull = this@buildValueParameter.returnTypeRef.coneType
                             }
                         }
-                        containingFunctionSymbol = firFunction.symbol
+                        containingDeclarationSymbol = firFunction.symbol
                         isCrossinline = it.isCrossinline
                         isNoinline = it.isNoinline
                         isVararg = it.isVararg
                         annotations.addAll(it.convertAnnotations())
+                        resolvePhase = FirResolvePhase.BODY_RESOLVE
                     }
                 }
                 replaceValueParameters(valueParameters)
@@ -173,6 +186,7 @@ class Fir2IrIrGeneratedDeclarationsRegistrar(private val components: Fir2IrCompo
                 isExpect = irConstructor.isExpect
                 isActual = false
             }
+            resolvePhase = FirResolvePhase.BODY_RESOLVE
             returnTypeRef = implicitType
 
             // contextReceivers
@@ -197,11 +211,12 @@ class Fir2IrIrGeneratedDeclarationsRegistrar(private val components: Fir2IrCompo
                                 coneTypeOrNull = this@buildValueParameter.returnTypeRef.coneType
                             }
                         }
-                        containingFunctionSymbol = firConstructor.symbol
+                        containingDeclarationSymbol = firConstructor.symbol
                         isCrossinline = it.isCrossinline
                         isNoinline = it.isNoinline
                         isVararg = it.isVararg
                         annotations.addAll(it.convertAnnotations())
+                        resolvePhase = FirResolvePhase.BODY_RESOLVE
                     }
                 }
                 replaceValueParameters(valueParameters)
@@ -220,21 +235,27 @@ class Fir2IrIrGeneratedDeclarationsRegistrar(private val components: Fir2IrCompo
     }
 
     private fun IrDeclarationParent.toFirClass(): FirRegularClass? {
-        return (this as? IrClass)?.classIdOrFail?.toLookupTag()?.toFirRegularClass(session)
+        return (this as? IrClass)?.classIdOrFail?.toLookupTag()?.toRegularClassSymbol(session)?.fir
     }
 
     private fun IrAnnotationContainer.convertAnnotations(): List<FirAnnotation> {
         return this.annotations.map { it.toFirAnnotation() }
     }
 
-    private inner class TypeConverter(val originalFunction: IrFunction, val convertedFunction: FirFunction) {
+    private open inner class TypeConverter(val originalFunction: IrFunction?, val convertedFunction: FirFunction?) {
+        init {
+            if (originalFunction != null && convertedFunction == null) {
+                error("Conversion with null `convertedFunction`is unsupported")
+            }
+        }
+
         fun IrType.toConeType(): ConeKotlinType {
             return when (this) {
                 is IrSimpleType -> {
                     val lookupTag = classifier.toLookupTag()
                     lookupTag.constructType(
                         this.arguments.map { it.toConeTypeProjection() }.toTypedArray(),
-                        isNullable = this.isNullable()
+                        isMarkedNullable = this.isMarkedNullable()
                     )
                 }
                 is IrDynamicType -> ConeDynamicType.create(session)
@@ -254,9 +275,10 @@ class Fir2IrIrGeneratedDeclarationsRegistrar(private val components: Fir2IrCompo
                 is IrClass -> owner.classIdOrFail.toLookupTag()
                 is IrTypeParameter -> {
                     val typeParameter = when (val parent = owner.parent) {
-                        originalFunction -> convertedFunction.typeParameters[owner.index]
+                        // guarded by init block, so !! is safe
+                        originalFunction -> convertedFunction!!.typeParameters[owner.index]
                         is IrClass -> {
-                            val firClass = parent.classIdOrFail.toLookupTag().toFirRegularClass(session)
+                            val firClass = parent.classIdOrFail.toLookupTag().toRegularClassSymbol(session)?.fir
                                 ?: error("Fir class for ${parent.render()} not found")
                             firClass.typeParameters[owner.index]
                         }
@@ -269,78 +291,137 @@ class Fir2IrIrGeneratedDeclarationsRegistrar(private val components: Fir2IrCompo
         }
     }
 
+    private val emptyTypeConverter = TypeConverter(null, null)
+
+    private fun IrExpression.toFirExpression(): FirExpression {
+        return when (this) {
+            is IrConst -> {
+                when (this.kind) {
+                    IrConstKind.Boolean -> buildLiteralExpression(
+                        source = null,
+                        ConstantValueKind.Boolean,
+                        this.value as Boolean,
+                        setType = true
+                    )
+                    IrConstKind.Byte -> buildLiteralExpression(
+                        source = null,
+                        ConstantValueKind.Byte,
+                        this.value as Byte,
+                        setType = true
+                    )
+                    IrConstKind.Char -> buildLiteralExpression(
+                        source = null,
+                        ConstantValueKind.Char,
+                        this.value as Char,
+                        setType = true
+                    )
+                    IrConstKind.Double -> buildLiteralExpression(
+                        source = null,
+                        ConstantValueKind.Double,
+                        this.value as Double,
+                        setType = true
+                    )
+                    IrConstKind.Float -> buildLiteralExpression(
+                        source = null,
+                        ConstantValueKind.Float,
+                        this.value as Float,
+                        setType = true
+                    )
+                    IrConstKind.Int -> buildLiteralExpression(
+                        source = null,
+                        ConstantValueKind.Int,
+                        this.value as Int,
+                        setType = true
+                    )
+                    IrConstKind.Long -> buildLiteralExpression(
+                        source = null,
+                        ConstantValueKind.Long,
+                        this.value as Long,
+                        setType = true
+                    )
+                    IrConstKind.Null -> buildLiteralExpression(
+                        source = null,
+                        ConstantValueKind.Null,
+                        value = null,
+                        setType = true
+                    )
+                    IrConstKind.Short -> buildLiteralExpression(
+                        source = null,
+                        ConstantValueKind.Short,
+                        this.value as Short,
+                        setType = true
+                    )
+                    IrConstKind.String -> buildLiteralExpression(
+                        source = null,
+                        ConstantValueKind.String,
+                        this.value as String,
+                        setType = true
+                    )
+                }
+            }
+            is IrGetEnumValue -> {
+                val enumClassType: ConeKotlinType = with(emptyTypeConverter) { this@toFirExpression.type.toConeType() }
+                val enumClassId = (this.symbol.owner.parent as IrClass).classId!!
+                val enumClassLookupTag = enumClassId.toLookupTag()
+                val enumVariantName = this.symbol.owner.name
+                val enumEntrySymbol = session.symbolProvider.getClassLikeSymbolByClassId(enumClassId)?.let { classSymbol ->
+                    (classSymbol as? FirRegularClassSymbol)?.declarationSymbols
+                        ?.filterIsInstance<FirEnumEntrySymbol>()
+                        ?.find { it.name == enumVariantName }
+                } ?: error("Could not resolve FirEnumEntry for $enumVariantName")
+
+                buildPropertyAccessExpression {
+                    val receiver = buildResolvedQualifier {
+                        coneTypeOrNull = enumClassType
+                        packageFqName = enumClassId.packageFqName
+                        relativeClassFqName = enumClassId.relativeClassName
+                        symbol = enumClassLookupTag.toSymbol(session)
+                    }
+                    coneTypeOrNull = enumClassType
+                    calleeReference = buildResolvedNamedReference {
+                        name = enumVariantName
+                        resolvedSymbol = enumEntrySymbol
+                    }
+                    explicitReceiver = receiver
+                    dispatchReceiver = receiver
+                }
+            }
+            is IrConstructorCall -> this.toFirAnnotation()
+            is IrVararg -> {
+                val varargElements = this.elements.map { element ->
+                    when (element) {
+                        is IrExpression -> element.toFirExpression()
+                        else -> error("Unsupported ir type: $element")
+                    }
+                }
+
+                with(emptyTypeConverter) {
+                    val type = this@toFirExpression.type.toConeType()
+                    val elemType = this@toFirExpression.varargElementType.toConeType()
+
+                    buildVarargArgumentsExpression {
+                        arguments.addAll(varargElements)
+                        coneTypeOrNull = type
+                        coneElementTypeOrNull = elemType
+                    }
+                }
+            }
+            else -> error("Unsupported ir type: $this")
+        }
+    }
+
     private fun IrConstructorCall.toFirAnnotation(): FirAnnotation {
         val annotationClassId = this.symbol.owner.constructedClass.classId!!
         return buildAnnotation {
             annotationTypeRef = annotationClassId
                 .toLookupTag()
-                .constructClassType(typeArguments = emptyArray(), isNullable = false)
+                .constructClassType()
                 .toFirResolvedTypeRef()
             argumentMapping = buildAnnotationArgumentMapping {
                 for (i in 0 until this@toFirAnnotation.valueArgumentsCount) {
-                    val name = this@toFirAnnotation.symbol.owner.valueParameters[i].name
-                    val argument = this@toFirAnnotation.getValueArgument(i) as IrConst<*>
-                    this.mapping[name] = when (argument.kind) {
-                        IrConstKind.Boolean -> buildLiteralExpression(
-                            source = null,
-                            ConstantValueKind.Boolean,
-                            argument.value as Boolean,
-                            setType = true
-                        )
-                        IrConstKind.Byte -> buildLiteralExpression(
-                            source = null,
-                            ConstantValueKind.Byte,
-                            argument.value as Byte,
-                            setType = true
-                        )
-                        IrConstKind.Char -> buildLiteralExpression(
-                            source = null,
-                            ConstantValueKind.Char,
-                            argument.value as Char,
-                            setType = true
-                        )
-                        IrConstKind.Double -> buildLiteralExpression(
-                            source = null,
-                            ConstantValueKind.Double,
-                            argument.value as Double,
-                            setType = true
-                        )
-                        IrConstKind.Float -> buildLiteralExpression(
-                            source = null,
-                            ConstantValueKind.Float,
-                            argument.value as Float,
-                            setType = true
-                        )
-                        IrConstKind.Int -> buildLiteralExpression(
-                            source = null,
-                            ConstantValueKind.Int,
-                            argument.value as Int,
-                            setType = true
-                        )
-                        IrConstKind.Long -> buildLiteralExpression(
-                            source = null,
-                            ConstantValueKind.Long,
-                            argument.value as Long,
-                            setType = true
-                        )
-                        IrConstKind.Null -> buildLiteralExpression(
-                            source = null,
-                            ConstantValueKind.Null,
-                            value = null,
-                            setType = true
-                        )
-                        IrConstKind.Short -> buildLiteralExpression(
-                            source = null,
-                            ConstantValueKind.Short,
-                            argument.value as Short,
-                            setType = true
-                        )
-                        IrConstKind.String -> buildLiteralExpression(
-                            source = null,
-                            ConstantValueKind.String,
-                            argument.value as String,
-                            setType = true
-                        )
+                    val argName = this@toFirAnnotation.symbol.owner.valueParameters[i].name
+                    this@toFirAnnotation.getValueArgument(i)?.let { argument ->
+                        this.mapping[argName] = argument.toFirExpression()
                     }
                 }
             }
@@ -348,6 +429,32 @@ class Fir2IrIrGeneratedDeclarationsRegistrar(private val components: Fir2IrCompo
     }
 
     private object GeneratedForMetadata : GeneratedDeclarationKey()
+
+    private val metadataExtensionsForDeclarations: MutableMap<FirDeclaration, MutableMap<String, ByteArray>> = mutableMapOf()
+
+    override fun addCustomMetadataExtension(
+        irDeclaration: IrDeclaration,
+        pluginId: String,
+        data: ByteArray,
+    ) {
+        val metadataSource = (irDeclaration as? IrMetadataSourceOwner)?.metadata
+            ?: error("No metadata source found for ${irDeclaration.render()}")
+        val firDeclaration = (metadataSource as? FirMetadataSource)?.fir
+            ?: error("No FIR declaration found for ${irDeclaration.render()}")
+        val extensionsPerPlugin = metadataExtensionsForDeclarations.getOrPut(firDeclaration) { mutableMapOf() }
+        val existed = extensionsPerPlugin.put(pluginId, data)
+        require(existed == null) {
+            "There is already metadata value for plugin $pluginId and ${irDeclaration.render()}"
+        }
+    }
+
+    override fun getCustomMetadataExtension(
+        irDeclaration: IrDeclaration,
+        pluginId: String,
+    ): ByteArray? {
+        val firDeclaration = (irDeclaration as? AbstractFir2IrLazyDeclaration<*>)?.fir ?: return null
+        return firDeclaration.compilerPluginMetadata?.get(pluginId)
+    }
 
     private inner class Provider : FirAdditionalMetadataProvider() {
         override fun findGeneratedAnnotationsFor(declaration: FirDeclaration): List<FirAnnotation> {
@@ -360,39 +467,25 @@ class Fir2IrIrGeneratedDeclarationsRegistrar(private val components: Fir2IrCompo
         }
 
         private fun extractGeneratedIrDeclarations(declaration: FirDeclaration): List<IrConstructorCall> {
-            val firFile = declaration.containingFile() ?: return emptyList()
-            val fileFqName = firFile.packageFqName.child(Name.identifier(firFile.name)).asString()
-            val source = declaration.source ?: return emptyList()
-            val fileStorage = generatedIrDeclarationsByFileByOffset[fileFqName] ?: return emptyList()
-            return fileStorage[(source.startOffsetSkippingComments() ?: source.startOffset) to source.endOffset] ?: emptyList()
+            when (declaration.origin) {
+                is FirDeclarationOrigin.Synthetic,
+                is FirDeclarationOrigin.Delegated
+                    -> return emptyList()
+                else -> {}
+            }
+            val (keyDeclaration, kind) = when (declaration) {
+                is FirValueParameter -> declaration.containingDeclarationSymbol.fir to ChildDeclarationKind.ValueParameter(declaration.name)
+                is FirTypeParameter -> declaration.containingDeclarationSymbol.fir to ChildDeclarationKind.TypeParameter(declaration.name)
+                else -> declaration to null
+            }
+            return when (kind) {
+                null -> annotationsStorage[keyDeclaration].orEmpty()
+                else -> annotationsOnParametersStorage[keyDeclaration].orEmpty()[kind].orEmpty()
+            }
         }
 
-        private fun FirDeclaration.containingFile(): FirFile? {
-            if (this is FirFile) return this
-            // In MPP scenario containing session of declaration may differ from the main session of the module
-            //  (if this declaration came from some common module), so in order to get the proper containing file,
-            //  we need to use the original session of the declaration
-            val containingSession = moduleData.session
-            val topmostParent = topmostParent(containingSession)
-            return components.firProvider.getContainingFile(topmostParent.symbol)
+        override fun findMetadataExtensionsFor(declaration: FirDeclaration): Map<String, ByteArray> {
+            return metadataExtensionsForDeclarations[declaration].orEmpty()
         }
-
-        private fun FirDeclaration.topmostParent(session: FirSession): FirDeclaration {
-            return when (this) {
-                is FirClassLikeDeclaration -> runIf(!classId.isLocal) { classId.topmostParentClassId.toSymbol(session)?.fir }
-                is FirTypeParameter -> containingDeclarationSymbol.fir.topmostParent(session)
-                is FirValueParameter -> containingFunctionSymbol.fir.topmostParent(session)
-                is FirCallableDeclaration -> symbol.callableId.classId
-                    ?.takeIf { !it.isLocal }
-                    ?.topmostParentClassId
-                    ?.toSymbol(session)
-                    ?.fir
-                is FirScript -> this
-                else -> error("Unsupported declaration type: $this")
-            } ?: this
-        }
-
-        private val ClassId.topmostParentClassId: ClassId
-            get() = parentClassId?.topmostParentClassId ?: this
     }
 }

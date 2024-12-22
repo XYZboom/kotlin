@@ -108,6 +108,12 @@ public class LLFirReversedBlackBoxModernJdkCodegenBasedTestGenerated extends Abs
     }
 
     @Test
+    @TestMetadata("inheritranceFromJavaUtilProperties.kt")
+    public void testInheritranceFromJavaUtilProperties() {
+      runTest("compiler/testData/codegen/boxModernJdk/testsWithJava11/inheritranceFromJavaUtilProperties.kt");
+    }
+
+    @Test
     @TestMetadata("kt36984.kt")
     public void testKt36984() {
       runTest("compiler/testData/codegen/boxModernJdk/testsWithJava11/kt36984.kt");
@@ -816,6 +822,12 @@ public class LLFirReversedBlackBoxModernJdkCodegenBasedTestGenerated extends Abs
     @Test
     public void testAllFilesPresentInTestsWithJava21() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/boxModernJdk/testsWithJava21"), Pattern.compile("^(.+)\\.kt$"), null, true);
+    }
+
+    @Test
+    @TestMetadata("EnumsWithNonNullaryConstructors.kt")
+    public void testEnumsWithNonNullaryConstructors() {
+      runTest("compiler/testData/codegen/boxModernJdk/testsWithJava21/EnumsWithNonNullaryConstructors.kt");
     }
   }
 }

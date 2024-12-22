@@ -17,7 +17,6 @@ object CommonDeclarationCheckers : DeclarationCheckers() {
         get() = setOf(
             FirModifierChecker,
             FirConflictsDeclarationChecker,
-            FirProjectionRelationChecker,
             FirTypeConstraintsChecker,
             FirReservedUnderscoreDeclarationChecker,
             FirUpperBoundViolatedDeclarationChecker,
@@ -25,10 +24,12 @@ object CommonDeclarationCheckers : DeclarationCheckers() {
             FirExposedVisibilityDeclarationChecker,
             FirCyclicTypeBoundsChecker,
             FirExpectActualDeclarationChecker,
+            FirRequiresOptInOnExpectChecker,
             FirAmbiguousAnonymousTypeChecker,
             FirExplicitApiDeclarationChecker,
             FirAnnotationChecker,
             FirPublishedApiChecker,
+            FirContextReceiversDeprecatedDeclarationChecker,
             FirOptInMarkedDeclarationChecker,
             FirExpectConsistencyChecker,
             FirOptionalExpectationDeclarationChecker,
@@ -46,6 +47,8 @@ object CommonDeclarationCheckers : DeclarationCheckers() {
             FirKClassWithIncorrectTypeArgumentChecker,
             FirImplicitNothingReturnTypeChecker,
             FirDynamicReceiverChecker,
+            FirExtensionShadowedByMemberChecker.Regular,
+            FirExtensionShadowedByMemberChecker.ForExpectDeclaration,
         )
 
     override val functionCheckers: Set<FirFunctionChecker>
@@ -150,6 +153,7 @@ object CommonDeclarationCheckers : DeclarationCheckers() {
             FirNonExpansiveInheritanceRestrictionChecker,
             FirObjectConstructorChecker,
             FirInlineClassDeclarationChecker,
+            FirEnumEntryInitializationChecker,
         )
 
     override val constructorCheckers: Set<FirConstructorChecker>

@@ -15,13 +15,13 @@ FILE: [ResolvedTo(IMPORTS)] kt60638.kt
         }
 
     }
-    public final [ResolvedTo(STATUS)] class MyClass : R|kotlin/Any| {
-        public [ResolvedTo(STATUS)] [ContainingClassKey=MyClass] constructor(): R|usage/MyClass| {
+    public final? [ResolvedTo(RAW_FIR)] class MyClass : R|kotlin/Any| {
+        public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=MyClass] constructor(): R|usage/MyClass| {
             LAZY_super<R|kotlin/Any|>
         }
 
     }
-    public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] val R|usage/MyClass|.isInterface: R|kotlin/Int|
+    public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] val [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] R|usage/MyClass|.isInterface: R|kotlin/Int|
         public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] get(): R|kotlin/Int| {
             ^ Int(4)
         }

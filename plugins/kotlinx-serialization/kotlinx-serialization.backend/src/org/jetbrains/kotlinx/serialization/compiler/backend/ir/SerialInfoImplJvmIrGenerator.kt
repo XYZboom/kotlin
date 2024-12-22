@@ -5,7 +5,7 @@
 
 package org.jetbrains.kotlinx.serialization.compiler.backend.ir
 
-import org.jetbrains.kotlin.backend.common.ir.addExtensionReceiver
+import org.jetbrains.kotlin.backend.common.ir.createExtensionReceiver
 import org.jetbrains.kotlin.backend.jvm.lower.JvmAnnotationImplementationTransformer
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
@@ -53,7 +53,7 @@ class SerialInfoImplJvmIrGenerator(
                         )
                     }
                 )
-                addExtensionReceiver(context.irBuiltIns.kClassClass.starProjectedType)
+                parameters += createExtensionReceiver(context.irBuiltIns.kClassClass.starProjectedType)
                 returnType = javaLangClass.starProjectedType
             }
         }.symbol
@@ -79,7 +79,7 @@ class SerialInfoImplJvmIrGenerator(
             visibility = DescriptorVisibilities.PUBLIC
         }.apply {
             parent = annotationClass
-            createImplicitParameterDeclarationWithWrappedDescriptor()
+            createThisReceiverParameter()
             superTypes = listOf(annotationClass.defaultType)
         }
         annotationClass.declarations.add(subclass)
@@ -110,7 +110,7 @@ class SerialInfoImplJvmIrGenerator(
         modality = Modality.FINAL
     }.apply {
         parent = irPackage
-        createImplicitParameterDeclarationWithWrappedDescriptor()
+        createThisReceiverParameter()
         block(this)
     }.symbol
 }

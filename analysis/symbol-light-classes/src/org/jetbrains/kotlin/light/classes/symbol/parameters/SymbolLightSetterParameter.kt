@@ -6,14 +6,12 @@
 package org.jetbrains.kotlin.light.classes.symbol.parameters
 
 import com.intellij.psi.PsiModifierList
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
-import org.jetbrains.kotlin.analysis.api.annotations.SetterParameterAnnotationUseSiteTargetFilter
-import org.jetbrains.kotlin.analysis.api.symbols.KtPropertySymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KtValueParameterSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.pointers.KtSymbolPointer
-import org.jetbrains.kotlin.analysis.api.types.KtTypeNullability
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.pointers.KaSymbolPointer
+import org.jetbrains.kotlin.analysis.api.types.KaTypeNullability
 import org.jetbrains.kotlin.asJava.classes.lazyPub
-import org.jetbrains.kotlin.descriptors.annotations.AnnotationUseSiteTarget
 import org.jetbrains.kotlin.light.classes.symbol.annotations.*
 import org.jetbrains.kotlin.light.classes.symbol.isLateInit
 import org.jetbrains.kotlin.light.classes.symbol.methods.SymbolLightMethodBase
@@ -22,9 +20,9 @@ import org.jetbrains.kotlin.light.classes.symbol.withSymbol
 import org.jetbrains.kotlin.name.SpecialNames
 
 internal class SymbolLightSetterParameter(
-    ktAnalysisSession: KtAnalysisSession,
-    private val containingPropertySymbolPointer: KtSymbolPointer<KtPropertySymbol>,
-    parameterSymbol: KtValueParameterSymbol,
+    ktAnalysisSession: KaSession,
+    private val containingPropertySymbolPointer: KaSymbolPointer<KaPropertySymbol>,
+    parameterSymbol: KaValueParameterSymbol,
     containingMethod: SymbolLightMethodBase,
 ) : SymbolLightParameterCommon(ktAnalysisSession, parameterSymbol, containingMethod) {
     override fun getName(): String {
@@ -44,26 +42,18 @@ internal class SymbolLightSetterParameter(
         SymbolLightClassModifierList(
             containingDeclaration = this,
             annotationsBox = GranularAnnotationsBox(
-                annotationsProvider = CompositeAnnotationsProvider(
-                    SymbolAnnotationsProvider(
-                        ktModule = ktModule,
-                        annotatedSymbolPointer = parameterSymbolPointer,
-                        annotationUseSiteTargetFilter = AnnotationUseSiteTarget.SETTER_PARAMETER.toOptionalFilter(),
-                    ),
-                    SymbolAnnotationsProvider(
-                        ktModule = ktModule,
-                        annotatedSymbolPointer = containingPropertySymbolPointer,
-                        annotationUseSiteTargetFilter = SetterParameterAnnotationUseSiteTargetFilter,
-                    ),
+                annotationsProvider = SymbolAnnotationsProvider(
+                    ktModule = ktModule,
+                    annotatedSymbolPointer = parameterSymbolPointer,
                 ),
                 additionalAnnotationsProvider = NullabilityAnnotationsProvider(::typeNullability),
             ),
         )
     }
 
-    override fun typeNullability(): KtTypeNullability {
+    override fun typeNullability(): KaTypeNullability {
         val isLateInit = containingPropertySymbolPointer.withSymbol(ktModule) { it.isLateInit }
-        return if (isLateInit) KtTypeNullability.NON_NULLABLE else super.typeNullability()
+        return if (isLateInit) KaTypeNullability.NON_NULLABLE else super.typeNullability()
     }
 
     override fun isDeclaredAsVararg(): Boolean = false

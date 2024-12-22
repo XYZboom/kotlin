@@ -58,6 +58,24 @@ public class FirIdeNormalAnalysisSourceModuleCodeFragmentCollectDiagnosticsTestG
   }
 
   @Test
+  @TestMetadata("kmpTypeCodeFragment.kt")
+  public void testKmpTypeCodeFragment() {
+    runTest("analysis/analysis-api/testData/components/diagnosticsProvider/codeFragmentDiagnostics/kmpTypeCodeFragment.kt");
+  }
+
+  @Test
+  @TestMetadata("kmpUnresolvedTypeCodeFragment.kt")
+  public void testKmpUnresolvedTypeCodeFragment() {
+    runTest("analysis/analysis-api/testData/components/diagnosticsProvider/codeFragmentDiagnostics/kmpUnresolvedTypeCodeFragment.kt");
+  }
+
+  @Test
+  @TestMetadata("libraryOverloads.kt")
+  public void testLibraryOverloads() {
+    runTest("analysis/analysis-api/testData/components/diagnosticsProvider/codeFragmentDiagnostics/libraryOverloads.kt");
+  }
+
+  @Test
   @TestMetadata("localClass.kt")
   public void testLocalClass() {
     runTest("analysis/analysis-api/testData/components/diagnosticsProvider/codeFragmentDiagnostics/localClass.kt");
@@ -67,6 +85,12 @@ public class FirIdeNormalAnalysisSourceModuleCodeFragmentCollectDiagnosticsTestG
   @TestMetadata("localFunction.kt")
   public void testLocalFunction() {
     runTest("analysis/analysis-api/testData/components/diagnosticsProvider/codeFragmentDiagnostics/localFunction.kt");
+  }
+
+  @Test
+  @TestMetadata("suspend.kt")
+  public void testSuspend() {
+    runTest("analysis/analysis-api/testData/components/diagnosticsProvider/codeFragmentDiagnostics/suspend.kt");
   }
 
   @Test

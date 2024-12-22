@@ -7,7 +7,8 @@
 package org.jetbrains.kotlin.gradle.unitTests.diagnosticsTests
 
 import com.android.build.gradle.LibraryPlugin
-import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics.KotlinTargetAlreadyDeclared
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics.KotlinTargetAlreadyDeclaredError
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics.KotlinTargetAlreadyDeclaredWarning
 import org.jetbrains.kotlin.gradle.util.*
 import kotlin.test.Test
 
@@ -28,7 +29,8 @@ class KotlinTargetAlreadyDeclaredTest {
         }
 
         project.evaluate()
-        project.assertNoDiagnostics(KotlinTargetAlreadyDeclared)
+        project.assertNoDiagnostics(KotlinTargetAlreadyDeclaredWarning)
+        project.assertNoDiagnostics(KotlinTargetAlreadyDeclaredError)
     }
 
     @Test
@@ -41,7 +43,8 @@ class KotlinTargetAlreadyDeclaredTest {
         }
 
         project.evaluate()
-        project.assertNoDiagnostics(KotlinTargetAlreadyDeclared)
+        project.assertNoDiagnostics(KotlinTargetAlreadyDeclaredWarning)
+        project.assertNoDiagnostics(KotlinTargetAlreadyDeclaredError)
     }
 
     @Test
@@ -54,7 +57,8 @@ class KotlinTargetAlreadyDeclaredTest {
         }
 
         project.evaluate()
-        project.assertNoDiagnostics(KotlinTargetAlreadyDeclared)
+        project.assertNoDiagnostics(KotlinTargetAlreadyDeclaredWarning)
+        project.assertNoDiagnostics(KotlinTargetAlreadyDeclaredError)
     }
 
     @Test
@@ -67,7 +71,8 @@ class KotlinTargetAlreadyDeclaredTest {
         }
 
         project.evaluate()
-        project.assertContainsDiagnostic(KotlinTargetAlreadyDeclared("jvm"))
+        project.assertNoDiagnostics(KotlinTargetAlreadyDeclaredWarning)
+        project.assertContainsDiagnostic(KotlinTargetAlreadyDeclaredError("jvm"))
     }
 
     @Test
@@ -80,7 +85,8 @@ class KotlinTargetAlreadyDeclaredTest {
         }
 
         project.evaluate()
-        project.assertContainsDiagnostic(KotlinTargetAlreadyDeclared("linuxArm64"))
+        project.assertNoDiagnostics(KotlinTargetAlreadyDeclaredWarning)
+        project.assertContainsDiagnostic(KotlinTargetAlreadyDeclaredError("linuxArm64"))
     }
 
     @Test
@@ -95,11 +101,12 @@ class KotlinTargetAlreadyDeclaredTest {
         }
 
         project.evaluate()
-        project.assertContainsDiagnostic(KotlinTargetAlreadyDeclared("androidTarget"))
+        project.assertNoDiagnostics(KotlinTargetAlreadyDeclaredWarning)
+        project.assertContainsDiagnostic(KotlinTargetAlreadyDeclaredError("androidTarget"))
     }
 
     @Test
-    fun `diagnostic reported when js target declared twice with different names`() {
+    fun `diagnostic not reported when js target declared twice with different names`() {
         val project = buildProjectWithMPP {
             kotlin {
                 js("browser")
@@ -108,6 +115,7 @@ class KotlinTargetAlreadyDeclaredTest {
         }
 
         project.evaluate()
-        project.assertContainsDiagnostic(KotlinTargetAlreadyDeclared("js"))
+        project.assertContainsDiagnostic(KotlinTargetAlreadyDeclaredWarning)
+        project.assertNoDiagnostics(KotlinTargetAlreadyDeclaredError)
     }
 }

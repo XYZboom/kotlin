@@ -1,10 +1,10 @@
 RAW_FIR:
 FILE: [ResolvedTo(RAW_FIR)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -19,11 +19,11 @@ FILE: [ResolvedTo(RAW_FIR)] typeParameterAnnotationsInLocalClassScript.kts
 
 IMPORTS:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -38,11 +38,11 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
 COMPILER_REQUIRED_ANNOTATIONS:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -57,11 +57,11 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
 COMPANION_GENERATION:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -76,11 +76,11 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
 SUPER_TYPES:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -95,11 +95,11 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
 TYPES:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -114,11 +114,11 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
 STATUS:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -133,11 +133,11 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
 EXPECT_ACTUAL_MATCHING:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -152,11 +152,11 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
 CONTRACTS:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -166,31 +166,16 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
         }
 
-        public final [ResolvedTo(CONTRACTS)] fun foo(): R|kotlin/Unit| {
-            local final? [ResolvedTo(RAW_FIR)] class OriginalClass : R|kotlin/Any| {
-                public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=OriginalClass] constructor(): R|<local>/OriginalClass| {
-                    super<R|kotlin/Any|>()
-                }
-
-                public? final? [ResolvedTo(RAW_FIR)] val prop: <implicit> = IntegerLiteral(0)
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=OriginalClass] get(): <implicit>
-
-                @Anno[Unresolved](<strcat>(String(function ), prop#)) public? final? [ResolvedTo(RAW_FIR)] fun <@Anno[Unresolved](<strcat>(String(type param ), prop#)) [ResolvedTo(RAW_FIR)] F : @Anno[Unresolved](<strcat>(String(bound ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested bound ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested bound ), prop#)) String>>> @RECEIVER:Anno[Unresolved](<strcat>(String(receiver annotation: ), prop#)) @Anno[Unresolved](<strcat>(String(receiver type ), prop#)) Collection<@Anno[Unresolved](<strcat>(String(nested receiver type ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested receiver type ), prop#)) String>>.explicitType([ResolvedTo(RAW_FIR)] @Anno[Unresolved](<strcat>(String(parameter annotation ), prop#)) param: @Anno[Unresolved](<strcat>(String(parameter type ), prop#)) ListIterator<@Anno[Unresolved](<strcat>(String(nested parameter type ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested parameter type ), prop#)) String>>): @Anno[Unresolved](<strcat>(String(explicitType return type ), prop#)) List<@Anno[Unresolved](<strcat>(String(explicitType nested return type ), prop#)) List<@Anno[Unresolved](<strcat>(String(explicitType nested nested return type ), prop#)) Int>> {
-                    ^explicitType IntegerLiteral(0)
-                }
-
-            }
-
-        }
+        public final [ResolvedTo(CONTRACTS)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 IMPLICIT_TYPES_BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -200,31 +185,16 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
         }
 
-        public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] fun foo(): R|kotlin/Unit| {
-            local final? [ResolvedTo(RAW_FIR)] class OriginalClass : R|kotlin/Any| {
-                public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=OriginalClass] constructor(): R|<local>/OriginalClass| {
-                    super<R|kotlin/Any|>()
-                }
-
-                public? final? [ResolvedTo(RAW_FIR)] val prop: <implicit> = IntegerLiteral(0)
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=OriginalClass] get(): <implicit>
-
-                @Anno[Unresolved](<strcat>(String(function ), prop#)) public? final? [ResolvedTo(RAW_FIR)] fun <@Anno[Unresolved](<strcat>(String(type param ), prop#)) [ResolvedTo(RAW_FIR)] F : @Anno[Unresolved](<strcat>(String(bound ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested bound ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested bound ), prop#)) String>>> @RECEIVER:Anno[Unresolved](<strcat>(String(receiver annotation: ), prop#)) @Anno[Unresolved](<strcat>(String(receiver type ), prop#)) Collection<@Anno[Unresolved](<strcat>(String(nested receiver type ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested receiver type ), prop#)) String>>.explicitType([ResolvedTo(RAW_FIR)] @Anno[Unresolved](<strcat>(String(parameter annotation ), prop#)) param: @Anno[Unresolved](<strcat>(String(parameter type ), prop#)) ListIterator<@Anno[Unresolved](<strcat>(String(nested parameter type ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested parameter type ), prop#)) String>>): @Anno[Unresolved](<strcat>(String(explicitType return type ), prop#)) List<@Anno[Unresolved](<strcat>(String(explicitType nested return type ), prop#)) List<@Anno[Unresolved](<strcat>(String(explicitType nested nested return type ), prop#)) Int>> {
-                    ^explicitType IntegerLiteral(0)
-                }
-
-            }
-
-        }
+        public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 CONSTANT_EVALUATION:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -234,31 +204,16 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
         }
 
-        public final [ResolvedTo(CONSTANT_EVALUATION)] fun foo(): R|kotlin/Unit| {
-            local final? [ResolvedTo(RAW_FIR)] class OriginalClass : R|kotlin/Any| {
-                public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=OriginalClass] constructor(): R|<local>/OriginalClass| {
-                    super<R|kotlin/Any|>()
-                }
-
-                public? final? [ResolvedTo(RAW_FIR)] val prop: <implicit> = IntegerLiteral(0)
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=OriginalClass] get(): <implicit>
-
-                @Anno[Unresolved](<strcat>(String(function ), prop#)) public? final? [ResolvedTo(RAW_FIR)] fun <@Anno[Unresolved](<strcat>(String(type param ), prop#)) [ResolvedTo(RAW_FIR)] F : @Anno[Unresolved](<strcat>(String(bound ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested bound ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested bound ), prop#)) String>>> @RECEIVER:Anno[Unresolved](<strcat>(String(receiver annotation: ), prop#)) @Anno[Unresolved](<strcat>(String(receiver type ), prop#)) Collection<@Anno[Unresolved](<strcat>(String(nested receiver type ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested receiver type ), prop#)) String>>.explicitType([ResolvedTo(RAW_FIR)] @Anno[Unresolved](<strcat>(String(parameter annotation ), prop#)) param: @Anno[Unresolved](<strcat>(String(parameter type ), prop#)) ListIterator<@Anno[Unresolved](<strcat>(String(nested parameter type ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested parameter type ), prop#)) String>>): @Anno[Unresolved](<strcat>(String(explicitType return type ), prop#)) List<@Anno[Unresolved](<strcat>(String(explicitType nested return type ), prop#)) List<@Anno[Unresolved](<strcat>(String(explicitType nested nested return type ), prop#)) Int>> {
-                    ^explicitType IntegerLiteral(0)
-                }
-
-            }
-
-        }
+        public final [ResolvedTo(CONSTANT_EVALUATION)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 ANNOTATION_ARGUMENTS:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/Anno.position] position: String): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -268,31 +223,16 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
         }
 
-        public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun foo(): R|kotlin/Unit| {
-            local final? [ResolvedTo(RAW_FIR)] class OriginalClass : R|kotlin/Any| {
-                public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=OriginalClass] constructor(): R|<local>/OriginalClass| {
-                    super<R|kotlin/Any|>()
-                }
-
-                public? final? [ResolvedTo(RAW_FIR)] val prop: <implicit> = IntegerLiteral(0)
-                    public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=OriginalClass] get(): <implicit>
-
-                @Anno[Unresolved](<strcat>(String(function ), prop#)) public? final? [ResolvedTo(RAW_FIR)] fun <@Anno[Unresolved](<strcat>(String(type param ), prop#)) [ResolvedTo(RAW_FIR)] F : @Anno[Unresolved](<strcat>(String(bound ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested bound ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested bound ), prop#)) String>>> @RECEIVER:Anno[Unresolved](<strcat>(String(receiver annotation: ), prop#)) @Anno[Unresolved](<strcat>(String(receiver type ), prop#)) Collection<@Anno[Unresolved](<strcat>(String(nested receiver type ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested receiver type ), prop#)) String>>.explicitType([ResolvedTo(RAW_FIR)] @Anno[Unresolved](<strcat>(String(parameter annotation ), prop#)) param: @Anno[Unresolved](<strcat>(String(parameter type ), prop#)) ListIterator<@Anno[Unresolved](<strcat>(String(nested parameter type ), prop#)) List<@Anno[Unresolved](<strcat>(String(nested nested parameter type ), prop#)) String>>): @Anno[Unresolved](<strcat>(String(explicitType return type ), prop#)) List<@Anno[Unresolved](<strcat>(String(explicitType nested return type ), prop#)) List<@Anno[Unresolved](<strcat>(String(explicitType nested nested return type ), prop#)) Int>> {
-                    ^explicitType IntegerLiteral(0)
-                }
-
-            }
-
-        }
+        public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] annotation class Anno : R|kotlin/Annotation| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=Anno] constructor([ResolvedTo(STATUS)] [CorrespondingProperty=/Anno.position] position: R|kotlin/String|): R|Anno| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -311,7 +251,7 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
                 public final [ResolvedTo(BODY_RESOLVE)] val prop: R|kotlin/Int| = Int(0)
                     public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=OriginalClass] get(): R|kotlin/Int|
 
-                @R|Anno|[Types](position = <strcat>(String(function ), this@R|<local>/OriginalClass|.R|<local>/prop|)) public final [ResolvedTo(BODY_RESOLVE)] fun <@R|Anno|[Types](position = <strcat>(String(type param ), this@R|<local>/OriginalClass|.R|<local>/prop|)) [ResolvedTo(BODY_RESOLVE)] F : R|@R|Anno|(position = <strcat>(String(bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|> @RECEIVER:R|Anno|[Types](position = <strcat>(String(receiver annotation: ), this@R|<local>/OriginalClass|.R|<local>/prop|)) R|@R|Anno|(position = <strcat>(String(receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/Collection<@R|Anno|(position = <strcat>(String(nested receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|.explicitType([ResolvedTo(BODY_RESOLVE)] @R|Anno|[Types](position = <strcat>(String(parameter annotation ), this@R|<local>/OriginalClass|.R|<local>/prop|)) param: R|@R|Anno|(position = <strcat>(String(parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/ListIterator<@R|Anno|(position = <strcat>(String(nested parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|): R|@R|Anno|(position = <strcat>(String(explicitType return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(explicitType nested return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(explicitType nested nested return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/Int>>| {
+                @R|Anno|[Types](position = <strcat>(String(function ), this@R|<local>/OriginalClass|.R|<local>/prop|)) public final [ResolvedTo(BODY_RESOLVE)] fun <@R|Anno|[Types](position = <strcat>(String(type param ), this@R|<local>/OriginalClass|.R|<local>/prop|)) [ResolvedTo(BODY_RESOLVE)] F : R|@R|Anno|(position = <strcat>(String(bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|> [ResolvedTo(BODY_RESOLVE)] @RECEIVER:R|Anno|[Types](position = <strcat>(String(receiver annotation: ), this@R|<local>/OriginalClass|.R|<local>/prop|)) R|@R|Anno|(position = <strcat>(String(receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/Collection<@R|Anno|(position = <strcat>(String(nested receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|.explicitType([ResolvedTo(BODY_RESOLVE)] @R|Anno|[Types](position = <strcat>(String(parameter annotation ), this@R|<local>/OriginalClass|.R|<local>/prop|)) param: R|@R|Anno|(position = <strcat>(String(parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/ListIterator<@R|Anno|(position = <strcat>(String(nested parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|): R|@R|Anno|(position = <strcat>(String(explicitType return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(explicitType nested return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(explicitType nested nested return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/Int>>| {
                     ^explicitType Int(0)
                 }
 
@@ -322,11 +262,11 @@ FILE: [ResolvedTo(IMPORTS)] typeParameterAnnotationsInLocalClassScript.kts
 
 FILE RAW TO BODY:
 FILE: [ResolvedTo(BODY_RESOLVE)] typeParameterAnnotationsInLocalClassScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(BODY_RESOLVE)] <script-typeParameterAnnotationsInLocalClassScript.kts>
+        [ResolvedTo(BODY_RESOLVE)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(BODY_RESOLVE)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(BODY_RESOLVE)] annotation class Anno : R|kotlin/Annotation| {
+        public final [ResolvedTo(BODY_RESOLVE)] [ContainingScriptKey=FirScriptSymbol <script-typeParameterAnnotationsInLocalClassScript.kts>] annotation class Anno : R|kotlin/Annotation| {
             public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Anno] constructor([ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=/Anno.position] position: R|kotlin/String|): R|Anno| {
                 super<R|kotlin/Any|>()
             }
@@ -345,10 +285,11 @@ FILE: [ResolvedTo(BODY_RESOLVE)] typeParameterAnnotationsInLocalClassScript.kts
                 public final [ResolvedTo(BODY_RESOLVE)] val prop: R|kotlin/Int| = Int(0)
                     public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=OriginalClass] get(): R|kotlin/Int|
 
-                @R|Anno|[Types](position = <strcat>(String(function ), this@R|<local>/OriginalClass|.R|<local>/prop|)) public final [ResolvedTo(BODY_RESOLVE)] fun <@R|Anno|[Types](position = <strcat>(String(type param ), this@R|<local>/OriginalClass|.R|<local>/prop|)) [ResolvedTo(BODY_RESOLVE)] F : R|@R|Anno|(position = <strcat>(String(bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|> @RECEIVER:R|Anno|[Types](position = <strcat>(String(receiver annotation: ), this@R|<local>/OriginalClass|.R|<local>/prop|)) R|@R|Anno|(position = <strcat>(String(receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/Collection<@R|Anno|(position = <strcat>(String(nested receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|.explicitType([ResolvedTo(BODY_RESOLVE)] @R|Anno|[Types](position = <strcat>(String(parameter annotation ), this@R|<local>/OriginalClass|.R|<local>/prop|)) param: R|@R|Anno|(position = <strcat>(String(parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/ListIterator<@R|Anno|(position = <strcat>(String(nested parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|): R|@R|Anno|(position = <strcat>(String(explicitType return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(explicitType nested return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(explicitType nested nested return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/Int>>| {
+                @R|Anno|[Types](position = <strcat>(String(function ), this@R|<local>/OriginalClass|.R|<local>/prop|)) public final [ResolvedTo(BODY_RESOLVE)] fun <@R|Anno|[Types](position = <strcat>(String(type param ), this@R|<local>/OriginalClass|.R|<local>/prop|)) [ResolvedTo(BODY_RESOLVE)] F : R|@R|Anno|(position = <strcat>(String(bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested bound ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|> [ResolvedTo(BODY_RESOLVE)] @RECEIVER:R|Anno|[Types](position = <strcat>(String(receiver annotation: ), this@R|<local>/OriginalClass|.R|<local>/prop|)) R|@R|Anno|(position = <strcat>(String(receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/Collection<@R|Anno|(position = <strcat>(String(nested receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested receiver type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|.explicitType([ResolvedTo(BODY_RESOLVE)] @R|Anno|[Types](position = <strcat>(String(parameter annotation ), this@R|<local>/OriginalClass|.R|<local>/prop|)) param: R|@R|Anno|(position = <strcat>(String(parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/ListIterator<@R|Anno|(position = <strcat>(String(nested parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(nested nested parameter type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/String>>|): R|@R|Anno|(position = <strcat>(String(explicitType return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(explicitType nested return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/collections/List<@R|Anno|(position = <strcat>(String(explicitType nested nested return type ), this@R|<local>/OriginalClass|.R|<local>/prop|))  kotlin/Int>>| {
                     ^explicitType Int(0)
                 }
 
             }
 
         }
+

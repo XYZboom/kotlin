@@ -7,8 +7,6 @@
 
 package org.jetbrains.kotlin.sir.tree.generator
 
-import org.jetbrains.kotlin.generators.tree.StandardTypes.boolean
-import org.jetbrains.kotlin.generators.tree.StandardTypes.string
 import org.jetbrains.kotlin.generators.tree.config.element
 import org.jetbrains.kotlin.generators.tree.config.sealedElement
 import org.jetbrains.kotlin.sir.tree.generator.config.AbstractSwiftIrTreeBuilder
@@ -52,6 +50,16 @@ object SwiftIrTree : AbstractSwiftIrTreeBuilder() {
         +field("parent", declarationParent, mutable = true, isChild = false) {
             useInBaseTransformerDetection = false
         }
+        +listField("attributes", attributeType)
+    }
+
+    val classMemberDeclaration by sealedElement {
+        customParentInVisitor = declaration
+        parent(declaration)
+
+        +field("isOverride", boolean)
+        +field("isInstance", boolean)
+        +field("modality", modalityKind)
     }
 
     val extension: Element by element {
@@ -88,12 +96,23 @@ object SwiftIrTree : AbstractSwiftIrTreeBuilder() {
         parent(declarationContainer)
     }
 
+    val protocol: Element by element {
+        customParentInVisitor = namedDeclaration
+        parent(namedDeclaration)
+        parent(declarationContainer)
+
+        +field("superClass", typeType, nullable = true)
+        +listField("protocols", protocol)
+    }
+
     val `class`: Element by element {
         customParentInVisitor = namedDeclaration
         parent(namedDeclaration)
         parent(declarationContainer)
 
         +field("superClass", typeType, nullable = true)
+        +listField("protocols", protocol)
+        +field("modality", modalityKind)
     }
 
     val `typealias`: Element by element {
@@ -106,8 +125,9 @@ object SwiftIrTree : AbstractSwiftIrTreeBuilder() {
     val callable by sealedElement {
         parent(declaration)
 
-        +field("kind", callableKind)
         +field("body", functionBodyType, nullable = true, mutable = true)
+
+        +field("errorType", typeType)
     }
 
     val init by element {
@@ -117,7 +137,8 @@ object SwiftIrTree : AbstractSwiftIrTreeBuilder() {
         +field("isFailable", boolean)
         +listField("parameters", parameterType)
 
-        +field("initKind", initKind)
+        +field("isConvenience", boolean)
+        +field("isRequired", boolean)
 
         +field("isOverride", boolean)
     }
@@ -125,8 +146,10 @@ object SwiftIrTree : AbstractSwiftIrTreeBuilder() {
     val function by element {
         customParentInVisitor = callable
         parent(callable)
+        parent(classMemberDeclaration)
 
         +field("name", string)
+        +field("extensionReceiverParameter", parameterType, nullable = true)
         +listField("parameters", parameterType)
         +field("returnType", typeType)
     }
@@ -150,6 +173,7 @@ object SwiftIrTree : AbstractSwiftIrTreeBuilder() {
         customParentInVisitor = declaration
         parent(declaration)
         parent(declarationParent)
+        parent(classMemberDeclaration)
 
         +field("name", string)
         +field("type", typeType)

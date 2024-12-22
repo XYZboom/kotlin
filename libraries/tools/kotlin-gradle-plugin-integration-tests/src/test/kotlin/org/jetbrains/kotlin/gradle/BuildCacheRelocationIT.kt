@@ -67,15 +67,12 @@ class BuildCacheRelocationIT : KGPBaseTest() {
             secondProject,
             listOf(":classes", ":testClasses"),
             listOf(":kaptKotlin", ":kaptGenerateStubsKotlin", ":compileKotlin", ":compileTestKotlin", ":compileJava")
-        ) {
-            assertNoBuildWarnings(expectedK2KaptWarnings)
-        }
+        )
     }
 
     @JsGradlePluginTests
     @DisplayName("works with JS/DCE project")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun testRelocationKotlinJs(gradleVersion: GradleVersion) {
         val (firstProject, secondProject) = prepareTestProjects("kotlin-js-dce", gradleVersion)
 
@@ -95,7 +92,6 @@ class BuildCacheRelocationIT : KGPBaseTest() {
     @MppGradlePluginTests
     @DisplayName("works with Multiplatform")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun testRelocationMultiplatform(gradleVersion: GradleVersion) {
         val (firstProject, secondProject) = prepareTestProjects("new-mpp-lib-with-tests", gradleVersion)
 
@@ -334,8 +330,12 @@ class BuildCacheRelocationIT : KGPBaseTest() {
 
         // Make changes to annotated class and check kapt tasks are re-executed
         val appClassKtSourceFile = secondProject.subProject("app").kotlinSourcesDir().resolve("AppClass.kt")
+        val appTestClassKtSourceFile = secondProject.subProject("app").kotlinSourcesDir("test").resolve("AppClassTest.kt")
         appClassKtSourceFile.modify {
             it.replace("val testVal: String = \"text\"", "val testVal: Int = 1")
+        }
+        appTestClassKtSourceFile.modify {
+            it.replace("appClass.testVal, \"text\"", "appClass.testVal, 1")
         }
         secondProject.build("build", buildOptions = options) {
             assertTasksExecuted(":app:kaptGenerateStubsKotlin", ":app:kaptKotlin")
@@ -344,6 +344,9 @@ class BuildCacheRelocationIT : KGPBaseTest() {
         // Revert changes and check kapt tasks are from cache
         appClassKtSourceFile.modify {
             it.replace("val testVal: Int = 1", "val testVal: String = \"text\"")
+        }
+        appTestClassKtSourceFile.modify {
+            it.replace("appClass.testVal, 1", "appClass.testVal, \"text\"")
         }
         secondProject.build("clean", "build", buildOptions = options) {
             assertTasksFromCache(":app:kaptGenerateStubsKotlin", ":app:kaptKotlin")

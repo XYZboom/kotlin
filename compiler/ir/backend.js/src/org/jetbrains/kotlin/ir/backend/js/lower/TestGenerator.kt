@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrTypeOperator
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrTypeOperatorCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolOwner
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.IrSimpleType
 import org.jetbrains.kotlin.ir.types.defaultType
@@ -56,7 +57,9 @@ private class TestGenerator(
         if (irFile.declarations.isEmpty()) return
         ArrayList(irFile.declarations).forEach {
             if (it is IrClass) {
-                generateTestCalls(it) { if (groupByPackage) suiteForPackage(it) else context.createTestContainerFun(it) }
+                context.irFactory.stageController.restrictTo(it) {
+                    generateTestCalls(it) { if (groupByPackage) suiteForPackage(it) else context.createTestContainerFun(it) }
+                }
             }
 
             // TODO top-level functions
@@ -67,8 +70,9 @@ private class TestGenerator(
 
     private fun suiteForPackage(container: IrDeclaration): IrSimpleFunction {
         val irFile = container.file
+        val fn = context.createTestContainerFun(container)
         return packageSuites.getOrPut(irFile.packageFqName) {
-            context.suiteFun!!.createInvocation(irFile.packageFqName.asString(), context.createTestContainerFun(container))
+            context.suiteFun!!.createInvocation(irFile.packageFqName.asString(), fn)
         }
     }
 
@@ -84,15 +88,16 @@ private class TestGenerator(
             this.returnType = if (this@createInvocation == context.suiteFun!!) context.irBuiltIns.unitType else context.irBuiltIns.anyNType
             this.origin = JsIrBuilder.SYNTHESIZED_DECLARATION
         }
+
         function.parent = parentFunction
         function.body = body
 
         (parentFunction.body as IrBlockBody).statements += JsIrBuilder.buildCall(this).apply {
-            putValueArgument(0, JsIrBuilder.buildString(context.irBuiltIns.stringType, name))
-            putValueArgument(1, JsIrBuilder.buildBoolean(context.irBuiltIns.booleanType, ignored))
+            arguments[0] = JsIrBuilder.buildString(context.irBuiltIns.stringType, name)
+            arguments[1] = JsIrBuilder.buildBoolean(context.irBuiltIns.booleanType, ignored)
 
             val refType = IrSimpleTypeImpl(context.ir.symbols.functionN(0), false, emptyList(), emptyList())
-            putValueArgument(2, JsIrBuilder.buildFunctionExpression(refType, function))
+            arguments[2] = JsIrBuilder.buildFunctionExpression(refType, function)
         }
 
         return function
@@ -134,7 +139,7 @@ private class TestGenerator(
             isClassReachable
         } else {
             isClassReachable && constructors.any {
-                it.isVisibleFromTests() && it.explicitParametersCount == if (isInner) 1 else 0
+                it.isVisibleFromTests() && it.parameters.size == if (isInner) 1 else 0
             }
         }
     }
@@ -150,7 +155,7 @@ private class TestGenerator(
         val body = fn.body as IrBlockBody
 
         val exceptionMessage = when {
-            testFun.valueParameters.isNotEmpty() || !testFun.isEffectivelyVisibleFromTests() ->
+            testFun.nonDispatchParameters.isNotEmpty() || !testFun.isEffectivelyVisibleFromTests() ->
                 "Test method ${irClass.fqNameWhenAvailable ?: irClass.name}::${testFun.name} should have public or internal visibility, can not have parameters"
             !irClass.canBeInstantiated() ->
                 "Test class ${irClass.fqNameWhenAvailable ?: irClass.name} must declare a public or internal constructor with no explicit parameters"
@@ -160,7 +165,7 @@ private class TestGenerator(
         if (exceptionMessage != null) {
             val irBuilder = context.createIrBuilder(fn.symbol)
             body.statements += irBuilder.irCall(context.irBuiltIns.illegalArgumentExceptionSymbol).apply {
-                putValueArgument(0, irBuilder.irString(exceptionMessage))
+                arguments[0] = irBuilder.irString(exceptionMessage)
             }
 
             return
@@ -230,8 +235,8 @@ private class TestGenerator(
             val returnValue = JsIrBuilder.buildCall(
                 finally.symbol
             ).apply {
-                this.dispatchReceiver = promiseCastedIfNeeded
-                putValueArgument(0, finallyLambda)
+                arguments[0] = promiseCastedIfNeeded
+                arguments[1] = finallyLambda
             }
 
             body.statements += JsIrBuilder.buildReturn(
@@ -259,7 +264,7 @@ private class TestGenerator(
         return if (kind == ClassKind.OBJECT) {
             JsIrBuilder.buildGetObjectValue(defaultType, symbol)
         } else {
-            declarations.asSequence().filterIsInstance<IrConstructor>().first { it.explicitParametersCount == if (isInner) 1 else 0 }
+            declarations.asSequence().filterIsInstance<IrConstructor>().first { it.parameters.size == if (isInner) 1 else 0 }
                 .let { constructor ->
                     IrConstructorCallImpl.fromSymbolOwner(defaultType, constructor.symbol).also {
                         if (isInner) {

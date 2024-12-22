@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -10,91 +10,67 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.search.DelegatingGlobalSearchScope
 import com.intellij.psi.search.GlobalSearchScope
-import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.deserialization.SingleModuleDataProvider
+import org.jetbrains.kotlin.analysis.low.level.api.fir.sessions.LLFirSession
 import org.jetbrains.kotlin.fir.resolve.providers.FirSymbolProvider
-import org.jetbrains.kotlin.fir.scopes.FirKotlinScopeProvider
 import org.jetbrains.kotlin.library.KLIB_METADATA_FILE_EXTENSION
-import org.jetbrains.kotlin.serialization.deserialization.MetadataPackageFragment
+import org.jetbrains.kotlin.serialization.deserialization.METADATA_FILE_EXTENSION
 import org.jetbrains.kotlin.serialization.deserialization.builtins.BuiltInSerializerProtocol
 
 internal fun createStubBasedFirSymbolProviderForClassFiles(
-    project: Project,
+    session: LLFirSession,
     baseScope: GlobalSearchScope,
-    session: FirSession,
-    moduleDataProvider: SingleModuleDataProvider,
-    kotlinScopeProvider: FirKotlinScopeProvider,
     isFallbackDependenciesProvider: Boolean,
 ): FirSymbolProvider = createStubBasedFirSymbolProviderForScopeLimitedByFiles(
-    project,
-    baseScope,
     session,
-    moduleDataProvider,
-    kotlinScopeProvider,
+    baseScope,
+    JvmAndBuiltinsDeserializedContainerSourceProvider,
     isFallbackDependenciesProvider,
-    fileFilter = { file ->
-        val extension = file.extension
-        extension == JavaClassFileType.INSTANCE.defaultExtension || extension == BuiltInSerializerProtocol.BUILTINS_FILE_EXTENSION
-    },
-)
+) { file ->
+    val extension = file.extension
+    extension == JavaClassFileType.INSTANCE.defaultExtension || extension == BuiltInSerializerProtocol.BUILTINS_FILE_EXTENSION
+}
 
 internal fun createStubBasedFirSymbolProviderForCommonMetadataFiles(
-    project: Project,
+    session: LLFirSession,
     baseScope: GlobalSearchScope,
-    session: FirSession,
-    moduleDataProvider: SingleModuleDataProvider,
-    kotlinScopeProvider: FirKotlinScopeProvider,
     isFallbackDependenciesProvider: Boolean,
 ): FirSymbolProvider = createStubBasedFirSymbolProviderForScopeLimitedByFiles(
-    project,
-    baseScope,
     session,
-    moduleDataProvider,
-    kotlinScopeProvider,
+    baseScope,
+    NullDeserializedContainerSourceProvider,
     isFallbackDependenciesProvider,
-    fileFilter = { file ->
-        val extension = file.extension
-        extension == BuiltInSerializerProtocol.BUILTINS_FILE_EXTENSION ||
-                extension == MetadataPackageFragment.METADATA_FILE_EXTENSION ||
-                // klib metadata symbol provider
-                extension == KLIB_METADATA_FILE_EXTENSION
-    },
-)
+) { file ->
+    val extension = file.extension
+    extension == BuiltInSerializerProtocol.BUILTINS_FILE_EXTENSION ||
+            extension == METADATA_FILE_EXTENSION ||
+            // klib metadata symbol provider
+            extension == KLIB_METADATA_FILE_EXTENSION
+}
 
 internal fun createStubBasedFirSymbolProviderForKotlinNativeMetadataFiles(
-    project: Project,
+    session: LLFirSession,
     baseScope: GlobalSearchScope,
-    session: FirSession,
-    moduleDataProvider: SingleModuleDataProvider,
-    kotlinScopeProvider: FirKotlinScopeProvider,
     isFallbackDependenciesProvider: Boolean,
 ): FirSymbolProvider = createStubBasedFirSymbolProviderForScopeLimitedByFiles(
-    project,
-    baseScope,
     session,
-    moduleDataProvider,
-    kotlinScopeProvider,
+    baseScope,
+    NullDeserializedContainerSourceProvider,
     isFallbackDependenciesProvider,
-    fileFilter = { file -> file.extension == KLIB_METADATA_FILE_EXTENSION },
-)
+) { file -> file.extension == KLIB_METADATA_FILE_EXTENSION }
 
 internal fun createStubBasedFirSymbolProviderForScopeLimitedByFiles(
-    project: Project,
+    session: LLFirSession,
     baseScope: GlobalSearchScope,
-    session: FirSession,
-    moduleDataProvider: SingleModuleDataProvider,
-    kotlinScopeProvider: FirKotlinScopeProvider,
+    deserializedContainerSourceProvider: DeserializedContainerSourceProvider,
     isFallbackDependenciesProvider: Boolean,
     fileFilter: (VirtualFile) -> Boolean,
 ): StubBasedFirDeserializedSymbolProvider {
     return createFirSymbolProviderForScopeLimitedByFiles(
-        project, baseScope, fileFilter,
+        session.project, baseScope, fileFilter,
         symbolProviderFactory = { reducedScope: GlobalSearchScope ->
             StubBasedFirDeserializedSymbolProvider(
                 session,
-                moduleDataProvider,
-                kotlinScopeProvider,
-                project,
+                deserializedContainerSourceProvider,
                 reducedScope,
                 isFallbackDependenciesProvider,
             )

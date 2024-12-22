@@ -8,14 +8,13 @@ package org.jetbrains.kotlin.light.classes.symbol.methods
 import com.intellij.psi.*
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.mutate
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
-import org.jetbrains.kotlin.analysis.api.annotations.hasAnnotation
-import org.jetbrains.kotlin.analysis.api.symbols.KtFunctionSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KtNamedClassOrObjectSymbol
-import org.jetbrains.kotlin.analysis.api.types.KtNonErrorClassType
-import org.jetbrains.kotlin.analysis.api.types.KtType
-import org.jetbrains.kotlin.analysis.api.types.KtTypeMappingMode
-import org.jetbrains.kotlin.analysis.api.types.KtTypeNullability
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
+import org.jetbrains.kotlin.analysis.api.types.KaClassType
+import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.analysis.api.types.KaTypeMappingMode
+import org.jetbrains.kotlin.analysis.api.types.KaTypeNullability
 import org.jetbrains.kotlin.asJava.builder.LightMemberOrigin
 import org.jetbrains.kotlin.asJava.classes.lazyPub
 import org.jetbrains.kotlin.lexer.KtTokens
@@ -33,15 +32,15 @@ import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import java.util.*
 
 internal class SymbolLightSimpleMethod(
-    ktAnalysisSession: KtAnalysisSession,
-    functionSymbol: KtFunctionSymbol,
+    ktAnalysisSession: KaSession,
+    functionSymbol: KaNamedFunctionSymbol,
     lightMemberOrigin: LightMemberOrigin?,
     containingClass: SymbolLightClassBase,
     methodIndex: Int,
     private val isTopLevel: Boolean,
     argumentsSkipMask: BitSet? = null,
     private val suppressStatic: Boolean = false,
-) : SymbolLightMethod<KtFunctionSymbol>(
+) : SymbolLightMethod<KaNamedFunctionSymbol>(
     ktAnalysisSession = ktAnalysisSession,
     functionSymbol = functionSymbol,
     lightMemberOrigin = lightMemberOrigin,
@@ -51,9 +50,9 @@ internal class SymbolLightSimpleMethod(
 ) {
     private val _name: String by lazyPub {
         withFunctionSymbol { functionSymbol ->
-            functionSymbol.computeJvmMethodName(
-                functionSymbol.name.asString(),
-                this@SymbolLightSimpleMethod.containingClass,
+            computeJvmMethodName(
+                symbol = functionSymbol,
+                defaultName = functionSymbol.name.asString(),
             )
         }
     }
@@ -85,7 +84,7 @@ internal class SymbolLightSimpleMethod(
                 isTopLevel -> PsiModifier.FINAL
                 containingClass is SymbolLightClassForInterfaceDefaultImpls -> null
                 else -> withFunctionSymbol { functionSymbol ->
-                    functionSymbol.computeSimpleModality()?.takeUnless { it.isSuppressedFinalModifier(containingClass, functionSymbol) }
+                    functionSymbol.computeSimpleModality()?.takeUnless { isSuppressedFinalModifier(it, containingClass, functionSymbol) }
                 }
             }
 
@@ -118,13 +117,13 @@ internal class SymbolLightSimpleMethod(
 
         PsiModifier.STRICTFP -> {
             ifInlineOnly { return null }
-            val hasAnnotation = withFunctionSymbol { it.hasAnnotation(STRICTFP_ANNOTATION_CLASS_ID) }
+            val hasAnnotation = withFunctionSymbol { STRICTFP_ANNOTATION_CLASS_ID in it.annotations }
             mapOf(modifier to hasAnnotation)
         }
 
         PsiModifier.SYNCHRONIZED -> {
             ifInlineOnly { return null }
-            val hasAnnotation = withFunctionSymbol { it.hasAnnotation(SYNCHRONIZED_ANNOTATION_CLASS_ID) }
+            val hasAnnotation = withFunctionSymbol { SYNCHRONIZED_ANNOTATION_CLASS_ID in it.annotations }
             mapOf(modifier to hasAnnotation)
         }
 
@@ -157,19 +156,19 @@ internal class SymbolLightSimpleMethod(
                 additionalAnnotationsProvider = CompositeAdditionalAnnotationsProvider(
                     NullabilityAnnotationsProvider {
                         if (modifierList.hasModifierProperty(PsiModifier.PRIVATE)) {
-                            KtTypeNullability.UNKNOWN
+                            KaTypeNullability.UNKNOWN
                         } else {
                             withFunctionSymbol { functionSymbol ->
                                 when {
                                     functionSymbol.isSuspend -> { // Any?
-                                        KtTypeNullability.NULLABLE
+                                        KaTypeNullability.NULLABLE
                                     }
                                     forceBoxedReturnType(functionSymbol) -> {
-                                        KtTypeNullability.NON_NULLABLE
+                                        KaTypeNullability.NON_NULLABLE
                                     }
                                     else -> {
                                         val returnType = functionSymbol.returnType
-                                        if (isVoidType(returnType)) KtTypeNullability.UNKNOWN else getTypeNullability(returnType)
+                                        if (isVoidType(returnType)) KaTypeNullability.UNKNOWN else getTypeNullability(returnType)
                                     }
                                 }
                             }
@@ -192,41 +191,41 @@ internal class SymbolLightSimpleMethod(
     }
 
     // Inspired by KotlinTypeMapper#forceBoxedReturnType
-    private fun KtAnalysisSession.forceBoxedReturnType(functionSymbol: KtFunctionSymbol): Boolean {
+    private fun KaSession.forceBoxedReturnType(functionSymbol: KaNamedFunctionSymbol): Boolean {
         val returnType = functionSymbol.returnType
         // 'invoke' methods for lambdas, function literals, and callable references
         // implicitly override generic 'invoke' from a corresponding base class.
         if (functionSymbol.isBuiltinFunctionInvoke && isInlineClassType(returnType))
             return true
 
-        return returnType.isPrimitive &&
-                functionSymbol.getAllOverriddenSymbols().any { overriddenSymbol ->
-                    !overriddenSymbol.returnType.isPrimitive
+        return returnType.isPrimitiveBacked &&
+                functionSymbol.allOverriddenSymbols.any { overriddenSymbol ->
+                    !overriddenSymbol.returnType.isPrimitiveBacked
                 }
     }
 
     @Suppress("UnusedReceiverParameter")
-    private fun KtAnalysisSession.isInlineClassType(type: KtType): Boolean {
-        return ((type as? KtNonErrorClassType)?.classSymbol as? KtNamedClassOrObjectSymbol)?.isInline == true
+    private fun KaSession.isInlineClassType(type: KaType): Boolean {
+        return ((type as? KaClassType)?.symbol as? KaNamedClassSymbol)?.isInline == true
     }
 
-    private fun KtAnalysisSession.isVoidType(type: KtType): Boolean {
+    private fun KaSession.isVoidType(type: KaType): Boolean {
         val expandedType = type.fullyExpandedType
-        return expandedType.isUnit && expandedType.nullability != KtTypeNullability.NULLABLE
+        return expandedType.isUnitType && expandedType.nullability != KaTypeNullability.NULLABLE
     }
 
     private val _returnedType: PsiType by lazyPub {
         withFunctionSymbol { functionSymbol ->
             val ktType = if (functionSymbol.isSuspend) {
-                analysisSession.builtinTypes.NULLABLE_ANY // Any?
+                useSiteSession.builtinTypes.nullableAny // Any?
             } else {
-                functionSymbol.returnType.takeUnless { isVoidType(it) } ?: return@withFunctionSymbol PsiType.VOID
+                functionSymbol.returnType.takeUnless { isVoidType(it) } ?: return@withFunctionSymbol PsiTypes.voidType()
             }
 
             val typeMappingMode = if (forceBoxedReturnType(functionSymbol))
-                KtTypeMappingMode.RETURN_TYPE_BOXED
+                KaTypeMappingMode.RETURN_TYPE_BOXED
             else
-                KtTypeMappingMode.RETURN_TYPE
+                KaTypeMappingMode.RETURN_TYPE
 
             ktType.asPsiType(
                 this@SymbolLightSimpleMethod,
@@ -234,6 +233,7 @@ internal class SymbolLightSimpleMethod(
                 typeMappingMode,
                 this@SymbolLightSimpleMethod.containingClass.isAnnotationType,
                 suppressWildcards = suppressWildcards(),
+                allowNonJvmPlatforms = true,
             )
         } ?: nonExistentType()
     }

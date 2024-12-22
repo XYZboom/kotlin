@@ -5,12 +5,11 @@
 
 package org.jetbrains.kotlin.backend.jvm
 
-import org.jetbrains.kotlin.backend.common.ModuleLoweringPass
 import org.jetbrains.kotlin.backend.common.lower.*
 import org.jetbrains.kotlin.backend.common.lower.loops.ForLoopsLowering
 import org.jetbrains.kotlin.backend.common.phaser.*
 import org.jetbrains.kotlin.backend.jvm.lower.*
-import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.config.phaser.SameTypeNamedCompilerPhase
 
 private val jvmFilePhases = createFilePhases<JvmBackendContext>(
     ::TypeAliasAnnotationMethodsLowering,
@@ -27,7 +26,7 @@ private val jvmFilePhases = createFilePhases<JvmBackendContext>(
     ::JvmLateinitLowering,
     ::JvmInventNamesForLocalClasses,
 
-    ::InlineCallableReferenceToLambdaPhase,
+    ::JvmInlineCallableReferenceToLambdaPhase,
     ::DirectInvokeLowering,
     ::FunctionReferenceLowering,
 
@@ -63,7 +62,6 @@ private val jvmFilePhases = createFilePhases<JvmBackendContext>(
     ::JvmLocalDeclarationsLowering,
 
     ::RemoveDuplicatedInlinedLocalClassesLowering,
-    ::JvmInventNamesForInlinedAnonymousObjects,
 
     ::JvmLocalClassPopupLowering,
     ::StaticCallableReferenceLowering,
@@ -78,11 +76,10 @@ private val jvmFilePhases = createFilePhases<JvmBackendContext>(
     ::JvmDefaultParameterCleaner,
 
     ::FragmentLocalFunctionPatchLowering,
-    ::ReflectiveAccessLowering,
 
     ::InterfaceLowering,
     ::InheritedDefaultMethodsOnClassesLowering,
-    ::ReplaceDefaultImplsOverriddenSymbols,
+    ::GenerateJvmDefaultCompatibilityBridges,
     ::InterfaceSuperCallsLowering,
     ::InterfaceDefaultCallsLowering,
     ::InterfaceObjectCallsLowering,
@@ -117,19 +114,19 @@ private val jvmFilePhases = createFilePhases<JvmBackendContext>(
     ::ReplaceKFunctionInvokeWithFunctionInvoke,
     ::JvmKotlinNothingValueExceptionLowering,
     ::MakePropertyDelegateMethodsStaticLowering,
-    ::AddSuperQualifierToJavaFieldAccessLowering,
     ::ReplaceNumberToCharCallSitesLowering,
 
     ::RenameFieldsLowering,
     ::FakeLocalVariablesForBytecodeInlinerLowering,
     ::FakeLocalVariablesForIrInlinerLowering,
+
+    ::SpecialAccessLowering,
 )
 
 val jvmLoweringPhases = SameTypeNamedCompilerPhase(
     name = "IrLowering",
-    description = "IR lowering",
     nlevels = 1,
-    actions = setOf(defaultDumper, validationAction),
+    actions = DEFAULT_IR_ACTIONS,
     lower = buildModuleLoweringsPhase(
         ::ExternalPackageParentPatcherLowering,
         ::FragmentSharedVariablesLowering,
@@ -138,26 +135,21 @@ val jvmLoweringPhases = SameTypeNamedCompilerPhase(
         ::JvmExpectDeclarationRemover,
         ::ConstEvaluationLowering,
         ::SerializeIrPhase,
-        ::ScriptsToClassesLowering,
         ::FileClassLowering,
         ::JvmStaticInObjectLowering,
         ::RepeatedAnnotationLowering,
-
+        ::JvmInlineCallableReferenceToLambdaWithDefaultsPhase,
         ::JvmIrInliner,
         ::ApiVersionIsAtLeastEvaluationLowering,
         ::CreateSeparateCallForInlinedLambdasLowering,
         ::MarkNecessaryInlinedClassesAsRegeneratedLowering,
         ::InlinedClassReferencesBoxingLowering,
+        ::RestoreInlineLambda,
     ).then(
-        performByIrFile("PerformByIrFile", lower = jvmFilePhases)
+        performByIrFile("PerformByIrFile", jvmFilePhases)
     ) then buildModuleLoweringsPhase(
         ::GenerateMultifileFacades,
         ::ResolveInlineCalls,
         ::JvmIrValidationAfterLoweringPhase
     )
 )
-
-private typealias JvmPhase = CompilerPhase<JvmBackendContext, IrModuleFragment, IrModuleFragment>
-
-private fun buildModuleLoweringsPhase(vararg phases: (JvmBackendContext) -> ModuleLoweringPass): JvmPhase =
-    createModulePhases(*phases).reduce(JvmPhase::then)

@@ -1,5 +1,5 @@
-// LANGUAGE: +EnumEntries
-// IGNORE_BACKEND: JS, JVM
+// LANGUAGE: +EnumEntries -PrioritizedEnumEntries
+// IGNORE_BACKEND: JVM
 // FULL_JDK
 // WITH_STDLIB
 

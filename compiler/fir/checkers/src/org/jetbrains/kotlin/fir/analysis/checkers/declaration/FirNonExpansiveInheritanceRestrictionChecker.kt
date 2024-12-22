@@ -12,9 +12,11 @@ import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.collectUpperBounds
+import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
 import org.jetbrains.kotlin.fir.resolve.substitution.substitutorByMap
+import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassifierSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
@@ -45,9 +47,8 @@ object FirNonExpansiveInheritanceRestrictionChecker : FirRegularClassChecker(Mpp
             }
         }
 
-        if (problemNodes.any { it.typeParameter.source != null }) return
-
         val containers = problemNodes.map { it.container }
+        if (containers.any { it.origin !is FirDeclarationOrigin.Java }) return
         reporter.reportOn(declaration.source, FirErrors.EXPANSIVE_INHERITANCE_IN_JAVA, containers, context)
     }
 
@@ -120,7 +121,7 @@ object FirNonExpansiveInheritanceRestrictionChecker : FirRegularClassChecker(Mpp
                         // upper bounds of a skolem type variable Q in a skolemization of a projected generic type in ST, add an
                         // expanding edge from T to V, where V is the type parameter corresponding to Q.
                         val bounds = SmartSet.create<ConeKotlinType>()
-                        constituentTypeParameterSymbol.resolvedBounds.mapNotNullTo(bounds) { substitutor!!.substituteOrNull(it.type) }
+                        constituentTypeParameterSymbol.resolvedBounds.mapNotNullTo(bounds) { substitutor!!.substituteOrNull(it.coneType) }
                         typeProjection.type?.let(bounds::add)
                         val boundClosure = bounds.flatMapTo(SmartSet.create()) { it.collectUpperBounds() }
 

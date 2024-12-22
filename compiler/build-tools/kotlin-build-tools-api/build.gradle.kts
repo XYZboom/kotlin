@@ -10,10 +10,13 @@ configureKotlinCompileTasksGradleCompatibility()
 
 dependencies {
     compileOnly(kotlinStdlib())
+    compileOnly(project(":compiler:build-tools:kotlin-build-tools-jdk-utils"))
+    embedded(project(":compiler:build-tools:kotlin-build-tools-jdk-utils"))
     testApi(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testImplementation(kotlinStdlib())
+    testImplementation(project(":compiler:build-tools:kotlin-build-tools-jdk-utils"))
 }
 
 kotlin {
@@ -23,6 +26,12 @@ kotlin {
 publish()
 
 standardPublicJars()
+
+tasks.compileKotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xjvm-default=all")
+    }
+}
 
 tasks.named<KotlinCompile>("compileTestKotlin") {
     compilerOptions {

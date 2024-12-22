@@ -18,11 +18,13 @@ import org.jetbrains.kotlin.gradle.dsl.JsModuleKind
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompilerOptions
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsOptions
 import org.jetbrains.kotlin.gradle.plugin.DeprecatedHasCompilerOptions
+import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.compilationImpl.KotlinCompilationImpl
-import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsSubTargetContainerDsl
 import org.jetbrains.kotlin.gradle.targets.js.ir.JsBinary
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsBinaryContainer
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
 import org.jetbrains.kotlin.gradle.targets.js.npm.PackageJson
 import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
 import javax.inject.Inject
@@ -31,6 +33,9 @@ open class KotlinJsCompilation @Inject internal constructor(
     compilation: KotlinCompilationImpl,
 ) : DeprecatedAbstractKotlinCompilationToRunnableFiles<KotlinJsOptions>(compilation),
     HasBinaries<KotlinJsBinaryContainer> {
+
+    override val target: KotlinJsIrTarget
+        get() = super.target as KotlinJsIrTarget
 
     @Deprecated(
         "To configure compilation compiler options use 'compileTaskProvider':\ncompilation.compileTaskProvider.configure{\n" +
@@ -47,15 +52,9 @@ open class KotlinJsCompilation @Inject internal constructor(
             compilation.target.project.objects.domainObjectSet(JsBinary::class.java)
         )
 
-    var outputModuleName: String? = null
-        set(value) {
-            (target as KotlinJsSubTargetContainerDsl).apply {
-                check(!isBrowserConfigured && !isNodejsConfigured) {
-                    "Please set outputModuleName for compilation before initialize browser() or nodejs() on target"
-                }
-            }
-
-            field = value
+    val outputModuleName: Provider<String> = target.outputModuleName
+        .map { targetModuleName ->
+            buildNpmProjectName(targetModuleName, compilationName)
         }
 
     @Deprecated("Use compilationName instead", ReplaceWith("compilationName"))
@@ -97,6 +96,20 @@ open class KotlinJsCompilation @Inject internal constructor(
     fun packageJson(handler: Closure<*>) {
         packageJson {
             project.configure(this, handler)
+        }
+    }
+
+    private companion object {
+        private fun buildNpmProjectName(targetPart: String, compilationName: String): String {
+            val filteredCompilationName = if (compilationName != KotlinCompilation.MAIN_COMPILATION_NAME) {
+                compilationName
+            } else null
+
+            return listOfNotNull(
+                targetPart,
+                filteredCompilationName
+            )
+                .joinToString("-")
         }
     }
 }

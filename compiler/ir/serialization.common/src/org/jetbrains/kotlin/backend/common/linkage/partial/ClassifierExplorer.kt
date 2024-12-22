@@ -12,11 +12,15 @@ import org.jetbrains.kotlin.builtins.UnsignedType
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.NotFoundClasses
+import org.jetbrains.kotlin.ir.InternalSymbolFinderAPI
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.declarations.lazy.IrLazyClass
-import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.expressions.IrClassReference
+import org.jetbrains.kotlin.ir.expressions.IrConstantObject
+import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrTypeOperatorCall
 import org.jetbrains.kotlin.ir.linkage.partial.ExploredClassifier
 import org.jetbrains.kotlin.ir.linkage.partial.ExploredClassifier.Unusable
 import org.jetbrains.kotlin.ir.linkage.partial.ExploredClassifier.Unusable.*
@@ -33,7 +37,6 @@ import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageUtils.Module as PLM
 internal class ClassifierExplorer(
     private val builtIns: IrBuiltIns,
     private val stubGenerator: MissingDeclarationStubGenerator,
-    private val allowErrorTypes: Boolean
 ) {
     private val exploredSymbols = ExploredClassifiers()
 
@@ -44,18 +47,19 @@ internal class ClassifierExplorer(
         )
     }
 
+    @OptIn(InternalSymbolFinderAPI::class)  // KT-73430: Consider pre-finding these symbols and storing them into Symbols
     private val permittedAnnotationParameterSymbols: Set<IrClassSymbol> by lazy {
         buildSet {
             this += permittedAnnotationArrayParameterSymbols
 
             PrimitiveType.entries.forEach {
-                addIfNotNull(builtIns.findClass(it.typeName, BUILT_INS_PACKAGE_FQ_NAME)) // kotlin.<primitive>
-                addIfNotNull(builtIns.findClass(it.arrayTypeName, BUILT_INS_PACKAGE_FQ_NAME)) // kotlin.<primitive>Array
+                addIfNotNull(builtIns.symbolFinder.findClass(it.typeName, BUILT_INS_PACKAGE_FQ_NAME)) // kotlin.<primitive>
+                addIfNotNull(builtIns.symbolFinder.findClass(it.arrayTypeName, BUILT_INS_PACKAGE_FQ_NAME)) // kotlin.<primitive>Array
             }
 
             UnsignedType.entries.forEach {
-                addIfNotNull(builtIns.findClass(it.typeName, BUILT_INS_PACKAGE_FQ_NAME)) // kotlin.U<signed>
-                addIfNotNull(builtIns.findClass(it.arrayClassId.shortClassName, BUILT_INS_PACKAGE_FQ_NAME)) // kotlin.U<signed>Array
+                addIfNotNull(builtIns.symbolFinder.findClass(it.typeName, BUILT_INS_PACKAGE_FQ_NAME)) // kotlin.U<signed>
+                addIfNotNull(builtIns.symbolFinder.findClass(it.arrayClassId.shortClassName, BUILT_INS_PACKAGE_FQ_NAME)) // kotlin.U<signed>Array
             }
         }
     }
@@ -76,12 +80,7 @@ internal class ClassifierExplorer(
                 ?: arguments.firstUnusable { it.typeOrNull?.exploreType(visitedSymbols) }
                 ?: Usable
             is IrDynamicType -> Usable
-            else -> {
-                if (this is IrErrorType && allowErrorTypes)
-                    Usable
-                else
-                    throw IllegalArgumentException("Unsupported IR type: ${this::class.java}, $this")
-            }
+            else -> throw IllegalArgumentException("Unsupported IR type: ${this::class.java}, $this")
         }
     }
 

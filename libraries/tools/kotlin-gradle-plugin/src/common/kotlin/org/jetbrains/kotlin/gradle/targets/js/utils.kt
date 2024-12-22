@@ -50,9 +50,9 @@ fun FileHasher.calculateDirHash(
                 if (!Files.isSymbolicLink(file.toPath())) {
                     hasher.putHash(hash(file))
                 } else {
-                    val canonicalFile = file.canonicalFile
-                    hasher.putHash(hash(canonicalFile))
-                    hasher.putString(canonicalFile.toRelativeString(dir))
+                    val absoluteFile = file.absoluteFile
+                    hasher.putHash(hash(absoluteFile))
+                    hasher.putString(absoluteFile.toRelativeString(dir))
                 }
             }
         }
@@ -61,6 +61,8 @@ fun FileHasher.calculateDirHash(
 }
 
 const val JS = "js"
+const val MJS = "mjs"
+const val WASM = "wasm"
 const val JS_MAP = "js.map"
 const val META_JS = "meta.js"
 const val HTML = "html"

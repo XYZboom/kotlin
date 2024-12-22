@@ -11,12 +11,12 @@ dependencies {
     testImplementation(projectTests(":compiler:tests-common-new"))
 
     testApi(commonDependency("com.google.code.gson:gson"))
-    testApi(commonDependency("org.jetbrains.intellij.deps:jdom"))
+    testApi(intellijJDom())
 
     api(libs.jsoup)
 
     testRuntimeOnly(project(":core:descriptors.runtime"))
-
+    testRuntimeOnly(toolsJar())
     testApi(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
@@ -33,6 +33,7 @@ sourceSets {
 testsJar()
 
 compilerTests {
+    testData("testData")
     withScriptRuntime()
     withTestJar()
 }
@@ -40,7 +41,6 @@ compilerTests {
 projectTest(parallel = true) {
     workingDir = rootDir
     useJUnitPlatform()
-    inputs.dir(layout.projectDirectory.dir("testData")).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(File(rootDir, "tests/mute-common.csv")).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(File(rootDir, "compiler/cli/cli-common/resources/META-INF/extensions/compiler.xml"))
         .withPathSensitivity(PathSensitivity.RELATIVE)

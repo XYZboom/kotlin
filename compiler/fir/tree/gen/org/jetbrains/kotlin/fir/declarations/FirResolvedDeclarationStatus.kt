@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.fir.visitors.FirTransformer
 import org.jetbrains.kotlin.fir.visitors.FirVisitor
 
 /**
- * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.resolvedDeclarationStatus]
+ * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTree.resolvedDeclarationStatus]
  */
 interface FirResolvedDeclarationStatus : FirDeclarationStatus {
     override val source: KtSourceElement?
@@ -28,6 +28,7 @@ interface FirResolvedDeclarationStatus : FirDeclarationStatus {
     override val isOperator: Boolean
     override val isInfix: Boolean
     override val isInline: Boolean
+    override val isValue: Boolean
     override val isTailRec: Boolean
     override val isExternal: Boolean
     override val isConst: Boolean
@@ -41,6 +42,8 @@ interface FirResolvedDeclarationStatus : FirDeclarationStatus {
     override val isFromEnumClass: Boolean
     override val isFun: Boolean
     override val hasStableParameterNames: Boolean
+    override val defaultVisibility: Visibility
+    override val defaultModality: Modality
     override val modality: Modality
     val effectiveVisibility: EffectiveVisibility
 

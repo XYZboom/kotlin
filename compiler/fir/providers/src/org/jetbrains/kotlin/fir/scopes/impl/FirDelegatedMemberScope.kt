@@ -5,8 +5,10 @@
 
 package org.jetbrains.kotlin.fir.scopes.impl
 
+import org.jetbrains.kotlin.KtFakeSourceElementKind
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
+import org.jetbrains.kotlin.fakeElement
 import org.jetbrains.kotlin.fir.DelegatedWrapperData
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.FirSessionComponent
@@ -24,7 +26,6 @@ import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.ConeFlexibleType
 import org.jetbrains.kotlin.fir.types.coneType
-import org.jetbrains.kotlin.fir.types.isMarkedNullable
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
@@ -106,6 +107,8 @@ class FirDelegatedMemberScope(
                     FirDeclarationOrigin.Delegated,
                     newDispatchReceiverType = dispatchReceiverType,
                     newModality = Modality.OPEN,
+                    newSource = containingClass.source?.fakeElement(KtFakeSourceElementKind.MembersImplementedByDelegation),
+                    markAsOverride = true
                 ).apply {
                     delegatedWrapperData = DelegatedWrapperData(functionSymbol.fir, containingClass.symbol.toLookupTag(), delegateField)
                 }.symbol
@@ -210,6 +213,17 @@ class FirDelegatedMemberScope(
 
     override fun getCallableNames(): Set<Name> = callableNamesLazy
     override fun getClassifierNames(): Set<Name> = classifierNamesLazy
+
+    @DelicateScopeAPI
+    override fun withReplacedSessionOrNull(newSession: FirSession, newScopeSession: ScopeSession): FirDelegatedMemberScope {
+        return FirDelegatedMemberScope(
+            newSession,
+            newScopeSession,
+            containingClass,
+            declaredMemberScope.withReplacedSessionOrNull(newSession, newScopeSession) ?: declaredMemberScope,
+            delegateFields
+        )
+    }
 }
 
 private object MultipleDelegatesWithTheSameSignatureKey : FirDeclarationDataKey()

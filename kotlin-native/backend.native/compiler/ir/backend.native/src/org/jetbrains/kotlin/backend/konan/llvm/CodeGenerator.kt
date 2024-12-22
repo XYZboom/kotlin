@@ -8,11 +8,12 @@ package org.jetbrains.kotlin.backend.konan.llvm
 
 import kotlinx.cinterop.*
 import llvm.*
-import org.jetbrains.kotlin.backend.konan.MemoryModel
 import org.jetbrains.kotlin.backend.konan.NativeGenerationState
 import org.jetbrains.kotlin.backend.konan.RuntimeNames
+import org.jetbrains.kotlin.backend.konan.binaryTypeIsReference
 import org.jetbrains.kotlin.backend.konan.cgen.CBridgeOrigin
 import org.jetbrains.kotlin.backend.konan.ir.ClassGlobalHierarchyInfo
+import org.jetbrains.kotlin.backend.konan.ir.isAbstract
 import org.jetbrains.kotlin.backend.konan.ir.isAny
 import org.jetbrains.kotlin.backend.konan.llvm.ThreadState.Native
 import org.jetbrains.kotlin.backend.konan.llvm.ThreadState.Runnable
@@ -29,11 +30,11 @@ internal class CodeGenerator(override val generationState: NativeGenerationState
     fun addFunction(proto: LlvmFunctionProto): LlvmCallable =
             proto.createLlvmFunction(context, llvm.module)
 
-    fun llvmFunction(function: IrFunction): LlvmCallable =
+    fun llvmFunction(function: IrSimpleFunction): LlvmCallable =
             llvmFunctionOrNull(function)
                     ?: error("no function ${function.name} in ${function.file.packageFqName}")
 
-    fun llvmFunctionOrNull(function: IrFunction): LlvmCallable? =
+    fun llvmFunctionOrNull(function: IrSimpleFunction): LlvmCallable? =
             function.llvmFunctionOrNull
 
     val llvmDeclarations = generationState.llvmDeclarations
@@ -47,12 +48,13 @@ internal class CodeGenerator(override val generationState: NativeGenerationState
 
     fun typeInfoValue(irClass: IrClass): LLVMValueRef = irClass.llvmTypeInfoPtr
 
-    fun param(fn: IrFunction, i: Int) = fn.llvmFunction.param(i)
+    fun param(fn: IrSimpleFunction, i: Int) = fn.llvmFunction.param(i)
 
-    fun functionEntryPointAddress(function: IrFunction) = function.entryPointAddress.llvm
+    fun functionEntryPointAddress(function: IrSimpleFunction) = function.entryPointAddress.llvm
 
     fun typeInfoForAllocation(constructedClass: IrClass): LLVMValueRef {
-        assert(!constructedClass.isObjCClass())
+        require(!constructedClass.isObjCClass()) { "Allocation of Obj-C class ${constructedClass.render()} should have been lowered" }
+        require(!constructedClass.isAbstract()) { "Allocation of abstract class ${constructedClass.render()} is not allowed" }
         return typeInfoValue(constructedClass)
     }
 
@@ -103,7 +105,7 @@ val LLVMValueRef.isConst:Boolean
 
 internal inline fun generateFunction(
         codegen: CodeGenerator,
-        function: IrFunction,
+        function: IrSimpleFunction,
         startLocation: LocationInfo?,
         endLocation: LocationInfo?,
         code: FunctionGenerationContext.() -> Unit
@@ -122,12 +124,7 @@ internal inline fun generateFunction(
             switchToRunnable = isCToKotlinBridge,
             needSafePoint = true,
             function)
-
-    if (isCToKotlinBridge) {
-        // Enable initRuntimeIfNeeded for legacy MM too:
-        functionGenerationContext.needsRuntimeInit = true
-        // This fixes https://youtrack.jetbrains.com/issue/KT-44283.
-    }
+    functionGenerationContext.needsRuntimeInit = isCToKotlinBridge
 
     try {
         generateFunctionBody(functionGenerationContext, code)
@@ -183,7 +180,7 @@ internal inline fun generateFunctionNoRuntime(
             switchToRunnable = false, needSafePoint = true)
     try {
         functionGenerationContext.forbidRuntime = true
-        require(!functionGenerationContext.isObjectType(functionGenerationContext.returnType!!)) {
+        require(!functionProto.signature.returnsObjectType) {
             "Cannot return object from function without Kotlin runtime"
         }
 
@@ -277,7 +274,8 @@ internal object VirtualTablesLookup {
         val canCallViaVtable = !owner.isInterface
         val layoutBuilder = generationState.context.getLayoutBuilder(owner)
 
-        val functionType = codegen.getLlvmFunctionType(irFunction)
+        val llvmFunctionSignature = LlvmFunctionSignature(irFunction, this)
+        val functionType = llvmFunctionSignature.llvmFunctionType
         val functionPtrType = pointerType(functionType)
         val functionPtrPtrType = pointerType(functionPtrType)
         val llvmMethod = when {
@@ -299,9 +297,8 @@ internal object VirtualTablesLookup {
             }
         }
         return LlvmCallable(
-                functionType,
                 bitcast(functionPtrType, llvmMethod),
-                LlvmFunctionSignature(irFunction, this)
+                llvmFunctionSignature
         )
     }
 }
@@ -343,16 +340,22 @@ private fun CodeGenerator.getVirtualFunctionTrampolineImpl(irFunction: IrSimpleF
             else {
                 val offset = irFunction.startOffset.takeIf { it != UNDEFINED_OFFSET }
                         ?: irFunction.parentAsClass.startOffset.takeIf { it != UNDEFINED_OFFSET }
-                val file = irFunction.fileOrNull.takeIf {
+                val fileEntry = irFunction.fileOrNull?.fileEntry.takeIf {
                     offset != null && context.shouldContainLocationDebugInfo()
                 }
-                val diFunctionScope = file?.let {
+                val diFunctionScope = fileEntry?.let {
                     with(generationState.debugInfo) {
-                        irFunction.diFunctionScope(it, proto.name, it.fileEntry.line(offset!!), false)
+                        irFunction.diFunctionScope(
+                                it,
+                                proto.name,
+                                it.line(offset!!),
+                                false,
+                                isTransparentStepping = generationState.config.enableDebugTransparentStepping
+                        )
                     }
                 }
                 @Suppress("UNCHECKED_CAST") val location = diFunctionScope?.let {
-                    val (line, column) = file.fileEntry.lineAndColumn(offset!!)
+                    val (line, column) = fileEntry.lineAndColumn(offset!!)
                     LocationInfo(it as DIScopeOpaqueRef, line, column)
                 }
                 generateFunction(this, proto, needSafePoint = false, startLocation = location, endLocation = location) {
@@ -408,11 +411,11 @@ internal class StackLocalsManagerImpl(
     fun isEmpty() = stackLocals.isEmpty()
 
     private fun FunctionGenerationContext.createRootSetSlot() =
-            if (context.memoryModel == MemoryModel.EXPERIMENTAL) alloca(kObjHeaderPtr) else null
+            alloca(kObjHeaderPtr, true)
 
     override fun alloc(irClass: IrClass): LLVMValueRef = with(functionGenerationContext) {
         val classInfo = llvmDeclarations.forClass(irClass)
-        val type = classInfo.bodyType
+        val type = classInfo.bodyType.llvmBodyType
         val stackLocal = appendingTo(bbInitStackLocals) {
             val stackSlot = LLVMBuildAlloca(builder, type, "")!!
             LLVMSetAlignment(stackSlot, classInfo.alignment)
@@ -512,11 +515,10 @@ internal class StackLocalsManagerImpl(
             }
         } else {
             val info = llvmDeclarations.forClass(stackLocal.irClass)
-            val type = info.bodyType
-            for (fieldIndex in info.fieldIndices.values.sorted()) {
-                val fieldType = LLVMStructGetTypeAtIndex(type, fieldIndex)!!
+            val type = info.bodyType.llvmBodyType
+            for ((fieldSymbol, fieldIndex) in info.fieldIndices.entries.sortedBy{ e -> e.value }) {
 
-                if (isObjectType(fieldType)) {
+                if (fieldSymbol.owner.type.binaryTypeIsReference()) {
                     val fieldPtr = structGep(type, stackLocal.stackAllocationPtr, fieldIndex, "")
                     if (refsOnly)
                         storeHeapRef(kNullObjHeaderPtr, fieldPtr)
@@ -562,7 +564,7 @@ internal abstract class FunctionGenerationContextBuilder<T : FunctionGenerationC
     var endLocation: LocationInfo? = null
     var switchToRunnable = false
     var needSafePoint = true
-    var irFunction: IrFunction? = null
+    var irFunction: IrSimpleFunction? = null
 
     abstract fun build(): T
 }
@@ -572,9 +574,9 @@ internal abstract class FunctionGenerationContext(
         val codegen: CodeGenerator,
         private val startLocation: LocationInfo?,
         protected val endLocation: LocationInfo?,
-        switchToRunnable: Boolean,
-        needSafePoint: Boolean,
-        internal val irFunction: IrFunction? = null
+        private val switchToRunnable: Boolean,
+        private val needSafePoint: Boolean,
+        internal val irFunction: IrSimpleFunction? = null
 ) : ContextUtils {
 
     constructor(builder: FunctionGenerationContextBuilder<*>) : this(
@@ -598,8 +600,6 @@ internal abstract class FunctionGenerationContext(
     }
 
     var returnType: LLVMTypeRef? = function.returnType
-    val constructedClass: IrClass?
-        get() = (irFunction as? IrConstructor)?.constructedClass
     var returnSlot: LLVMValueRef? = null
         private set
     private var slotsPhi: LLVMValueRef? = null
@@ -620,17 +620,9 @@ internal abstract class FunctionGenerationContext(
     // Functions that can be exported and called not only from Kotlin code should have cleanup_landingpad and `LeaveFrame`
     // because there is no guarantee of catching Kotlin exception in Kotlin code.
     protected open val needCleanupLandingpadAndLeaveFrame: Boolean
-        get() = irFunction?.annotations?.hasAnnotation(RuntimeNames.exportForCppRuntime) == true ||     // Exported to foreign code
-                (!stackLocalsManager.isEmpty() && context.memoryModel != MemoryModel.EXPERIMENTAL) ||
-                switchToRunnable
+        get() = irFunction?.annotations?.hasAnnotation(RuntimeNames.exportForCppRuntime) == true || switchToRunnable
 
     private var setCurrentFrameIsCalled: Boolean = false
-
-    private val switchToRunnable: Boolean =
-            context.memoryModel == MemoryModel.EXPERIMENTAL && switchToRunnable
-
-    private val needSafePoint: Boolean =
-            context.memoryModel == MemoryModel.EXPERIMENTAL && needSafePoint
 
     val stackLocalsManager = StackLocalsManagerImpl(this, stackLocalsInitBb)
 
@@ -680,10 +672,10 @@ internal abstract class FunctionGenerationContext(
         LLVMMoveBasicBlockAfter(block, this.entryBb)
     }
 
-    fun alloca(type: LLVMTypeRef?, name: String = "", variableLocation: VariableDebugLocation? = null): LLVMValueRef {
-        if (isObjectType(type!!)) {
+    fun alloca(type: LLVMTypeRef?, isObjectType: Boolean, name: String = "", variableLocation: VariableDebugLocation? = null): LLVMValueRef {
+        if (isObjectType) {
             appendingTo(localsInitBb) {
-                val slotAddress = gep(type, slotsPhi!!, llvm.int32(slotCount), name)
+                val slotAddress = gep(type!!, slotsPhi!!, llvm.int32(slotCount), name)
                 variableLocation?.let {
                     slotToVariableLocation[slotCount] = it
                 }
@@ -716,8 +708,6 @@ internal abstract class FunctionGenerationContext(
     private fun applyMemoryOrderAndAlignment(value: LLVMValueRef, memoryOrder: LLVMAtomicOrdering?, alignment: Int?): LLVMValueRef {
         memoryOrder?.let { LLVMSetOrdering(value, it) }
         alignment?.let { LLVMSetAlignment(value, it) }
-        // Use loadSlot() API for that.
-        assert(!isObjectRef(value))
         return value
     }
 
@@ -729,6 +719,7 @@ internal abstract class FunctionGenerationContext(
 
     fun loadSlot(
             type: LLVMTypeRef,
+            isObjectType: Boolean,
             address: LLVMValueRef,
             isVar: Boolean,
             resultSlot: LLVMValueRef? = null,
@@ -739,8 +730,8 @@ internal abstract class FunctionGenerationContext(
         val value = LLVMBuildLoad2(builder, type, address, name)!!
         memoryOrder?.let { LLVMSetOrdering(value, it) }
         alignment?.let { LLVMSetAlignment(value, it) }
-        if (isObjectType(type) && isVar) {
-            val slot = resultSlot ?: alloca(type, variableLocation = null)
+        if (isObjectType && isVar) {
+            val slot = resultSlot ?: alloca(type, isObjectType, variableLocation = null)
             storeStackRef(value, slot)
         }
         return value
@@ -760,28 +751,15 @@ internal abstract class FunctionGenerationContext(
         updateRef(value, ptr, onStack = true)
     }
 
-    fun storeAny(value: LLVMValueRef, ptr: LLVMValueRef, onStack: Boolean, isVolatile: Boolean = false, alignment: Int? = null) {
+    fun storeAny(value: LLVMValueRef, ptr: LLVMValueRef, isObjectRef: Boolean, onStack: Boolean, isVolatile: Boolean = false, alignment: Int? = null) {
         when {
-            isObjectRef(value) -> updateRef(value, ptr, onStack, isVolatile, alignment)
+            isObjectRef -> updateRef(value, ptr, onStack, isVolatile, alignment)
             else -> store(value, ptr, if (isVolatile) LLVMAtomicOrdering.LLVMAtomicOrderingSequentiallyConsistent else null, alignment)
         }
     }
 
-    fun freeze(value: LLVMValueRef, exceptionHandler: ExceptionHandler) {
-        if (isObjectRef(value))
-            call(llvm.freezeSubgraph, listOf(value), Lifetime.IRRELEVANT, exceptionHandler)
-    }
-
-    fun checkGlobalsAccessible(exceptionHandler: ExceptionHandler) {
-        if (context.memoryModel == MemoryModel.STRICT)
-            call(llvm.checkGlobalsAccessible, emptyList(), Lifetime.IRRELEVANT, exceptionHandler)
-    }
-
     private fun updateReturnRef(value: LLVMValueRef, address: LLVMValueRef) {
-        if (context.memoryModel == MemoryModel.STRICT)
-            store(value, address)
-        else
-            call(llvm.updateReturnRefFunction, listOf(address, value))
+        call(llvm.updateReturnRefFunction, listOf(address, value))
     }
 
     private fun updateRef(value: LLVMValueRef, address: LLVMValueRef, onStack: Boolean,
@@ -789,12 +767,9 @@ internal abstract class FunctionGenerationContext(
         require(alignment == null || alignment % runtime.pointerAlignment == 0)
         if (onStack) {
             require(!isVolatile) { "Stack ref update can't be volatile"}
-            if (context.memoryModel == MemoryModel.STRICT)
-                store(value, address)
-            else
-                call(llvm.updateStackRefFunction, listOf(address, value))
+            call(llvm.updateStackRefFunction, listOf(address, value))
         } else {
-            if (isVolatile && context.memoryModel == MemoryModel.EXPERIMENTAL) {
+            if (isVolatile) {
                 call(llvm.UpdateVolatileHeapRef, listOf(address, value))
             } else {
                 call(llvm.updateHeapRefFunction, listOf(address, value))
@@ -805,9 +780,6 @@ internal abstract class FunctionGenerationContext(
     //-------------------------------------------------------------------------//
 
     fun switchThreadState(state: ThreadState) {
-        check(context.memoryModel == MemoryModel.EXPERIMENTAL) {
-            "Thread state switching is allowed in the new MM only."
-        }
         check(!forbidRuntime) {
             "Attempt to switch the thread state when runtime is forbidden"
         }
@@ -815,12 +787,6 @@ internal abstract class FunctionGenerationContext(
             Native -> call(llvm.Kotlin_mm_switchThreadStateNative, emptyList())
             Runnable -> call(llvm.Kotlin_mm_switchThreadStateRunnable, emptyList())
         }.let {} // Force exhaustive.
-    }
-
-    fun switchThreadStateIfExperimentalMM(state: ThreadState) {
-        if (context.memoryModel == MemoryModel.EXPERIMENTAL) {
-            switchThreadState(state)
-        }
     }
 
     fun memset(pointer: LLVMValueRef, value: Byte, size: Int, isVolatile: Boolean = false) =
@@ -836,7 +802,7 @@ internal abstract class FunctionGenerationContext(
              verbatim: Boolean = false,
              resultSlot: LLVMValueRef? = null,
     ): LLVMValueRef {
-        val callArgs = if (verbatim || !isObjectType(llvmCallable.returnType)) {
+        val callArgs = if (verbatim || !llvmCallable.returnsObjectType) {
             args
         } else {
             // If function returns an object - create slot for the returned value or give local arena.
@@ -847,7 +813,7 @@ internal abstract class FunctionGenerationContext(
                     localAllocs++
                     // Case of local call. Use memory allocated on stack.
                     val type = llvmCallable.returnType
-                    val stackPointer = alloca(type)
+                    val stackPointer = alloca(type, llvmCallable.returnsObjectType)
                     //val objectHeader = structGep(stackPointer, 0)
                     //setTypeInfoForLocalObject(objectHeader)
                     stackPointer
@@ -856,7 +822,7 @@ internal abstract class FunctionGenerationContext(
 
                 SlotType.RETURN -> returnSlot!!
 
-                SlotType.ANONYMOUS -> vars.createAnonymousSlot()
+                SlotType.ANONYMOUS -> vars.createAnonymousSlot(llvmCallable.returnsObjectType)
 
                 else -> throw Error("Incorrect slot type: ${resultLifetime.slotType}")
             }
@@ -939,6 +905,7 @@ internal abstract class FunctionGenerationContext(
     ): LLVMValueRef {
         val typeInfo = codegen.typeInfoValue(irClass)
         return if (lifetime == Lifetime.STACK) {
+            require(LLVMIsConstant(count) != 0) { "Expected a constant for the size of a stack-allocated array" }
             stackLocalsManager.allocArray(irClass, count)
         } else {
             call(llvm.allocArrayFunction, listOf(typeInfo, count), lifetime, exceptionHandler, resultSlot = resultSlot)
@@ -1297,14 +1264,6 @@ internal abstract class FunctionGenerationContext(
         return load(codegen.kTypeInfoPtr, typeInfoPtrPtr, memoryOrder = LLVMAtomicOrdering.LLVMAtomicOrderingMonotonic)
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    fun getObjectValue(irClass: IrClass, exceptionHandler: ExceptionHandler,
-                       startLocationInfo: LocationInfo?, endLocationInfo: LocationInfo? = null,
-                       resultSlot: LLVMValueRef? = null
-    ): LLVMValueRef {
-        error("Should be lowered out: ${irClass.render()} while generating ${irFunction?.dump()}")
-    }
-
     /**
      * Note: the same code is generated as IR in [org.jetbrains.kotlin.backend.konan.lower.EnumUsageLowering].
      */
@@ -1331,7 +1290,7 @@ internal abstract class FunctionGenerationContext(
 
                 val getClass = llvm.externalNativeRuntimeFunction(
                         "object_getClass",
-                        LlvmRetType(llvm.int8PtrType),
+                        LlvmRetType(llvm.int8PtrType, isObjectType = false),
                         listOf(LlvmParamType(llvm.int8PtrType))
                 )
                 call(getClass, listOf(objCClass), exceptionHandler = exceptionHandler)
@@ -1381,7 +1340,7 @@ internal abstract class FunctionGenerationContext(
     }
 
     internal fun prologue() {
-        if (isObjectType(returnType!!)) {
+        if (function.returnsObjectType) {
             returnSlot = function.param( function.numParams - 1)
         }
 
@@ -1459,7 +1418,7 @@ internal abstract class FunctionGenerationContext(
             } else {
                 check(!setCurrentFrameIsCalled)
             }
-            if (context.memoryModel == MemoryModel.EXPERIMENTAL && !forbidRuntime && needSafePoint) {
+            if (!forbidRuntime && needSafePoint) {
                 call(llvm.Kotlin_mm_safePointFunctionPrologue, emptyList())
             }
             resetDebugLocation()
@@ -1653,9 +1612,6 @@ internal abstract class FunctionGenerationContext(
             call(llvm.leaveFrameFunction,
                     listOf(slotsPhi!!, llvm.int32(vars.skipSlots), llvm.int32(slotCount)))
         }
-        if (!stackLocalsManager.isEmpty() && context.memoryModel != MemoryModel.EXPERIMENTAL) {
-            stackLocalsManager.clean(refsOnly = true) // Only bother about not leaving any dangling references.
-        }
     }
 }
 
@@ -1666,7 +1622,7 @@ internal class DefaultFunctionGenerationContext(
         endLocation: LocationInfo?,
         switchToRunnable: Boolean,
         needSafePoint: Boolean,
-        irFunction: IrFunction? = null
+        irFunction: IrSimpleFunction? = null
 ) : FunctionGenerationContext(
         function,
         codegen,

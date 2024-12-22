@@ -32,13 +32,11 @@ import org.jetbrains.kotlin.ir.declarations.impl.IrVariableImpl
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.jetbrains.kotlin.ir.expressions.IrSetValue
-import org.jetbrains.kotlin.ir.expressions.impl.IrBlockBodyImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrSetValueImpl
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.symbols.impl.IrVariableSymbolImpl
 import org.jetbrains.kotlin.ir.transformStatement
-import org.jetbrains.kotlin.ir.util.DeepCopySymbolRemapper
 import org.jetbrains.kotlin.ir.util.statements
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
@@ -64,19 +62,17 @@ import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
  */
 class KlibAssignableParamTransformer(
     context: IrPluginContext,
-    symbolRemapper: DeepCopySymbolRemapper,
     metrics: ModuleMetrics,
     stabilityInferencer: StabilityInferencer,
     featureFlags: FeatureFlags,
 ) : AbstractComposeLowering(
     context,
-    symbolRemapper,
     metrics,
     stabilityInferencer,
     featureFlags
 ), ModuleLoweringPass {
-    override fun lower(module: IrModuleFragment) {
-        module.transformChildrenVoid(this)
+    override fun lower(irModule: IrModuleFragment) {
+        irModule.transformChildrenVoid(this)
     }
 
     @OptIn(IrImplementationDetail::class)

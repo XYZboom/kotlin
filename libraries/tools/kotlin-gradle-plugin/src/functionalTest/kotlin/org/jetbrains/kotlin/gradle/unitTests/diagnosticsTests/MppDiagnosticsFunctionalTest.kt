@@ -5,12 +5,11 @@
 
 package org.jetbrains.kotlin.gradle.unitTests.diagnosticsTests
 
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.targetFromPresetInternal
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinJvmWithJavaTargetPreset
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.util.*
-import org.jetbrains.kotlin.gradle.util.checkDiagnosticsWithMppProject
 import org.junit.Test
 
 class MppDiagnosticsFunctionalTest {
@@ -47,7 +46,7 @@ class MppDiagnosticsFunctionalTest {
     fun testDeprecatedJvmWithJavaPreset() {
         checkDiagnosticsWithMppProject("deprecatedJvmWithJavaPreset") {
             kotlin {
-                @Suppress("DEPRECATION")
+                @Suppress("DEPRECATION_ERROR")
                 targetFromPresetInternal(presets.getByName(KotlinJvmWithJavaTargetPreset.PRESET_NAME))
             }
         }
@@ -126,40 +125,5 @@ class MppDiagnosticsFunctionalTest {
                 jvm().compilations.create("custom").source(customMain)
             }
         }
-    }
-
-    @Test
-    @OptIn(ExperimentalWasmDsl::class)
-    fun wasmStabilityWarningReportedOncePerBuild() {
-        val rootProject = buildProjectWithMPP(projectBuilder = { withName("lib") }) {
-            kotlin { jvm(); wasmJs { browser() } }
-        }
-        val childProject = buildProjectWithMPP(projectBuilder = { withParent(rootProject).withName("app") }) {
-            kotlin { jvm(); wasmJs { browser() } }
-        }
-        childProject.evaluate()
-        rootProject.evaluate()
-
-        // wasm target was declared first in the root project, so only root project should report it
-        rootProject.assertContainsDiagnostic(KotlinToolingDiagnostics.WasmStabilityWarning)
-        childProject.assertNoDiagnostics(KotlinToolingDiagnostics.WasmStabilityWarning)
-    }
-
-    @Test
-    @OptIn(ExperimentalWasmDsl::class)
-    fun wasmStabilityWarningCanBeSuppressed() {
-        val rootProject = buildProjectWithMPP(projectBuilder = { withName("lib") }) {
-            enableWasmStabilityNoWarn()
-            kotlin { jvm(); wasmJs { browser() } }
-        }
-        val childProject = buildProjectWithMPP(projectBuilder = { withParent(rootProject).withName("app") }) {
-            enableWasmStabilityNoWarn()
-            kotlin { jvm(); wasmJs { browser() } }
-        }
-        childProject.evaluate()
-        rootProject.evaluate()
-
-        rootProject.assertNoDiagnostics(KotlinToolingDiagnostics.WasmStabilityWarning)
-        childProject.assertNoDiagnostics(KotlinToolingDiagnostics.WasmStabilityWarning)
     }
 }

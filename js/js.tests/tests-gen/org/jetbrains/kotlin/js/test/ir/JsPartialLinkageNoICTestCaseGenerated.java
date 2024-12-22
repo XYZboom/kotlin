@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.js.test.ir;
 
 import com.intellij.testFramework.TestDataPath;
 import org.jetbrains.kotlin.test.util.KtTestUtil;
+import org.junit.jupiter.api.Tag;
 import org.jetbrains.kotlin.test.TargetBackend;
 import org.jetbrains.kotlin.test.TestMetadata;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import java.util.regex.Pattern;
 @SuppressWarnings("all")
 @TestMetadata("compiler/testData/klib/partial-linkage")
 @TestDataPath("$PROJECT_ROOT")
+@Tag("legacy-frontend")
 public class JsPartialLinkageNoICTestCaseGenerated extends AbstractJsPartialLinkageNoICTestCase {
   @Test
   @TestMetadata("addEnumEntry")
@@ -82,6 +84,12 @@ public class JsPartialLinkageNoICTestCaseGenerated extends AbstractJsPartialLink
   @TestMetadata("inheritanceIssues")
   public void testInheritanceIssues() {
     runTest("compiler/testData/klib/partial-linkage/inheritanceIssues/");
+  }
+
+  @Test
+  @TestMetadata("kt73511")
+  public void testKt73511() {
+    runTest("compiler/testData/klib/partial-linkage/kt73511/");
   }
 
   @Test

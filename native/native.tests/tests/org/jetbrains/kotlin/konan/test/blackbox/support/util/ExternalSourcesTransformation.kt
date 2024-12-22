@@ -12,8 +12,8 @@ import org.jetbrains.kotlin.konan.test.blackbox.AbstractNativeCodegenBoxTest
  * This relates only to external codegen tests (see [AbstractNativeCodegenBoxTest]) that may have their own source transformers.
  */
 
-internal typealias ExternalSourceTransformer = (/* file contents */ String) -> /* patched file contents */ String
-internal typealias ExternalSourceTransformers = List<ExternalSourceTransformer>
+typealias ExternalSourceTransformer = (/* file contents */ String) -> /* patched file contents */ String
+typealias ExternalSourceTransformers = List<ExternalSourceTransformer>
 
 internal object DiagnosticsRemovingSourceTransformer : ExternalSourceTransformer {
     override fun invoke(source: String) = source.lineSequence().joinToString("\n") { line ->

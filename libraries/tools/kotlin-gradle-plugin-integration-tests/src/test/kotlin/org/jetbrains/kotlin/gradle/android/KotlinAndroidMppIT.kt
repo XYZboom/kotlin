@@ -5,11 +5,13 @@
 
 package org.jetbrains.kotlin.gradle.android
 
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
 import org.jetbrains.kotlin.gradle.testbase.*
+import org.jetbrains.kotlin.gradle.testbase.TestVersions.AgpCompatibilityMatrix
 import org.jetbrains.kotlin.gradle.tooling.BuildKotlinToolingMetadataTask
-import org.jetbrains.kotlin.gradle.util.AGPVersion
 import org.jetbrains.kotlin.gradle.util.replaceText
 import org.jetbrains.kotlin.gradle.util.testResolveAllConfigurations
 import org.junit.jupiter.api.DisplayName
@@ -74,40 +76,33 @@ class KotlinAndroidMppIT : KGPBaseTest() {
             buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion),
             buildJdk = jdkVersion.location
         ) {
-            // AbstractReportTask#generate() task action was removed in Gradle 6.8+,
-            // that SourceSetTask is using: https://github.com/gradle/gradle/commit/4dac91ab87ea33ee8689d2a62b691b119198e7c7
-            // leading to the issue that ":sourceSets" task is always in 'UP-TO-DATE' state.
-            // Skipping this check until the test will start using AGP 7.0-alpha03+
-            // AGP 4.x is not compatible with Gradle 7.0, so just skip when the Gradle version is lower than 7.0
-            if (gradleVersion >= GradleVersion.version("7.0")) {
-                build("sourceSets") {
-                    fun assertOutputContainsOsIndependent(expectedString: String) {
-                        assertOutputContains(expectedString.replace("/", File.separator))
-                    }
-                    assertOutputContainsOsIndependent("Android resources: [lib/src/main/res, lib/src/androidMain/res]")
-                    assertOutputContainsOsIndependent("Assets: [lib/src/main/assets, lib/src/androidMain/assets]")
-                    assertOutputContainsOsIndependent("AIDL sources: [lib/src/main/aidl, lib/src/androidMain/aidl]")
-                    assertOutputContainsOsIndependent("RenderScript sources: [lib/src/main/rs, lib/src/androidMain/rs]")
-                    assertOutputContainsOsIndependent("JNI sources: [lib/src/main/jni, lib/src/androidMain/jni]")
-                    assertOutputContainsOsIndependent("JNI libraries: [lib/src/main/jniLibs, lib/src/androidMain/jniLibs]")
-                    assertOutputContainsOsIndependent("Java-style resources: [lib/src/main/resources, lib/src/androidMain/resources]")
-
-                    assertOutputContainsOsIndependent("Android resources: [lib/src/androidTestDebug/res, lib/src/androidInstrumentedTestDebug/res]")
-                    assertOutputContainsOsIndependent("Assets: [lib/src/androidTestDebug/assets, lib/src/androidInstrumentedTestDebug/assets]")
-                    assertOutputContainsOsIndependent("AIDL sources: [lib/src/androidTestDebug/aidl, lib/src/androidInstrumentedTestDebug/aidl]")
-                    assertOutputContainsOsIndependent("RenderScript sources: [lib/src/androidTestDebug/rs, lib/src/androidInstrumentedTestDebug/rs]")
-                    assertOutputContainsOsIndependent("JNI sources: [lib/src/androidTestDebug/jni, lib/src/androidInstrumentedTestDebug/jni]")
-                    assertOutputContainsOsIndependent("JNI libraries: [lib/src/androidTestDebug/jniLibs, lib/src/androidInstrumentedTestDebug/jniLibs]")
-                    assertOutputContainsOsIndependent("Java-style resources: [lib/src/androidTestDebug/resources, lib/src/androidInstrumentedTestDebug/resources]")
-
-                    assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/paidBeta/resources, lib/src/androidPaidBeta/resources]")
-                    assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/paidBetaDebug/resources, lib/src/androidPaidBetaDebug/resources]")
-                    assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/paidBetaRelease/resources, lib/src/androidPaidBetaRelease/resources]")
-
-                    assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/freeBeta/resources, lib/src/androidFreeBeta/resources]")
-                    assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/freeBetaDebug/resources, lib/src/androidFreeBetaDebug/resources]")
-                    assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/freeBetaRelease/resources, lib/src/androidFreeBetaRelease/resources]")
+            build("sourceSets") {
+                fun assertOutputContainsOsIndependent(expectedString: String) {
+                    assertOutputContains(expectedString.replace("/", File.separator))
                 }
+                assertOutputContainsOsIndependent("Android resources: [lib/src/main/res, lib/src/androidMain/res]")
+                assertOutputContainsOsIndependent("Assets: [lib/src/main/assets, lib/src/androidMain/assets]")
+                assertOutputContainsOsIndependent("AIDL sources: [lib/src/main/aidl, lib/src/androidMain/aidl]")
+                assertOutputContainsOsIndependent("RenderScript sources: [lib/src/main/rs, lib/src/androidMain/rs]")
+                assertOutputContainsOsIndependent("JNI sources: [lib/src/main/jni, lib/src/androidMain/jni]")
+                assertOutputContainsOsIndependent("JNI libraries: [lib/src/main/jniLibs, lib/src/androidMain/jniLibs]")
+                assertOutputContainsOsIndependent("Java-style resources: [lib/src/main/resources, lib/src/androidMain/resources]")
+
+                assertOutputContainsOsIndependent("Android resources: [lib/src/androidTestDebug/res, lib/src/androidInstrumentedTestDebug/res]")
+                assertOutputContainsOsIndependent("Assets: [lib/src/androidTestDebug/assets, lib/src/androidInstrumentedTestDebug/assets]")
+                assertOutputContainsOsIndependent("AIDL sources: [lib/src/androidTestDebug/aidl, lib/src/androidInstrumentedTestDebug/aidl]")
+                assertOutputContainsOsIndependent("RenderScript sources: [lib/src/androidTestDebug/rs, lib/src/androidInstrumentedTestDebug/rs]")
+                assertOutputContainsOsIndependent("JNI sources: [lib/src/androidTestDebug/jni, lib/src/androidInstrumentedTestDebug/jni]")
+                assertOutputContainsOsIndependent("JNI libraries: [lib/src/androidTestDebug/jniLibs, lib/src/androidInstrumentedTestDebug/jniLibs]")
+                assertOutputContainsOsIndependent("Java-style resources: [lib/src/androidTestDebug/resources, lib/src/androidInstrumentedTestDebug/resources]")
+
+                assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/paidBeta/resources, lib/src/androidPaidBeta/resources]")
+                assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/paidBetaDebug/resources, lib/src/androidPaidBetaDebug/resources]")
+                assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/paidBetaRelease/resources, lib/src/androidPaidBetaRelease/resources]")
+
+                assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/freeBeta/resources, lib/src/androidFreeBeta/resources]")
+                assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/freeBetaDebug/resources, lib/src/androidFreeBetaDebug/resources]")
+                assertOutputContainsOsIndependent("Java-style resources: [lib/betaSrc/freeBetaRelease/resources, lib/src/androidFreeBetaRelease/resources]")
             }
 
             buildAndFail("testFreeBetaDebug") {
@@ -392,7 +387,8 @@ class KotlinAndroidMppIT : KGPBaseTest() {
         project(
             "new-mpp-android",
             gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion),
+            buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion)
+                .disableConfigurationCache_KT70416(),
             buildJdk = jdkVersion.location
         ) {
             // Convert the 'app' project to a library, publish two flavors without metadata,
@@ -486,10 +482,49 @@ class KotlinAndroidMppIT : KGPBaseTest() {
                         )
                         assertContains(
                             pomText,
-                            "<artifactId>kotlin-reflect</artifactId><version>${buildOptions.kotlinVersion}</version><scope>runtime</scope>"
+                            "<artifactId>kotlin-reflect</artifactId><scope>runtime</scope>"
                         )
                     }
                 }
+            }
+        }
+    }
+
+    @DisplayName("KT-69585: kmp + android depends on another kmp + android project via included build should not fail on pom rewrite action")
+    @GradleAndroidTest
+    fun kt69585PublishWithDependencyOnIncludedBuildsDoesntFail(
+        gradleVersion: GradleVersion,
+        agpVersion: String,
+        jdkVersion: JdkVersions.ProvidedJdk,
+    ) {
+        project(
+            "new-mpp-android",
+            gradleVersion,
+            buildOptions = defaultBuildOptions
+                .copy(androidVersion = agpVersion),
+            buildJdk = jdkVersion.location
+        ) {
+            settingsGradle.replaceText("include ':app', ':lib'", "include ':lib'")
+            includeOtherProjectAsIncludedBuild("lib", "new-mpp-android", "libFromIncluded")
+            subProject("lib").buildGradleKts.appendText("""
+                
+                kotlin { 
+                  sourceSets.getByName("androidLibMain").dependencies {
+                    implementation("com.example:libFromIncluded:1.0")
+                  }
+                }
+                """.trimIndent()
+            )
+            build(":lib:generatePomFileForAndroidLibReleasePublication") {
+                val pomText = projectPath
+                    .resolve("lib/build/publications/androidLibRelease/pom-default.xml")
+                    .readText()
+                    .replace("""\s+""".toRegex(), "")
+
+                assertContains(
+                    pomText,
+                    """<groupId>com.example</groupId><artifactId>libFromIncluded-androidlib</artifactId><version>1.0</version>"""
+                )
             }
         }
     }
@@ -708,7 +743,6 @@ class KotlinAndroidMppIT : KGPBaseTest() {
 
     @DisplayName("KT-27170: android lint works with dependency on non-android mpp project")
     @GradleAndroidTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
     fun testLintInAndroidProjectsDependingOnMppWithoutAndroid(
         gradleVersion: GradleVersion,
         agpVersion: String,
@@ -817,8 +851,10 @@ class KotlinAndroidMppIT : KGPBaseTest() {
             }
         }
 
-        val checkedConsumerAGPVersions = TestVersions.AgpCompatibilityMatrix.entries
-            .filter { agp -> AGPVersion.fromString(agp.version) < AGPVersion.fromString(TestVersions.AGP.MAX_SUPPORTED) }
+        val checkedConsumerAGPVersions = AgpCompatibilityMatrix.entries
+            .filter { agp ->
+                AgpCompatibilityMatrix.fromVersion(agp.version) < AgpCompatibilityMatrix.fromVersion(TestVersions.AGP.MAX_SUPPORTED)
+            }
 
         checkedConsumerAGPVersions.forEach { consumerAgpVersion ->
             println(
@@ -908,11 +944,17 @@ class KotlinAndroidMppIT : KGPBaseTest() {
             buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion),
             buildJdk = jdkVersion.location
         ) {
-            build("tasks") {
-                val warnings = output.lines().filter { it.startsWith("w:") }.toSet()
+            val assertions: BuildResult.() -> Unit = {
+                val errors = output.lines().filter { it.startsWith("e:") }.toSet()
                 assert(
-                    warnings.any { warning -> warning.contains("androidTarget") }
+                    errors.any { error -> error.contains("androidTarget") }
                 )
+            }
+
+            if (buildGradleKts.exists()) {
+                buildAndFail("tasks", assertions = assertions)
+            } else {
+                build("tasks", assertions = assertions)
             }
         }
     }
@@ -958,7 +1000,7 @@ class KotlinAndroidMppIT : KGPBaseTest() {
                         }
                 """.trimIndent()
             )
-            build("assemble")
+            build("assemble", "-Pmobile.multiplatform.useIosShortcut=false")
         }
     }
 
@@ -1008,6 +1050,40 @@ class KotlinAndroidMppIT : KGPBaseTest() {
             )
             build(":app:compileDebugKotlinAndroidApp") {
                 assertTasksExecuted(":app:compileDebugKotlinAndroidApp")
+            }
+        }
+    }
+
+    @DisplayName("KT-70380: KMM App failed to consume android binary lib when published incorrectly")
+    @GradleAndroidTest
+    @AndroidTestVersions(additionalVersions = [TestVersions.AGP.AGP_81])
+    @GradleTestVersions(additionalVersions = [TestVersions.Gradle.G_8_1, TestVersions.Gradle.G_8_2, TestVersions.Gradle.G_8_3])
+    fun kotlinAndroidHasBuildTypeAttribute(
+        gradleVersion: GradleVersion,
+        agpVersion: String,
+        jdkVersion: JdkVersions.ProvidedJdk,
+    ) {
+        kotlinAndroidLibraryProject(gradleVersion, agpVersion, jdkVersion).apply {
+            buildScriptInjection {
+                applyMavenPublishPlugin()
+                publishing.publications.create("default", MavenPublication::class.java) { publication ->
+                    publication.groupId = "com.example"
+                    publication.artifactId = "lib"
+                    publication.version = "1.0"
+
+                    project.afterEvaluate {
+                        publication.from(project.components.getByName("release"))
+                    }
+                }
+            }
+
+            build("publish") {
+                if (agpVersion == TestVersions.AGP.AGP_73) {
+                    // AGP 7.3 configures Publication automatically, so no diagnostic should be reported
+                    assertNoDiagnostic(KotlinToolingDiagnostics.AndroidPublicationNotConfigured)
+                } else {
+                    assertHasDiagnostic(KotlinToolingDiagnostics.AndroidPublicationNotConfigured)
+                }
             }
         }
     }

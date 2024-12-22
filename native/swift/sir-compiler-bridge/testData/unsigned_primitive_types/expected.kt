@@ -1,4 +1,7 @@
+@file:kotlin.Suppress("DEPRECATION_ERROR")
+
 import kotlin.native.internal.ExportedBridge
+import kotlinx.cinterop.*
 
 @ExportedBridge("b_bridge")
 public fun b_bridge(): UShort {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -17,20 +17,36 @@ import org.jetbrains.kotlin.ir.builders.declarations.buildFun
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolOwner
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.isNullableAny
 import org.jetbrains.kotlin.ir.util.copyTypeParametersFrom
 import org.jetbrains.kotlin.ir.util.dump
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.transformInPlace
-import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
+import org.jetbrains.kotlin.ir.visitors.IrTransformer
 import org.jetbrains.kotlin.resolve.jvm.checkers.PolymorphicSignatureCallChecker
 
-@PhaseDescription(
-    name = "PolymorphicSignature",
-    description = "Replace polymorphic methods with fake ones according to types at the call site"
-)
-internal class PolymorphicSignatureLowering(val context: JvmBackendContext) : IrElementTransformer<PolymorphicSignatureLowering.Data>,
+/**
+ * Replaces polymorphic methods (annotated with [java.lang.invoke.MethodHandle.PolymorphicSignature]) with fake ones according to types
+ * at the call site. This is similar to how the Java compiler generates calls to such methods.
+ *
+ * For example:
+ *
+ *     val mh: MethodHandle = ...
+ *     val result: String = mh.invokeExact(Foo()) as String
+ *
+ * In this case, [java.lang.invoke.MethodHandle.invokeExact] is a polymorphic method, which means that its declaration-site signature
+ * must be discarded, and the real signature must be computed from the argument types at the call site and the expected return type.
+ * It results in the following call in the bytecode:
+ *
+ *     invokevirtual java/lang/invoke/MethodHandle.invokeExact:(LFoo;)Ljava/lang/String;
+ *
+ * This lowering phase creates and calls a fake `IrFunction` which is the same as the original callee in everything except value parameter
+ * types and return type.
+ */
+@PhaseDescription(name = "PolymorphicSignature")
+internal class PolymorphicSignatureLowering(val context: JvmBackendContext) : IrTransformer<PolymorphicSignatureLowering.Data>(),
     FileLoweringPass {
     override fun lower(irFile: IrFile) {
         if (context.config.languageVersionSettings.supportsFeature(LanguageFeature.PolymorphicSignature))

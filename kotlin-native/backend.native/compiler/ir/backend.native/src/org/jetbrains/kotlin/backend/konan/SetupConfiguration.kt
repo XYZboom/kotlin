@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.backend.konan
 import org.jetbrains.kotlin.cli.common.arguments.K2NativeCompilerArguments
 import org.jetbrains.kotlin.cli.common.config.addKotlinSourceRoot
 import org.jetbrains.kotlin.cli.common.config.kotlinSourceRoots
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity.*
 import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.ir.linkage.partial.setupPartialLinkageConfig
@@ -41,22 +42,13 @@ fun CompilerConfiguration.setupFromArguments(arguments: K2NativeCompilerArgument
     arguments.moduleName?.let { put(MODULE_NAME, it) }
 
     // TODO: allow overriding the prefix directly.
-    arguments.moduleName?.let { put(FULL_EXPORTED_NAME_PREFIX, it) }
+    // With Swift Export, exported prefix must be Kotlin.
+    ("Kotlin".takeIf { get(BinaryOptions.swiftExport) == true } ?: arguments.moduleName)?.let { put(FULL_EXPORTED_NAME_PREFIX, it) }
 
     arguments.target?.let { put(TARGET, it) }
 
     put(INCLUDED_BINARY_FILES, arguments.includeBinaries.toNonNullList())
     put(NATIVE_LIBRARY_FILES, arguments.nativeLibraries.toNonNullList())
-
-    if (arguments.repositories != null) {
-        // Show the warning also if `-repo` was really specified.
-        report(
-                WARNING,
-                "'-repo' ('-r') compiler option is deprecated and will be removed in one of the future releases. " +
-                        "Please use library paths instead of library names in all compiler options such as '-library' ('-l')."
-        )
-    }
-    put(REPOSITORIES, arguments.repositories.toNonNullList())
 
     // TODO: Collect all the explicit file names into an object
     // and teach the compiler to work with temporaries and -save-temps.
@@ -66,8 +58,6 @@ fun CompilerConfiguration.setupFromArguments(arguments: K2NativeCompilerArgument
             (arguments.produce ?: "program").uppercase())
     put(PRODUCE, outputKind)
     putIfNotNull(HEADER_KLIB, arguments.headerKlibPath)
-
-    arguments.libraryVersion?.let { put(LIBRARY_VERSION, it) }
 
     arguments.mainPackage?.let { put(ENTRY, it) }
     arguments.manifestFile?.let { put(MANIFEST_FILE, it) }
@@ -117,18 +107,10 @@ fun CompilerConfiguration.setupFromArguments(arguments: K2NativeCompilerArgument
 
     put(PURGE_USER_LIBS, arguments.purgeUserLibs)
 
+    putIfNotNull(WRITE_DEPENDENCIES_OF_PRODUCED_KLIB_TO, arguments.writeDependenciesOfProducedKlibTo)
+
     if (arguments.verifyCompiler != null)
         put(VERIFY_COMPILER, arguments.verifyCompiler == "true")
-    put(VERIFY_IR, when (arguments.verifyIr) {
-        null -> IrVerificationMode.NONE
-        "none" -> IrVerificationMode.NONE
-        "warning" -> IrVerificationMode.WARNING
-        "error" -> IrVerificationMode.ERROR
-        else -> {
-            report(ERROR, "Unsupported IR verification mode ${arguments.verifyIr}")
-            IrVerificationMode.NONE
-        }
-    })
     put(VERIFY_BITCODE, arguments.verifyBitCode)
 
     put(ENABLE_ASSERTIONS, arguments.enableAssertions)
@@ -149,6 +131,25 @@ fun CompilerConfiguration.setupFromArguments(arguments: K2NativeCompilerArgument
         putIfNotNull(BinaryOptions.memoryModel, memoryModelFromArgument)
     }
 
+    get(BinaryOptions.memoryModel)?.also {
+        if (it != MemoryModel.EXPERIMENTAL) {
+            report(ERROR, "Legacy MM is deprecated and no longer works.")
+        } else {
+            report(STRONG_WARNING, "-memory-model and memoryModel switches are deprecated and will be removed in a future release.")
+        }
+    }
+
+    get(BinaryOptions.freezing)?.also {
+        if (it != Freezing.Disabled) {
+            report(
+                    CompilerMessageSeverity.ERROR,
+                    "`freezing` is not supported with the new MM. Freezing API is deprecated since 1.7.20. See https://kotlinlang.org/docs/native-migration-guide.html for details"
+            )
+        } else {
+            report(STRONG_WARNING, "freezing switch is deprecated and will be removed in a future release.")
+        }
+    }
+
     when {
         arguments.generateWorkerTestRunner -> put(GENERATE_TEST_RUNNER, TestRunnerKind.WORKER)
         arguments.generateTestRunner -> put(GENERATE_TEST_RUNNER, TestRunnerKind.MAIN_THREAD)
@@ -160,6 +161,7 @@ fun CompilerConfiguration.setupFromArguments(arguments: K2NativeCompilerArgument
             kotlinSourceRoots.isNotEmpty()
                     || !arguments.includes.isNullOrEmpty()
                     || !arguments.exportedLibraries.isNullOrEmpty()
+                    || (outputKind == CompilerOutputKind.PROGRAM && arguments.libraries?.isNotEmpty() == true)
                     || outputKind.isCache
                     || arguments.checkDependencies
     )
@@ -210,15 +212,18 @@ fun CompilerConfiguration.setupFromArguments(arguments: K2NativeCompilerArgument
     put(FAKE_OVERRIDE_VALIDATOR, arguments.fakeOverrideValidator)
     putIfNotNull(PRE_LINK_CACHES, parsePreLinkCachesValue(this@setupFromArguments, arguments.preLinkCaches))
     putIfNotNull(OVERRIDE_KONAN_PROPERTIES, parseOverrideKonanProperties(arguments, this@setupFromArguments))
-    putIfNotNull(DESTROY_RUNTIME_MODE, when (arguments.destroyRuntimeMode) {
-        null -> null
-        "legacy" -> DestroyRuntimeMode.LEGACY
-        "on-shutdown" -> DestroyRuntimeMode.ON_SHUTDOWN
+    when (arguments.destroyRuntimeMode) {
+        null -> {}
+        "legacy" -> {
+            report(ERROR, "New MM is incompatible with 'legacy' destroy runtime mode.")
+        }
+        "on-shutdown" -> {
+            report(STRONG_WARNING, "-Xdestroy-runtime-mode switch is deprecated and will be removed in a future release.")
+        }
         else -> {
             report(ERROR, "Unsupported destroy runtime mode ${arguments.destroyRuntimeMode}")
-            null
         }
-    })
+    }
 
     val gcFromArgument = when (arguments.gc) {
         null -> null
@@ -265,22 +270,28 @@ fun CompilerConfiguration.setupFromArguments(arguments: K2NativeCompilerArgument
     putIfNotNull(ALLOCATION_MODE, when (arguments.allocator) {
         null -> null
         "std" -> AllocationMode.STD
-        "mimalloc" -> AllocationMode.MIMALLOC
+        "mimalloc" -> {
+            report(STRONG_WARNING, "Usage of mimalloc in Kotlin/Native compiler is deprecated. Please remove -Xallocator=mimalloc compiler flag.")
+            AllocationMode.MIMALLOC
+        }
         "custom" -> AllocationMode.CUSTOM
         else -> {
             report(ERROR, "Expected 'std', 'mimalloc', or 'custom' for allocator")
             AllocationMode.STD
         }
     })
-    putIfNotNull(WORKER_EXCEPTION_HANDLING, when (arguments.workerExceptionHandling) {
-        null -> null
-        "legacy" -> WorkerExceptionHandling.LEGACY
-        "use-hook" -> WorkerExceptionHandling.USE_HOOK
+    when (arguments.workerExceptionHandling) {
+        null -> {}
+        "legacy" -> {
+            report(ERROR, "Legacy exception handling in workers is deprecated")
+        }
+        "use-hook" -> {
+            report(STRONG_WARNING, "-Xworker-exception-handling is deprecated")
+        }
         else -> {
             report(ERROR, "Unsupported worker exception handling mode ${arguments.workerExceptionHandling}")
-            WorkerExceptionHandling.LEGACY
         }
-    })
+    }
     put(LAZY_IR_FOR_CACHES, when (arguments.lazyIrForCaches) {
         null -> false
         "enable" -> true
@@ -327,6 +338,9 @@ fun CompilerConfiguration.setupFromArguments(arguments: K2NativeCompilerArgument
 
     if (arguments.manifestNativeTargets != null)
         putIfNotNull(MANIFEST_NATIVE_TARGETS, parseManifestNativeTargets(arguments.manifestNativeTargets!!))
+
+    putIfNotNull(LLVM_MODULE_PASSES, arguments.llvmModulePasses)
+    putIfNotNull(LLVM_LTO_PASSES, arguments.llvmLTOPasses)
 }
 
 private fun String.absoluteNormalizedFile() = java.io.File(this).absoluteFile.normalize()

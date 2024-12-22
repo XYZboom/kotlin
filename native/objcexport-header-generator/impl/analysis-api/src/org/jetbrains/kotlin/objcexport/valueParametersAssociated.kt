@@ -1,29 +1,90 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
 package org.jetbrains.kotlin.objcexport
 
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
+import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.symbols.*
-import org.jetbrains.kotlin.analysis.api.types.KtType
+import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
 import org.jetbrains.kotlin.backend.konan.objcexport.MethodBridge
 import org.jetbrains.kotlin.backend.konan.objcexport.MethodBridgeValueParameter
-import org.jetbrains.kotlin.backend.konan.objcexport.ReferenceBridge
 import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.utils.addIfNotNull
 
 /**
+ * This method is tightly bound to [getFunctionMethodBridge]
+ *
  * See K1 implementation [org.jetbrains.kotlin.backend.konan.objcexport.MethodBrideExtensionsKt.valueParametersAssociated]
  */
-context(KtAnalysisSession)
-internal fun MethodBridge.valueParametersAssociated(
-    function: KtFunctionLikeSymbol,
+fun ObjCExportContext.valueParametersAssociated(
+    bridge: MethodBridge,
+    function: KaFunctionSymbol,
 ): List<Pair<MethodBridgeValueParameter, KtObjCParameterData?>> {
+    exportSession.exportSessionValueParameters(function)?.let { return it }
 
     val result = mutableListOf<Pair<MethodBridgeValueParameter, KtObjCParameterData?>>()
-    val valueParameters = function.valueParameters
-    val receiverType = function.objCReceiverType
-    val receiverTypeName = receiverType?.expandedClassSymbol?.name
+    val functionParameters = function.valueParameters
+    val bridgeParameters = bridge.valueParameters
+
+    analysisSession.addReceiver(result, bridgeParameters, function)
+
+    if (function is KaPropertySetterSymbol) {
+        /**
+         * We take second parameter from [bridgeParameters] because setter has always receiver and it's picked up with [addReceiver]
+         */
+        val bridgeParameter = bridgeParameters.toList().elementAtOrNull(1)
+        val functionParameter = functionParameters.elementAtOrNull(0)
+        result.addIfNotNull(exportSession.mapBridgeToFunctionParameters(bridgeParameter, functionParameter))
+    } else {
+        result.addAll(exportSession.mapParameters(function, bridge, functionParameters))
+    }
+
+    if (result.isEmpty() && bridgeParameters.isNotEmpty()) {
+        result.addAll(exportSession.mapParameters(function, bridge, functionParameters))
+    }
+
+    return result
+}
+
+private fun KtObjCExportSession.mapParameters(
+    function: KaFunctionSymbol,
+    bridge: MethodBridge,
+    valueParameters: List<KaValueParameterSymbol>,
+): List<Pair<MethodBridgeValueParameter, KtObjCParameterData?>> {
+
+    val params = if (function.isExtension) {
+        /**
+         * We drop first parameter because first parameter of extension is always extension type itself
+         *
+         * fun String.foo(bar: Int) = Unit
+         * bridge.valueParameters[0] is String
+         * bridge.valueParameters[1] is Int
+         */
+        bridge.valueParameters.drop(1)
+    } else {
+        bridge.valueParameters
+    }
+
+    return params.mapIndexed { index, valueParameterBridge ->
+        mapBridgeToFunctionParameters(valueParameterBridge, valueParameters.elementAtOrNull(index))
+    }.filterNotNull()
+}
+
+private fun KaSession.addReceiver(
+    list: MutableList<Pair<MethodBridgeValueParameter, KtObjCParameterData?>>,
+    parameters: List<MethodBridgeValueParameter>,
+    function: KaFunctionSymbol,
+) {
+
+    val receiverType = getObjCReceiverType(function)
+    val receiverTypeName = getObjCReceiverTypeName(receiverType)
 
     if (receiverType != null && receiverTypeName != null) {
-        result.add(
-            MethodBridgeValueParameter.Mapped(ReferenceBridge) to KtObjCParameterData(
+        list.add(
+            parameters.first() to KtObjCParameterData(
                 name = receiverTypeName,
                 isVararg = false,
                 type = receiverType,
@@ -31,38 +92,41 @@ internal fun MethodBridge.valueParametersAssociated(
             )
         )
     }
-
-    this.valueParameters.forEachIndexed { index, valueParameterBridge ->
-
-        if (valueParameterBridge is MethodBridgeValueParameter.Mapped) {
-            result.add(
-                valueParameterBridge to KtObjCParameterData(
-                    name = valueParameters[index].name,
-                    isVararg = valueParameters[index].isVararg,
-                    type = valueParameters[index].returnType,
-                    isReceiver = false
-                )
-            )
-        } else {
-            result.add(valueParameterBridge to null)
-        }
-    }
-
-    return result
 }
 
-internal data class KtObjCParameterData(
+private fun KaSession.getObjCReceiverTypeName(type: KaType?): Name? {
+    return if (type?.expandedSymbol != null) type.expandedSymbol?.name
+    else if (type is KaTypeParameterType) type.name else null
+}
+
+private fun KtObjCExportSession.mapBridgeToFunctionParameters(
+    bridgeParameter: MethodBridgeValueParameter?,
+    functionParameter: KaValueParameterSymbol?,
+): Pair<MethodBridgeValueParameter, KtObjCParameterData?>? {
+    return if (bridgeParameter == null) null
+    else if (functionParameter != null && bridgeParameter is MethodBridgeValueParameter.Mapped) bridgeParameter to KtObjCParameterData(
+        name = Name.identifier(exportSessionSymbolName(functionParameter)),
+        isVararg = functionParameter.isVararg,
+        type = functionParameter.returnType,
+        isReceiver = false
+    ) else bridgeParameter to null
+}
+
+data class KtObjCParameterData(
     val name: Name,
     val isVararg: Boolean,
-    val type: KtType,
+    val type: KaType,
     val isReceiver: Boolean,
 )
 
 /**
- * Not null in 3 cases:
+ * Not null in 4 cases:
  * 1. constructor of inner class
  * 2. function extension of inner class
  * 3. property extension of inner class
+ * 4. function extension of [isMappedObjCType], i.e. fun String.foo()
+ * 5. function extension of [Nothing], i.e. fun Nothing.foo()
+ * 5. function extension of `Interface`, i.e. fun Foo.foo() where Foo is Interface
  *
  * Members with non null [objCReceiverType] will have name `receiver`:
  * ```objective-c
@@ -71,25 +135,21 @@ internal data class KtObjCParameterData(
  *
  * Also see [isObjCProperty]
  */
-context(KtAnalysisSession)
-internal val KtFunctionLikeSymbol.objCReceiverType: KtType?
-    get() {
-        return if (isConstructor) {
-            /**
-             * Edge case for supporting inner classes parameter.
-             * See details at KT-66339
-             */
-            @Suppress("DEPRECATION")
-            getDispatchReceiverType()
-        } else if (isExtension) {
-            if ((getContainingSymbol() as? KtNamedClassOrObjectSymbol)?.isInner == true) receiverParameter?.type
-            else null
-        } else if (this is KtPropertyGetterSymbol || this is KtPropertySetterSymbol) {
-            val property = this.getContainingSymbol() as KtPropertySymbol
-            val isExtension = property.isExtension
-            val isInner = (property.getContainingSymbol() as? KtNamedClassOrObjectSymbol)?.isInner == true
-            if (isExtension && isInner) property.receiverType else null
-        } else {
-            null
-        }
-    }
+internal fun KaSession.getObjCReceiverType(symbol: KaFunctionSymbol?): KaType? {
+    if (symbol == null) return null
+    return if (symbol.isConstructor) {
+        /**
+         * Edge case for supporting inner classes parameter.
+         * See details at KT-66339
+         */
+        @Suppress("DEPRECATION")
+        symbol.dispatchReceiverType
+    } else if (symbol.isExtension) {
+        val receiverType = symbol.receiverParameter?.returnType
+        if (isObjCNothing(receiverType)) receiverType
+        else if (getClassIfCategory(symbol) == null) receiverType else null
+    } else if (symbol is KaPropertyGetterSymbol || symbol is KaPropertySetterSymbol) {
+        val property = symbol.containingDeclaration as KaPropertySymbol
+        if (property.isExtension) property.receiverType else null
+    } else null
+}

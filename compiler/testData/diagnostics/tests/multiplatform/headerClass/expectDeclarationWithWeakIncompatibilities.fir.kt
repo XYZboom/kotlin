@@ -1,15 +1,17 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // DIAGNOSTICS: -UNUSED_PARAMETER
 // MODULE: m1-common
 // FILE: common.kt
 
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect class Foo1<!>
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect class Foo2<!>
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> class Foo1
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> class Foo2
 
 expect fun foo2(): Int
 
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect val s: String<!>
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> val s: String
 
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect open class Foo3<!>
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> open class Foo3
 
 // MODULE: m2-jvm()()(m1-common)
 

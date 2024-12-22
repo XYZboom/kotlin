@@ -21,7 +21,7 @@ import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 
 /**
- * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.errorResolvedQualifier]
+ * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTree.errorResolvedQualifier]
  */
 abstract class FirErrorResolvedQualifier : FirResolvedQualifier(), FirDiagnosticHolder {
     abstract override val source: KtSourceElement?
@@ -32,6 +32,7 @@ abstract class FirErrorResolvedQualifier : FirResolvedQualifier(), FirDiagnostic
     abstract override val relativeClassFqName: FqName?
     abstract override val classId: ClassId?
     abstract override val symbol: FirClassLikeSymbol<*>?
+    abstract override val explicitParent: FirResolvedQualifier?
     abstract override val isNullableLHSForCallableReference: Boolean
     abstract override val resolvedToCompanionObject: Boolean
     abstract override val canBeValue: Boolean

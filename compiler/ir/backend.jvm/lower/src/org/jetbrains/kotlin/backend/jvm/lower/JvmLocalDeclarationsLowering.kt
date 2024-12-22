@@ -22,9 +22,11 @@ import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
 import org.jetbrains.kotlin.name.NameUtils
 import org.jetbrains.kotlin.utils.filterIsInstanceAnd
 
+/**
+ * Moves local declarations to classes.
+ */
 @PhaseDescription(
     name = "JvmLocalDeclarations",
-    description = "Move local declarations to classes",
     prerequisite = [FunctionReferenceLowering::class, SharedVariablesLowering::class]
 )
 internal class JvmLocalDeclarationsLowering(context: JvmBackendContext) : LocalDeclarationsLowering(
@@ -33,6 +35,7 @@ internal class JvmLocalDeclarationsLowering(context: JvmBackendContext) : LocalD
     JvmVisibilityPolicy,
     compatibilityModeForInlinedLocalDelegatedPropertyAccessors = true,
     forceFieldsForInlineCaptures = true,
+    remapTypesInExtractedLocalFunctions = false,
 ) {
     override fun postLocalDeclarationLoweringCallback(
         localFunctions: Map<IrFunction, LocalFunctionContext>,

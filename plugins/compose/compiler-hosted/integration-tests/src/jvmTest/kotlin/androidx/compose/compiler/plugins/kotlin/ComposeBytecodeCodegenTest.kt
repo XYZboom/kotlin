@@ -16,11 +16,14 @@
 
 package androidx.compose.compiler.plugins.kotlin
 
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import org.junit.Assume.assumeFalse
 import org.junit.Test
+import kotlin.test.Ignore
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
+/* ktlint-disable max-line-length */
 class ComposeBytecodeCodegenTest(useFir: Boolean) : AbstractCodegenTest(useFir) {
 
     @Test
@@ -620,4 +623,273 @@ class ComposeBytecodeCodegenTest(useFir: Boolean) : AbstractCodegenTest(useFir) 
             fun ReceiveValue(value: Int) { }
         """
     )
+
+    @Test
+    fun testDefaultParametersInAbstractFunctions() = validateBytecode(
+        """
+            import androidx.compose.runtime.*
+
+            interface Test {
+                @Composable fun foo(param: Int = remember { 0 })
+            }
+
+            class TestImpl : Test {
+                @Composable override fun foo(param: Int) {}
+            }
+
+            @Composable fun CallWithDefaults(test: Test) {
+                test.foo()
+                test.foo(0)
+            }
+        """,
+        validate = {
+            assertTrue(
+                it.contains(
+                    "INVOKESTATIC test/Test%ComposeDefaultImpls.foo%default (ILtest/Test;Landroidx/compose/runtime/Composer;II)V"
+                ),
+                "default static functions should be generated in ComposeDefaultsImpl class"
+            )
+        }
+    )
+
+    @Ignore("b/357878245")
+    @Test
+    fun testDefaultParametersInOpenFunctions() = validateBytecode(
+        """
+            import androidx.compose.runtime.*
+
+            interface Test {
+                @Composable fun bar(param: Int = remember { 0 }): Int = param
+            }
+
+            class TestImpl : Test {
+                @Composable override fun bar(param: Int): Int {
+                    return super.bar(param)
+                }
+            }
+
+            @Composable fun CallWithDefaults(test: Test) {
+                test.bar()
+                test.bar(0)
+            }
+        """,
+        validate = {
+            assertTrue(
+                it.contains(
+                    "INVOKESTATIC test/Test%ComposeDefaultImpls.foo%default (ILtest/Test;Landroidx/compose/runtime/Composer;II)V"
+                ),
+                "default static functions should be generated in ComposeDefaultsImpl class"
+            )
+        }
+    )
+
+    @Test
+    fun testMemoizingFromDelegate() = testCompile(
+        """
+            import androidx.compose.runtime.*
+
+            class ClassWithData(
+                val action: Int = 0,
+            )
+
+            fun getData(): ClassWithData = TODO()
+
+            @Composable
+            fun StrongSkippingIssue(
+                data: ClassWithData
+            ) {
+                val state by remember { mutableStateOf("") }
+                val action by data::action
+                val action1 by getData()::action
+                { 
+                    action
+                }
+                {
+                    action1
+                }
+                {
+                    state
+                }
+            }
+        """
+    )
+
+    @Test
+    fun inlineClassWithComposableLambda() {
+        testCompile(
+            """
+                import androidx.compose.runtime.*
+                import kotlin.jvm.JvmInline
+                
+                @JvmInline
+                value class ComposableContent(val content: @Composable () -> Unit)
+            """
+        )
+    }
+
+    // regression test for b/339322843
+    @Test
+    fun testPropertyReferenceInDelegate() {
+        testCompile(
+            """
+                import androidx.compose.runtime.*
+                import kotlin.reflect.KProperty
+
+                object MaterialTheme {
+                    val background: Int = 0
+                }
+                
+                fun interface ThemeToken<T> {
+
+                    @Composable
+                    @ReadOnlyComposable
+                    fun MaterialTheme.resolve(): T
+                
+                    @Composable
+                    @ReadOnlyComposable
+                    operator fun getValue(thisRef: Any?, property: KProperty<*>) = MaterialTheme.resolve()
+                }
+                
+                @get:Composable
+                val background by ThemeToken { background }
+            """
+        )
+    }
+
+    @Test
+    fun testNoRepeatingLineNumbersInLambda() {
+        validateBytecode(
+            """
+                import androidx.compose.runtime.*
+
+                @Composable fun App() {}
+
+                class Activity {
+                    fun setContent(content: @Composable () -> Unit) {}
+                    
+                    fun onCreate() {
+                        setContent {
+                            println()
+                            App()
+                        }
+                    }
+                }
+            """,
+            validate = { bytecode ->
+                val classesRegex = Regex("final class (.*?) \\{[\\S\\s]*?^}", RegexOption.MULTILINE)
+                val matches = classesRegex.findAll(bytecode)
+                val lambdaClass = matches
+                    .single { it.groups[1]?.value?.startsWith("test/ComposableSingletons%TestKt%lambda%") == true }
+                    .value
+                val invokeRegex = Regex("public final invoke([\\s\\S]*?)LOCALVARIABLE")
+                val invokeMethod = invokeRegex.find(lambdaClass)?.value ?: error("Could not find invoke method in $lambdaClass")
+                val lineNumbers = invokeMethod.lines()
+                    .mapNotNull {
+                        it.takeIf { it.contains("LINENUMBER") }
+                    }
+                    .joinToString("\n")
+
+                assertEquals(
+                    """
+                    LINENUMBER 19 L3
+                    LINENUMBER 20 L5
+                    LINENUMBER 21 L6
+                    """.trimIndent(),
+                    lineNumbers.trimIndent()
+                )
+            }
+        )
+    }
+
+    // regression test for b/376148043
+    @Test
+    fun testUpdatingLambdaText() {
+        val oldBytecode = compileBytecode(
+            """
+                  import androidx.compose.runtime.*
+
+                  @Composable fun composableFun3() {
+                    val a = { }
+                  }
+                  @Composable fun composableFun4() {
+                    val a = { } 
+                  }
+            """,
+            className = "TestClass",
+        )
+
+        val newBytecode = compileBytecode(
+            """
+                  import androidx.compose.runtime.*
+
+                  @Composable fun composableFun3() {
+                    val a = { "hello" }
+                  }
+                  @Composable fun composableFun4() {
+                    val a = { } 
+                  }
+            """,
+            className = "TestClass",
+        )
+
+        val function4Regex = Regex("composableFun4[\\s\\S]*?LOCALVARIABLE")
+        val function4 = function4Regex.find(newBytecode)?.value ?: error("Could not find function4 in new bytecode")
+        val oldFunction4 = function4Regex.find(oldBytecode)?.value ?: error("Could not find function4 in old bytecide")
+        assertEquals(oldFunction4, function4)
+    }
+
+    @Test
+    fun testAddingCodeCommentAboveGroupsWithControlFlow() {
+        val oldBytecode = compileBytecode(
+            """
+                import androidx.compose.runtime.*
+
+                @Composable fun Box1() {}
+                @Composable fun Box2() {}
+                
+                @Composable fun Foo(test: Boolean) {
+                    if(test) {
+                        Box1()
+                    } else {
+                        Box2()
+                    }
+                }
+            """,
+            className = "TestClass",
+        )
+
+        val newBytecode = compileBytecode(
+            """
+                import androidx.compose.runtime.*
+
+                @Composable fun Box1() {}
+                @Composable fun Box2() {}
+                
+                /*
+                Code Comment
+                 */
+                @Composable fun Foo(test: Boolean) {
+                    if(test) {
+                        Box1()
+                    } else {
+                        Box2()
+                    }
+                }
+            """,
+            className = "TestClass",
+        )
+
+        /**
+         * There are some parts of the bytecode that contain the actual line number.
+         * This is OK to be changed; therefore, we will sanitize this as we do care about the actual group keys
+         */
+        fun String.sanitize(): String = lines().map { line ->
+            if (line.contains("LINENUMBER")) {
+                return@map "<LINENUMBER>"
+            }
+            line.replace(Regex("""Test.kt:\d+"""), "Test.kt:<LINE_NUMBER>")
+        }.joinToString("\n")
+
+        assertEquals(newBytecode.sanitize(), oldBytecode.sanitize())
+    }
 }

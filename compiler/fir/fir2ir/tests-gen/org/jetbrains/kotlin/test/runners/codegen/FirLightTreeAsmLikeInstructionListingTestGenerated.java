@@ -129,6 +129,12 @@ public class FirLightTreeAsmLikeInstructionListingTestGenerated extends Abstract
     }
 
     @Test
+    @TestMetadata("dontEmitInternal.kt")
+    public void testDontEmitInternal() {
+      runTest("compiler/testData/codegen/asmLike/typeAnnotations/dontEmitInternal.kt");
+    }
+
+    @Test
     @TestMetadata("enumClassConstructor.kt")
     public void testEnumClassConstructor() {
       runTest("compiler/testData/codegen/asmLike/typeAnnotations/enumClassConstructor.kt");
@@ -201,9 +207,21 @@ public class FirLightTreeAsmLikeInstructionListingTestGenerated extends Abstract
     }
 
     @Test
+    @TestMetadata("simple2TypeArguments.kt")
+    public void testSimple2TypeArguments() {
+      runTest("compiler/testData/codegen/asmLike/typeAnnotations/simple2TypeArguments.kt");
+    }
+
+    @Test
     @TestMetadata("staticNested.kt")
     public void testStaticNested() {
       runTest("compiler/testData/codegen/asmLike/typeAnnotations/staticNested.kt");
+    }
+
+    @Test
+    @TestMetadata("supertype.kt")
+    public void testSupertype() {
+      runTest("compiler/testData/codegen/asmLike/typeAnnotations/supertype.kt");
     }
 
     @Test
@@ -216,6 +234,52 @@ public class FirLightTreeAsmLikeInstructionListingTestGenerated extends Abstract
     @TestMetadata("typeParameter.kt")
     public void testTypeParameter() {
       runTest("compiler/testData/codegen/asmLike/typeAnnotations/typeParameter.kt");
+    }
+
+    @Nested
+    @TestMetadata("compiler/testData/codegen/asmLike/typeAnnotations/generics")
+    @TestDataPath("$PROJECT_ROOT")
+    public class Generics {
+      @Test
+      public void testAllFilesPresentInGenerics() {
+        KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/asmLike/typeAnnotations/generics"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM_IR, true);
+      }
+
+      @Test
+      @TestMetadata("parameter.kt")
+      public void testParameter() {
+        runTest("compiler/testData/codegen/asmLike/typeAnnotations/generics/parameter.kt");
+      }
+
+      @Test
+      @TestMetadata("returnType.kt")
+      public void testReturnType() {
+        runTest("compiler/testData/codegen/asmLike/typeAnnotations/generics/returnType.kt");
+      }
+
+      @Test
+      @TestMetadata("supertype.kt")
+      public void testSupertype() {
+        runTest("compiler/testData/codegen/asmLike/typeAnnotations/generics/supertype.kt");
+      }
+
+      @Test
+      @TestMetadata("typeParameterBound.kt")
+      public void testTypeParameterBound() {
+        runTest("compiler/testData/codegen/asmLike/typeAnnotations/generics/typeParameterBound.kt");
+      }
+
+      @Test
+      @TestMetadata("val.kt")
+      public void testVal() {
+        runTest("compiler/testData/codegen/asmLike/typeAnnotations/generics/val.kt");
+      }
+
+      @Test
+      @TestMetadata("var.kt")
+      public void testVar() {
+        runTest("compiler/testData/codegen/asmLike/typeAnnotations/generics/var.kt");
+      }
     }
   }
 }

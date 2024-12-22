@@ -6,7 +6,6 @@
 package org.jetbrains.kotlin.backend.konan.lower
 
 import org.jetbrains.kotlin.backend.common.FileLoweringPass
-import org.jetbrains.kotlin.backend.common.getOrPut
 import org.jetbrains.kotlin.backend.common.lower.IrBuildingTransformer
 import org.jetbrains.kotlin.backend.common.lower.at
 import org.jetbrains.kotlin.backend.common.lower.createIrBuilder
@@ -16,15 +15,18 @@ import org.jetbrains.kotlin.backend.konan.descriptors.synthesizedName
 import org.jetbrains.kotlin.backend.konan.ir.buildSimpleAnnotation
 import org.jetbrains.kotlin.backend.konan.ir.isAny
 import org.jetbrains.kotlin.backend.konan.ir.isUnit
-import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.builders.*
 import org.jetbrains.kotlin.ir.builders.declarations.*
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.irAttribute
 import org.jetbrains.kotlin.ir.objcinterop.*
 import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.utils.addToStdlib.getOrSetIfNull
 
-internal fun Context.getObjectClassInstanceFunction(clazz: IrClass) = mapping.objectInstanceGetter.getOrPut(clazz) {
+private var IrClass.objectClassInstanceFunction: IrSimpleFunction? by irAttribute(followAttributeOwner = false)
+
+internal fun Context.getObjectClassInstanceFunction(clazz: IrClass) = clazz::objectClassInstanceFunction.getOrSetIfNull {
     when {
         clazz.isUnit() -> ir.symbols.theUnitInstance.owner
         clazz.isCompanion -> {
@@ -114,7 +116,6 @@ internal class ObjectClassLowering(val generationState: NativeGenerationState) :
             isFinal = true
             isStatic = true
             type = declaration.defaultType
-            visibility = DescriptorVisibilities.PRIVATE
         }.also { field ->
             val primaryConstructor = declaration.constructors.single { it.isPrimary }
             require(primaryConstructor.valueParameters.isEmpty())
@@ -144,8 +145,6 @@ internal class ObjectClassLowering(val generationState: NativeGenerationState) :
         }
         if (declaration.annotations.hasAnnotation(KonanFqNames.threadLocal)) {
             property.annotations += buildSimpleAnnotation(context.irBuiltIns, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, context.ir.symbols.threadLocal.owner)
-        } else if (declaration.annotations.hasAnnotation(KonanFqNames.sharedImmutable) || context.memoryModel != MemoryModel.EXPERIMENTAL){
-            property.annotations += buildSimpleAnnotation(context.irBuiltIns, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, context.ir.symbols.sharedImmutable.owner)
         }
         function.body = context.createIrBuilder(function.symbol, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET).irBlockBody {
             +irReturn(irGetField(null, property.backingField!!))

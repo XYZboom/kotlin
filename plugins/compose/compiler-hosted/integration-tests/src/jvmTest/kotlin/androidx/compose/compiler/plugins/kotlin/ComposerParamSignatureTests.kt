@@ -18,8 +18,6 @@ package androidx.compose.compiler.plugins.kotlin
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
-import org.junit.Rule
 import org.junit.Test
 
 /* ktlint-disable max-line-length */
@@ -162,7 +160,11 @@ class ComposerParamSignatureTests(useFir: Boolean) : AbstractCodegenSignatureTes
                     Foo()
                 }
             }
-        """
+        """,
+        additionalPaths = listOf(
+            Classpath.composeUiJar(),
+            Classpath.composeAnimationJar()
+        )
     )
 
     @Test
@@ -793,7 +795,7 @@ class ComposerParamSignatureTests(useFir: Boolean) : AbstractCodegenSignatureTes
     )
 
     @Test
-        fun testComposableFunInterfacesInVariance() = checkApi(
+    fun testComposableFunInterfacesInVariance() = checkApi(
         """
            import androidx.compose.runtime.*
 
@@ -888,7 +890,8 @@ class ComposerParamSignatureTests(useFir: Boolean) : AbstractCodegenSignatureTes
                     if (condition()) Color.Red else Color.Blue
                 }
             }
-        """
+        """,
+        additionalPaths = listOf(Classpath.composeUiGraphicsJar())
     )
 
     @Test

@@ -12,20 +12,20 @@ import org.jetbrains.kotlin.ir.builders.declarations.IrFunctionBuilder
 import org.jetbrains.kotlin.ir.builders.declarations.buildFun
 import org.jetbrains.kotlin.ir.builders.declarations.buildProperty
 import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.symbols.IrPropertySymbol
+import org.jetbrains.kotlin.ir.irAttribute
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.isInt
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.storage.LockBasedStorageManager
-import java.util.concurrent.ConcurrentHashMap
+import org.jetbrains.kotlin.utils.addToStdlib.getOrSetIfNull
+
+private var IrProperty.replacementForValueClasses: IrProperty? by irAttribute(followAttributeOwner = false)
 
 abstract class MemoizedValueClassAbstractReplacements(
     protected val irFactory: IrFactory,
     protected val context: JvmBackendContext,
     protected val storageManager: LockBasedStorageManager
 ) {
-    private val propertyMap = ConcurrentHashMap<IrPropertySymbol, IrProperty>()
-
     /**
      * Get a replacement for a function or a constructor.
      */
@@ -36,8 +36,7 @@ abstract class MemoizedValueClassAbstractReplacements(
     protected fun IrFunction.isRemoveAtSpecialBuiltinStub() =
         origin == IrDeclarationOrigin.IR_BUILTINS_STUB &&
                 name.asString() == "remove" &&
-                valueParameters.size == 1 &&
-                valueParameters[0].type.isInt()
+                hasShape(dispatchReceiver = true, regularParameters = 1, parameterTypes = listOf(null, context.irBuiltIns.intType))
 
     protected fun IrFunction.isValueClassMemberFakeOverriddenFromJvmDefaultInterfaceMethod(): Boolean {
         if (this !is IrSimpleFunction) return false
@@ -85,7 +84,7 @@ abstract class MemoizedValueClassAbstractReplacements(
             val propertySymbol = function.correspondingPropertySymbol
             if (propertySymbol != null) {
                 val oldProperty = propertySymbol.owner
-                val property = propertyMap.getOrPut(propertySymbol) {
+                val property = oldProperty::replacementForValueClasses.getOrSetIfNull {
                     irFactory.buildProperty {
                         name = oldProperty.name
                         updateFrom(oldProperty)

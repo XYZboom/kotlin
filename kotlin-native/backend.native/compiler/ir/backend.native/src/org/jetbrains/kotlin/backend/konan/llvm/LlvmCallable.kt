@@ -14,7 +14,12 @@ import llvm.*
  *  @todo This class mixes "something that can be called" and function abstractions.
  *        Some of it's methods make sense only for functions. Probably, LlvmFunction sub-class should be extracted.
  */
-class LlvmCallable(val functionType: LLVMTypeRef, private val llvmValue: LLVMValueRef, private val attributeProvider: LlvmFunctionAttributeProvider) {
+class LlvmCallable(val functionType: LLVMTypeRef, val returnsObjectType: Boolean, private val llvmValue: LLVMValueRef, private val attributeProvider: LlvmFunctionAttributeProvider) {
+    internal constructor(
+            llvmValue: LLVMValueRef,
+            signature: LlvmFunctionSignature,
+    ) : this(signature.llvmFunctionType, signature.returnsObjectType, llvmValue, signature)
+
     val returnType: LLVMTypeRef by lazy {
         LLVMGetReturnType(functionType)!!
     }
@@ -53,18 +58,28 @@ class LlvmCallable(val functionType: LLVMTypeRef, private val llvmValue: LLVMVal
         DIFunctionAddSubprogram(llvmValue, subprogram)
     }
 
-    fun createBridgeFunctionDebugInfo(builder: DIBuilderRef, scope: DIScopeOpaqueRef, file: DIFileRef, lineNo: Int, type: DISubroutineTypeRef, isLocal: Int, isDefinition: Int, scopeLine: Int) =
-        DICreateBridgeFunction(
-                builder = builder,
-                scope = scope,
-                function = llvmValue,
-                file = file,
-                lineNo = lineNo,
-                type = type,
-                isLocal = isLocal,
-                isDefinition = isDefinition,
-                scopeLine = scopeLine
-        )!!
+    fun createBridgeFunctionDebugInfo(
+            builder: DIBuilderRef,
+            scope: DIScopeOpaqueRef,
+            file: DIFileRef,
+            lineNo: Int,
+            type: DISubroutineTypeRef,
+            isLocal: Int,
+            isDefinition: Int,
+            scopeLine: Int,
+            isTransparentStepping: Boolean,
+    ) = DICreateBridgeFunction(
+            builder = builder,
+            scope = scope,
+            function = llvmValue,
+            file = file,
+            lineNo = lineNo,
+            type = type,
+            isLocal = isLocal,
+            isDefinition = isDefinition,
+            scopeLine = scopeLine,
+            isTransparentStepping = if (isTransparentStepping) 1 else 0,
+    )!!
 
     fun param(i: Int) : LLVMValueRef {
         require(i in 0 until numParams)

@@ -143,7 +143,7 @@ class FirScopeDumpHandler(testServices: TestServices) : FirAnalysisHandler(testS
     }
 
     private fun SmartPrinter.printInfo(declaration: FirCallableDeclaration, scope: FirTypeScope, counter: SymbolCounter) {
-        val origin = declaration.origin.takeUnless { it == FirDeclarationOrigin.BuiltIns } ?: FirDeclarationOrigin.Library
+        val origin = declaration.origin.takeUnless { it.isBuiltIns } ?: FirDeclarationOrigin.Library
         print("[$origin]: ")
         if (declaration.hiddenEverywhereBesideSuperCallsStatus != null) {
             print("/* hidden beside supers */ ")
@@ -152,10 +152,10 @@ class FirScopeDumpHandler(testServices: TestServices) : FirAnalysisHandler(testS
         }
         val renderedDeclaration = FirRenderer.noAnnotationBodiesAccessorAndArguments().renderElementAsString(declaration).trim()
         print(renderedDeclaration)
-        val initialSignatureAttr = declaration.initialSignatureAttr
-        if (initialSignatureAttr != null) {
+        val initialSignatureFunction = declaration.initialSignatureAttr?.fir
+        if (initialSignatureFunction != null) {
             print(" [initial: ")
-            print(FirRenderer.noAnnotationBodiesAccessorAndArguments().renderElementAsString(initialSignatureAttr).trim())
+            print(FirRenderer.noAnnotationBodiesAccessorAndArguments().renderElementAsString(initialSignatureFunction).trim())
             print("]")
         }
         print(" from $scope")

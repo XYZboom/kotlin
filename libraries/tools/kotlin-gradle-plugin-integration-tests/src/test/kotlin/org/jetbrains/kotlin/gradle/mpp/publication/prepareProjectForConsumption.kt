@@ -5,17 +5,25 @@
 
 package org.jetbrains.kotlin.gradle.mpp.publication
 
+import org.gradle.api.DefaultTask
+import org.gradle.api.artifacts.result.ResolutionResult
+import org.gradle.api.artifacts.result.UnresolvedDependencyResult
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.TaskAction
 import org.gradle.util.GradleVersion
+import org.jetbrains.kotlin.gradle.testbase.GradleBuildScriptInjectionContext
 import org.jetbrains.kotlin.gradle.testbase.GradleProject
+import org.jetbrains.kotlin.gradle.testbase.buildScriptInjection
 import org.jetbrains.kotlin.gradle.util.replaceText
 import org.jetbrains.kotlin.tooling.core.KotlinToolingVersion
+import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.appendText
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 
-fun GradleProject.prepareProjectForConsumption(
+fun GradleProject.prepareConsumerProject(
     consumer: Scenario.Project,
     dependencies: List<Scenario.Project>,
     localRepoDir: Path,
@@ -41,13 +49,13 @@ fun GradleProject.prepareProjectForConsumption(
     }
 
     when (consumer.variant) {
-        ProjectVariant.AndroidOnly -> prepareAndroidForConsumption(consumer, dependencies)
-        ProjectVariant.JavaOnly -> prepareJavaForConsumption(consumer, dependencies)
-        is ProjectVariant.Kmp -> prepareKmpForConsumption(consumer, dependencies)
+        ProjectVariant.AndroidOnly -> prepareAndroidConsumer(dependencies)
+        ProjectVariant.JavaOnly -> prepareJavaConsumer(dependencies)
+        is ProjectVariant.Kmp -> prepareKmpConsumer(consumer, dependencies)
     }
 }
 
-private fun GradleProject.prepareAndroidForConsumption(consumer: Scenario.Project, dependencies: List<Scenario.Project>) {
+private fun GradleProject.prepareAndroidConsumer(dependencies: List<Scenario.Project>) {
     buildGradleKts.appendText(
         """
             
@@ -56,13 +64,20 @@ private fun GradleProject.prepareAndroidForConsumption(consumer: Scenario.Projec
             }
         """.trimIndent()
     )
+
+    buildScriptInjection {
+        registerResolveDependenciesTask(
+            "flavor1DebugCompileClasspath",
+            "flavor1ReleaseCompileClasspath"
+        )
+    }
 }
 
 private fun List<Scenario.Project>.asDependenciesBlock(): String = joinToString("\n") {
     """   api("${it.packageName}:${it.artifactName}:1.0") """
 }
 
-private fun GradleProject.prepareJavaForConsumption(consumer: Scenario.Project, dependencies: List<Scenario.Project>) {
+private fun GradleProject.prepareJavaConsumer(dependencies: List<Scenario.Project>) {
     buildGradleKts.appendText(
         """
             
@@ -71,9 +86,13 @@ private fun GradleProject.prepareJavaForConsumption(consumer: Scenario.Project, 
             }
         """.trimIndent()
     )
+
+    buildScriptInjection {
+        registerResolveDependenciesTask("compileClasspath")
+    }
 }
 
-private fun GradleProject.prepareKmpForConsumption(consumer: Scenario.Project, dependencies: List<Scenario.Project>) {
+private fun GradleProject.prepareKmpConsumer(consumer: Scenario.Project, dependencies: List<Scenario.Project>) {
     val projectVariant = consumer.variant
     check(projectVariant is ProjectVariant.Kmp)
     val kotlinVersion = checkNotNull(consumer.kotlinVersion)
@@ -93,26 +112,24 @@ private fun GradleProject.prepareKmpForConsumption(consumer: Scenario.Project, d
 
     val (commonMainDependencies, targetSpecificDependencies) = dependencies.partition { projectVariant.isCommonMainDependableOn(it.variant) }
 
-    val targetsDependencies = targetSpecificDependencies.flatMap { dependency ->
-        when (dependency.variant) {
-            ProjectVariant.AndroidOnly -> if (projectVariant.withAndroid) listOf("android" to dependency) else emptyList()
-            ProjectVariant.JavaOnly -> if (projectVariant.withAndroid || projectVariant.withJvm) listOf("jvm" to dependency) else emptyList()
-            is ProjectVariant.Kmp -> (dependency.variant.variants intersect projectVariant.variants)
-                .map { it to dependency }
-        }
-    }.groupBy(keySelector = { it.first }) { it.second }
-
     fun List<Scenario.Project>.asSourceSetDependenciesBlock(sourceSetName: String) = """
-        
+
         sourceSets.getByName("$sourceSetName").dependencies {
         ${this.asDependenciesBlock()}
         }
     """.trimIndent()
 
-    val androidMainDependencies = targetsDependencies["android"]?.asSourceSetDependenciesBlock("androidMain")
-    val jvmMainDependencies = targetsDependencies["jvm"]?.asSourceSetDependenciesBlock("jvmMain")
-    val linuxX64MainDependencies = targetsDependencies["native"]?.asSourceSetDependenciesBlock("linuxX64Main")
-    val linuxArm64MainDependencies = targetsDependencies["native"]?.asSourceSetDependenciesBlock("linuxArm64Main")
+    val targetSpecificDependenciesBlock = buildString {
+        if (projectVariant.withJvm) {
+            appendLine(targetSpecificDependencies.filter { it.hasJvm }.asSourceSetDependenciesBlock("jvmMain"))
+        }
+        if (projectVariant.withAndroid) {
+            appendLine(targetSpecificDependencies.filter { it.hasAndroid }.asSourceSetDependenciesBlock("androidMain"))
+        }
+
+        val deps = targetSpecificDependencies.filter { it.isKmp }
+        listOf("linuxX64Main", "linuxArm64Main").forEach { appendLine(deps.asSourceSetDependenciesBlock(it)) }
+    }
 
     buildGradleKts.appendText(
         """
@@ -121,11 +138,64 @@ private fun GradleProject.prepareKmpForConsumption(consumer: Scenario.Project, d
               sourceSets.getByName("commonMain").dependencies {
                ${commonMainDependencies.asDependenciesBlock()}
               }
-              ${androidMainDependencies.orEmpty()}
-              ${jvmMainDependencies.orEmpty()}
-              ${linuxX64MainDependencies.orEmpty()}
-              ${linuxArm64MainDependencies.orEmpty()}
+              $targetSpecificDependenciesBlock
             }           
         """.trimIndent()
     )
+
+    buildScriptInjection {
+        registerResolveDependenciesTask(
+            "jvmCompileClasspath",
+            "androidFlavor1ReleaseCompileClasspath",
+            "androidFlavor1DebugCompileClasspath",
+            "linuxX64CompileKlibraries",
+            "linuxArm64CompileKlibraries"
+        )
+    }
+}
+
+
+private abstract class ResolveDependenciesTask : DefaultTask() {
+    @get:OutputDirectory
+    val outDir: File = project.file("resolvedDependenciesReports")
+
+    private val configurations = mutableMapOf<String, ResolutionResult>()
+    fun reportForConfiguration(name: String) {
+        val configuration = project.configurations.findByName(name) ?: return
+        configurations[name] = configuration.incoming.resolutionResult
+    }
+
+    @TaskAction
+    fun action() {
+        configurations.forEach { (name, artifacts) ->
+            reportResolutionResult(name, artifacts)
+        }
+    }
+
+    private fun reportResolutionResult(name: String, resolutionResult: ResolutionResult) {
+        val content = buildString {
+            // report errors if any
+            resolutionResult.allDependencies
+                .filterIsInstance<UnresolvedDependencyResult>()
+                .forEach {
+                    appendLine("ERROR: ${it.attempted} -> ${it.failure}")
+                }
+
+            resolutionResult.allComponents
+                .map { component -> "${component.id} => ${component.variants.map { it.displayName }}" }
+                .sorted()
+                .joinToString("\n")
+                .also { append(it) }
+        }
+
+        outDir.resolve("${name}.txt").writeText(content)
+    }
+}
+
+internal fun GradleBuildScriptInjectionContext.registerResolveDependenciesTask(vararg configurationNames: String) {
+    project.tasks.register("resolveDependencies", ResolveDependenciesTask::class.java) { task ->
+        for (configurationName in configurationNames) {
+            task.reportForConfiguration(configurationName)
+        }
+    }
 }

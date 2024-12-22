@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -23,47 +23,46 @@ import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolOwner
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.types.Variance
 
+/**
+ * This pass finds extended main methods and introduces a regular `public static void main(String[] args)` entry point, as appropriate:
+ *   - invocation via [kotlin.coroutines.jvm.internal.runSuspend] suspend main methods.
+ *   - a simple delegating wrapper for parameterless main methods.
+ *
+ * There are three cases that must be handled, in order of precedence:
+ *
+ * 1. `suspend fun main(args: Array<String>) { .. }` for which we generate
+ *    ```
+ *    fun main(args: Array<String>) {
+ *      runSuspend { main(args) }
+ *    }
+ *    ```
+ *
+ * 2. `suspend fun main() { .. }` for which we generate
+ *    ```
+ *    fun main(args: Array<String>) {
+ *      runSuspend { main() }
+ *    }
+ *    ```
+ *
+ * 3. `fun main() { .. }` for which we generate
+ *    ```
+ *    fun main(args: Array<String>) {
+ *      main()
+ *    }
+ *    ```
+ */
 @PhaseDescription(
     name = "MainMethodGeneration",
-    description = "Generate main bridges to parameterless mains, and wrappers for suspend mains.",
     prerequisite = [JvmOverloadsAnnotationLowering::class],
 )
 internal class MainMethodGenerationLowering(private val context: JvmBackendContext) : ClassLoweringPass {
-    /**
-     * This pass finds extended main methods and introduces a regular
-     * `public static void main(String[] args)` entry point, as appropriate:
-     *   - invocation via [kotlin.coroutines.jvm.internal.runSuspend] suspend main methods.
-     *   - a simple delegating wrapper for parameterless main methods
-     *
-     * There are three cases that must be handled, in order of precedence:
-     *
-     * 1. `suspend fun main(args: Array<String>) { .. }` for which we generate
-     *    ```
-     *    fun main(args: Array<String>) {
-     *      runSuspend { main(args) }
-     *    }
-     *    ```
-     *
-     * 2. `suspend fun main() { .. }` for which we generate
-     *    ```
-     *    fun main(args: Array<String>) {
-     *      runSuspend { main() }
-     *    }
-     *    ```
-     *
-     * 3. `fun main() { .. }` for which we generate
-     *    ```
-     *    fun main(args: Array<String>) {
-     *      main()
-     *    }
-     *    ```
-     */
     override fun lower(irClass: IrClass) {
         if (!context.config.languageVersionSettings.supportsFeature(LanguageFeature.ExtendedMainConvention)) return
         if (!irClass.isFileClass) return
@@ -99,7 +98,7 @@ internal class MainMethodGenerationLowering(private val context: JvmBackendConte
         if ((getJvmNameFromAnnotation() ?: name.asString()) != "main") return false
         if (!returnType.isUnit()) return false
 
-        val parameter = allParameters.singleOrNull() ?: return false
+        val parameter = parameters.singleOrNull() ?: return false
         if (!parameter.type.isArray() && !parameter.type.isNullableArray()) return false
 
         val argType = (parameter.type as IrSimpleType).arguments.first()
@@ -141,7 +140,7 @@ internal class MainMethodGenerationLowering(private val context: JvmBackendConte
             }.let { wrapper ->
                 +wrapper
 
-                wrapper.createImplicitParameterDeclarationWithWrappedDescriptor()
+                wrapper.createThisReceiverParameter()
 
                 val lambdaSuperClass = backendContext.ir.symbols.lambdaClass
                 val functionClass = backendContext.ir.symbols.getJvmSuspendFunctionClass(0)

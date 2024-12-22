@@ -1,4 +1,7 @@
 public final class PropertiesKt /* PropertiesKt*/ {
+  @kotlin.jvm.Transient()
+  private static final transient int plainField = 1 /* initializer type: int */;
+
   @org.jetbrains.annotations.NotNull()
   private static @org.jetbrains.annotations.NotNull() java.lang.String name = "x" /* initializer type: java.lang.String */;
 
@@ -6,7 +9,7 @@ public final class PropertiesKt /* PropertiesKt*/ {
   private static @org.jetbrains.annotations.NotNull() java.lang.String protectedWithPrivateSet = "" /* initializer type: java.lang.String */;
 
   @org.jetbrains.annotations.NotNull()
-  private static @org.jetbrains.annotations.NotNull() java.lang.String x$1 = "" /* initializer type: java.lang.String */;
+  private static @org.jetbrains.annotations.NotNull() java.lang.String x = "" /* initializer type: java.lang.String */;
 
   @org.jetbrains.annotations.NotNull()
   private static final @org.jetbrains.annotations.NotNull() error.NonExistentClass delegatedProp$delegate;
@@ -46,8 +49,6 @@ public final class PropertiesKt /* PropertiesKt*/ {
   private static final error.NonExistentClass intConst = 30 /* initializer type: int */;
 
   private static final int f1 = 2 /* initializer type: int */;
-
-  private static final int plainField = 1 /* initializer type: int */;
 
   private static final int privateVal = 42 /* initializer type: int */;
 

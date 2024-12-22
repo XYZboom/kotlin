@@ -100,6 +100,12 @@ public class DiagnosticsFirWasmTestGenerated extends AbstractDiagnosticsFirWasmT
     }
 
     @Test
+    @TestMetadata("externalPropertyAccessor.kt")
+    public void testExternalPropertyAccessor() {
+      runTest("compiler/testData/diagnostics/wasmTests/jsInterop/externalPropertyAccessor.kt");
+    }
+
+    @Test
     @TestMetadata("inheritance.kt")
     public void testInheritance() {
       runTest("compiler/testData/diagnostics/wasmTests/jsInterop/inheritance.kt");
@@ -115,6 +121,12 @@ public class DiagnosticsFirWasmTestGenerated extends AbstractDiagnosticsFirWasmT
     @TestMetadata("jsExport.kt")
     public void testJsExport() {
       runTest("compiler/testData/diagnostics/wasmTests/jsInterop/jsExport.kt");
+    }
+
+    @Test
+    @TestMetadata("jsExportPromiseUnit.kt")
+    public void testJsExportPromiseUnit() {
+      runTest("compiler/testData/diagnostics/wasmTests/jsInterop/jsExportPromiseUnit.kt");
     }
 
     @Test

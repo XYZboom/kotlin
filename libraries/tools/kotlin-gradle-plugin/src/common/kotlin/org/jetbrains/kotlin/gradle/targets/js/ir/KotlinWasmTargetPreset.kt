@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.gradle.plugin.diagnostics.reportDiagnosticOncePerBui
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinCompilationFactory
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinOnlyTargetPreset
 import org.jetbrains.kotlin.gradle.targets.js.KotlinWasmTargetType
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget.Companion.buildNpmProjectName
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.capitalizeAsciiOnly
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 
@@ -24,12 +25,9 @@ class KotlinWasmTargetPreset(
     override val platformType: KotlinPlatformType = KotlinPlatformType.wasm
 
     override fun instantiateTarget(name: String): KotlinJsIrTarget {
-        if (!PropertiesProvider(project).wasmStabilityNoWarn) {
-            project.reportDiagnosticOncePerBuild(KotlinToolingDiagnostics.WasmStabilityWarning())
-        }
-
         val irTarget = project.objects.newInstance(KotlinJsIrTarget::class.java, project, KotlinPlatformType.wasm)
         irTarget.isMpp = true
+        irTarget.outputModuleName.convention(buildNpmProjectName(project, name))
         irTarget.wasmTargetType = targetType
 
         return irTarget

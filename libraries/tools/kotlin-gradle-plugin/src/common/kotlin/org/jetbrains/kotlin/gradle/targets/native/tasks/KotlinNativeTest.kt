@@ -19,7 +19,6 @@ import org.gradle.work.DisableCachingByDefault
 import org.gradle.work.NormalizeLineEndings
 import org.jetbrains.kotlin.gradle.internal.testing.TCServiceMessagesClientSettings
 import org.jetbrains.kotlin.gradle.internal.testing.TCServiceMessagesTestExecutionSpec
-import org.jetbrains.kotlin.gradle.internal.testing.TCServiceMessagesTestExecutor.Companion.TC_PROJECT_PROPERTY
 import org.jetbrains.kotlin.gradle.targets.native.internal.NativeAppleSimulatorTCServiceMessagesTestExecutionSpec
 import org.jetbrains.kotlin.gradle.targets.native.internal.parseKotlinNativeStackTraceAsJvm
 import org.jetbrains.kotlin.gradle.tasks.KotlinTest
@@ -67,7 +66,7 @@ abstract class KotlinNativeTest : KotlinTest() {
 
     @get:Input
     var workingDir: String
-        get() = processOptions.workingDir.canonicalPath
+        get() = processOptions.workingDir.absolutePath
         set(value) {
             processOptions.workingDir = File(value)
         }
@@ -106,7 +105,7 @@ abstract class KotlinNativeTest : KotlinTest() {
     }
 
     fun executable(provider: Provider<File>) {
-        executableProperty.set(provider.map { project.files(it) })
+        executableProperty.set(project.files(provider))
     }
 
     fun executable(provider: Closure<File>) {

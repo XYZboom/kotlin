@@ -6,14 +6,10 @@
 package org.jetbrains.kotlin.fir.analysis.checkers.declaration
 
 import org.jetbrains.kotlin.KtSourceElement
-import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
-import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
-import org.jetbrains.kotlin.fir.analysis.checkers.getInlineClassUnderlyingType
-import org.jetbrains.kotlin.fir.analysis.checkers.isRecursiveValueClassType
 import org.jetbrains.kotlin.fir.analysis.checkers.isSingleFieldValueClass
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.declarations.FirProperty
@@ -48,7 +44,7 @@ object FirInapplicableLateinitChecker : FirPropertyChecker(MppCheckerKind.Common
             reporter.reportError(declaration.source, "is not allowed on delegated properties", context)
         }
 
-        if (declaration.isNullable()) {
+        if (declaration.returnTypeRef.coneType.canBeNull(context.session)) {
             reporter.reportError(declaration.source, "is not allowed on properties of a type with nullable upper bound", context)
         }
 
@@ -72,7 +68,7 @@ object FirInapplicableLateinitChecker : FirPropertyChecker(MppCheckerKind.Common
             reporter.reportError(declaration.source, "is not allowed on extension properties", context)
         }
 
-        if (declaration.contextReceivers.isNotEmpty()) {
+        if (declaration.contextParameters.isNotEmpty()) {
             reporter.reportError(declaration.source, "is not allowed on properties with context receivers", context)
         }
 
@@ -89,43 +85,14 @@ object FirInapplicableLateinitChecker : FirPropertyChecker(MppCheckerKind.Common
                     "is not allowed on $variables of unsigned types",
                     context
                 )
-                !context.languageVersionSettings.supportsFeature(LanguageFeature.InlineLateinit) -> reporter.reportError(
+                else -> reporter.reportError(
                     declaration.source,
                     "is not allowed on $variables of inline class types",
                     context
                 )
-                hasUnderlyingTypeForbiddenForLateinit(declarationType, context.session) -> reporter.reportError(
-                    declaration.source,
-                    "is not allowed on $variables of inline type with underlying type not suitable for lateinit declaration",
-                    context
-                )
             }
         }
     }
-
-    private fun hasUnderlyingTypeForbiddenForLateinit(type: ConeKotlinType, session: FirSession): Boolean {
-
-        fun isForbiddenTypeForLateinit(type: ConeKotlinType): Boolean {
-            if (type.isPrimitiveOrNullablePrimitive) return true
-            if (type.hasNullableUpperBound) return true
-            if (type.isSingleFieldValueClass(session)) {
-                return isForbiddenTypeForLateinit(type.getInlineClassUnderlyingType(session))
-            }
-            return false
-        }
-
-        // prevent infinite recursion
-        if (type.isRecursiveValueClassType(session)) return false
-        return isForbiddenTypeForLateinit(type.getInlineClassUnderlyingType(session))
-    }
-
-    private val ConeKotlinType.hasNullableUpperBound
-        get() = when (this) {
-            is ConeTypeParameterType -> isNullable || lookupTag.typeParameterSymbol.resolvedBounds.any { it.coneType.isNullable }
-            else -> isNullable
-        }
-
-    private fun FirProperty.isNullable() = returnTypeRef.coneType.hasNullableUpperBound
 
     private fun FirProperty.hasGetter() = getter != null && getter !is FirDefaultPropertyGetter
     private fun FirProperty.hasSetter() = setter != null && setter !is FirDefaultPropertySetter

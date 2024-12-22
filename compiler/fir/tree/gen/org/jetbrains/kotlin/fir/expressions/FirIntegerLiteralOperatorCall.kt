@@ -20,13 +20,13 @@ import org.jetbrains.kotlin.fir.visitors.FirTransformer
 import org.jetbrains.kotlin.fir.visitors.FirVisitor
 
 /**
- * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.integerLiteralOperatorCall]
+ * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTree.integerLiteralOperatorCall]
  */
 abstract class FirIntegerLiteralOperatorCall : FirFunctionCall() {
     @UnresolvedExpressionTypeAccess
     abstract override val coneTypeOrNull: ConeKotlinType?
     abstract override val annotations: List<FirAnnotation>
-    abstract override val contextReceiverArguments: List<FirExpression>
+    abstract override val contextArguments: List<FirExpression>
     abstract override val typeArguments: List<FirTypeProjection>
     abstract override val explicitReceiver: FirExpression?
     abstract override val source: KtSourceElement?
@@ -48,7 +48,7 @@ abstract class FirIntegerLiteralOperatorCall : FirFunctionCall() {
 
     abstract override fun replaceAnnotations(newAnnotations: List<FirAnnotation>)
 
-    abstract override fun replaceContextReceiverArguments(newContextReceiverArguments: List<FirExpression>)
+    abstract override fun replaceContextArguments(newContextArguments: List<FirExpression>)
 
     abstract override fun replaceTypeArguments(newTypeArguments: List<FirTypeProjection>)
 

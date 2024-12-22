@@ -6,7 +6,6 @@
 package org.jetbrains.kotlinx.serialization.compiler.fir
 
 import org.jetbrains.kotlin.descriptors.*
-import org.jetbrains.kotlin.fir.FirEvaluatorResult
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.deserialization.toQualifiedPropertyAccessExpression
@@ -15,9 +14,7 @@ import org.jetbrains.kotlin.fir.expressions.builder.*
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
-import org.jetbrains.kotlin.fir.resolve.createSubstitutionForSupertype
-import org.jetbrains.kotlin.fir.resolve.defaultType
-import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
+import org.jetbrains.kotlin.fir.resolve.*
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.resolve.substitution.ChainedSubstitutor
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
@@ -25,9 +22,9 @@ import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
+import org.jetbrains.kotlin.fir.toFirResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
-import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.platform.isJs
@@ -280,6 +277,14 @@ fun ConeKotlinType.isAbstractOrSealedOrInterface(session: FirSession): Boolean =
     toRegularClassSymbol(session)?.let { it.classKind.isInterface || it.rawStatus.modality == Modality.ABSTRACT || it.rawStatus.modality == Modality.SEALED }
         ?: false
 
+fun ConeKotlinType.classSymbolOrUpperBound(session: FirSession): FirClassSymbol<*>? {
+    return when (this) {
+        is ConeSimpleKotlinType -> toClassSymbol(session)
+        is ConeFlexibleType -> upperBound.toClassSymbol(session)
+        is ConeDefinitelyNotNullType -> original.toClassSymbol(session)
+    }
+}
+
 fun FirDeclaration.excludeFromJsExport(session: FirSession) {
     if (!session.moduleData.platform.isJs()) {
         return
@@ -291,7 +296,7 @@ fun FirDeclaration.excludeFromJsExport(session: FirSession) {
     val jsExportIgnoreAnnotationCall = buildAnnotationCall {
         argumentList = FirEmptyArgumentList
         annotationTypeRef = buildResolvedTypeRef {
-            type = jsExportIgnoreAnnotation.defaultType()
+            coneType = jsExportIgnoreAnnotation.defaultType()
         }
         calleeReference = buildResolvedNamedReference {
             name = jsExportIgnoreAnnotation.name

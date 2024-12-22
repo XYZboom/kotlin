@@ -199,7 +199,7 @@ internal class MapBuilder<K, V> private constructor(
 
     private fun ensureExtraCapacity(n: Int) {
         if (shouldCompact(extraCapacity = n)) {
-            rehash(hashSize)
+            compact(updateHashArray = true)
         } else {
             ensureCapacity(length + n)
         }
@@ -235,14 +235,19 @@ internal class MapBuilder<K, V> private constructor(
 
     private fun hash(key: K) = (key.hashCode() * MAGIC) ushr hashShift
 
-    private fun compact() {
+    private fun compact(updateHashArray: Boolean) {
         var i = 0
         var j = 0
         val valuesArray = valuesArray
         while (i < length) {
-            if (presenceArray[i] >= 0) {
+            val hash = presenceArray[i]
+            if (hash >= 0) {
                 keysArray[j] = keysArray[i]
                 if (valuesArray != null) valuesArray[j] = valuesArray[i]
+                if (updateHashArray) {
+                    presenceArray[j] = hash
+                    hashArray[hash] = j + 1
+                }
                 j++
             }
             i++
@@ -254,19 +259,19 @@ internal class MapBuilder<K, V> private constructor(
     }
 
     private fun rehash(newHashSize: Int) {
+//        require(newHashSize > hashSize) { "Rehash can only be executed with a grown hash array" }
+
         registerModification()
-        if (length > size) compact()
-        if (newHashSize != hashSize) {
-            hashArray = IntArray(newHashSize)
-            hashShift = computeShift(newHashSize)
-        } else {
-            hashArray.fill(0, 0, hashSize)
-        }
+        if (length > size) compact(updateHashArray = false)
+        hashArray = IntArray(newHashSize)
+        hashShift = computeShift(newHashSize)
+
         var i = 0
         while (i < length) {
             if (!putRehash(i++)) {
-                throw IllegalStateException("This cannot happen with fixed magic multiplier and grow-only hash array. " +
-                                                    "Have object hashCodes changed?")
+                throw IllegalStateException(
+                    "This cannot happen with fixed magic multiplier and grow-only hash array. Have object hashCodes changed?"
+                )
             }
         }
     }
@@ -584,13 +589,22 @@ internal class MapBuilder<K, V> private constructor(
         private val map: MapBuilder<K, V>,
         private val index: Int
     ) : MutableMap.MutableEntry<K, V> {
+        private val expectedModCount = map.modCount
+
         override val key: K
-            get() = map.keysArray[index]
+            get() {
+                checkForComodification()
+                return map.keysArray[index]
+            }
 
         override val value: V
-            get() = map.valuesArray!![index]
+            get() {
+                checkForComodification()
+                return map.valuesArray!![index]
+            }
 
         override fun setValue(newValue: V): V {
+            checkForComodification()
             map.checkIsMutable()
             val valuesArray = map.allocateValuesArray()
             val oldValue = valuesArray[index]
@@ -606,6 +620,11 @@ internal class MapBuilder<K, V> private constructor(
         override fun hashCode(): Int = key.hashCode() xor value.hashCode()
 
         override fun toString(): String = "$key=$value"
+
+        private fun checkForComodification() {
+            if (map.modCount != expectedModCount)
+                throw ConcurrentModificationException("The backing map has been modified after this entry was obtained.")
+        }
     }
 }
 

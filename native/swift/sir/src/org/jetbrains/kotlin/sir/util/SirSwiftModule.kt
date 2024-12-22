@@ -6,7 +6,7 @@
 package org.jetbrains.kotlin.sir.util
 
 import org.jetbrains.kotlin.sir.*
-import org.jetbrains.kotlin.sir.builder.buildStruct
+import org.jetbrains.kotlin.sir.builder.*
 
 /**
  * A module representing the swift standard library
@@ -15,50 +15,88 @@ object SirSwiftModule : SirModule() {
     override val imports: MutableList<SirImport> = mutableListOf()
 
     override val name: String get() = "Swift"
+    override val declarations: MutableList<SirDeclaration> = mutableListOf()
 
-    val bool = primitive("Bool")
+    val bool = struct("Bool")
 
-    val int8 = primitive("Int8")
-    val int16 = primitive("Int16")
-    val int32 = primitive("Int32")
-    val int64 = primitive("Int64")
+    val int8 = struct("Int8")
+    val int16 = struct("Int16")
+    val int32 = struct("Int32")
+    val int64 = struct("Int64")
 
-    val uint8 = primitive("UInt8")
-    val uint16 = primitive("UInt16")
-    val uint32 = primitive("UInt32")
-    val uint64 = primitive("UInt64")
+    val uint8 = struct("UInt8")
+    val uint16 = struct("UInt16")
+    val uint32 = struct("UInt32")
+    val uint64 = struct("UInt64")
 
-    val double = primitive("Double")
-    val float = primitive("Float")
+    val double = struct("Double")
+    val float = struct("Float")
 
-    val void = buildStruct {
-        origin = SirOrigin.ExternallyDefined(name = "Swift.Void")
-        visibility = SirVisibility.PUBLIC
-        name = "Void"
-    }.also { it.parent = SirSwiftModule }
+    val uint = struct("UInt")
 
-    override var declarations: MutableList<SirDeclaration> = mutableListOf(
-        void,
+    val void = struct("Void")
+    val never = struct("Never")
+    val string = struct("String")
 
-        bool,
+    val array = struct("Array")
+    val set = struct("Set")
+    val dictionary = struct("Dictionary")
 
-        int8,
-        int16,
-        int32,
-        int64,
+    private val unicode = enum("Unicode")
+    private val utf16 = unicode.enum("UTF16")
 
-        uint8,
-        uint16,
-        uint32,
-        uint64,
+    private val utf16Extension = extension(SirNominalType(utf16))
 
-        double,
-        float,
-    )
+    val utf16CodeUnit = utf16Extension.addTypealias("CodeUnit", SirNominalType(utf16))
+
+    val optional = enum("Optional")
+
+    val caseIterable = protocol("CaseIterable")
 }
 
-private fun primitive(typeName: String) = buildStruct {
-    origin = SirOrigin.ExternallyDefined("Swift.$typeName")
-    visibility = SirVisibility.PUBLIC
-    name = typeName
-}.also { it.parent = SirSwiftModule }
+private fun SirMutableDeclarationContainer.struct(typeName: String) = addChild {
+    buildStruct {
+        origin = externallyDefined(typeName)
+        visibility = SirVisibility.PUBLIC
+        name = typeName
+    }
+}
+
+private fun SirMutableDeclarationContainer.enum(typeName: String) = addChild {
+    buildEnum {
+        origin = externallyDefined(typeName)
+        visibility = SirVisibility.PUBLIC
+        name = typeName
+    }
+}
+
+private fun SirMutableDeclarationContainer.protocol(typeName: String) = addChild {
+    buildProtocol {
+        origin = externallyDefined(typeName)
+        visibility = SirVisibility.PUBLIC
+        name = typeName
+    }
+}
+
+private fun SirMutableDeclarationContainer.extension(type: SirNominalType) = addChild {
+    buildExtension {
+        // This doesn't retain information about the extension and its place in the hierarchy,
+        // and thus is a bit imprecise, but the result is more readable and consistent with other [SirExtension]s.
+        origin = type.typeDeclaration.origin
+
+        visibility = SirVisibility.PUBLIC
+        extendedType = type
+    }
+}
+
+private fun SirMutableDeclarationContainer.addTypealias(name: String, type: SirType) = addChild {
+    buildTypealias {
+        origin = externallyDefined(name)
+        visibility = SirVisibility.PUBLIC
+        this.name = name
+        this.type = type
+    }
+}
+
+private fun SirDeclarationParent.externallyDefined(name: String) =
+    SirOrigin.ExternallyDefined(swiftFqNameOrNull?.let { "$it.$name" } ?: name)

@@ -5,7 +5,6 @@
 
 package org.jetbrains.kotlin.backend.konan.llvm
 
-import llvm.LLVMTypeRef
 import org.jetbrains.kotlin.backend.common.serialization.mangle.SpecialDeclarationType
 import org.jetbrains.kotlin.backend.konan.RuntimeNames
 import org.jetbrains.kotlin.backend.konan.ir.externalSymbolOrThrow
@@ -148,13 +147,6 @@ private fun String.replaceSpecialSymbols() =
         this.replace("@", "__at__")
 
 fun IrDeclaration.isExported() = KonanBinaryInterface.isExported(this)
-
-// TODO: bring here dependencies of this method?
-internal fun ContextUtils.getLlvmFunctionType(function: IrFunction): LLVMTypeRef = functionType(
-        returnType = getLlvmFunctionReturnType(function).llvmType,
-        isVarArg = false,
-        paramTypes = getLlvmFunctionParameterTypes(function).map { it.llvmType }
-)
 
 internal val IrClass.typeInfoHasVtableAttached: Boolean
     get() = !this.isAbstract() && !this.isExternalObjCClass()

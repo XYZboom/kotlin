@@ -482,7 +482,6 @@ __attribute__((swift_name("DeallocRetainKt")))
 + (void)assertNullValue:(id _Nullable)value __attribute__((swift_name("assertNull(value:)")));
 + (KtKotlinWeakReference<id> *)createWeakReferenceValue:(id)value __attribute__((swift_name("createWeakReference(value:)")));
 + (void)garbageCollect __attribute__((swift_name("garbageCollect()")));
-+ (BOOL)isExperimentalMM __attribute__((swift_name("isExperimentalMM()")));
 @end
 
 __attribute__((objc_subclassing_restricted))
@@ -3349,7 +3348,6 @@ __attribute__((swift_name("ValuesKt")))
 @property (class, readonly) float infFloatVal __attribute__((swift_name("infFloatVal")));
 @property (class) int32_t intVar __attribute__((swift_name("intVar")));
 @property (class, readonly) int32_t integer __attribute__((swift_name("integer")));
-@property (class, readonly) BOOL isExperimentalMM __attribute__((swift_name("isExperimentalMM")));
 @property (class) id lateinitIntVar __attribute__((swift_name("lateinitIntVar")));
 @property (class, readonly) NSString *lazyVal __attribute__((swift_name("lazyVal")));
 @property (class, readonly) int64_t longInt __attribute__((swift_name("longInt")));
@@ -3398,5 +3396,17 @@ __attribute__((swift_name("InVariant")))
 @interface KtInVariant<__contravariant T> : KtInVariantSuper<T>
 - (instancetype)init __attribute__((swift_name("init()"))) __attribute__((objc_designated_initializer));
 + (instancetype)new __attribute__((availability(swift, unavailable, message="use object initializers instead")));
+@end
+
+__attribute__((objc_subclassing_restricted))
+__attribute__((swift_name("VectorKt")))
+@interface KtVectorKt : KtBase
++ (id _Nullable)createNullableVectorIsNull:(BOOL)isNull __attribute__((swift_name("createNullableVector(isNull:)")));
++ (float __attribute__((__vector_size__(16))))createVectorF0:(float)f0 f1:(float)f1 f2:(float)f2 f3:(float)f3 __attribute__((swift_name("createVector(f0:f1:f2:f3:)")));
++ (float __attribute__((__vector_size__(16))))createVectorI0:(int32_t)i0 i1:(int32_t)i1 i2:(int32_t)i2 i3:(int32_t)i3 __attribute__((swift_name("createVector(i0:i1:i2:i3:)")));
++ (int32_t)sumNullableVectorInt:(id _Nullable)receiver __attribute__((swift_name("sumNullableVectorInt(_:)")));
++ (float)sumVectorFloat:(float __attribute__((__vector_size__(16))))receiver __attribute__((swift_name("sumVectorFloat(_:)")));
++ (int32_t)sumVectorInt:(float __attribute__((__vector_size__(16))))receiver __attribute__((swift_name("sumVectorInt(_:)")));
+@property (class) float __attribute__((__vector_size__(16))) vector __attribute__((swift_name("vector")));
 @end
 

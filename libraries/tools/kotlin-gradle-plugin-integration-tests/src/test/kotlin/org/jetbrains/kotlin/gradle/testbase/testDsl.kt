@@ -11,10 +11,11 @@ import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.tooling.GradleConnector
 import org.gradle.util.GradleVersion
-import org.jetbrains.kotlin.gradle.BaseGradleIT.Companion.acceptAndroidSdkLicenses
+import org.jetbrains.kotlin.cli.common.CompilerSystemProperties
 import org.jetbrains.kotlin.gradle.model.ModelContainer
 import org.jetbrains.kotlin.gradle.model.ModelFetcherBuildAction
 import org.jetbrains.kotlin.gradle.report.BuildReportType
+import org.jetbrains.kotlin.gradle.util.isTeamCityRun
 import org.jetbrains.kotlin.gradle.util.modify
 import org.jetbrains.kotlin.gradle.util.runProcess
 import org.jetbrains.kotlin.konan.target.HostManager
@@ -22,11 +23,13 @@ import org.jetbrains.kotlin.konan.target.presetName
 import org.jetbrains.kotlin.test.util.KtTestUtil
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import java.io.File
+import java.lang.management.ManagementFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.*
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 /**
  * Create a new test project.
@@ -42,15 +45,15 @@ fun KGPBaseTest.project(
     projectName: String,
     gradleVersion: GradleVersion,
     buildOptions: BuildOptions = defaultBuildOptions,
-    forceOutput: Boolean = false,
+    forceOutput: EnableGradleDebug = EnableGradleDebug.AUTO,
     enableBuildScan: Boolean = false,
     addHeapDumpOptions: Boolean = true,
-    enableGradleDebug: Boolean = false,
+    enableGradleDebug: EnableGradleDebug = EnableGradleDebug.AUTO,
     enableGradleDaemonMemoryLimitInMb: Int? = 1024,
     enableKotlinDaemonMemoryLimitInMb: Int? = 1024,
     projectPathAdditionalSuffix: String = "",
     buildJdk: File? = null,
-    localRepoDir: Path? = null,
+    localRepoDir: Path? = defaultLocalRepo(gradleVersion),
     environmentVariables: EnvironmentalVariables = EnvironmentalVariables(),
     dependencyManagement: DependencyManagement = DependencyManagement.DefaultDependencyManagement(),
     test: TestProject.() -> Unit = {},
@@ -61,7 +64,12 @@ fun KGPBaseTest.project(
         workingDir,
         projectPathAdditionalSuffix,
     )
-    projectPath.addDefaultSettingsToSettingsGradle(gradleVersion, dependencyManagement, localRepoDir)
+    projectPath.addDefaultSettingsToSettingsGradle(
+        gradleVersion,
+        dependencyManagement,
+        localRepoDir,
+        buildOptions.isolatedProjects.toBooleanFlag(gradleVersion)
+    )
     projectPath.enableCacheRedirector()
     projectPath.enableAndroidSdk()
     if (buildOptions.languageVersion != null || buildOptions.languageApiVersion != null) {
@@ -115,10 +123,10 @@ fun KGPBaseTest.nativeProject(
     projectName: String,
     gradleVersion: GradleVersion,
     buildOptions: BuildOptions = defaultBuildOptions,
-    forceOutput: Boolean = false,
+    forceOutput: EnableGradleDebug = EnableGradleDebug.AUTO,
     enableBuildScan: Boolean = false,
     addHeapDumpOptions: Boolean = true,
-    enableGradleDebug: Boolean = false,
+    enableGradleDebug: EnableGradleDebug = EnableGradleDebug.AUTO,
     enableGradleDaemonMemoryLimitInMb: Int? = 1024,
     enableKotlinDaemonMemoryLimitInMb: Int? = 1024,
     projectPathAdditionalSuffix: String = "",
@@ -155,8 +163,8 @@ fun KGPBaseTest.nativeProject(
  */
 fun TestProject.build(
     vararg buildArguments: String,
-    forceOutput: Boolean = this.forceOutput,
-    enableGradleDebug: Boolean = this.enableGradleDebug,
+    forceOutput: EnableGradleDebug = this.forceOutput,
+    enableGradleDebug: EnableGradleDebug = this.enableGradleDebug,
     kotlinDaemonDebugPort: Int? = this.kotlinDaemonDebugPort,
     enableBuildCacheDebug: Boolean = false,
     enableBuildScan: Boolean = this.enableBuildScan,
@@ -169,6 +177,10 @@ fun TestProject.build(
     if (enableBuildScan) agreeToBuildScanService()
     ensureKotlinCompilerArgumentsPluginAppliedCorrectly(buildOptions)
 
+    if (enableGradleDebug.toBooleanFlag() && isTeamCityRun) {
+        fail("Please don't set `enableGradleDebug = true` in teamcity run, this can fail build")
+    }
+
     val allBuildArguments = commonBuildSetup(
         buildArguments.toList(),
         buildOptions,
@@ -180,9 +192,9 @@ fun TestProject.build(
         kotlinDaemonDebugPort
     )
     val gradleRunnerForBuild = gradleRunner
-        .also { if (forceOutput) it.forwardOutput() }
+        .also { if (forceOutput.toBooleanFlag()) it.forwardOutput() }
         .also { if (environmentVariables.environmentalVariables.isNotEmpty()) it.withEnvironment(System.getenv() + environmentVariables.environmentalVariables) }
-        .withDebug(enableGradleDebug)
+        .withDebug(enableGradleDebug.toBooleanFlag())
         .withArguments(allBuildArguments)
     withBuildSummary(allBuildArguments) {
         val buildResult = gradleRunnerForBuild.build()
@@ -197,8 +209,8 @@ fun TestProject.build(
  */
 fun TestProject.buildAndFail(
     vararg buildArguments: String,
-    forceOutput: Boolean = this.forceOutput,
-    enableGradleDebug: Boolean = this.enableGradleDebug,
+    forceOutput: EnableGradleDebug = this.forceOutput,
+    enableGradleDebug: EnableGradleDebug = this.enableGradleDebug,
     kotlinDaemonDebugPort: Int? = this.kotlinDaemonDebugPort,
     enableBuildCacheDebug: Boolean = false,
     enableBuildScan: Boolean = this.enableBuildScan,
@@ -222,9 +234,9 @@ fun TestProject.buildAndFail(
         kotlinDaemonDebugPort
     )
     val gradleRunnerForBuild = gradleRunner
-        .also { if (forceOutput) it.forwardOutput() }
+        .also { if (forceOutput.toBooleanFlag()) it.forwardOutput() }
         .also { if (environmentVariables.environmentalVariables.isNotEmpty()) it.withEnvironment(System.getenv() + environmentVariables.environmentalVariables) }
-        .withDebug(enableGradleDebug)
+        .withDebug(enableGradleDebug.toBooleanFlag())
         .withArguments(allBuildArguments)
     withBuildSummary(allBuildArguments) {
         val buildResult = gradleRunnerForBuild.buildAndFail()
@@ -236,7 +248,7 @@ fun TestProject.buildAndFail(
 }
 
 fun getGradleUserHome(): File {
-    return testKitDir.toAbsolutePath().toFile().canonicalFile
+    return testKitDir.toAbsolutePath().toFile().normalize().absoluteFile
 }
 
 private fun BuildResult.additionalAssertions(buildOptions: BuildOptions) {
@@ -362,7 +374,7 @@ open class GradleProject(
 }
 
 /**
- * You need at least [TestVersions.Gradle.G_7_0] for supporting environment variables with gradle runner
+ * You need at least Gradle "7.0" for supporting environment variables with Gradle runner
  */
 @JvmInline
 value class EnvironmentalVariables @EnvironmentalVariablesOverride constructor(val environmentalVariables: Map<String, String> = emptyMap()) {
@@ -380,15 +392,11 @@ class TestProject(
     projectPath: Path,
     val buildOptions: BuildOptions,
     val gradleVersion: GradleVersion,
-    val forceOutput: Boolean,
+    val forceOutput: EnableGradleDebug,
     val enableBuildScan: Boolean,
     val enableGradleDaemonMemoryLimitInMb: Int?,
     val enableKotlinDaemonMemoryLimitInMb: Int?,
-    /**
-     * Whether the test and the Gradle build launched by the test should be executed in the same process so that we can use the same
-     * debugger for both (see https://docs.gradle.org/current/javadoc/org/gradle/testkit/runner/GradleRunner.html#isDebug--).
-     */
-    val enableGradleDebug: Boolean,
+    val enableGradleDebug: EnableGradleDebug,
     /**
      * A port to debug the Kotlin daemon at.
      * Note that we'll need to let the debugger start listening at this port first *before* the Kotlin daemon is launched.
@@ -400,17 +408,22 @@ class TestProject(
 
     /**
      * Includes another project as a submodule in the current project.
+     *
+     * - Copies the other project to a directory inside this project.
+     * - Updates this project's `settings.gradle(.kts)` with `include(":$newSubmoduleName")`
+     *
      * @param otherProjectName The name of the other project to include as a submodule.
      * @param pathPrefix An optional prefix to prepend to the submodule's path. Defaults to an empty string.
-     * @param newSubmoduleName An optional new name for the submodule. Defaults to the otherProjectName.
-     * @param isKts Whether to update a .kts settings file instead of a .gradle settings file. Defaults to false.
+     * @param newSubmoduleName An optional new name for the submodule. Defaults to [otherProjectName].
+     * @param isKts Whether to update a `settings.gradle.kts` instead of a `settings.gradle` file. Defaults to `false`.
      */
     fun includeOtherProjectAsSubmodule(
         otherProjectName: String,
         pathPrefix: String = "",
         newSubmoduleName: String = otherProjectName,
-        isKts: Boolean = false,
+        isKts: Boolean = settingsGradleKts.exists(),
         localRepoDir: Path? = null,
+        configure: GradleProject.() -> Unit = {},
     ) {
         val otherProjectPath = if (pathPrefix.isEmpty()) {
             otherProjectName.testProjectPath
@@ -423,12 +436,13 @@ class TestProject(
 
         gradleSettingToUpdate.append(
             """
-                
+
             include(":$newSubmoduleName")
             """.trimIndent()
         )
 
         localRepoDir?.let { subProject(newSubmoduleName).configureLocalRepository(localRepoDir) }
+        subProject(newSubmoduleName).configure()
     }
 
     fun includeOtherProjectAsIncludedBuild(
@@ -444,14 +458,14 @@ class TestProject(
         if (settingsGradle.exists()) {
             settingsGradle.append(
                 """
-                
+
                     includeBuild '$newProjectName'
                 """.trimIndent()
             )
         } else {
             settingsGradleKts.append(
                 """
-                    
+
                     includeBuild("$newProjectName")
                 """.trimIndent()
             )
@@ -474,32 +488,78 @@ private fun commonBuildSetup(
     val jdkLocations = System.getProperties()
         .filterKeys { it.toString().matches(jdkPropNameRegex) }
         .values
+        .sortedWith(compareBy { it.toString() })
         .joinToString(separator = ",")
+
+    val gradleJvmOptions = collectGradleJvmOptions(enableGradleDaemonMemoryLimitInMb, buildOptions.fileLeaksReportFile)
+    val kotlinDaemonJvmArgs = collectKotlinJvmArgs(enableKotlinDaemonMemoryLimitInMb, kotlinDaemonDebugPort)
+
+    /**
+     * Encloses each argument into double quotes to properly handle values with whitespaces based on [enclose] value
+     */
+    fun List<String>.joinToJvmArgsString(enclose: Boolean = true) = if (enclose) {
+        joinToString(separator = "\" \"", prefix = "\"", postfix = "\"")
+    } else {
+        joinToString(separator = " ")
+    }
+
     return buildOptions.toArguments(gradleVersion) + buildArguments + listOfNotNull(
         // Required toolchains should be pre-installed via repo. Tests should not download any JDKs
         "-Porg.gradle.java.installations.auto-download=false",
         "-Porg.gradle.java.installations.paths=$jdkLocations",
+        // Disable automatic download of android SDK.
+        // It should be downloaded in dependencies/android-sdk to enable caching and prevent sdk installation failures.
+        "-Pandroid.builder.sdkDownload=false",
         // Decreasing Gradle daemon idle timeout to 1 min from default 3 hours.
         // This should help with OOM on CI when agents do not have enough free memory available.
         "-Dorg.gradle.daemon.idletimeout=60000",
-        if (enableGradleDaemonMemoryLimitInMb != null) {
-            // Limiting Gradle daemon heap size to reduce memory pressure on CI agents
-            "-Dorg.gradle.jvmargs=-Xmx${enableGradleDaemonMemoryLimitInMb}m"
-        } else null,
-        if (enableKotlinDaemonMemoryLimitInMb != null) {
-            // Limiting Kotlin daemon heap size to reduce memory pressure on CI agents
-            "-Pkotlin.daemon.jvmargs=-Xmx${enableKotlinDaemonMemoryLimitInMb}m"
+        if (gradleJvmOptions.isNotEmpty()) {
+            "-Dorg.gradle.jvmargs=${gradleJvmOptions.joinToJvmArgsString()}"
         } else null,
         if (enableBuildCacheDebug) "-Dorg.gradle.caching.debug=true" else null,
         if (enableBuildScan) "--scan" else null,
-        kotlinDaemonDebugPort?.let {
-            // Note that we pass "server=n", meaning that we'll need to let the debugger start listening at this port first *before* the
-            // Kotlin daemon is launched. That is usually easier than trying to attach the debugger when the Kotlin daemon is launched
-            // (currently if we don't attach fast enough, the Kotlin daemon will fail to launch).
-            "-Pkotlin.daemon.jvmargs=-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=$it"
-        }
+        if (kotlinDaemonJvmArgs.isNotEmpty()) {
+            // do not enclose as KGP transforms arguments like "-Xmx1024m" to -"-Xmx1024m": KT-72870
+            "-Pkotlin.daemon.jvmargs=${kotlinDaemonJvmArgs.joinToJvmArgsString(enclose = false)}"
+        } else null,
+        // Configure a non-default directory to be able to track Kotlin daemons started from the tests
+        // Useful for the tests like KGPDaemonsBaseTest
+        if (buildOptions.customKotlinDaemonRunFilesDirectory != null) {
+            "-D${CompilerSystemProperties.COMPILE_DAEMON_CUSTOM_RUN_FILES_PATH_FOR_TESTS.property}=${buildOptions.customKotlinDaemonRunFilesDirectory.absolutePath}"
+        } else null,
     )
 }
+
+private fun collectGradleJvmOptions(
+    enableGradleDaemonMemoryLimitInMb: Int?,
+    useFileLeakDetectorToFile: File?,
+): List<String> = buildList {
+    if (useFileLeakDetectorToFile != null) {
+        val fileLeakDetector = File("src/test/resources/common/file-leak-detector-1.15-jar-with-dependencies.jar")
+        add("-javaagent:${fileLeakDetector.absolutePath}=trace=${useFileLeakDetectorToFile.absolutePath}")
+    }
+    // Limiting Gradle daemon heap size to reduce memory pressure on CI agents
+    if (enableGradleDaemonMemoryLimitInMb != null) {
+        add("-Xmx${enableGradleDaemonMemoryLimitInMb}m")
+    }
+}
+
+private fun collectKotlinJvmArgs(
+    enableKotlinDaemonMemoryLimitInMb: Int?,
+    kotlinDaemonDebugPort: Int?,
+): List<String> = buildList {
+    if (enableKotlinDaemonMemoryLimitInMb != null) {
+        // Limiting Kotlin daemon heap size to reduce memory pressure on CI agents
+        add("-Xmx${enableKotlinDaemonMemoryLimitInMb}m")
+    }
+    if (kotlinDaemonDebugPort != null) {
+        // Note that we pass "server=n", meaning that we'll need to let the debugger start listening at this port first *before* the
+        // Kotlin daemon is launched. That is usually easier than trying to attach the debugger when the Kotlin daemon is launched
+        // (currently if we don't attach fast enough, the Kotlin daemon will fail to launch).
+        add("-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=$kotlinDaemonDebugPort")
+    }
+}
+
 
 private fun TestProject.withBuildSummary(
     buildArguments: List<String>,
@@ -533,6 +593,15 @@ val konanDir
  */
 internal val testKitDir get() = Paths.get(".").resolve("build").resolve("testKitCache")
 
+/**
+ * Use this directory to store some cross-test information, such as [BuildOptions.customKotlinDaemonRunFilesDirectory]
+ *
+ * Should be preferred over [testKitDir] to avoid potetial clashes.
+ *
+ * On changing this directory, update related location in 'cleanTestKitCache' task.
+ */
+internal val kgpTestInfraWorkingDirectory get() = Paths.get(".").resolve("build").resolve("kgpTestInfra")
+
 private val hashAlphabet: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')
 private fun randomHash(length: Int = 15): String {
     return List(length) { hashAlphabet.random() }.joinToString("")
@@ -564,12 +633,13 @@ internal fun Path.addDefaultSettingsToSettingsGradle(
     gradleVersion: GradleVersion,
     dependencyManagement: DependencyManagement = DependencyManagement.DefaultDependencyManagement(),
     localRepo: Path? = null,
+    projectIsolationEnabled: Boolean = false,
 ) {
     addPluginManagementToSettings()
     when (dependencyManagement) {
         is DependencyManagement.DefaultDependencyManagement -> {
             // we cannot switch to dependencyManagement before Gradle 8.1 because of KT-65708
-            if (gradleVersion < GradleVersion.version(TestVersions.Gradle.G_8_1)) {
+            if (gradleVersion < GradleVersion.version(TestVersions.Gradle.G_8_1) && !projectIsolationEnabled) {
                 addDependencyRepositoriesToBuildScript(
                     additionalDependencyRepositories = dependencyManagement.additionalRepos,
                     localRepo = localRepo
@@ -632,14 +702,14 @@ private fun Path.addDependencyRepositoriesToBuildScript(
 
 private fun String.wrapWithAllProjectBlock(): String =
     """
-    |    
+    |
     |allprojects {
     |    $this
     |}
     |
     """.trimMargin()
 
-private fun String.insertBlockToBuildScriptAfterPluginsAndImports(blockToInsert: String): String {
+internal fun String.insertBlockToBuildScriptAfterPluginsAndImports(blockToInsert: String): String {
     val importsPattern = Regex("^import.*$", RegexOption.MULTILINE)
     val pluginsBlockPattern = Regex("plugins\\s*\\{[^}]*}", RegexOption.DOT_MATCHES_ALL)
 
@@ -649,6 +719,13 @@ private fun String.insertBlockToBuildScriptAfterPluginsAndImports(blockToInsert:
     val insertionIndex = listOfNotNull(lastImportIndex, pluginBlockEndIndex).maxOrNull() ?: return blockToInsert + this
 
     return StringBuilder(this).insert(insertionIndex + 1, "\n$blockToInsert\n").toString()
+}
+
+internal fun String.insertBlockToBuildScriptAfterImports(blockToInsert: String): String {
+    val importsPattern = Regex("^import.*$", RegexOption.MULTILINE)
+
+    val lastImportIndex = importsPattern.findAll(this).map { it.range.last }.maxOrNull() ?: return blockToInsert + this
+    return StringBuilder(this).insert(lastImportIndex + 1, "\n$blockToInsert\n").toString()
 }
 
 
@@ -662,7 +739,7 @@ internal fun Path.addPluginManagementToSettings() {
             if (!it.contains("pluginManagement {")) {
                 """
                 |$DEFAULT_GROOVY_SETTINGS_FILE
-                |                  
+                |
                 |$it
                 |""".trimMargin()
             } else {
@@ -734,7 +811,7 @@ internal fun Path.addDependencyManagementToSettings(
                         additionalDependencyRepositories,
                         localRepo
                     )
-                } 
+                }
                 """.trimMargin()
             } else {
                 it
@@ -778,7 +855,7 @@ private fun TestProject.agreeToBuildScanService() {
                 termsOfServiceAgree = "yes"
             }
         }
-            
+
         """.trimIndent()
     )
 }
@@ -802,7 +879,7 @@ private fun TestProject.setupNonDefaultJdk(pathToJdk: File) {
         """
         |org.gradle.java.home=${pathToJdk.absolutePath.normalizePath()}
         |
-        |$it        
+        |$it
         """.trimMargin()
     }
 }
@@ -941,40 +1018,6 @@ internal fun TestProject.enableStableConfigurationCachePreview() {
 }
 
 /**
- * Kotlin Multiplatform Projects have dedicated configurations for source files resolution of all source set dependencies
- * This helper can be useful for cases when you want to resolve a bunch of configurations and don't want to see any unexpected failures
- * coming from *DependencySources configurations. Because by nature not every published library has sources variants that can be resolved
- * via gradle Configurations.
- */
-internal fun TestProject.suppressDependencySourcesConfigurations() {
-    if (buildGradleKts.exists()) {
-        buildGradleKts.appendText(
-            """
-                allprojects {
-                    configurations.configureEach {
-                        if (name.endsWith("DependencySources") || name.endsWith("dependencySources")) {
-                            incoming.beforeResolve { setExtendsFrom(emptySet()) }                            
-                        }
-                    }            
-                }
-            """.trimIndent()
-        )
-    } else if (buildGradle.exists()) {
-        """
-            allprojects {
-                configurations {
-                    configureEach {
-                        if (name.endsWith("DependencySources") || name.endsWith("dependencySources")) {
-                            incoming.beforeResolve { setExtendsFrom([]) }
-                        }
-                    }
-                }
-            }
-        """.trimIndent()
-    }
-}
-
-/**
  * Represents different types of dependency management provided to tests.
  */
 sealed interface DependencyManagement {
@@ -986,3 +1029,67 @@ sealed interface DependencyManagement {
  * Resolves the temporary local repository path for the test with specified Gradle version.
  */
 fun KGPBaseTest.defaultLocalRepo(gradleVersion: GradleVersion) = workingDir.resolve(gradleVersion.version).resolve("repo")
+
+fun enableConfigurationCacheSinceGradle(
+    sinceGradleVersion: String,
+    currentGradleVersion: GradleVersion,
+): BuildOptions.ConfigurationCacheValue =
+    if (currentGradleVersion >= GradleVersion.version(sinceGradleVersion)) BuildOptions.ConfigurationCacheValue.ENABLED else BuildOptions.ConfigurationCacheValue.AUTO
+
+// https://developer.android.com/studio/intro/update.html#download-with-gradle
+private fun acceptAndroidSdkLicenses(androidHome: File) {
+    val sdkLicensesDir = androidHome.resolve("licenses")
+    if (!sdkLicensesDir.exists()) sdkLicensesDir.mkdirs()
+
+    val sdkLicenses = listOf(
+        "8933bad161af4178b1185d1a37fbf41ea5269c55",
+        "d56f5187479451eabf01fb78af6dfcb131a6481e",
+        "24333f8a63b6825ea9c5514f83c2829b004d1fee",
+    )
+    val sdkPreviewLicense = "84831b9409646a918e30573bab4c9c91346d8abd"
+
+    val sdkLicenseFile = sdkLicensesDir.resolve("android-sdk-license")
+    if (!sdkLicenseFile.exists()) {
+        sdkLicenseFile.createNewFile()
+        sdkLicenseFile.writeText(
+            sdkLicenses.joinToString(separator = "\n")
+        )
+    } else {
+        sdkLicenses
+            .subtract(
+                sdkLicenseFile.readText().lines()
+            )
+            .forEach {
+                sdkLicenseFile.appendText("$it\n")
+            }
+    }
+
+    val sdkPreviewLicenseFile = sdkLicensesDir.resolve("android-sdk-preview-license")
+    if (!sdkPreviewLicenseFile.exists()) {
+        sdkPreviewLicenseFile.writeText(sdkPreviewLicense)
+    } else {
+        if (sdkPreviewLicense != sdkPreviewLicenseFile.readText().trim()) {
+            sdkPreviewLicenseFile.writeText(sdkPreviewLicense)
+        }
+    }
+}
+
+/**
+ * Indicates if the test and the Gradle build started by the test should run in the same process.
+ * This setup allows using a single debugger for both the test and the build process (including build script injections).
+ *
+ * Add debugTargetProcessWhenDebuggingKGP-IT=true to local.properties to automatically run IT withDebug when debugging the tests in IDE.
+ */
+enum class EnableGradleDebug {
+    DISABLED,
+    ENABLED,
+    AUTO;
+
+    fun toBooleanFlag(): Boolean = when (this) {
+        DISABLED -> false
+        ENABLED -> true
+        AUTO -> {
+            System.getProperty("debugTargetProcessWhenDebuggingKGP-IT").toBoolean() && ManagementFactory.getRuntimeMXBean().inputArguments.toString().contains("-agentlib:jdwp")
+        }
+    }
+}

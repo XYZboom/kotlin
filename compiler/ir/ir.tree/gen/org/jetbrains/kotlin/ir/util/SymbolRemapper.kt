@@ -65,8 +65,6 @@ interface SymbolRemapper : DeclaredSymbolRemapper, ReferencedSymbolRemapper {
 
         override fun getReferencedEnumEntry(symbol: IrEnumEntrySymbol): IrEnumEntrySymbol = symbol
 
-        override fun getReferencedFunction(symbol: IrFunctionSymbol): IrFunctionSymbol = symbol
-
         override fun getReferencedSimpleFunction(symbol: IrSimpleFunctionSymbol): IrSimpleFunctionSymbol = symbol
 
         override fun getReferencedField(symbol: IrFieldSymbol): IrFieldSymbol = symbol
@@ -75,11 +73,11 @@ interface SymbolRemapper : DeclaredSymbolRemapper, ReferencedSymbolRemapper {
 
         override fun getReferencedVariable(symbol: IrVariableSymbol): IrVariableSymbol = symbol
 
-        override fun getReferencedClassifier(symbol: IrClassifierSymbol): IrClassifierSymbol = symbol
+        override fun getReferencedTypeParameter(symbol: IrTypeParameterSymbol): IrClassifierSymbol = symbol
 
-        override fun getReferencedReturnTarget(symbol: IrReturnTargetSymbol): IrReturnTargetSymbol = symbol
+        override fun getReferencedReturnableBlock(symbol: IrReturnableBlockSymbol): IrReturnTargetSymbol = symbol
 
-        override fun getReferencedValue(symbol: IrValueSymbol): IrValueSymbol = symbol
+        override fun getReferencedValueParameter(symbol: IrValueParameterSymbol): IrValueSymbol = symbol
 
         override fun getReferencedTypeAlias(symbol: IrTypeAliasSymbol): IrTypeAliasSymbol = symbol
     }

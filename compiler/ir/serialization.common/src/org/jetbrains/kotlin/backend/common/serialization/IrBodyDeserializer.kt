@@ -17,16 +17,18 @@ import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.descriptors.*
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.*
 import org.jetbrains.kotlin.ir.symbols.*
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.types.impl.*
 import org.jetbrains.kotlin.ir.util.parentAsClass
+import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import org.jetbrains.kotlin.utils.memoryOptimizedMap
 import kotlin.reflect.full.declaredMemberProperties
 import org.jetbrains.kotlin.backend.common.serialization.proto.IrBlock as ProtoBlock
+import org.jetbrains.kotlin.backend.common.serialization.proto.IrReturnableBlock as ProtoReturnableBlock
+import org.jetbrains.kotlin.backend.common.serialization.proto.IrInlinedFunctionBlock as ProtoInlinedFunctionBlock
 import org.jetbrains.kotlin.backend.common.serialization.proto.IrBlockBody as ProtoBlockBody
 import org.jetbrains.kotlin.backend.common.serialization.proto.IrBranch as ProtoBranch
 import org.jetbrains.kotlin.backend.common.serialization.proto.IrBreak as ProtoBreak
@@ -77,10 +79,10 @@ import org.jetbrains.kotlin.backend.common.serialization.proto.MemberAccessCommo
 
 class IrBodyDeserializer(
     private val builtIns: IrBuiltIns,
-    private val allowErrorNodes: Boolean,
     private val irFactory: IrFactory,
     private val libraryFile: IrLibraryFile,
-    private val declarationDeserializer: IrDeclarationDeserializer
+    private val declarationDeserializer: IrDeclarationDeserializer,
+    private val settings: IrDeserializationSettings,
 ) {
 
     private val fileLoops = hashMapOf<Int, IrLoop>()
@@ -145,15 +147,47 @@ class IrBodyDeserializer(
     }
 
     private fun deserializeBlock(proto: ProtoBlock, start: Int, end: Int, type: IrType): IrBlock {
-        val statements = mutableListOf<IrStatement>()
-        val statementProtos = proto.statementList
-        val origin = deserializeIrStatementOrigin(proto.hasOriginName()) { proto.originName }
-
-        statementProtos.forEach {
-            statements.add(deserializeStatement(it) as IrStatement)
+        return withDeserializedBlock(proto) { origin, statements ->
+            IrBlockImpl(start, end, type, origin, statements)
         }
+    }
 
-        return IrBlockImpl(start, end, type, origin, statements)
+    private fun deserializeReturnableBlock(proto: ProtoReturnableBlock, start: Int, end: Int, type: IrType): IrReturnableBlock {
+        val symbol = deserializeTypedSymbol<IrReturnableBlockSymbol>(proto.symbol, fallbackSymbolKind = null)
+        return withDeserializedBlock(proto.base) { origin, statements ->
+            IrReturnableBlockImpl(start, end, type, symbol, origin, statements)
+        }
+    }
+
+    private fun deserializeInlinedFunctionBlock(
+        proto: ProtoInlinedFunctionBlock,
+        start: Int,
+        end: Int,
+        type: IrType,
+    ): IrInlinedFunctionBlock {
+        val inlineFunctionSymbol = runIf(proto.hasInlineFunctionSymbol()) {
+            deserializeTypedSymbol<IrFunctionSymbol>(proto.inlineFunctionSymbol, FUNCTION_SYMBOL)
+        }
+        val fileEntry = deserializeFileEntry(proto.fileEntry)
+        return withDeserializedBlock(proto.base) { origin, statements ->
+            IrInlinedFunctionBlockImpl(
+                start, end,
+                type,
+                inlineFunctionSymbol,
+                proto.inlinedFunctionStartOffset,
+                proto.inlinedFunctionEndOffset,
+                fileEntry,
+                origin,
+                statements
+            )
+        }
+    }
+
+    private inline fun <T> withDeserializedBlock(proto: ProtoBlock, block: (IrStatementOrigin?, List<IrStatement>) -> T): T {
+        val origin = deserializeIrStatementOrigin(proto.hasOriginName()) { proto.originName }
+        val statements = proto.statementList.map { deserializeStatement(it) as IrStatement }
+
+        return block(origin, statements)
     }
 
     private fun deserializeMemberAccessCommon(access: IrMemberAccessExpression<*>, proto: ProtoMemberAccessCommon) {
@@ -166,7 +200,7 @@ class IrBodyDeserializer(
         }
 
         proto.typeArgumentList.forEachIndexed { i, arg ->
-            access.putTypeArgument(i, declarationDeserializer.deserializeNullableIrType(arg))
+            access.typeArguments[i] = declarationDeserializer.deserializeNullableIrType(arg)
         }
 
         if (proto.hasDispatchReceiver()) {
@@ -192,8 +226,18 @@ class IrBodyDeserializer(
         return IrClassReferenceImpl(start, end, type, symbol, classType)
     }
 
-    // TODO: probably a bit more abstraction possible here up to `IrMemberAccessExpression`
-    // but at this point further complexization looks overengineered
+    /**
+     * This is a special lazy type for annotation. This type is computed using the symbol of
+     * the annotation class that is retrieved through `IrConstructorCall.symbol.owner.parentAsClass`.
+     *
+     * The reason why this [IrAnnotationType] exists is that for some reason [IrConstructorCall]s representing
+     * annotations are serialized just as [IrConstructorCall] and not as a part of [IrExpression]. As far as types for
+     * expressions are always serialized as a part of [IrExpression], there are no serialized types for annotations.
+     * So, the type needs to somehow be restored given only [IrConstructorCall].
+     *
+     * TODO: Probably a bit more abstraction possible here up to [IrMemberAccessExpression] but at this point further complexization
+     *   looks like overengineering.
+     */
     private class IrAnnotationType : IrDelegatedSimpleType() {
         var irConstructorCall: IrConstructorCall? = null
 
@@ -221,7 +265,7 @@ class IrBodyDeserializer(
             val typeParametersToArguments = HashMap<IrTypeParameterSymbol, IrTypeArgument>(typeParameters.size)
             for (i in typeParameters.indices) {
                 val typeParameter = typeParameters[i]
-                val callTypeArgument = constructorCall.getTypeArgument(i) ?: error("No type argument for id $i")
+                val callTypeArgument = constructorCall.typeArguments[i] ?: error("No type argument for id $i")
                 val typeArgument = makeTypeProjection(callTypeArgument, typeParameter.variance)
                 typeParametersToArguments[typeParameter.symbol] = typeArgument
             }
@@ -232,18 +276,28 @@ class IrBodyDeserializer(
     }
 
     fun deserializeAnnotation(proto: ProtoConstructorCall): IrConstructorCall {
-        val irType = IrAnnotationType()
         // TODO: use real coordinates
-        return deserializeConstructorCall(proto, 0, 0, irType).also { irType.irConstructorCall = it }
+        val startOffset = 0
+        val endOffset = 0
+
+        if (settings.useNullableAnyAsAnnotationConstructorCallType)
+            return deserializeConstructorCall(proto, startOffset, endOffset, builtIns.anyNType)
+        else {
+            val irType = IrAnnotationType()
+            return deserializeConstructorCall(proto, startOffset, endOffset, irType).also { irType.irConstructorCall = it }
+        }
     }
 
     private fun deserializeConstructorCall(proto: ProtoConstructorCall, start: Int, end: Int, type: IrType): IrConstructorCall {
         val symbol = deserializeTypedSymbol<IrConstructorSymbol>(proto.symbol, CONSTRUCTOR_SYMBOL)
-        return IrConstructorCallImpl(
+        return IrConstructorCallImplWithShape(
             start, end, type,
             symbol, typeArgumentsCount = proto.memberAccess.typeArgumentCount,
             constructorTypeArgumentsCount = proto.constructorTypeArgumentsCount,
             valueArgumentsCount = proto.memberAccess.valueArgumentCount,
+            contextParameterCount = 0,
+            hasDispatchReceiver = proto.memberAccess.hasDispatchReceiver(),
+            hasExtensionReceiver = proto.memberAccess.hasExtensionReceiver(),
             origin = deserializeIrStatementOrigin(proto.hasOriginName()) { proto.originName }
         ).also {
             deserializeMemberAccessCommon(it, proto.memberAccess)
@@ -257,10 +311,13 @@ class IrBodyDeserializer(
 
         val call: IrCall =
             // TODO: implement the last three args here.
-            IrCallImpl(
+            IrCallImplWithShape(
                 start, end, type,
                 symbol, proto.memberAccess.typeArgumentCount,
                 proto.memberAccess.valueArgumentList.size,
+                contextParameterCount = 0,
+                hasDispatchReceiver = proto.memberAccess.hasDispatchReceiver(),
+                hasExtensionReceiver = proto.memberAccess.hasExtensionReceiver(),
                 origin,
                 superSymbol
             )
@@ -285,13 +342,16 @@ class IrBodyDeserializer(
         end: Int
     ): IrDelegatingConstructorCall {
         val symbol = deserializeTypedSymbol<IrConstructorSymbol>(proto.symbol, CONSTRUCTOR_SYMBOL)
-        val call = IrDelegatingConstructorCallImpl(
+        val call = IrDelegatingConstructorCallImplWithShape(
             start,
             end,
             builtIns.unitType,
             symbol,
             proto.memberAccess.typeArgumentCount,
-            proto.memberAccess.valueArgumentCount
+            proto.memberAccess.valueArgumentCount,
+            contextParameterCount = 0,
+            hasDispatchReceiver = proto.memberAccess.hasDispatchReceiver(),
+            hasExtensionReceiver = proto.memberAccess.hasExtensionReceiver(),
         )
 
         deserializeMemberAccessCommon(call, proto.memberAccess)
@@ -305,13 +365,16 @@ class IrBodyDeserializer(
         end: Int,
     ): IrEnumConstructorCall {
         val symbol = deserializeTypedSymbol<IrConstructorSymbol>(proto.symbol, CONSTRUCTOR_SYMBOL)
-        val call = IrEnumConstructorCallImpl(
+        val call = IrEnumConstructorCallImplWithShape(
             start,
             end,
             builtIns.unitType,
             symbol,
             proto.memberAccess.typeArgumentCount,
-            proto.memberAccess.valueArgumentCount
+            proto.memberAccess.valueArgumentCount,
+            contextParameterCount = 0,
+            hasDispatchReceiver = proto.memberAccess.hasDispatchReceiver(),
+            hasExtensionReceiver = proto.memberAccess.hasExtensionReceiver(),
         )
         deserializeMemberAccessCommon(call, proto.memberAccess)
         return call
@@ -333,7 +396,7 @@ class IrBodyDeserializer(
         proto: ProtoErrorExpression,
         start: Int, end: Int, type: IrType
     ): IrErrorExpression {
-        require(allowErrorNodes) {
+        require(settings.allowErrorNodes) {
             "IrErrorExpression($start, $end, \"${libraryFile.string(proto.description)}\") found but error code is not allowed"
         }
         return IrErrorExpressionImpl(start, end, type, libraryFile.string(proto.description))
@@ -343,7 +406,7 @@ class IrBodyDeserializer(
         proto: ProtoErrorCallExpression,
         start: Int, end: Int, type: IrType
     ): IrErrorCallExpression {
-        require(allowErrorNodes) {
+        require(settings.allowErrorNodes) {
             "IrErrorCallExpressionImpl($start, $end, \"${libraryFile.string(proto.description)}\") found but error code is not allowed"
         }
         return IrErrorCallExpressionImpl(start, end, type, libraryFile.string(proto.description)).apply {
@@ -371,13 +434,16 @@ class IrBodyDeserializer(
             proto.hasReflectionTargetSymbol(),
             fallbackSymbolKind = /* just the first possible option */ FUNCTION_SYMBOL
         ) { proto.reflectionTargetSymbol }
-        val callable = IrFunctionReferenceImpl(
+        val callable = IrFunctionReferenceImplWithShape(
             start,
             end,
             type,
             symbol,
             proto.memberAccess.typeArgumentCount,
             proto.memberAccess.valueArgumentCount,
+            contextParameterCount = 0,
+            hasDispatchReceiver = proto.memberAccess.hasDispatchReceiver(),
+            hasExtensionReceiver = proto.memberAccess.hasExtensionReceiver(),
             reflectionTarget,
             origin
         )
@@ -471,9 +537,11 @@ class IrBodyDeserializer(
 
         val origin = deserializeIrStatementOrigin(proto.hasOriginName()) { proto.originName }
 
-        val callable = IrPropertyReferenceImpl(
+        val callable = IrPropertyReferenceImplWithShape(
             start, end, type,
             symbol,
+            proto.memberAccess.hasDispatchReceiver(),
+            proto.memberAccess.hasExtensionReceiver(),
             proto.memberAccess.typeArgumentCount,
             field,
             getter,
@@ -759,6 +827,8 @@ class IrBodyDeserializer(
     private fun deserializeOperation(proto: ProtoOperation, start: Int, end: Int, type: IrType): IrExpression =
         when (proto.operationCase!!) {
             BLOCK -> deserializeBlock(proto.block, start, end, type)
+            RETURNABLE_BLOCK -> deserializeReturnableBlock(proto.returnableBlock, start, end, type)
+            INLINED_FUNCTION_BLOCK -> deserializeInlinedFunctionBlock(proto.inlinedFunctionBlock, start, end, type)
             BREAK -> deserializeBreak(proto.`break`, start, end, type)
             CLASS_REFERENCE -> deserializeClassReference(proto.classReference, start, end, type)
             CALL -> deserializeCall(proto.call, start, end, type)

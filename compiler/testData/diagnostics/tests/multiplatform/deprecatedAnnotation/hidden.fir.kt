@@ -1,3 +1,5 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FRONTEND
 // MODULE: m1-common
 // FILE: common.kt
 
@@ -27,6 +29,6 @@ actual fun foo(test: String) {
 
 fun main() {
     <!DEPRECATION_ERROR!>A<!>()
-    <!DEPRECATION_ERROR!>B<!>()
-    <!DEPRECATION_ERROR!>foo<!>("")
+    <!UNRESOLVED_REFERENCE!>B<!>()
+    <!UNRESOLVED_REFERENCE!>foo<!>("")
 }

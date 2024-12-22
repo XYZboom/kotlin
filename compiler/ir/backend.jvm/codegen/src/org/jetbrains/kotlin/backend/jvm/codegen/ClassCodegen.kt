@@ -6,10 +6,7 @@
 package org.jetbrains.kotlin.backend.jvm.codegen
 
 import org.jetbrains.kotlin.backend.common.lower.ANNOTATION_IMPLEMENTATION
-import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
-import org.jetbrains.kotlin.backend.jvm.JvmBackendExtension
-import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
-import org.jetbrains.kotlin.backend.jvm.MultifileFacadeFileEntry
+import org.jetbrains.kotlin.backend.jvm.*
 import org.jetbrains.kotlin.backend.jvm.extensions.descriptorOrigin
 import org.jetbrains.kotlin.backend.jvm.ir.*
 import org.jetbrains.kotlin.backend.jvm.mapping.IrTypeMapper
@@ -18,27 +15,28 @@ import org.jetbrains.kotlin.backend.jvm.mapping.mapClass
 import org.jetbrains.kotlin.backend.jvm.mapping.mapType
 import org.jetbrains.kotlin.backend.jvm.metadata.MetadataSerializer
 import org.jetbrains.kotlin.builtins.jvm.JavaToKotlinClassMap.mapKotlinToJava
-import org.jetbrains.kotlin.codegen.DescriptorAsmUtil
-import org.jetbrains.kotlin.codegen.VersionIndependentOpcodes
-import org.jetbrains.kotlin.codegen.addRecordComponent
+import org.jetbrains.kotlin.codegen.*
 import org.jetbrains.kotlin.codegen.inline.*
 import org.jetbrains.kotlin.codegen.signature.JvmSignatureWriter
 import org.jetbrains.kotlin.codegen.state.GenerationState
 import org.jetbrains.kotlin.codegen.state.JvmBackendConfig
-import org.jetbrains.kotlin.codegen.writeKotlinMetadata
-import org.jetbrains.kotlin.config.*
+import org.jetbrains.kotlin.config.JvmAnalysisFlags
+import org.jetbrains.kotlin.config.JvmTarget
+import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.DescriptorVisibility
 import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.ir.PsiSourceManager
 import org.jetbrains.kotlin.ir.builders.declarations.addFunction
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrBlockBody
 import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrSetFieldImpl
+import org.jetbrains.kotlin.ir.irAttribute
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.classOrNull
-import org.jetbrains.kotlin.ir.types.getArrayElementType
 import org.jetbrains.kotlin.ir.types.isArray
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.load.java.JvmAnnotationNames
@@ -162,7 +160,7 @@ class ClassCodegen private constructor(
         // 1. Any method other than `<clinit>` can add a field and a `<clinit>` statement:
         for (method in irClass.declarations.filterIsInstance<IrFunction>()) {
             if (method.name.asString() != "<clinit>" &&
-                method.origin != JvmLoweredDeclarationOrigin.INLINE_LAMBDA &&
+                method.origin != IrDeclarationOrigin.INLINE_LAMBDA &&
                 method.origin != IrDeclarationOrigin.ADAPTER_FOR_FUN_INTERFACE_CONSTRUCTOR &&
                 !(method.origin == IrDeclarationOrigin.ADAPTER_FOR_CALLABLE_REFERENCE && method.body == null)
             ) {
@@ -183,23 +181,7 @@ class ClassCodegen private constructor(
             }
         }
 
-        object : AnnotationCodegen(this@ClassCodegen) {
-            override fun visitAnnotation(descr: String, visible: Boolean): AnnotationVisitor {
-                return visitor.visitor.visitAnnotation(descr, visible)
-            }
-        }.genAnnotations(irClass, null, null)
-
-        AnnotationCodegen.genAnnotationsOnTypeParametersAndBounds(
-            context,
-            irClass,
-            this,
-            TypeReference.CLASS_TYPE_PARAMETER,
-            TypeReference.CLASS_TYPE_PARAMETER_BOUND
-        ) { typeRef: Int, typePath: TypePath?, descriptor: String, visible: Boolean ->
-            visitor.visitor.visitTypeAnnotation(typeRef, typePath, descriptor, visible)
-        }
-
-        generateKotlinMetadataAnnotation()
+        generateAnnotations()
 
         visitor.visitSMAP(smap, !config.languageVersionSettings.supportsFeature(LanguageFeature.CorrectSourceMappingSyntax))
 
@@ -214,10 +196,10 @@ class ClassCodegen private constructor(
 
     private fun shouldSkipCodeGenerationAccordingToGenerationFilter(): Boolean {
         val filter = state.generateDeclaredClassFilter
-        val ktFile = irClass.descriptorOrigin.element as? KtFile
-        val ktClass = irClass.psiElement as? KtClassOrObject
-        return (ktFile != null && !filter.shouldGeneratePackagePart(ktFile))
-                || (ktClass != null && !filter.shouldGenerateClass(ktClass))
+        val ktFile = PsiSourceManager.findPsiElement(irClass, irClass, KtFile::class)
+        val ktClass = PsiSourceManager.findPsiElement(irClass, irClass, KtClassOrObject::class)
+        return (ktFile != null && filter != null && !filter.shouldGeneratePackagePart(ktFile))
+                || (ktClass != null && filter != null && !filter.shouldGenerateClass(ktClass))
     }
 
     private fun generatePermittedSubclasses() {
@@ -255,8 +237,41 @@ class ClassCodegen private constructor(
         return null
     }
 
+    private fun generateAnnotations() {
+        class Codegen(private val superInterfaceIndex: Int) : AnnotationCodegen(this@ClassCodegen) {
+            override fun visitAnnotation(descr: String, visible: Boolean): AnnotationVisitor {
+                return visitor.visitor.visitAnnotation(descr, visible)
+            }
+
+            override fun visitTypeAnnotation(descr: String, path: TypePath?, visible: Boolean): AnnotationVisitor {
+                val typeReference = TypeReference.newSuperTypeReference(superInterfaceIndex)
+                return visitor.visitor.visitTypeAnnotation(typeReference.value, path, descr, visible)
+            }
+        }
+
+        Codegen(-1).genAnnotations(irClass)
+
+        var superInterfaceIndex = 0
+        for (supertype in irClass.superTypes) {
+            val codegen = Codegen(if (supertype.isInterface()) superInterfaceIndex++ else -1)
+            codegen.generateTypeAnnotations(supertype, TypeAnnotationPosition.Supertype)
+        }
+
+        AnnotationCodegen.genAnnotationsOnTypeParametersAndBounds(
+            context,
+            irClass,
+            this,
+            TypeReference.CLASS_TYPE_PARAMETER,
+            TypeReference.CLASS_TYPE_PARAMETER_BOUND
+        ) { typeRef: Int, typePath: TypePath?, descriptor: String, visible: Boolean ->
+            visitor.visitor.visitTypeAnnotation(typeRef, typePath, descriptor, visible)
+        }
+
+        generateKotlinMetadataAnnotation()
+    }
+
     private fun generateKotlinMetadataAnnotation() {
-        val facadeClassName = context.multifileFacadeForPart[irClass.attributeOwnerId]
+        val facadeClassName = irClass.multifileFacadeForPart
         val metadata = irClass.metadata
         val entry = irClass.fileParent.fileEntry
         val kind = when {
@@ -294,7 +309,7 @@ class ClassCodegen private constructor(
         // 4) Annotation implementation classes used from public inline function. Similar to
         //    public WhenMapping classes, these are collected in `publicAbiSymbols` in
         //    `JvmAnnotationImplementationTransformer`.
-        val isPublicAbi = irClass.symbol in context.publicAbiSymbols || irClass.isInlineSamWrapper ||
+        val isPublicAbi = irClass.isPublicAbi || irClass.isInlineSamWrapper ||
                 type.isAnonymousClass && irClass.isInPublicInlineScope
 
         writeKotlinMetadata(visitor, context.config, kind, isPublicAbi, extraFlags) { av ->
@@ -317,7 +332,7 @@ class ClassCodegen private constructor(
                 av.visit(JvmAnnotationNames.METADATA_MULTIFILE_CLASS_NAME_FIELD_NAME, facadeClassName.internalName)
             }
 
-            if (irClass in context.classNameOverride) {
+            if (irClass.classNameOverride != null) {
                 val isFileClass = isMultifileClassOrPart || kind == KotlinClassHeader.Kind.FILE_FACADE
                 assert(isFileClass) { "JvmPackageName is not supported for classes: ${irClass.render()}" }
                 av.visit(JvmAnnotationNames.METADATA_PACKAGE_NAME_FIELD_NAME, irClass.fqNameWhenAvailable!!.parent().asString())
@@ -343,16 +358,13 @@ class ClassCodegen private constructor(
         val flags = field.computeFieldFlags(context, config.languageVersionSettings)
         val fv = visitor.newField(
             field.descriptorOrigin, flags, fieldName, fieldType.descriptor,
-            fieldSignature, (field.initializer?.expression as? IrConst<*>)?.value
+            fieldSignature, (field.initializer?.expression as? IrConst)?.value
         )
 
         jvmFieldSignatureClashDetector.trackDeclaration(field, RawSignature(fieldName, fieldType.descriptor, MemberKind.FIELD))
 
         if (field.origin != JvmLoweredDeclarationOrigin.CONTINUATION_CLASS_RESULT_FIELD) {
-            val skipNullabilityAnnotations =
-                flags and (Opcodes.ACC_SYNTHETIC or Opcodes.ACC_ENUM) != 0 ||
-                        (field.origin == IrDeclarationOrigin.FIELD_FOR_OBJECT_INSTANCE && irClass.isSyntheticSingleton)
-            object : AnnotationCodegen(this@ClassCodegen, skipNullabilityAnnotations) {
+            val annotationCodegen = object : AnnotationCodegen(this@ClassCodegen) {
                 override fun visitAnnotation(descr: String, visible: Boolean): AnnotationVisitor {
                     return fv.visitAnnotation(descr, visible)
                 }
@@ -360,7 +372,15 @@ class ClassCodegen private constructor(
                 override fun visitTypeAnnotation(descr: String, path: TypePath?, visible: Boolean): AnnotationVisitor {
                     return fv.visitTypeAnnotation(TypeReference.newTypeReference(TypeReference.FIELD).value, path, descr, visible)
                 }
-            }.genAnnotations(field, fieldType, field.type)
+            }
+            annotationCodegen.genAnnotations(field)
+            if (!AsmUtil.isPrimitive(fieldType) &&
+                flags and (Opcodes.ACC_SYNTHETIC or Opcodes.ACC_ENUM) == 0 &&
+                (field.origin != IrDeclarationOrigin.FIELD_FOR_OBJECT_INSTANCE || !irClass.isSyntheticSingleton)
+            ) {
+                annotationCodegen.generateNullabilityAnnotation(field)
+            }
+            annotationCodegen.generateTypeAnnotations(field.type, TypeAnnotationPosition.FieldType(field))
         }
 
         (field.metadata as? MetadataSource.Property)?.let {
@@ -414,13 +434,13 @@ class ClassCodegen private constructor(
             val continuationClassCodegen = lazy { if (continuationClass != null) getOrCreate(continuationClass, context, method) else this }
 
             // For suspend lambdas continuation class is null, and we need to use containing class to put L$ fields
-            val attributeContainer = continuationClass?.attributeOwnerId ?: irClass.attributeOwnerId
+            val spilledFieldsOwner = continuationClass ?: irClass
 
             node.acceptWithStateMachine(
                 method,
                 this,
                 smapCopyingVisitor,
-                context.continuationClassesVarsCountByType[attributeContainer] ?: emptyMap()
+                spilledFieldsOwner.continuationClassVarsCountByType ?: emptyMap()
             ) {
                 continuationClassCodegen.value.visitor
             }
@@ -457,7 +477,7 @@ class ClassCodegen private constructor(
         // or constructor, the name and type of the function is recorded as well.
         if (parentClassCodegen != null) {
             // In case there's no primary constructor, it's unclear which constructor should be the enclosing one, so we select the first.
-            val enclosingFunction = if (irClass.attributeOwnerId in context.isEnclosedInConstructor) {
+            val enclosingFunction = if (irClass.isEnclosedInConstructor) {
                 val containerClass = parentClassCodegen!!.irClass
                 containerClass.primaryConstructor
                     ?: containerClass.declarations.firstIsInstanceOrNull<IrConstructor>()
@@ -473,7 +493,7 @@ class ClassCodegen private constructor(
             val innerJavaClassId = klass.mapToJava()
             val innerClass = innerJavaClassId?.internalName ?: typeMapper.classInternalName(klass)
             val outerClass =
-                if (klass.isSamWrapper || klass.isAnnotationImplementation || klass.attributeOwnerId in context.isEnclosedInConstructor)
+                if (klass.isSamWrapper || klass.isAnnotationImplementation || klass.isEnclosedInConstructor)
                     null
                 else {
                     when (val parent = klass.parent) {
@@ -527,6 +547,8 @@ class ClassCodegen private constructor(
     }
 
     companion object {
+        private var IrClass.classCodegen: ClassCodegen? by irAttribute(followAttributeOwner = false)
+
         fun getOrCreate(
             irClass: IrClass,
             context: JvmBackendContext,
@@ -541,12 +563,13 @@ class ClassCodegen private constructor(
                 it.origin == JvmLoweredDeclarationOrigin.CLASS_STATIC_INITIALIZER
             },
         ): ClassCodegen =
-            context.getOrCreateClassCodegen(irClass) { ClassCodegen(irClass, context, parentFunction) }.also {
+            irClass.classCodegen ?: ClassCodegen(irClass, context, parentFunction).also {
                 assert(parentFunction == null || it.parentFunction == parentFunction) {
                     "inconsistent parent function for ${irClass.render()}:\n" +
                             "New: ${parentFunction!!.render()}\n" +
                             "Old: ${it.parentFunction?.render()}"
                 }
+                irClass.classCodegen = it
             }
 
         private fun JvmClassSignature.hasInvalidName() =
@@ -605,11 +628,10 @@ private val Modality.flags: Int
         Modality.ABSTRACT, Modality.SEALED -> Opcodes.ACC_ABSTRACT
         Modality.FINAL -> Opcodes.ACC_FINAL
         Modality.OPEN -> 0
-        else -> throw AssertionError("Unsupported modality $this")
     }
 
 private val DescriptorVisibility.flags: Int
-    get() = DescriptorAsmUtil.getVisibilityAccessFlag(this) ?: throw AssertionError("Unsupported visibility $this")
+    get() = AsmUtil.getVisibilityAccessFlag(delegate) ?: throw AssertionError("Unsupported visibility $this")
 
 // From `isAnonymousClass` in inlineCodegenUtils.kt
 private val Type.isAnonymousClass: Boolean

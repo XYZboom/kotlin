@@ -7,8 +7,10 @@ package org.jetbrains.kotlin.fir.scopes.impl
 
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.utils.isInner
+import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.fir.resolve.createSubstitutionForSupertype
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
+import org.jetbrains.kotlin.fir.scopes.DelicateScopeAPI
 import org.jetbrains.kotlin.fir.scopes.FirContainingNamesAwareScope
 import org.jetbrains.kotlin.fir.scopes.FirDelegatingContainingNamesAwareScope
 import org.jetbrains.kotlin.fir.scopes.getSingleClassifier
@@ -21,9 +23,19 @@ class FirNestedClassifierScopeWithSubstitution internal constructor(
     private val substitutor: ConeSubstitutor
 ) : FirDelegatingContainingNamesAwareScope(originalScope) {
     override fun processClassifiersByNameWithSubstitution(name: Name, processor: (FirClassifierSymbol<*>, ConeSubstitutor) -> Unit) {
-        val matchedClass = originalScope.getSingleClassifier(name) as? FirRegularClassSymbol ?: return
-        val substitutor = substitutor.takeIf { matchedClass.fir.isInner } ?: ConeSubstitutor.Empty
-        processor(matchedClass, substitutor)
+        val matchedClassLikeSymbol = originalScope.getSingleClassifier(name) as? FirClassLikeSymbol<*> ?: return
+        val substitutor = substitutor.takeIf { matchedClassLikeSymbol.fir.isInner } ?: ConeSubstitutor.Empty
+        processor(matchedClassLikeSymbol, substitutor)
+    }
+
+    @DelicateScopeAPI
+    override fun withReplacedSessionOrNull(
+        newSession: FirSession,
+        newScopeSession: ScopeSession
+    ): FirNestedClassifierScopeWithSubstitution? {
+        return originalScope.withReplacedSessionOrNull(newSession, newScopeSession)?.let {
+            FirNestedClassifierScopeWithSubstitution(it, substitutor)
+        }
     }
 }
 

@@ -16,7 +16,6 @@
 
 package org.jetbrains.kotlin.codegen
 
-import junit.framework.TestCase
 import org.jetbrains.kotlin.test.ConfigurationKind
 import org.jetbrains.org.objectweb.asm.ClassReader
 import org.jetbrains.org.objectweb.asm.ClassVisitor
@@ -25,7 +24,7 @@ import org.jetbrains.org.objectweb.asm.Opcodes
 import java.util.*
 
 open class MethodOrderTest : CodegenTestCase() {
-    open fun testDelegatedMethod() {
+    fun testDelegatedMethod() {
         doTest(
             """
                 interface Trait {
@@ -44,29 +43,14 @@ open class MethodOrderTest : CodegenTestCase() {
                 }
             """,
             "\$obj$1",
-            listOf("f3()V", "<init>()V", "f0()V", "f1()V", "f2()V", "f4()V", "f5()V")
+            delegatedMethodExpectation(),
         )
     }
 
-    open fun testLambdaClosureOrdering() {
-        doTest(
-            """
-                class Klass {
-                    fun Any.f(a: String, b: Int, c: Double, d: Any, e: Long) {
-                       { a + b + c + d + e + this@f + this@Klass }()
-                    }
-                }
-            """,
-            "\$f$1",
-            listOf(
-                "invoke()Ljava/lang/Object;",
-                "invoke()Ljava/lang/String;",
-                "<init>(LKlass;Ljava/lang/Object;Ljava/lang/String;IDLjava/lang/Object;J)V"
-            )
-        )
-    }
+    protected open fun delegatedMethodExpectation(): List<String> =
+        listOf("<init>()V", "f0()V", "f1()V", "f2()V", "f4()V", "f5()V", "f3()V")
 
-    open fun testAnonymousObjectClosureOrdering() {
+    fun testAnonymousObjectClosureOrdering() {
         doTest(
             """
                 class Klass {
@@ -80,11 +64,11 @@ open class MethodOrderTest : CodegenTestCase() {
                 }
             """,
             "\$f$1",
-            listOf("run()V", "<init>(LKlass;Ljava/lang/Object;Ljava/lang/String;IDLjava/lang/Object;J)V")
+            listOf("<init>(Ljava/lang/String;IDLjava/lang/Object;JLjava/lang/Object;LKlass;)V", "run()V")
         )
     }
 
-    open fun testMemberAccessor() {
+    fun testMemberAccessor() {
         doTest(
             """
                 class Outer(private val a: Int, private var b: String) {
@@ -101,17 +85,17 @@ open class MethodOrderTest : CodegenTestCase() {
             """,
             "Outer",
             listOf(
-                "c()V",
                 "<init>(ILjava/lang/String;)V",
-                "access\$getB\$p(LOuter;)Ljava/lang/String;",
+                "c()V",
                 "access\$setB\$p(LOuter;Ljava/lang/String;)V",
+                "access\$getB\$p(LOuter;)Ljava/lang/String;",
                 "access\$getA\$p(LOuter;)I",
                 "access\$c(LOuter;)V"
             )
         )
     }
 
-    open fun testDeterministicDefaultMethodImplOrder() {
+    fun testDeterministicDefaultMethodImplOrder() {
         doTest(
             """
                 interface Base<K, V> {
@@ -133,8 +117,8 @@ open class MethodOrderTest : CodegenTestCase() {
             """,
             "MinMap",
             listOf(
-                "removeEldestEntry(Ljava/lang/Object;)Z",
                 "<init>()V",
+                "removeEldestEntry(Ljava/lang/Object;)Z",
                 "getSize()I",
                 "size()I",
                 "getKeys()I",
@@ -147,7 +131,7 @@ open class MethodOrderTest : CodegenTestCase() {
         )
     }
 
-    open fun testBridgeOrder() {
+    fun testBridgeOrder() {
         doTest(
             """
                 interface IrElement
@@ -168,13 +152,13 @@ open class MethodOrderTest : CodegenTestCase() {
             listOf(
                 "<init>()V",
                 "visitElement(LIrElement;LIrClassContext;)LIrElement;",
+                "visitElement(LIrElement;Ljava/lang/Object;)LIrElement;",
                 "visitElement(LIrElement;Ljava/lang/Object;)Ljava/lang/Object;",
-                "visitElement(LIrElement;Ljava/lang/Object;)LIrElement;"
             )
         )
     }
 
-    protected fun doTest(sourceText: String, classSuffix: String, expectedOrder: List<String>) {
+    private fun doTest(sourceText: String, classSuffix: String, expectedOrder: List<String>) {
         createEnvironmentWithMockJdkAndIdeaAnnotations(ConfigurationKind.JDK_ONLY)
         myFiles = CodegenTestFiles.create("file.kt", sourceText, myEnvironment!!.project)
 
@@ -197,6 +181,6 @@ open class MethodOrderTest : CodegenTestCase() {
             }
         }, ClassReader.SKIP_CODE and ClassReader.SKIP_DEBUG and ClassReader.SKIP_FRAMES)
 
-        TestCase.assertEquals(expectedOrder, methodNames)
+        assertEquals(expectedOrder, methodNames)
     }
 }

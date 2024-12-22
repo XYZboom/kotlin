@@ -5,7 +5,6 @@
 // KT-65779: SyntaxError: Identifier 'bar' has already been declared
 // IGNORE_BACKEND: WASM
 
-
 // MODULE: m1
 // FILE: f1.kt
 package foo

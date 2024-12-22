@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.fir.declarations.impl
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.descriptors.EffectiveVisibility
 import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.fir.FirImplementationDetail
 import org.jetbrains.kotlin.fir.FirPureAbstractElement
@@ -70,6 +71,12 @@ open class FirDeclarationStatusImpl(
         get() = this[INLINE]
         set(value) {
             this[INLINE] = value
+        }
+
+    override var isValue: Boolean
+        get() = this[VALUE]
+        set(value) {
+            this[VALUE] = value
         }
 
     override var isTailRec: Boolean
@@ -170,6 +177,7 @@ open class FirDeclarationStatusImpl(
         FROM_ENUM(0x10000),
         FUN(0x20000),
         HAS_STABLE_PARAMETER_NAMES(0x40000),
+        VALUE(0x80000),
     }
 
     override fun <R, D> acceptChildren(visitor: FirVisitor<R, D>, data: D) {}
@@ -178,12 +186,50 @@ open class FirDeclarationStatusImpl(
         return this
     }
 
-    fun resolved(
+    open fun resolved(
         visibility: Visibility,
         modality: Modality,
         effectiveVisibility: EffectiveVisibility
     ): FirResolvedDeclarationStatusImpl {
         return FirResolvedDeclarationStatusImpl(visibility, modality, effectiveVisibility, flags)
+    }
+
+    override val defaultModality: Modality
+        get() = Modality.FINAL
+
+    override val defaultVisibility: Visibility
+        get() = Visibilities.DEFAULT_VISIBILITY
+}
+
+class FirDeclarationStatusWithAlteredDefaults(
+    visibility: Visibility,
+    modality: Modality?,
+    override val defaultVisibility: Visibility,
+    override val defaultModality: Modality,
+) : FirDeclarationStatusImpl(visibility, modality) {
+    internal constructor(
+        visibility: Visibility,
+        modality: Modality?,
+        defaultVisibility: Visibility,
+        defaultModality: Modality,
+        flags: Int
+    ) : this(visibility, modality, defaultVisibility, defaultModality) {
+        this.flags = flags
+    }
+
+    override fun resolved(
+        visibility: Visibility,
+        modality: Modality,
+        effectiveVisibility: EffectiveVisibility
+    ): FirResolvedDeclarationStatusImpl {
+        return FirResolvedDeclarationStatusWithAlteredDefaults(
+            visibility,
+            modality,
+            defaultVisibility,
+            defaultModality,
+            effectiveVisibility,
+            flags
+        )
     }
 }
 

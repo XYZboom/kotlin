@@ -26,10 +26,10 @@ import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.resolve.deprecation.DeprecationResolver
 
-@PhaseDescription(
-    name = "MoveOrCopyCompanionObjectFields",
-    description = "Move and/or copy companion object fields to static fields of companion's owner"
-)
+/**
+ * Moves and/or copies companion object fields to static fields of companion's owner.
+ */
+@PhaseDescription(name = "MoveOrCopyCompanionObjectFields")
 internal class MoveOrCopyCompanionObjectFieldsLowering(val context: JvmBackendContext) : ClassLoweringPass {
     override fun lower(irClass: IrClass) {
         if (irClass.isNonCompanionObject) {
@@ -97,7 +97,7 @@ internal class MoveOrCopyCompanionObjectFieldsLowering(val context: JvmBackendCo
         }
 
     private fun copyConstProperty(oldProperty: IrProperty, newParent: IrClass): IrField {
-        val oldField = oldProperty.backingField!!
+        val oldField = oldProperty.backingField ?: error("No backing field for const property ${oldProperty.render()}")
         return newParent.addField {
             updateFrom(oldField)
             name = oldField.name
@@ -106,7 +106,7 @@ internal class MoveOrCopyCompanionObjectFieldsLowering(val context: JvmBackendCo
             parent = newParent
             correspondingPropertySymbol = oldProperty.symbol
             initializer = oldField.initializer?.run {
-                context.irFactory.createExpressionBody(startOffset, endOffset, (expression as IrConst<*>).shallowCopy())
+                context.irFactory.createExpressionBody(startOffset, endOffset, (expression as IrConst).shallowCopy())
             }
             annotations += oldField.annotations
             if (oldProperty.parentAsClass.visibility == DescriptorVisibilities.PRIVATE) {
@@ -119,9 +119,11 @@ internal class MoveOrCopyCompanionObjectFieldsLowering(val context: JvmBackendCo
     }
 }
 
+/**
+ * Makes [IrGetField]/[IrSetField] to objects' fields point to the static versions.
+ */
 @PhaseDescription(
     name = "RemapObjectFieldAccesses",
-    description = "Make IrGetField/IrSetField to objects' fields point to the static versions",
     prerequisite = [JvmPropertiesLowering::class],
 )
 internal class RemapObjectFieldAccesses(val context: JvmBackendContext) : FileLoweringPass, IrElementTransformerVoid() {

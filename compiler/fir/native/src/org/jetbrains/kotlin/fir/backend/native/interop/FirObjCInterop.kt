@@ -15,8 +15,8 @@ import org.jetbrains.kotlin.fir.scopes.getDirectOverriddenFunctions
 import org.jetbrains.kotlin.fir.scopes.impl.declaredMemberScope
 import org.jetbrains.kotlin.fir.scopes.processAllFunctions
 import org.jetbrains.kotlin.fir.scopes.unsubstitutedScope
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag
 import org.jetbrains.kotlin.fir.symbols.impl.*
+import org.jetbrains.kotlin.fir.types.ConeClassLikeLookupTag
 import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.NativeStandardInteropNames
@@ -95,10 +95,12 @@ internal fun FirFunction.hasObjCFactoryAnnotation(session: FirSession) = this.an
 internal fun FirFunction.hasObjCMethodAnnotation(session: FirSession) = this.annotations.hasAnnotation(NativeStandardInteropNames.objCMethodClassId, session)
 
 /**
- * almost mimics FunctionDescriptor.isObjCClassMethod(), apart from `it.isObjCClass()` changed to `it.symbol.isObjCClass(session)` for simplicity
+ * Almost mimics FunctionDescriptor.isObjCClassMethod(), apart from `it.isObjCClass()`
+ * changed to `it.symbol.isObjCClass(session)` for simplicity.
+ * The containing symbol is resolved using the declaration-site session.
  */
 internal fun FirFunction.isObjCClassMethod(session: FirSession) =
-        getContainingClass(session).let { it is FirClass && it.symbol.isObjCClass(session) }
+        getContainingClass().let { it is FirClass && it.symbol.isObjCClass(session) }
 
 /**
  * mimics ConstructorDescriptor.isObjCConstructor()
@@ -126,7 +128,7 @@ internal fun FirFunctionSymbol<*>.getInitMethodIfObjCConstructor(session: FirSes
             this
 
 fun FirProperty.isExternalObjCClassProperty(session: FirSession): Boolean =
-        (containingClassLookupTag()?.toSymbol(session) as? FirClassSymbol)?.isExternalObjCClass(session) == true
+        containingClassLookupTag()?.toClassSymbol(session)?.isExternalObjCClass(session) == true
 
 internal fun FirClassSymbol<*>.isExternalObjCClass(session: FirSession): Boolean =
         isObjCClass(session) &&

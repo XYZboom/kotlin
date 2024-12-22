@@ -1,8 +1,9 @@
-KtNamedClassOrObjectSymbol:
-  annotationsList: []
-  classIdIfNonLocal: test/C
+KaNamedClassSymbol:
+  annotations: []
+  classId: test/C
   classKind: CLASS
   companionObject: null
+  compilerVisibility: Public
   contextReceivers: []
   isActual: false
   isData: false
@@ -11,28 +12,29 @@ KtNamedClassOrObjectSymbol:
   isFun: false
   isInline: false
   isInner: false
+  location: TOP_LEVEL
   modality: FINAL
   name: C
   origin: SOURCE
   superTypes: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: kotlin/Any
   ]
-  symbolKind: TOP_LEVEL
   typeParameters: []
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(simpleScript.kts)
-  getContainingModule: KtScriptModule "Script simpleScript.kts"
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(simpleScript.kts)
+  getContainingModule: KaScriptModule "Script simpleScript.kts"
   annotationApplicableTargets: null
   deprecationStatus: null
 
-KtNamedClassOrObjectSymbol:
-  annotationsList: []
-  classIdIfNonLocal: test/I
+KaNamedClassSymbol:
+  annotations: []
+  classId: test/I
   classKind: INTERFACE
   companionObject: null
+  compilerVisibility: Public
   contextReceivers: []
   isActual: false
   isData: false
@@ -41,28 +43,29 @@ KtNamedClassOrObjectSymbol:
   isFun: false
   isInline: false
   isInner: false
+  location: TOP_LEVEL
   modality: ABSTRACT
   name: I
   origin: SOURCE
   superTypes: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: kotlin/Any
   ]
-  symbolKind: TOP_LEVEL
   typeParameters: []
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(simpleScript.kts)
-  getContainingModule: KtScriptModule "Script simpleScript.kts"
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(simpleScript.kts)
+  getContainingModule: KaScriptModule "Script simpleScript.kts"
   annotationApplicableTargets: null
   deprecationStatus: null
 
-KtNamedClassOrObjectSymbol:
-  annotationsList: []
-  classIdIfNonLocal: test/O
+KaNamedClassSymbol:
+  annotations: []
+  classId: test/O
   classKind: OBJECT
   companionObject: null
+  compilerVisibility: Public
   contextReceivers: []
   isActual: false
   isData: false
@@ -71,19 +74,19 @@ KtNamedClassOrObjectSymbol:
   isFun: false
   isInline: false
   isInner: false
+  location: TOP_LEVEL
   modality: FINAL
   name: O
   origin: SOURCE
   superTypes: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: kotlin/Any
   ]
-  symbolKind: TOP_LEVEL
   typeParameters: []
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(simpleScript.kts)
-  getContainingModule: KtScriptModule "Script simpleScript.kts"
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(simpleScript.kts)
+  getContainingModule: KaScriptModule "Script simpleScript.kts"
   annotationApplicableTargets: null
   deprecationStatus: null

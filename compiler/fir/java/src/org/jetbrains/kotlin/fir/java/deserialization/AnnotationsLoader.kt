@@ -11,7 +11,6 @@ import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.expressions.builder.*
 import org.jetbrains.kotlin.fir.java.createConstantOrError
 import org.jetbrains.kotlin.fir.languageVersionSettings
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.load.java.JvmAbi
@@ -20,7 +19,7 @@ import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.resolve.constants.ClassLiteralValue
-import org.jetbrains.kotlin.utils.toMetadataVersion
+import org.jetbrains.kotlin.util.toMetadataVersion
 
 internal class AnnotationsLoader(private val session: FirSession, private val kotlinClassFinder: KotlinClassFinder) {
     private abstract inner class AnnotationsLoaderVisitorImpl : KotlinJvmBinaryClass.AnnotationArgumentVisitor {
@@ -41,7 +40,7 @@ internal class AnnotationsLoader(private val session: FirSession, private val ko
             val resolvedClassTypeRef = classId.toLookupTag().toDefaultResolvedTypeRef()
             return buildClassReferenceExpression {
                 classTypeRef = resolvedClassTypeRef
-                coneTypeOrNull = StandardClassIds.KClass.constructClassLikeType(arrayOf(resolvedClassTypeRef.type), false)
+                coneTypeOrNull = StandardClassIds.KClass.constructClassLikeType(arrayOf(resolvedClassTypeRef.coneType), false)
             }
         }
 
@@ -197,7 +196,7 @@ internal class AnnotationsLoader(private val session: FirSession, private val ko
 
     private fun ConeClassLikeLookupTag.toDefaultResolvedTypeRef(): FirResolvedTypeRef =
         buildResolvedTypeRef {
-            type = constructClassType(emptyArray(), isNullable = false)
+            coneType = constructClassType()
         }
 
     private fun createEnumEntryAccess(classId: ClassId, name: Name): FirEnumEntryDeserializedAccessExpression =

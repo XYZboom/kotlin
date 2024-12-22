@@ -1,3 +1,5 @@
+// RUN_PIPELINE_TILL: BACKEND
+// FIR_IDENTICAL
 // FIR_DUMP
 // Similar to kt36220.kt, but with receivers instead of it
 // ISSUE: KT-64823 (K2/PCLA difference)

@@ -11,6 +11,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.PathUtil
 import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.ObsoleteTestInfrastructure
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirElementWithResolveState
 import org.jetbrains.kotlin.fir.FirFunctionTypeParameter
@@ -28,6 +29,7 @@ import org.jetbrains.kotlin.fir.render
 import org.jetbrains.kotlin.fir.renderer.FirRenderer
 import org.jetbrains.kotlin.fir.session.FirSessionFactoryHelper
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionWithoutNameSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirReceiverParameterSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
 import org.jetbrains.kotlin.fir.types.FirTypeProjection
 import org.jetbrains.kotlin.fir.types.FirTypeRef
@@ -47,6 +49,7 @@ import java.io.File
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
+@OptIn(ObsoleteTestInfrastructure::class)
 abstract class AbstractRawFirBuilderTestCase : KtParsingTestCase(
     "",
     "kt",
@@ -94,11 +97,13 @@ abstract class AbstractRawFirBuilderTestCase : KtParsingTestCase(
                     appendLine(annotation.render().trim())
                     append("owner -> ")
                     appendLine(annotation.containingDeclarationSymbol.let {
-                        if (it is FirValueParameterSymbol) {
-                            "$it from ${it.containingFunctionSymbol}"
-                        } else {
-                            it
+                        val parentSymbol = when (it) {
+                            is FirValueParameterSymbol -> it.containingDeclarationSymbol
+                            is FirReceiverParameterSymbol -> it.containingDeclarationSymbol
+                            else -> null
                         }
+
+                        if (parentSymbol != null) "$it from $parentSymbol" else it
                     })
 
                     contexts.joinToWithBuffer(buffer = this, separator = "\n") {

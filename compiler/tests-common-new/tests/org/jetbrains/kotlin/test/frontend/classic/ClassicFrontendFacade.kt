@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -45,7 +45,6 @@ import org.jetbrains.kotlin.incremental.components.ExpectActualTracker
 import org.jetbrains.kotlin.incremental.components.InlineConstTracker
 import org.jetbrains.kotlin.incremental.components.LookupTracker
 import org.jetbrains.kotlin.ir.backend.js.JsFactories
-import org.jetbrains.kotlin.js.analyze.TopDownAnalyzerFacadeForJS
 import org.jetbrains.kotlin.library.metadata.CurrentKlibModuleOrigin
 import org.jetbrains.kotlin.library.metadata.KlibMetadataFactories
 import org.jetbrains.kotlin.library.metadata.KlibModuleOrigin
@@ -80,8 +79,8 @@ import org.jetbrains.kotlin.test.services.configuration.JsEnvironmentConfigurato
 import org.jetbrains.kotlin.test.services.configuration.NativeEnvironmentConfigurator
 import org.jetbrains.kotlin.test.services.configuration.getDependencies
 import org.jetbrains.kotlin.test.util.KtTestUtil
-import org.jetbrains.kotlin.types.typeUtil.closure
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
+import org.jetbrains.kotlin.utils.closure
 import org.jetbrains.kotlin.wasm.config.WasmConfigurationKeys
 import java.io.File
 
@@ -158,14 +157,9 @@ class ClassicFrontendFacade(
                 module, project, configuration, packagePartProviderFactory,
                 files, compilerEnvironment, dependencyDescriptors, friendsDescriptors, dependencyDescriptors
             )
-            targetPlatform.isJs() -> when {
-                module.targetBackend?.isIR != true -> performJsModuleResolve(
-                    project, configuration, compilerEnvironment, files, dependencyDescriptors
-                )
-                else -> performJsIrModuleResolve(
-                    module, project, configuration, compilerEnvironment, files, dependencyDescriptors, friendsDescriptors
-                )
-            }
+            targetPlatform.isJs() -> performJsModuleResolve(
+                module, project, configuration, compilerEnvironment, files, dependencyDescriptors, friendsDescriptors
+            )
             targetPlatform.isWasm() -> performWasmModuleResolve(
                 module, project, configuration, compilerEnvironment, files, dependencyDescriptors, friendsDescriptors
             )
@@ -254,26 +248,6 @@ class ClassicFrontendFacade(
         return AnalysisResult.success(moduleTrace.bindingContext, moduleDescriptor)
     }
 
-    private fun performJsModuleResolve(
-        project: Project,
-        configuration: CompilerConfiguration,
-        compilerEnvironment: TargetEnvironment,
-        files: List<KtFile>,
-        dependencyDescriptors: List<ModuleDescriptorImpl>
-    ): AnalysisResult {
-        // `dependencyDescriptors` - modules with source dependency kind
-        // 'jsConfig.moduleDescriptors' - modules with binary dependency kind
-        val jsConfig = JsEnvironmentConfigurator.createJsConfig(project, configuration, compilerEnvironment)
-        return TopDownAnalyzerFacadeForJS.analyzeFiles(
-            files,
-            project = jsConfig.project,
-            configuration = jsConfig.configuration,
-            moduleDescriptors = dependencyDescriptors + jsConfig.moduleDescriptors,
-            friendModuleDescriptors = jsConfig.friendModuleDescriptors,
-            targetEnvironment = jsConfig.targetEnvironment,
-        )
-    }
-
     private fun loadKlib(
         factories: KlibMetadataFactories,
         names: List<String>,
@@ -310,7 +284,7 @@ class ClassicFrontendFacade(
         }
     }
 
-    private fun performJsIrModuleResolve(
+    private fun performJsModuleResolve(
         module: TestModule,
         project: Project,
         configuration: CompilerConfiguration,
@@ -351,7 +325,6 @@ class ClassicFrontendFacade(
         val suffix = when (configuration.get(WasmConfigurationKeys.WASM_TARGET, WasmTarget.JS)) {
             WasmTarget.JS -> "-js"
             WasmTarget.WASI -> "-wasi"
-            else -> error("Unexpected wasi target")
         }
 
         val runtimeKlibsNames =
@@ -404,7 +377,7 @@ class ClassicFrontendFacade(
             friendsDescriptors = friendsDescriptors,
             dependsOnDescriptors = dependsOnDescriptors,
             capabilities = mapOf(
-                // provides `klibModuleOrigin` capability needed in `ModuleDescriptor.isFromInteropLibrary()`
+                // provides `klibModuleOrigin` capability needed in `ModuleDescriptor.isFromCInteropLibrary()`
                 KlibModuleOrigin.CAPABILITY to CurrentKlibModuleOrigin,
             ),
         ) {

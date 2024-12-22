@@ -1,3 +1,5 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // LANGUAGE: +MultiPlatformProjects
 
 // MODULE: common
@@ -11,7 +13,7 @@ expect abstract class B
 expect class C : B
 
 expect abstract class D() {
-    <!AMBIGUOUS_ACTUALS{JVM}!>val x: Int<!>
+    val <!AMBIGUOUS_ACTUALS{JVM}!>x<!>: Int
 }
 
 class E : D()

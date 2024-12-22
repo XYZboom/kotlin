@@ -17,14 +17,8 @@
 package androidx.compose.compiler.plugins.kotlin
 
 import com.intellij.openapi.util.io.FileUtil
-import org.checkerframework.checker.regex.qual.Regex
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.PrintStream
-import java.io.PrintWriter
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.cli.common.CLICompiler
-import org.jetbrains.kotlin.cli.common.CLITool
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.org.objectweb.asm.ClassReader
@@ -34,11 +28,15 @@ import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.PrintStream
+import java.io.PrintWriter
 
 // AbstractCliTest
 private fun executeCompilerGrabOutput(
-    compiler: CLITool<*>,
-    args: List<String>
+    compiler: CLICompiler<*>,
+    args: List<String>,
 ): Pair<String, ExitCode> {
     val output = StringBuilder()
 
@@ -58,25 +56,27 @@ private fun executeCompilerGrabOutput(
 
     return Pair(output.toString(), ExitCode.OK)
 }
+
 // CompilerTestUtil
-private fun executeCompiler(compiler: CLITool<*>, args: List<String>): Pair<String, ExitCode> {
+private fun executeCompiler(compiler: CLICompiler<*>, args: List<String>): Pair<String, ExitCode> {
     val bytes = ByteArrayOutputStream()
     val origErr = System.err
     try {
         System.setErr(PrintStream(bytes))
-        val exitCode = CLITool.doMainNoExit(compiler, args.toTypedArray())
+        val exitCode = CLICompiler.doMainNoExit(compiler, args.toTypedArray())
         return Pair(String(bytes.toByteArray()), exitCode)
     } finally {
         System.setErr(origErr)
     }
 }
+
 // jetTestUtils
 fun String.trimTrailingWhitespaces(): String =
     this.split('\n').joinToString(separator = "\n") { it.trimEnd() }
+
 // jetTestUtils
 fun String.trimTrailingWhitespacesAndAddNewlineAtEOF(): String =
-    this.trimTrailingWhitespaces().let {
-        result ->
+    this.trimTrailingWhitespaces().let { result ->
         if (result.endsWith("\n")) result else result + "\n"
     }
 
@@ -91,17 +91,14 @@ abstract class AbstractMultiPlatformIntegrationTest : AbstractCompilerTest(useFi
         common: String,
         @Language("kotlin")
         jvm: String,
-        output: String
+        output: String,
     ) {
-        val composePluginJar = defaultClassPath.find {
-            it.name.matches(Regex("compiler-hosted-.*?.jar"))
-        } ?: error("Could not find a Compose compiler jar in classpath")
         val optionalArgs = arrayOf(
             "-cp",
             defaultClassPath
                 .filter { it.exists() }
                 .joinToString(File.pathSeparator) { it.absolutePath },
-            "-Xplugin=${composePluginJar.absolutePath}",
+            "-Xplugin=${Classpath.jarFor<ComposePluginRegistrar>().absolutePath}",
             "-Xuse-ir",
             "-language-version=1.9"
         )
@@ -157,7 +154,7 @@ abstract class AbstractMultiPlatformIntegrationTest : AbstractCompilerTest(useFi
     private fun CLICompiler<*>.compile(
         sources: File,
         commonSources: File?,
-        vararg mainArguments: String
+        vararg mainArguments: String,
     ): String = buildString {
         val (output, exitCode) = executeCompilerGrabOutput(
             this@compile,

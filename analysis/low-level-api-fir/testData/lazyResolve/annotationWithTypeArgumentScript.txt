@@ -1,10 +1,10 @@
 RAW_FIR:
 FILE: [ResolvedTo(RAW_FIR)] annotationWithTypeArgumentScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor<[ResolvedTo(RAW_FIR)] T : Number>([ResolvedTo(RAW_FIR)] [CorrespondingProperty=one/Anno.value] value: KClass<T>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -19,11 +19,11 @@ FILE: [ResolvedTo(RAW_FIR)] annotationWithTypeArgumentScript.kts
 
 IMPORTS:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor<[ResolvedTo(RAW_FIR)] T : Number>([ResolvedTo(RAW_FIR)] [CorrespondingProperty=one/Anno.value] value: KClass<T>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -38,11 +38,11 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
 COMPILER_REQUIRED_ANNOTATIONS:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor<[ResolvedTo(RAW_FIR)] T : Number>([ResolvedTo(RAW_FIR)] [CorrespondingProperty=one/Anno.value] value: KClass<T>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -57,11 +57,11 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
 COMPANION_GENERATION:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor<[ResolvedTo(RAW_FIR)] T : Number>([ResolvedTo(RAW_FIR)] [CorrespondingProperty=one/Anno.value] value: KClass<T>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -76,11 +76,11 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
 SUPER_TYPES:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor<[ResolvedTo(RAW_FIR)] T : Number>([ResolvedTo(RAW_FIR)] [CorrespondingProperty=one/Anno.value] value: KClass<T>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -95,11 +95,11 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
 TYPES:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor<[ResolvedTo(RAW_FIR)] T : Number>([ResolvedTo(RAW_FIR)] [CorrespondingProperty=one/Anno.value] value: KClass<T>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -114,11 +114,11 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
 STATUS:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor<[ResolvedTo(RAW_FIR)] T : Number>([ResolvedTo(RAW_FIR)] [CorrespondingProperty=one/Anno.value] value: KClass<T>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -133,11 +133,11 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
 EXPECT_ACTUAL_MATCHING:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor<[ResolvedTo(RAW_FIR)] T : Number>([ResolvedTo(RAW_FIR)] [CorrespondingProperty=one/Anno.value] value: KClass<T>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -152,11 +152,11 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
 CONTRACTS:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor<[ResolvedTo(RAW_FIR)] T : Number>([ResolvedTo(RAW_FIR)] [CorrespondingProperty=one/Anno.value] value: KClass<T>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -166,17 +166,16 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
         }
 
-        @R|one/Anno<kotlin/Int>|[Types](LAZY_EXPRESSION) public final [ResolvedTo(CONTRACTS)] fun resolveMe(): R|kotlin/Unit| {
-        }
+        @R|one/Anno<kotlin/Int>|[Types](LAZY_EXPRESSION) public final [ResolvedTo(CONTRACTS)] fun resolveMe(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 IMPLICIT_TYPES_BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor<[ResolvedTo(RAW_FIR)] T : Number>([ResolvedTo(RAW_FIR)] [CorrespondingProperty=one/Anno.value] value: KClass<T>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -186,17 +185,16 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
         }
 
-        @R|one/Anno<kotlin/Int>|[Types](LAZY_EXPRESSION) public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] fun resolveMe(): R|kotlin/Unit| {
-        }
+        @R|one/Anno<kotlin/Int>|[Types](LAZY_EXPRESSION) public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] fun resolveMe(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 CONSTANT_EVALUATION:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final? [ResolvedTo(RAW_FIR)] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
+        public final? [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(RAW_FIR)] T : Number> : R|kotlin/Annotation| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Anno] constructor<[ResolvedTo(RAW_FIR)] T : Number>([ResolvedTo(RAW_FIR)] [CorrespondingProperty=one/Anno.value] value: KClass<T>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -206,17 +204,16 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
         }
 
-        @R|one/Anno<kotlin/Int>|[Types](LAZY_EXPRESSION) public final [ResolvedTo(CONSTANT_EVALUATION)] fun resolveMe(): R|kotlin/Unit| {
-        }
+        @R|one/Anno<kotlin/Int>|[Types](LAZY_EXPRESSION) public final [ResolvedTo(CONSTANT_EVALUATION)] fun resolveMe(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 ANNOTATION_ARGUMENTS:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] annotation class Anno<[ResolvedTo(STATUS)] T : R|kotlin/Number|> : R|kotlin/Annotation| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(STATUS)] T : R|kotlin/Number|> : R|kotlin/Annotation| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=Anno] constructor<[ResolvedTo(STATUS)] T : R|kotlin/Number|>([ResolvedTo(STATUS)] [CorrespondingProperty=one/Anno.value] value: <ERROR TYPE REF: Symbol not found for KClass>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -226,17 +223,16 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
         }
 
-        @R|one/Anno<kotlin/Int>|[Types](value = <getClass>(Q|kotlin/Int|)) public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun resolveMe(): R|kotlin/Unit| {
-        }
+        @R|one/Anno<kotlin/Int>|[Types](value = <getClass>(Q|kotlin/Int|)) public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun resolveMe(): R|kotlin/Unit| { LAZY_BLOCK }
 
 
 BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] annotation class Anno<[ResolvedTo(STATUS)] T : R|kotlin/Number|> : R|kotlin/Annotation| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(STATUS)] T : R|kotlin/Number|> : R|kotlin/Annotation| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=Anno] constructor<[ResolvedTo(STATUS)] T : R|kotlin/Number|>([ResolvedTo(STATUS)] [CorrespondingProperty=one/Anno.value] value: <ERROR TYPE REF: Symbol not found for KClass>): R|one/Anno<T>| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -252,11 +248,11 @@ FILE: [ResolvedTo(IMPORTS)] annotationWithTypeArgumentScript.kts
 
 FILE RAW TO BODY:
 FILE: [ResolvedTo(BODY_RESOLVE)] annotationWithTypeArgumentScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(BODY_RESOLVE)] <script-annotationWithTypeArgumentScript.kts>
+        [ResolvedTo(BODY_RESOLVE)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(BODY_RESOLVE)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(BODY_RESOLVE)] annotation class Anno<[ResolvedTo(BODY_RESOLVE)] T : R|kotlin/Number|> : R|kotlin/Annotation| {
+        public final [ResolvedTo(BODY_RESOLVE)] [ContainingScriptKey=FirScriptSymbol one.<script-annotationWithTypeArgumentScript.kts>] annotation class Anno<[ResolvedTo(BODY_RESOLVE)] T : R|kotlin/Number|> : R|kotlin/Annotation| {
             public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Anno] constructor<[ResolvedTo(BODY_RESOLVE)] T : R|kotlin/Number|>([ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=one/Anno.value] value: <ERROR TYPE REF: Symbol not found for KClass>): R|one/Anno<T>| {
                 super<R|kotlin/Any|>()
             }
@@ -268,3 +264,4 @@ FILE: [ResolvedTo(BODY_RESOLVE)] annotationWithTypeArgumentScript.kts
 
         @R|one/Anno<kotlin/Int>|[Types](value = <getClass>(Q|kotlin/Int|)) public final [ResolvedTo(BODY_RESOLVE)] fun resolveMe(): R|kotlin/Unit| {
         }
+

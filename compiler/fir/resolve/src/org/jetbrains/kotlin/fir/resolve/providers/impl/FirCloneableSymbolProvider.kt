@@ -51,7 +51,7 @@ class FirCloneableSymbolProvider(
         val classSymbol = FirRegularClassSymbol(StandardClassIds.Cloneable)
         symbol = classSymbol
         superTypeRefs += buildResolvedTypeRef {
-            type = session.builtinTypes.anyType.type
+            coneType = session.builtinTypes.anyType.coneType
         }
 
         declarations += buildSimpleFunction {
@@ -59,7 +59,7 @@ class FirCloneableSymbolProvider(
             resolvePhase = FirResolvePhase.ANALYZED_DEPENDENCIES
             origin = FirDeclarationOrigin.Library
             returnTypeRef = buildResolvedTypeRef {
-                type = session.builtinTypes.anyType.type
+                coneType = session.builtinTypes.anyType.coneType
             }
 
             status = FirResolvedDeclarationStatusImpl(
@@ -70,7 +70,7 @@ class FirCloneableSymbolProvider(
 
             name = StandardClassIds.Callables.clone.callableName
             symbol = FirNamedFunctionSymbol(StandardClassIds.Callables.clone)
-            dispatchReceiverType = this@buildRegularClass.symbol.constructType(emptyArray(), isNullable = false)
+            dispatchReceiverType = this@buildRegularClass.symbol.constructType()
         }
 
         this.scopeProvider = scopeProvider
@@ -105,7 +105,7 @@ class FirCloneableSymbolProvider(
     override fun getTopLevelPropertySymbolsTo(destination: MutableList<FirPropertySymbol>, packageFqName: FqName, name: Name) {
     }
 
-    override fun getPackage(fqName: FqName): FqName? {
-        return null
+    override fun hasPackage(fqName: FqName): Boolean {
+        return false
     }
 }

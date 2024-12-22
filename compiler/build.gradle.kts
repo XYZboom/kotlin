@@ -1,12 +1,11 @@
 plugins {
     kotlin("jvm")
     id("jps-compatible")
+    id("d8-configuration")
 }
 
 val compilerModules: Array<String> by rootProject.extra
 val otherCompilerModules = compilerModules.filter { it != path }
-
-val antLauncherJar by configurations.creating
 
 dependencies {
     testImplementation(intellijCore()) // Should come before compiler, because of "progarded" stuff needed for tests
@@ -32,10 +31,8 @@ dependencies {
     }
 
     testImplementation(commonDependency("org.jetbrains.kotlin:kotlin-reflect")) { isTransitive = false }
-    testImplementation(toolsJar())
-
-    antLauncherJar(commonDependency("org.apache.ant", "ant"))
-    antLauncherJar(toolsJar())
+    testCompileOnly(toolsJarApi())
+    testRuntimeOnly(toolsJar())
 }
 
 optInToExperimentalCompilerApi()
@@ -55,15 +52,21 @@ projectTest(
     dependsOn(":dist")
     useJsIrBoxTests(version = version, buildDir = layout.buildDirectory)
 
+    filter {
+        excludeTestsMatching("org.jetbrains.kotlin.jvm.compiler.io.FastJarFSLongTest*")
+    }
+
     workingDir = rootDir
     systemProperty("kotlin.test.script.classpath", testSourceSet.output.classesDirs.joinToString(File.pathSeparator))
-    val antLauncherJarPathProvider = project.provider {
-        antLauncherJar.asPath
+}
+
+if (kotlinBuildProperties.isTeamcityBuild) {
+    projectTest("fastJarFSLongTests") {
+        include("**/FastJarFSLongTest*")
     }
-    doFirst {
-        systemProperty("kotlin.ant.classpath", antLauncherJarPathProvider.get())
-        systemProperty("kotlin.ant.launcher.class", "org.apache.tools.ant.Main")
-    }
+} else {
+    // avoiding IntelliJ test configuration selection menu (see comments in compiler/fir/fir2ir/build.gradle.kts for details)
+    tasks.create("fastJarFSLongTests")
 }
 
 val generateTestData by generator("org.jetbrains.kotlin.generators.tests.GenerateCompilerTestDataKt")

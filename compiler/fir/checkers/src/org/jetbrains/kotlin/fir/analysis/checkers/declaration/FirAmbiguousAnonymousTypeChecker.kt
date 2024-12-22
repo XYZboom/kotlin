@@ -16,14 +16,13 @@ import org.jetbrains.kotlin.fir.declarations.utils.isInline
 import org.jetbrains.kotlin.fir.expressions.FirBlock
 import org.jetbrains.kotlin.fir.expressions.FirReturnExpression
 import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
+import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirAnonymousObjectSymbol
 import org.jetbrains.kotlin.fir.types.*
 
 object FirAmbiguousAnonymousTypeChecker : FirBasicDeclarationChecker(MppCheckerKind.Common) {
     override fun check(declaration: FirDeclaration, context: CheckerContext, reporter: DiagnosticReporter) {
         if (declaration !is FirFunction && declaration !is FirProperty) return
-        @Suppress("USELESS_IS_CHECK") // K2 warning suppression, TODO: KT-62472
-        require(declaration is FirCallableDeclaration)
         // if source is not null then this type was declared in source
         // so it can not be inferred to anonymous type
         if (declaration.symbol.hasExplicitReturnType) return

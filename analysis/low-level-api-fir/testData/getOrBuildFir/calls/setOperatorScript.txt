@@ -9,11 +9,11 @@ FIR FILE:
 FILE: [ResolvedTo(IMPORTS)] setOperatorScript.kts
     package test
 
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-setOperatorScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] class B : R|kotlin/Any| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol test.<script-setOperatorScript.kts>] class B : R|kotlin/Any| {
             public [ResolvedTo(STATUS)] [ContainingClassKey=B] constructor([ResolvedTo(STATUS)] [CorrespondingProperty=test/B.n] n: R|kotlin/Int|): R|test/B| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -21,14 +21,11 @@ FILE: [ResolvedTo(IMPORTS)] setOperatorScript.kts
             public final [ResolvedTo(STATUS)] [IsFromPrimaryConstructor=true] val n: R|kotlin/Int| = R|<local>/n|
                 public [ResolvedTo(STATUS)] [ContainingClassKey=B] get(): R|kotlin/Int|
 
-            public final operator [ResolvedTo(CONTRACTS)] fun set([ResolvedTo(CONTRACTS)] i: R|kotlin/Int|, [ResolvedTo(CONTRACTS)] a: R|test/B|): R|kotlin/Unit| {
-            }
+            public final operator [ResolvedTo(CONTRACTS)] fun set([ResolvedTo(CONTRACTS)] i: R|kotlin/Int|, [ResolvedTo(CONTRACTS)] a: R|test/B|): R|kotlin/Unit| { LAZY_BLOCK }
 
-            public final operator [ResolvedTo(CONTRACTS)] fun get([ResolvedTo(CONTRACTS)] i: R|kotlin/Int|): R|test/B| {
-            }
+            public final operator [ResolvedTo(CONTRACTS)] fun get([ResolvedTo(CONTRACTS)] i: R|kotlin/Int|): R|test/B| { LAZY_BLOCK }
 
-            public final operator [ResolvedTo(CONTRACTS)] fun inc(): R|test/B| {
-            }
+            public final operator [ResolvedTo(CONTRACTS)] fun inc(): R|test/B| { LAZY_BLOCK }
 
         }
 

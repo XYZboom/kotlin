@@ -18,7 +18,6 @@ package androidx.compose.compiler.plugins.kotlin.facade
 
 import androidx.compose.compiler.plugins.kotlin.TestsCompilerError
 import org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory
-import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.jvm.compiler.CliBindingTrace
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.compiler.TopDownAnalyzerFacadeForJVM
@@ -35,7 +34,7 @@ import org.jetbrains.kotlin.resolve.multiplatform.isCommonSource
 class K1AnalysisResult(
     override val files: List<KtFile>,
     val moduleDescriptor: ModuleDescriptor,
-    val bindingContext: BindingContext
+    val bindingContext: BindingContext,
 ) : AnalysisResult {
     override val diagnostics: Map<String, List<AnalysisResult.Diagnostic>>
         get() = bindingContext.diagnostics.all().groupBy(
@@ -47,20 +46,20 @@ class K1AnalysisResult(
 private class K1FrontendResult(
     val state: GenerationState,
     val backendInput: JvmIrCodegenFactory.JvmIrBackendInput,
-    val codegenFactory: JvmIrCodegenFactory
+    val codegenFactory: JvmIrCodegenFactory,
 )
 
 class K1CompilerFacade(environment: KotlinCoreEnvironment) : KotlinCompilerFacade(environment) {
     override fun analyze(
         platformFiles: List<SourceFile>,
-        commonFiles: List<SourceFile>
+        commonFiles: List<SourceFile>,
     ): K1AnalysisResult {
         val allKtFiles = platformFiles.map { it.toKtFile(environment.project) } +
-            commonFiles.map {
-                it.toKtFile(environment.project).also { ktFile ->
-                    ktFile.isCommonSource = true
+                commonFiles.map {
+                    it.toKtFile(environment.project).also { ktFile ->
+                        ktFile.isCommonSource = true
+                    }
                 }
-            }
 
         val result = TopDownAnalyzerFacadeForJVM.analyzeFilesWithJavaIntegration(
             environment.project,
@@ -81,7 +80,7 @@ class K1CompilerFacade(environment: KotlinCoreEnvironment) : KotlinCompilerFacad
 
     private fun frontend(
         platformFiles: List<SourceFile>,
-        commonFiles: List<SourceFile>
+        commonFiles: List<SourceFile>,
     ): K1FrontendResult {
         val analysisResult = analyze(platformFiles, commonFiles)
 
@@ -93,40 +92,21 @@ class K1CompilerFacade(environment: KotlinCoreEnvironment) : KotlinCompilerFacad
             throw TestsCompilerError(e)
         }
 
-        val codegenFactory = JvmIrCodegenFactory(
+        val codegenFactory = JvmIrCodegenFactory(environment.configuration)
+
+        val state = GenerationState(
+            environment.project,
+            analysisResult.moduleDescriptor,
             environment.configuration,
-            environment.configuration.get(CLIConfigurationKeys.PHASE_CONFIG)
+            ClassBuilderFactories.TEST,
         )
 
-        val state = GenerationState.Builder(
-            environment.project,
-            ClassBuilderFactories.TEST,
-            analysisResult.moduleDescriptor,
-            analysisResult.bindingContext,
-            analysisResult.files,
-            environment.configuration
-        ).isIrBackend(true).codegenFactory(codegenFactory).build()
-
-        state.beforeCompile()
-
         val psi2irInput = CodegenFactory.IrConversionInput.fromGenerationStateAndFiles(
-            state,
-            analysisResult.files
+            state, analysisResult.files, analysisResult.bindingContext,
         )
         val backendInput = codegenFactory.convertToIr(psi2irInput)
 
-        // For JVM-specific errors
-        try {
-            AnalyzingUtils.throwExceptionOnErrors(state.collectedExtraJvmDiagnostics)
-        } catch (e: Throwable) {
-            throw TestsCompilerError(e)
-        }
-
-        return K1FrontendResult(
-            state,
-            backendInput,
-            codegenFactory
-        )
+        return K1FrontendResult(state, backendInput, codegenFactory)
     }
 
     override fun compileToIr(files: List<SourceFile>): IrModuleFragment =
@@ -134,7 +114,7 @@ class K1CompilerFacade(environment: KotlinCoreEnvironment) : KotlinCompilerFacad
 
     override fun compile(
         platformFiles: List<SourceFile>,
-        commonFiles: List<SourceFile>
+        commonFiles: List<SourceFile>,
     ): GenerationState = try {
         frontend(platformFiles, commonFiles).apply {
             codegenFactory.generateModule(state, backendInput)

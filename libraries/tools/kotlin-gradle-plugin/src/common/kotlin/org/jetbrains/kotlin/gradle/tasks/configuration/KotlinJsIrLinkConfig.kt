@@ -12,7 +12,6 @@ import org.jetbrains.kotlin.gradle.targets.js.KotlinWasmTargetType
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsBinaryMode
 import org.jetbrains.kotlin.gradle.targets.js.ir.*
 import org.jetbrains.kotlin.gradle.targets.js.npm.NpmProject
-import org.jetbrains.kotlin.gradle.targets.js.npm.npmProject
 
 internal open class KotlinJsIrLinkConfig(
     private val binary: JsIrBinary,
@@ -42,14 +41,10 @@ internal open class KotlinJsIrLinkConfig(
             ).disallowChanges()
             task.rootCacheDirectory.set(project.layout.buildDirectory.map { it.dir("klib/cache/js/${binary.name}") })
             task.destinationDirectory.convention(
-                project.layout.buildDirectory
-                    .dir(COMPILE_SYNC)
-                    .map { it.dir(compilation.target.targetName) }
-                    .map { it.dir(compilation.name) }
-                    .map { it.dir(binary.name) }
+                binary.outputDirBase
                     .map { it.dir(NpmProject.DIST_FOLDER) }
             )
-            task.compilerOptions.moduleName.set(project.provider { compilation.npmProject.name })
+            task.compilerOptions.moduleName.set(compilation.outputModuleName)
 
             task._outputFileProperty.convention(binary.mainFile.map { it.asFile })
         }
@@ -104,7 +99,7 @@ internal open class KotlinJsIrLinkConfig(
 
         if (compilation.platformType == KotlinPlatformType.wasm) {
             add(WASM_BACKEND)
-            val wasmTargetType = ((compilation.origin as KotlinJsIrCompilation).target as KotlinJsIrTarget).wasmTargetType!!
+            val wasmTargetType = (compilation.origin as KotlinJsIrCompilation).target.wasmTargetType!!
             val targetValue = if (wasmTargetType == KotlinWasmTargetType.WASI) "wasm-wasi" else "wasm-js"
             add("$WASM_TARGET=$targetValue")
         }

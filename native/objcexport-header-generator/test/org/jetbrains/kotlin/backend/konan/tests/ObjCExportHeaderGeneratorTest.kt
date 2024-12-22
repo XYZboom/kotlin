@@ -70,6 +70,17 @@ class ObjCExportHeaderGeneratorTest(private val generator: HeaderGenerator) {
     }
 
     @Test
+    fun `test - sameFunctionNameInDifferentClass`() {
+        doTest(headersTestDataDir.resolve("sameFunctionNameInDifferentClass"))
+    }
+
+    @Test
+    @TodoAnalysisApi
+    fun `test - sameFunctionNameInDifferentInterface`() {
+        doTest(headersTestDataDir.resolve("sameFunctionNameInDifferentInterface"))
+    }
+
+    @Test
     fun `test - nestedClass`() {
         doTest(headersTestDataDir.resolve("nestedClass"))
     }
@@ -90,7 +101,6 @@ class ObjCExportHeaderGeneratorTest(private val generator: HeaderGenerator) {
     }
 
     @Test
-    @TodoAnalysisApi
     fun `test - samePropertyAndFunctionName`() {
         doTest(headersTestDataDir.resolve("samePropertyAndFunctionName"))
     }
@@ -140,7 +150,11 @@ class ObjCExportHeaderGeneratorTest(private val generator: HeaderGenerator) {
         doTest(headersTestDataDir.resolve("classWithHidesFromObjCAnnotation"))
     }
 
+    /**
+     * Disabled because of init constructors order KT-70626
+     */
     @Test
+    @TodoAnalysisApi
     fun `test - functionWithThrowsAnnotation`() {
         doTest(headersTestDataDir.resolve("functionWithThrowsAnnotation"))
     }
@@ -253,12 +267,7 @@ class ObjCExportHeaderGeneratorTest(private val generator: HeaderGenerator) {
         doTest(headersTestDataDir.resolve("classWithGenerics"))
     }
 
-    /**
-     * - init method missing
-     * - 'new constructor' missing
-     */
     @Test
-    @TodoAnalysisApi
     fun `test - objectWithGenericSuperclass`() {
         doTest(headersTestDataDir.resolve("objectWithGenericSuperclass"))
     }
@@ -268,10 +277,6 @@ class ObjCExportHeaderGeneratorTest(private val generator: HeaderGenerator) {
         doTest(headersTestDataDir.resolve("sinceVersionAnnotation"))
     }
 
-    /**
-     * - requires mangling
-     */
-    @TodoAnalysisApi
     @Test
     fun `test - constructors`() {
         doTest(headersTestDataDir.resolve("constructors"))
@@ -311,7 +316,6 @@ class ObjCExportHeaderGeneratorTest(private val generator: HeaderGenerator) {
      * KT-66066
      */
     @Test
-    @TodoAnalysisApi
     fun `test - member function signature order`() {
         doTest(headersTestDataDir.resolve("memberFunctionSignatureOrder"))
     }
@@ -374,6 +378,225 @@ class ObjCExportHeaderGeneratorTest(private val generator: HeaderGenerator) {
     @Test
     fun `test - sourceFileWithDotInName`() {
         doTest(headersTestDataDir.resolve("sourceFileWithDotInName"))
+    }
+
+    @Test
+    fun `test - c properties`() {
+        doTest(headersTestDataDir.resolve("cProperties"))
+    }
+
+    @Test
+    @TodoAnalysisApi
+    fun `test - objCEntryPoints`() {
+        doTest(headersTestDataDir.resolve("objCEntryPoints"))
+    }
+
+    @Test
+    fun `test - objCMappedPropertyExtension`() {
+        doTest(headersTestDataDir.resolve("objCMappedPropertyExtension"))
+    }
+
+    /**
+     * Translation works as expected except properties order
+     * See KT-66510
+     */
+    @Test
+    @TodoAnalysisApi
+    fun `test - objCMappedMixedTypesExtension`() {
+        doTest(headersTestDataDir.resolve("objCMappedMixedTypesExtension"))
+    }
+
+    @Test
+    fun `test - functionWithReservedMethodName`() {
+        doTest(headersTestDataDir.resolve("functionWithReservedMethodName"))
+    }
+
+    @Test
+    fun `test - functionWithReservedMethodNameAndReturnType`() {
+        doTest(headersTestDataDir.resolve("functionWithReservedMethodNameAndReturnType"))
+    }
+
+    @Test
+    fun `test - nothing`() {
+        doTest(headersTestDataDir.resolve("nothing"))
+    }
+
+    @Test
+    fun `test - classWithReservedName`() {
+        doTest(headersTestDataDir.resolve("classWithReservedName"))
+    }
+
+    @Test
+    fun `test - objectWithReservedName`() {
+        doTest(headersTestDataDir.resolve("objectWithReservedName"))
+    }
+
+    /**
+     * Depends on unimplemented AA deprecation message: KT-67823
+     */
+    @Test
+    @TodoAnalysisApi
+    fun `test - deprecatedHidden`() {
+        doTest(headersTestDataDir.resolve("deprecatedHidden"))
+    }
+
+    @Test
+    fun `test - inlineClassWithNestedClass`() {
+        doTest(headersTestDataDir.resolve("inlineClassWithNestedClass"))
+    }
+
+    @Test
+    fun `test - privateTopLevelClassProperty`() {
+        doTest(headersTestDataDir.resolve("privateTopLevelClassProperty"))
+    }
+
+    /**
+     * Depends on unimplemented AA deprecation message: KT-67823
+     */
+    @Test
+    @TodoAnalysisApi
+    fun `test - deprecatedWarningAndError`() {
+        doTest(headersTestDataDir.resolve("deprecatedWarningAndError"))
+    }
+
+    @Test
+    fun `test - top level interface extension property`() {
+        doTest(headersTestDataDir.resolve("topLevelInterfaceExtensionProperty"))
+    }
+
+    @Test
+    fun `test - internalPublicApi`() {
+        doTest(headersTestDataDir.resolve("internalPublicApi"))
+    }
+
+    @Test
+    fun `test - extension with primitive parameter`() {
+        doTest(headersTestDataDir.resolve("extensionWithPrimitiveParameter"))
+    }
+
+    @Test
+    fun `test - generic super type`() {
+        doTest(headersTestDataDir.resolve("genericSuperType"))
+    }
+
+    @Test
+    fun `test - class and extension function in same file`() {
+        doTest(headersTestDataDir.resolve("classAndExtensionFunctionInSameFile"))
+    }
+
+    @Test
+    fun `test - empty top level facades`() {
+        doTest(headersTestDataDir.resolve("emptyTopLevelFacades"))
+    }
+
+    @Test
+    fun `test - interface extension`() {
+        doTest(headersTestDataDir.resolve("interfaceExtension"))
+    }
+
+    @Test
+    fun `test - collection type arguments`() {
+        doTest(headersTestDataDir.resolve("collectionTypeArguments"))
+    }
+
+    @Test
+    fun `test - extension order`() {
+        doTest(headersTestDataDir.resolve("extensionOrder"))
+    }
+
+    @Test
+    fun `test - basicConstructorWithUpperBoundParameters`() {
+        doTest(headersTestDataDir.resolve("basicConstructorWithUpperBoundParameters"))
+    }
+
+    @Test
+    fun `test - basicMethodParameterWithUpperBound`() {
+        doTest(headersTestDataDir.resolve("basicMethodParameterWithUpperBound"))
+    }
+
+    @Test
+    fun `test - methodWithMultipleUpperBoundsParameters`() {
+        doTest(headersTestDataDir.resolve("methodWithMultipleUpperBoundsParameters"))
+    }
+
+    @Test
+    fun `test - basicGenericsInAndOut`() {
+        doTest(headersTestDataDir.resolve("basicGenericsInAndOut"))
+    }
+
+    @Test
+    fun `test - methodWithMultipleTypeParameters`() {
+        doTest(headersTestDataDir.resolve("methodWithMultipleTypeParameters"))
+    }
+
+    @Test
+    fun `test - enum c-keywords and special names translation`() {
+        doTest(headersTestDataDir.resolve("enumCKeywordsAndSpecialNamesTranslation"))
+    }
+
+    @Test
+    fun `test - KotlinUnit is forwarded`() {
+        doTest(headersTestDataDir.resolve("kotlinUnitIsForwarded"))
+    }
+
+    @Test
+    fun `test - nullable functional type arguments and return types translated`() {
+        doTest(headersTestDataDir.resolve("nullableFunctionalTypeArgumentsAndReturnTypesTranslated"))
+    }
+
+    @Test
+    fun `test - methods mangling`() {
+        doTest(headersTestDataDir.resolve("methodsMangling"))
+    }
+
+    @Test
+    fun `test - methods mangling with the same parameter names`() {
+        doTest(headersTestDataDir.resolve("methodsManglingWithTheSameParameterNames"))
+    }
+
+    @Test
+    fun `test - mangle receiver`() {
+        doTest(headersTestDataDir.resolve("mangleReceiver"))
+    }
+
+    @Test
+    fun `test - mangle property`() {
+        doTest(headersTestDataDir.resolve("mangleProperty"))
+    }
+
+    @Test
+    fun `test - subclass parameter type translation without upper bound`() {
+        doTest(headersTestDataDir.resolve("subclassParameterTypeTranslationWithoutUpperBound"))
+    }
+
+    @Test
+    fun `test - mangle init constructors`() {
+        doTest(headersTestDataDir.resolve("mangleInitConstructors"))
+    }
+
+    @Test
+    fun `test - generic extension property is not translated as static one`() {
+        doTest(headersTestDataDir.resolve("genericExtensionPropertyIsNotTranslatedAsStaticOne"))
+    }
+
+    @Test
+    fun `test - mangle generics`() {
+        doTest(headersTestDataDir.resolve("mangleGenerics"))
+    }
+
+    @Test
+    fun `test - class type property translation`() {
+        doTest(headersTestDataDir.resolve("classTypePropertyTranslation"))
+    }
+
+    @Test
+    fun `test - extensions mangling`() {
+        doTest(headersTestDataDir.resolve("extensionsMangling"))
+    }
+
+    @Test
+    fun `test - var with private setter translated as immutable property`() {
+        doTest(headersTestDataDir.resolve("varWithPrivateSetterTranslatedAsImmutableProperty"))
     }
 
     private fun doTest(root: File, configuration: Configuration = Configuration()) {

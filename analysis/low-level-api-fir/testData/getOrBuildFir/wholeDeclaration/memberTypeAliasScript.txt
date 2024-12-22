@@ -7,12 +7,12 @@ public final [ResolvedTo(BODY_RESOLVE)] typealias Str = R|kotlin/String|
 
 FIR FILE:
 FILE: [ResolvedTo(IMPORTS)] memberTypeAliasScript.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-memberTypeAliasScript.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
-        public final [ResolvedTo(STATUS)] class Y : R|kotlin/Any| {
-            public [ResolvedTo(STATUS)] [ContainingClassKey=Y] constructor(): R|Y| {
+        public final [ResolvedTo(STATUS)] [ContainingScriptKey=FirScriptSymbol <script-memberTypeAliasScript.kts>] class Y : R|kotlin/Any| {
+            public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=Y] constructor(): R|Y| {
                 LAZY_super<R|kotlin/Any|>
             }
 

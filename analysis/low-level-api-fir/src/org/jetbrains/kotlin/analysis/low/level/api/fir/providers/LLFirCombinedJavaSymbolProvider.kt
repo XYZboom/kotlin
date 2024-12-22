@@ -6,8 +6,10 @@
 package org.jetbrains.kotlin.analysis.low.level.api.fir.providers
 
 import com.intellij.openapi.project.Project
-import com.intellij.psi.search.GlobalSearchScope
+import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KotlinGlobalSearchScopeMerger
 import org.jetbrains.kotlin.analysis.low.level.api.fir.caches.NullableCaffeineCache
+import org.jetbrains.kotlin.analysis.low.level.api.fir.caches.withStatsCounter
+import org.jetbrains.kotlin.analysis.low.level.api.fir.statistics.LLStatisticsService
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.java.JavaSymbolProvider
 import org.jetbrains.kotlin.fir.java.hasMetadataAnnotation
@@ -28,7 +30,8 @@ import org.jetbrains.kotlin.name.Name
  * [LLFirCombinedJavaSymbolProvider] combines multiple [JavaSymbolProvider]s with the following advantages:
  *
  * - For a given class ID, indices can be accessed once to get relevant PSI classes. Then the correct symbol provider(s) to call can be
- *   found out via the PSI element's [KtModule]s. This avoids the need to call every single subordinate symbol provider.
+ *   found out via the PSI element's [KaModule][org.jetbrains.kotlin.analysis.api.projectStructure.KaModule]s. This avoids the need to call
+ *   every single subordinate symbol provider.
  * - A small Caffeine cache can avoid most index accesses, because many names are requested multiple times, with a minor memory footprint.
  *
  * [javaClassFinder] must have a scope which combines the scopes of the individual [providers].
@@ -47,7 +50,11 @@ internal class LLFirCombinedJavaSymbolProvider private constructor(
      * resulted in less time spent in [computeClassLikeSymbolByClassId] in local benchmarks. Cache sizes of 5000 and 10000 were tried in
      * performance tests, but didn't affect performance. A cache size of 2500 is a good middle ground with a small memory footprint.
      */
-    private val classCache: NullableCaffeineCache<ClassId, FirRegularClassSymbol> = NullableCaffeineCache { it.maximumSize(2500) }
+    private val classCache: NullableCaffeineCache<ClassId, FirRegularClassSymbol> = NullableCaffeineCache {
+        it
+            .maximumSize(2500)
+            .withStatsCounter(LLStatisticsService.getInstance(project)?.symbolProviders?.combinedSymbolProviderCacheStatsCounter)
+    }
 
     override val symbolNamesProvider: FirSymbolNamesProvider = object : FirSymbolNamesProviderWithoutCallables() {
         override val hasSpecificClassifierPackageNamesComputation: Boolean get() = false
@@ -87,12 +94,14 @@ internal class LLFirCombinedJavaSymbolProvider private constructor(
     override fun getTopLevelPropertySymbolsTo(destination: MutableList<FirPropertySymbol>, packageFqName: FqName, name: Name) {
     }
 
-    override fun getPackage(fqName: FqName): FqName? = providers.firstNotNullOfOrNull { it.getPackage(fqName) }
+    override fun hasPackage(fqName: FqName): Boolean = providers.any { it.hasPackage(fqName) }
+
+    override fun estimateSymbolCacheSize(): Long = classCache.estimatedSize
 
     companion object {
         fun merge(session: FirSession, project: Project, providers: List<LLFirJavaSymbolProvider>): FirSymbolProvider? =
             if (providers.size > 1) {
-                val combinedScope = GlobalSearchScope.union(providers.map { it.searchScope })
+                val combinedScope = KotlinGlobalSearchScopeMerger.getInstance(project).union(providers.map { it.searchScope })
                 val javaClassFinder = project.createJavaClassFinder(combinedScope)
                 LLFirCombinedJavaSymbolProvider(session, project, providers, javaClassFinder)
             } else providers.singleOrNull()

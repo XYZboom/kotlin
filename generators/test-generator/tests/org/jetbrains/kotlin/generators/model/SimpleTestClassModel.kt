@@ -33,6 +33,9 @@ class SimpleTestClassModel(
     override val annotations: Collection<AnnotationModel>,
     override val tags: List<String>,
     private val additionalMethods: Collection<MethodModel>,
+    val skipSpecificFile: (File) -> Boolean,
+    val skipTestAllFilesCheck: Boolean,
+    val generateEmptyTestClasses: Boolean,
 ) : TestClassModel() {
     override val name: String
         get() = testClassName
@@ -69,6 +72,9 @@ class SimpleTestClassModel(
                         annotations,
                         extractTagsFromDirectory(file),
                         additionalMethods.filter { it.shouldBeGeneratedForInnerTestClass() },
+                        skipSpecificFile,
+                        skipTestAllFilesCheck,
+                        generateEmptyTestClasses,
                     )
                 )
             }
@@ -104,7 +110,9 @@ class SimpleTestClassModel(
         }
         val result = mutableListOf<MethodModel>()
         result.add(RunTestMethodModel(targetBackend, doTestMethodName, testRunnerMethodName, additionalRunnerArguments))
-        result.add(TestAllFilesPresentMethodModel())
+        if (!skipTestAllFilesCheck) {
+            result.add(TestAllFilesPresentMethodModel())
+        }
         result.addAll(additionalMethods)
         val listFiles = rootFile.listFiles()
         if (listFiles != null && (deep == null || deep == 0)) {
@@ -126,12 +134,14 @@ class SimpleTestClassModel(
                                     "Consider removing empty directory or revert removing of its' contents."
                         )
                     }
-                    result.addAll(
-                        methodModelLocator(
-                            rootFile, file, filenamePattern,
-                            checkFilenameStartsLowerCase, targetBackend, skipIgnored, extractTagsFromTestFile(file)
+                    if (!skipSpecificFile(file)) {
+                        result.addAll(
+                            methodModelLocator(
+                                rootFile, file, filenamePattern,
+                                checkFilenameStartsLowerCase, targetBackend, skipIgnored, extractTagsFromTestFile(file)
+                            )
                         )
-                    )
+                    }
                 }
             }
         }

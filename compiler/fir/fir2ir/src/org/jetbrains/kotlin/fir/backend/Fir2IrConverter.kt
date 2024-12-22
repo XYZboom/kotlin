@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -10,20 +10,21 @@ import org.jetbrains.kotlin.KtFakeSourceElementKind
 import org.jetbrains.kotlin.KtPsiSourceFileLinesMapping
 import org.jetbrains.kotlin.KtSourceFileLinesMappingFromLineStartOffsets
 import org.jetbrains.kotlin.backend.common.CommonBackendErrors
+import org.jetbrains.kotlin.builtins.jvm.JavaToKotlinClassMap
+import org.jetbrains.kotlin.config.AnalysisFlags
+import org.jetbrains.kotlin.config.JvmAnalysisFlags
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.analysis.checkers.toRegularClassSymbol
-import org.jetbrains.kotlin.fir.backend.generators.FirBasedFakeOverrideGenerator
 import org.jetbrains.kotlin.fir.backend.generators.addDeclarationToParent
 import org.jetbrains.kotlin.fir.backend.generators.setParent
-import org.jetbrains.kotlin.fir.backend.utils.conversionData
+import org.jetbrains.kotlin.fir.backend.utils.createFilesWithBuiltinsSyntheticDeclarationsIfNeeded
 import org.jetbrains.kotlin.fir.backend.utils.createFilesWithGeneratedDeclarations
+import org.jetbrains.kotlin.fir.backend.utils.unsubstitutedScope
 import org.jetbrains.kotlin.fir.declarations.*
-import org.jetbrains.kotlin.fir.declarations.utils.correspondingValueParameterFromPrimaryConstructor
-import org.jetbrains.kotlin.fir.declarations.utils.isLocal
-import org.jetbrains.kotlin.fir.declarations.utils.isSynthetic
+import org.jetbrains.kotlin.fir.declarations.utils.*
 import org.jetbrains.kotlin.fir.descriptors.FirModuleDescriptor
 import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
@@ -32,23 +33,26 @@ import org.jetbrains.kotlin.fir.extensions.extensionService
 import org.jetbrains.kotlin.fir.extensions.generatedMembers
 import org.jetbrains.kotlin.fir.extensions.generatedNestedClassifiers
 import org.jetbrains.kotlin.fir.java.javaElementFinder
-import org.jetbrains.kotlin.fir.lazy.Fir2IrLazyClass
 import org.jetbrains.kotlin.fir.references.toResolvedValueParameterSymbol
+import org.jetbrains.kotlin.fir.scopes.processAllFunctions
 import org.jetbrains.kotlin.fir.symbols.lazyDeclarationResolver
 import org.jetbrains.kotlin.fir.types.resolvedType
+import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.KtDiagnosticReporterWithImplicitIrBasedContext
 import org.jetbrains.kotlin.ir.PsiIrFileEntry
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
 import org.jetbrains.kotlin.ir.declarations.impl.IrFileImpl
 import org.jetbrains.kotlin.ir.declarations.impl.IrModuleFragmentImpl
 import org.jetbrains.kotlin.ir.expressions.IrConst
-import org.jetbrains.kotlin.ir.expressions.impl.IrDelegatingConstructorCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrDelegatingConstructorCallImplWithShape
 import org.jetbrains.kotlin.ir.interpreter.IrInterpreter
 import org.jetbrains.kotlin.ir.interpreter.IrInterpreterConfiguration
 import org.jetbrains.kotlin.ir.interpreter.IrInterpreterEnvironment
 import org.jetbrains.kotlin.ir.interpreter.checker.EvaluationMode
 import org.jetbrains.kotlin.ir.interpreter.transformer.transformConst
+import org.jetbrains.kotlin.ir.symbols.IrPropertySymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.symbols.impl.IrConstructorSymbolImpl
 import org.jetbrains.kotlin.ir.symbols.impl.IrSimpleFunctionSymbolImpl
@@ -67,10 +71,6 @@ class Fir2IrConverter(
 ) : Fir2IrComponents by c {
 
     private val generatorExtensions = session.extensionService.declarationGenerators
-
-    @FirBasedFakeOverrideGenerator
-    private var wereSourcesFakeOverridesBound = false
-    private val postponedDeclarationsForFakeOverridesBinding = mutableListOf<IrDeclaration>()
 
     private fun runSourcesConversion(
         allFirFiles: List<FirFile>,
@@ -92,55 +92,22 @@ class Fir2IrConverter(
         for (firFile in allFirFiles) {
             processFileAndClassMembers(firFile)
         }
-        //   4. Override processing which sets overridden symbols for everything inside non-local regular classes
-        @OptIn(FirBasedFakeOverrideGenerator::class)
-        if (configuration.useFirBasedFakeOverrideGenerator) {
-            for (firFile in allFirFiles) {
-                bindFakeOverridesInFile(firFile)
-            }
 
-            wereSourcesFakeOverridesBound = true
-            fakeOverrideGenerator.bindOverriddenSymbols(postponedDeclarationsForFakeOverridesBinding)
-            postponedDeclarationsForFakeOverridesBinding.clear()
-        } else {
-            require(postponedDeclarationsForFakeOverridesBinding.isEmpty())
-        }
-
-        //   Do (3) and (4) for local classes encountered during (3)
+        //   Do (3) for local classes encountered during (3)
         classifierStorage.processMembersOfClassesCreatedOnTheFly()
 
-        //   5. Body processing
+        //   4. Body processing
         //   If we encounter local class / anonymous object here, then we perform all (1)-(5) stages immediately
-        delegatedMemberGenerator.generateBodies()
         for (firFile in allFirFiles) {
             withFileAnalysisExceptionWrapping(firFile) {
                 firFile.accept(fir2irVisitor, null)
             }
         }
 
-        if (
-            configuration.useFirBasedFakeOverrideGenerator &&
-            c.session.languageVersionSettings.supportsFeature(LanguageFeature.MultiPlatformProjects)
-        ) {
-            // See the comment to generateUnboundFakeOverrides function itself
-            @OptIn(LeakedDeclarationCaches::class)
-            declarationStorage.generateUnboundFakeOverrides()
-        }
-
         if (configuration.allowNonCachedDeclarations) {
             // See the comment to fillUnboundSymbols function itself
             @OptIn(LeakedDeclarationCaches::class)
             declarationStorage.fillUnboundSymbols()
-        }
-    }
-
-    @FirBasedFakeOverrideGenerator
-    fun bindFakeOverridesOrPostpone(declarations: List<IrDeclaration>) {
-        // Do not run binding for lazy classes until all sources declarations are processed
-        if (wereSourcesFakeOverridesBound) {
-            fakeOverrideGenerator.bindOverriddenSymbols(declarations)
-        } else {
-            postponedDeclarationsForFakeOverridesBinding += declarations
         }
     }
 
@@ -157,7 +124,6 @@ class Fir2IrConverter(
         conversionScope.withContainingFirClass(klass) {
             processClassAndNestedClassHeaders(klass)
             processClassMembers(klass, irClass)
-            bindFakeOverridesInClass(irClass)
         }
         return irClass
     }
@@ -251,6 +217,18 @@ class Fir2IrConverter(
                 addAll(klass.generatedMembers(session))
                 addAll(klass.generatedNestedClassifiers(session))
             }
+            if (session.languageVersionSettings.getFlag(JvmAnalysisFlags.expectBuiltinsAsPartOfStdlib)) {
+                // For kotlin classes mapped to JDK classes, we must create IR for 'enhanced' functions
+                // They might be queried as owners of overridden symbols
+                if (JavaToKotlinClassMap.mapKotlinToJava(klass.classId.asSingleFqName().toUnsafe()) != null) {
+                    klass.unsubstitutedScope(c).processAllFunctions {
+                        // additional check to add IR declarations only in declaring class
+                        if (it.origin == FirDeclarationOrigin.Enhancement && it.callableId.classId == klass.classId) {
+                            add(it.fir)
+                        }
+                    }
+                }
+            }
         }
 
         // `irClass` is a source class and definitely is not a lazy class
@@ -285,22 +263,16 @@ class Fir2IrConverter(
             }
             declarationStorage.leaveScope(irConstructor.symbol)
         }
-
-        if (configuration.useFirBasedFakeOverrideGenerator) {
-            @OptIn(FirBasedFakeOverrideGenerator::class)
-            fakeOverrideGenerator.computeFakeOverrides(klass, irClass, allDeclarations)
-        }
-
         return irClass
     }
 
     private fun processCodeFragmentMembers(codeFragment: FirCodeFragment, irClass: IrClass): IrClass {
-        val conversionData = codeFragment.conversionData
+        val conversionData = extensions.codeFragmentConversionData(codeFragment)
 
         declarationStorage.enterScope(irClass.symbol)
 
         IrConstructorSymbolImpl().let { irSymbol ->
-            irFactory.createConstructor(
+            IrFactoryImpl.createConstructor(
                 UNDEFINED_OFFSET, UNDEFINED_OFFSET,
                 IrDeclarationOrigin.DEFINED,
                 Name.special("<init>"),
@@ -316,13 +288,16 @@ class Fir2IrConverter(
                 addDeclarationToParent(this, irClass)
                 val firAnyConstructor = session.builtinTypes.anyType.toRegularClassSymbol(session)!!.fir.primaryConstructorIfAny(session)!!
                 val irAnyConstructor = declarationStorage.getIrConstructorSymbol(firAnyConstructor)
-                body = irFactory.createBlockBody(UNDEFINED_OFFSET, UNDEFINED_OFFSET).apply {
-                    statements += IrDelegatingConstructorCallImpl(
+                body = IrFactoryImpl.createBlockBody(UNDEFINED_OFFSET, UNDEFINED_OFFSET).apply {
+                    statements += IrDelegatingConstructorCallImplWithShape(
                         UNDEFINED_OFFSET, UNDEFINED_OFFSET,
-                        irBuiltIns.unitType,
+                        builtins.unitType,
                         irAnyConstructor,
                         typeArgumentsCount = 0,
-                        valueArgumentsCount = 0
+                        valueArgumentsCount = 0,
+                        contextParameterCount = 0,
+                        hasDispatchReceiver = false,
+                        hasExtensionReceiver = false,
                     )
                 }
             }
@@ -330,9 +305,9 @@ class Fir2IrConverter(
 
         IrSimpleFunctionSymbolImpl().let { irSymbol ->
             val lastStatement = codeFragment.block.statements.lastOrNull()
-            val returnType = (lastStatement as? FirExpression)?.resolvedType?.toIrType(c) ?: irBuiltIns.unitType
+            val returnType = (lastStatement as? FirExpression)?.resolvedType?.toIrType(c) ?: builtins.unitType
 
-            irFactory.createSimpleFunction(
+            IrFactoryImpl.createSimpleFunction(
                 UNDEFINED_OFFSET, UNDEFINED_OFFSET,
                 IrDeclarationOrigin.DEFINED,
                 conversionData.methodName,
@@ -355,14 +330,13 @@ class Fir2IrConverter(
                 valueParameters = conversionData.injectedValues.mapIndexed { index, injectedValue ->
                     val isMutated = injectedValue.isMutated
 
-                    irFactory.createValueParameter(
+                    IrFactoryImpl.createValueParameter(
                         UNDEFINED_OFFSET, UNDEFINED_OFFSET,
                         if (isMutated) IrDeclarationOrigin.SHARED_VARIABLE_IN_EVALUATOR_FRAGMENT else IrDeclarationOrigin.DEFINED,
                         Name.identifier("p$index"),
                         injectedValue.typeRef.toIrType(typeConverter),
                         isAssignable = isMutated,
                         injectedValue.irParameterSymbol,
-                        index,
                         varargElementType = null,
                         isCrossinline = false,
                         isNoinline = false,
@@ -376,32 +350,6 @@ class Fir2IrConverter(
 
         declarationStorage.leaveScope(irClass.symbol)
         return irClass
-    }
-
-    @FirBasedFakeOverrideGenerator
-    private fun bindFakeOverridesInFile(file: FirFile) {
-        val irFile = declarationStorage.getIrFile(file)
-        // `irFile` definitely is not a lazy class
-        @OptIn(UnsafeDuringIrConstructionAPI::class)
-        for (irDeclaration in irFile.declarations) {
-            if (irDeclaration is IrClass) {
-                bindFakeOverridesInClass(irDeclaration)
-            }
-        }
-    }
-
-    // `irClass` is a source class and definitely is not a lazy class
-    @OptIn(UnsafeDuringIrConstructionAPI::class, FirBasedFakeOverrideGenerator::class)
-    fun bindFakeOverridesInClass(klass: IrClass) {
-        if (!configuration.useFirBasedFakeOverrideGenerator) return
-        require(klass !is Fir2IrLazyClass)
-        fakeOverrideGenerator.bindOverriddenSymbols(klass.declarations)
-        delegatedMemberGenerator.bindDelegatedMembersOverriddenSymbols(klass)
-        for (irDeclaration in klass.declarations) {
-            if (irDeclaration is IrClass) {
-                bindFakeOverridesInClass(irDeclaration)
-            }
-        }
     }
 
     // `irClass` is a source class and definitely is not a lazy class
@@ -570,13 +518,7 @@ class Fir2IrConverter(
                     delegateFieldToPropertyMap?.remove(declaration)?.let { delegateFields ->
                         val backingField = irProperty.backingField!!
                         for (delegateField in delegateFields) {
-                            declarationStorage.recordDelegateFieldMappedToBackingField(delegateField, backingField.symbol)
-                            delegatedMemberGenerator.generateWithBodiesIfNeeded(
-                                firField = delegateField,
-                                irField = backingField,
-                                containingClass!!,
-                                parent as IrClass
-                            )
+                            declarationStorage.recordSupertypeDelegateFieldMappedToBackingField(delegateField, backingField.symbol)
                         }
                     }
                 }
@@ -589,12 +531,17 @@ class Fir2IrConverter(
                 requireNotNull(delegateFieldToPropertyMap)
                 require(parent is IrClass)
                 val correspondingClassProperty = declaration.findCorrespondingDelegateProperty(containingClass)
-                if (correspondingClassProperty == null || correspondingClassProperty.isVar) {
-                    val irField = declarationStorage.createDelegateIrField(declaration, parent)
-                    delegatedMemberGenerator.generateWithBodiesIfNeeded(declaration, irField, containingClass, parent)
+                val irFieldSymbol = if (correspondingClassProperty == null || correspondingClassProperty.isVar) {
+                    declarationStorage.createSupertypeDelegateIrField(declaration, parent).symbol
                 } else {
                     delegateFieldToPropertyMap.putValue(correspondingClassProperty, declaration)
+                    val correspondingIrProperty = declarationStorage.getIrPropertySymbol(correspondingClassProperty.symbol)
+                    declarationStorage.findBackingFieldOfProperty(correspondingIrProperty as IrPropertySymbol)
+                        ?: error("Backing field not found for property ${correspondingClassProperty.returnTypeRef}")
                 }
+                val delegationTargetType = declaration.returnTypeRef.toIrType(c)
+                declarationStorage.recordSupertypeDelegationInformation(containingClass, parent, delegationTargetType, irFieldSymbol)
+
             }
             is FirConstructor -> if (!declaration.isPrimary) {
                 // the primary constructor was already created in `processClassMembers` function
@@ -635,7 +582,7 @@ class Fir2IrConverter(
 
     companion object {
         // TODO: move to compiler/fir/entrypoint/src/org/jetbrains/kotlin/fir/pipeline/convertToIr.kt (KT-64201)
-        fun evaluateConstants(irModuleFragment: IrModuleFragment, components: Fir2IrComponents) {
+        fun evaluateConstants(irModuleFragment: IrModuleFragment, components: Fir2IrComponents, irBuiltIns: IrBuiltIns) {
             val fir2IrConfiguration = components.configuration
             val firModuleDescriptor = irModuleFragment.descriptor as? FirModuleDescriptor
             val targetPlatform = firModuleDescriptor?.platform
@@ -647,7 +594,7 @@ class Fir2IrConverter(
                 printOnlyExceptionMessage = true,
             )
 
-            val interpreter = IrInterpreter(IrInterpreterEnvironment(irModuleFragment.irBuiltins, configuration))
+            val interpreter = IrInterpreter(IrInterpreterEnvironment(irBuiltIns, configuration))
             val mode = if (intrinsicConstEvaluation) EvaluationMode.OnlyIntrinsicConst() else EvaluationMode.OnlyBuiltins
 
             components.session.javaElementFinder?.propertyEvaluator = { it.evaluate(components, interpreter, mode) }
@@ -677,8 +624,8 @@ class Fir2IrConverter(
                 property = this, fakeOverrideOwnerLookupTag = null
             )?.owner ?: return null
 
-            fun IrProperty.tryToGetConst(): IrConst<*>? = (backingField?.initializer?.expression as? IrConst<*>)
-            fun IrConst<*>.asString(): String {
+            fun IrProperty.tryToGetConst(): IrConst? = (backingField?.initializer?.expression as? IrConst)
+            fun IrConst.asString(): String {
                 return when (val constVal = value) {
                     is Char -> constVal.code.toString()
                     is String -> "\"$constVal\""
@@ -708,6 +655,7 @@ class Fir2IrConverter(
                     dep.collectDependsOnRecursive(set)
                 }
             }
+
             val moduleData = session.moduleData
             val dependsOnTransitive = buildSet {
                 moduleData.collectDependsOnRecursive(this)
@@ -716,14 +664,15 @@ class Fir2IrConverter(
             return dependsOnTransitive.associate { it.friendsMapName() to friendNames }
         }
 
-        fun generateIrModuleFragment(components: Fir2IrComponentsStorage, firFiles: List<FirFile>): IrModuleFragment {
+        fun generateIrModuleFragment(components: Fir2IrComponentsStorage, firFiles: List<FirFile>): IrModuleFragmentImpl {
             val session = components.session
 
             session.lazyDeclarationResolver.disableLazyResolveContractChecks()
 
-            val irModuleFragment = IrModuleFragmentImpl(components.moduleDescriptor, components.irBuiltIns)
+            val irModuleFragment = IrModuleFragmentImpl(components.moduleDescriptor)
 
             val allFirFiles = buildList {
+                addAll(session.createFilesWithBuiltinsSyntheticDeclarationsIfNeeded())
                 addAll(firFiles)
                 val generatedFiles = session.createFilesWithGeneratedDeclarations()
                 addAll(generatedFiles)

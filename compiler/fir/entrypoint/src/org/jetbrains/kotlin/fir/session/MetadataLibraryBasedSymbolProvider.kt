@@ -35,6 +35,7 @@ abstract class MetadataLibraryBasedSymbolProvider<L : MetadataLibrary>(
     session: FirSession,
     moduleDataProvider: ModuleDataProvider,
     kotlinScopeProvider: FirKotlinScopeProvider,
+    private val flexibleTypeFactory: FirTypeDeserializer.FlexibleTypeFactory,
     defaultDeserializationOrigin: FirDeclarationOrigin = FirDeclarationOrigin.Library,
 ) : AbstractFirDeserializedSymbolProvider(
     session, moduleDataProvider, kotlinScopeProvider, defaultDeserializationOrigin, KlibMetadataSerializerProtocol
@@ -48,7 +49,7 @@ abstract class MetadataLibraryBasedSymbolProvider<L : MetadataLibrary>(
     protected abstract val knownPackagesInLibraries: Set<FqName>
 
     private val annotationDeserializer = KlibBasedAnnotationDeserializer(session)
-    private val constDeserializer = FirConstDeserializer(session, KlibMetadataSerializerProtocol)
+    private val constDeserializer = FirConstDeserializer(KlibMetadataSerializerProtocol)
     protected val deserializationConfiguration: CompilerDeserializationConfiguration =
         CompilerDeserializationConfiguration(session.languageVersionSettings)
     private val cachedFragments: MutableMap<L, MutableMap<Pair<String, String>, ProtoBuf.PackageFragment>> = mutableMapOf()
@@ -85,7 +86,7 @@ abstract class MetadataLibraryBasedSymbolProvider<L : MetadataLibrary>(
                     FirDeserializationContext.createForPackage(
                         packageFqName, packageProto, nameResolver, moduleData,
                         annotationDeserializer,
-                        FirTypeDeserializer.FlexibleTypeFactory.Default,
+                        flexibleTypeFactory,
                         constDeserializer,
                         createDeserializedContainerSource(resolvedLibrary, packageFqName),
                     ),
@@ -128,7 +129,7 @@ abstract class MetadataLibraryBasedSymbolProvider<L : MetadataLibrary>(
                     session,
                     moduleData,
                     annotationDeserializer,
-                    FirTypeDeserializer.FlexibleTypeFactory.Default,
+                    flexibleTypeFactory,
                     kotlinScopeProvider,
                     KlibMetadataSerializerProtocol,
                     parentContext,
@@ -204,11 +205,7 @@ abstract class MetadataLibraryBasedSymbolProvider<L : MetadataLibrary>(
 
     override fun isNewPlaceForBodyGeneration(classProto: ProtoBuf.Class): Boolean = false
 
-    override fun getPackage(fqName: FqName): FqName? {
-        return if (fqName in knownPackagesInLibraries) {
-            fqName
-        } else {
-            null
-        }
+    override fun hasPackage(fqName: FqName): Boolean {
+        return fqName in knownPackagesInLibraries
     }
 }

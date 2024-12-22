@@ -7,13 +7,12 @@ package org.jetbrains.kotlin.backend.wasm.dce
 
 import org.jetbrains.kotlin.backend.wasm.WasmBackendContext
 import org.jetbrains.kotlin.backend.wasm.ir2wasm.isExported
-import org.jetbrains.kotlin.backend.wasm.utils.getWasmExportNameIfWasmExport
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.backend.js.dce.DceDumpNameCache
 import org.jetbrains.kotlin.ir.backend.js.utils.*
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrBody
-import org.jetbrains.kotlin.ir.util.primaryConstructor
+import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
@@ -53,23 +52,38 @@ private fun buildRoots(modules: List<IrModuleFragment>, context: WasmBackendCont
 
     modules.onAllFiles {
         declarations.forEach { declaration ->
-            if (declaration is IrFunction && declaration.isExported()) {
-                declaration.acceptVoid(declarationsCollector)
+            when (declaration) {
+                is IrFunction -> {
+                    if (declaration.isExported()) {
+                        declaration.acceptVoid(declarationsCollector)
+                    }
+                }
+                is IrField -> {
+                    val propertyForField = declaration.correspondingPropertySymbol?.owner
+                    if (propertyForField != null && propertyForField.hasAnnotation(context.wasmSymbols.eagerInitialization)) {
+                        add(declaration)
+                    }
+                }
             }
         }
     }
 
     add(context.irBuiltIns.throwableClass.owner)
-    add(context.mainCallsWrapperFunction)
-    add(context.fieldInitFunction)
-    add(context.findUnitInstanceField())
-    add(context.irBuiltIns.unitClass.owner.primaryConstructor!!)
+    add(context.findUnitGetInstanceFunction())
+
+    addAll(context.testFunsPerFile.values)
+    context.fileContexts.values.forEach {
+        it.mainFunctionWrapper?.let(::add)
+    }
+
     if (context.isWasmJsTarget) {
-        add(context.wasmSymbols.jsRelatedSymbols.throwJsException.owner)
+        add(context.wasmSymbols.jsRelatedSymbols.createJsException.owner)
     }
 
     // Remove all functions used to call a kotlin closure from JS side, reachable ones will be added back later.
-    removeAll(context.closureCallExports.values)
+    context.fileContexts.values.forEach {
+        removeAll(it.closureCallExports.values)
+    }
 }
 
 private inline fun List<IrModuleFragment>.onAllFiles(body: IrFile.() -> Unit) {

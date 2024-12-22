@@ -5,10 +5,7 @@ infix fun and(other: kotlin.Int): kotlin.Int
 operator fun compareTo(other: kotlin.Byte): kotlin.Int
 
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun compareTo(other: kotlin.Double): kotlin.Int
-
-@kotlin.internal.IntrinsicConstEvaluation
-operator fun compareTo(other: kotlin.Float): kotlin.Int
+operator fun compareTo(other: kotlin.Short): kotlin.Int
 
 @kotlin.internal.IntrinsicConstEvaluation
 open operator fun compareTo(other: kotlin.Int): kotlin.Int
@@ -17,7 +14,10 @@ open operator fun compareTo(other: kotlin.Int): kotlin.Int
 operator fun compareTo(other: kotlin.Long): kotlin.Int
 
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun compareTo(other: kotlin.Short): kotlin.Int
+operator fun compareTo(other: kotlin.Float): kotlin.Int
+
+@kotlin.internal.IntrinsicConstEvaluation
+operator fun compareTo(other: kotlin.Double): kotlin.Int
 
 operator fun dec(): kotlin.Int
 
@@ -25,10 +25,7 @@ operator fun dec(): kotlin.Int
 operator fun div(other: kotlin.Byte): kotlin.Int
 
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun div(other: kotlin.Double): kotlin.Double
-
-@kotlin.internal.IntrinsicConstEvaluation
-operator fun div(other: kotlin.Float): kotlin.Float
+operator fun div(other: kotlin.Short): kotlin.Int
 
 @kotlin.internal.IntrinsicConstEvaluation
 operator fun div(other: kotlin.Int): kotlin.Int
@@ -37,7 +34,10 @@ operator fun div(other: kotlin.Int): kotlin.Int
 operator fun div(other: kotlin.Long): kotlin.Long
 
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun div(other: kotlin.Short): kotlin.Int
+operator fun div(other: kotlin.Float): kotlin.Float
+
+@kotlin.internal.IntrinsicConstEvaluation
+operator fun div(other: kotlin.Double): kotlin.Double
 
 @kotlin.internal.IntrinsicConstEvaluation
 open operator fun equals(other: kotlin.Any?): kotlin.Boolean
@@ -51,10 +51,7 @@ fun inv(): kotlin.Int
 operator fun minus(other: kotlin.Byte): kotlin.Int
 
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun minus(other: kotlin.Double): kotlin.Double
-
-@kotlin.internal.IntrinsicConstEvaluation
-operator fun minus(other: kotlin.Float): kotlin.Float
+operator fun minus(other: kotlin.Short): kotlin.Int
 
 @kotlin.internal.IntrinsicConstEvaluation
 operator fun minus(other: kotlin.Int): kotlin.Int
@@ -63,7 +60,10 @@ operator fun minus(other: kotlin.Int): kotlin.Int
 operator fun minus(other: kotlin.Long): kotlin.Long
 
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun minus(other: kotlin.Short): kotlin.Int
+operator fun minus(other: kotlin.Float): kotlin.Float
+
+@kotlin.internal.IntrinsicConstEvaluation
+operator fun minus(other: kotlin.Double): kotlin.Double
 
 @kotlin.internal.IntrinsicConstEvaluation
 infix fun or(other: kotlin.Int): kotlin.Int
@@ -72,10 +72,7 @@ infix fun or(other: kotlin.Int): kotlin.Int
 operator fun plus(other: kotlin.Byte): kotlin.Int
 
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun plus(other: kotlin.Double): kotlin.Double
-
-@kotlin.internal.IntrinsicConstEvaluation
-operator fun plus(other: kotlin.Float): kotlin.Float
+operator fun plus(other: kotlin.Short): kotlin.Int
 
 @kotlin.internal.IntrinsicConstEvaluation
 operator fun plus(other: kotlin.Int): kotlin.Int
@@ -84,19 +81,26 @@ operator fun plus(other: kotlin.Int): kotlin.Int
 operator fun plus(other: kotlin.Long): kotlin.Long
 
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun plus(other: kotlin.Short): kotlin.Int
+operator fun plus(other: kotlin.Float): kotlin.Float
+
+@kotlin.internal.IntrinsicConstEvaluation
+operator fun plus(other: kotlin.Double): kotlin.Double
 
 operator fun rangeTo(other: kotlin.Byte): kotlin.ranges.IntRange
+
+operator fun rangeTo(other: kotlin.Short): kotlin.ranges.IntRange
 
 operator fun rangeTo(other: kotlin.Int): kotlin.ranges.IntRange
 
 operator fun rangeTo(other: kotlin.Long): kotlin.ranges.LongRange
 
-operator fun rangeTo(other: kotlin.Short): kotlin.ranges.IntRange
-
 @kotlin.SinceKotlin(version = "1.9")
 @kotlin.WasExperimental(markerClass = [kotlin.ExperimentalStdlibApi::class])
 operator fun rangeUntil(other: kotlin.Byte): kotlin.ranges.IntRange
+
+@kotlin.SinceKotlin(version = "1.9")
+@kotlin.WasExperimental(markerClass = [kotlin.ExperimentalStdlibApi::class])
+operator fun rangeUntil(other: kotlin.Short): kotlin.ranges.IntRange
 
 @kotlin.SinceKotlin(version = "1.9")
 @kotlin.WasExperimental(markerClass = [kotlin.ExperimentalStdlibApi::class])
@@ -106,21 +110,13 @@ operator fun rangeUntil(other: kotlin.Int): kotlin.ranges.IntRange
 @kotlin.WasExperimental(markerClass = [kotlin.ExperimentalStdlibApi::class])
 operator fun rangeUntil(other: kotlin.Long): kotlin.ranges.LongRange
 
-@kotlin.SinceKotlin(version = "1.9")
-@kotlin.WasExperimental(markerClass = [kotlin.ExperimentalStdlibApi::class])
-operator fun rangeUntil(other: kotlin.Short): kotlin.ranges.IntRange
-
 @kotlin.SinceKotlin(version = "1.1")
 @kotlin.internal.IntrinsicConstEvaluation
 operator fun rem(other: kotlin.Byte): kotlin.Int
 
 @kotlin.SinceKotlin(version = "1.1")
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun rem(other: kotlin.Double): kotlin.Double
-
-@kotlin.SinceKotlin(version = "1.1")
-@kotlin.internal.IntrinsicConstEvaluation
-operator fun rem(other: kotlin.Float): kotlin.Float
+operator fun rem(other: kotlin.Short): kotlin.Int
 
 @kotlin.SinceKotlin(version = "1.1")
 @kotlin.internal.IntrinsicConstEvaluation
@@ -132,7 +128,11 @@ operator fun rem(other: kotlin.Long): kotlin.Long
 
 @kotlin.SinceKotlin(version = "1.1")
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun rem(other: kotlin.Short): kotlin.Int
+operator fun rem(other: kotlin.Float): kotlin.Float
+
+@kotlin.SinceKotlin(version = "1.1")
+@kotlin.internal.IntrinsicConstEvaluation
+operator fun rem(other: kotlin.Double): kotlin.Double
 
 @kotlin.internal.IntrinsicConstEvaluation
 infix fun shl(bitCount: kotlin.Int): kotlin.Int
@@ -144,10 +144,7 @@ infix fun shr(bitCount: kotlin.Int): kotlin.Int
 operator fun times(other: kotlin.Byte): kotlin.Int
 
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun times(other: kotlin.Double): kotlin.Double
-
-@kotlin.internal.IntrinsicConstEvaluation
-operator fun times(other: kotlin.Float): kotlin.Float
+operator fun times(other: kotlin.Short): kotlin.Int
 
 @kotlin.internal.IntrinsicConstEvaluation
 operator fun times(other: kotlin.Int): kotlin.Int
@@ -156,7 +153,10 @@ operator fun times(other: kotlin.Int): kotlin.Int
 operator fun times(other: kotlin.Long): kotlin.Long
 
 @kotlin.internal.IntrinsicConstEvaluation
-operator fun times(other: kotlin.Short): kotlin.Int
+operator fun times(other: kotlin.Float): kotlin.Float
+
+@kotlin.internal.IntrinsicConstEvaluation
+operator fun times(other: kotlin.Double): kotlin.Double
 
 @kotlin.internal.IntrinsicConstEvaluation
 open fun toByte(): kotlin.Byte

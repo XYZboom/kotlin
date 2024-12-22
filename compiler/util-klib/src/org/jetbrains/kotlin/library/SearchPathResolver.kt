@@ -4,7 +4,6 @@ import org.jetbrains.kotlin.konan.file.File
 import org.jetbrains.kotlin.library.SearchPathResolver.LookupResult
 import org.jetbrains.kotlin.library.SearchPathResolver.SearchRoot
 import org.jetbrains.kotlin.library.impl.createKotlinLibraryComponents
-import org.jetbrains.kotlin.library.impl.isPre_1_4_Library
 import org.jetbrains.kotlin.util.Logger
 import org.jetbrains.kotlin.util.WithLogger
 import org.jetbrains.kotlin.util.removeSuffixIfPresent
@@ -17,6 +16,7 @@ const val KOTLIN_STDLIB_NAME: String = "stdlib"
 const val KOTLIN_NATIVE_STDLIB_NAME: String = "stdlib"
 const val KOTLIN_JS_STDLIB_NAME: String = "kotlin"
 const val KOTLIN_WASM_STDLIB_NAME: String = "kotlin"
+const val KOTLINTEST_MODULE_NAME: String = "kotlin-test"
 
 interface SearchPathResolver<L : KotlinLibrary> : WithLogger {
     /**
@@ -26,10 +26,8 @@ interface SearchPathResolver<L : KotlinLibrary> : WithLogger {
      * @property allowLookupByRelativePath Whether the lookup by relative paths is allowed.
      *   true - yes, allow to look up by relative path and by library name.
      *   false - no, allow to look up strictly by library name.
-     * @property isDeprecated Whether this search root is going to be removed in the future
-     *   (and a warning should be displayed when a library was resolved against this root).
      */
-    class SearchRoot(val searchRootPath: File, val allowLookupByRelativePath: Boolean = false, val isDeprecated: Boolean = false) {
+    class SearchRoot(val searchRootPath: File, val allowLookupByRelativePath: Boolean = false) {
         fun lookUp(libraryPath: File): LookupResult {
             if (libraryPath.isAbsolute) {
                 // Look up by the absolute path if it is indeed an absolute path.
@@ -53,15 +51,7 @@ interface SearchPathResolver<L : KotlinLibrary> : WithLogger {
                 }
                 ?: return LookupResult.NotFound
 
-            return if (isDeprecated)
-                LookupResult.FoundWithWarning(
-                    library = resolvedLibrary,
-                    warningText = "KLIB resolver: Library '${libraryPath.path}' was found in a custom library repository '${searchRootPath.path}'. " +
-                            "Note, that custom library repositories are deprecated and will be removed in one of the future Kotlin releases. " +
-                            "Please, avoid using '-repo' ('-r') compiler option and specify full paths to libraries in compiler CLI arguments."
-                )
-            else
-                LookupResult.Found(resolvedLibrary)
+            return LookupResult.Found(resolvedLibrary)
         }
 
         companion object {
@@ -93,7 +83,6 @@ interface SearchPathResolver<L : KotlinLibrary> : WithLogger {
     sealed interface LookupResult {
         object NotFound : LookupResult
         data class Found(val library: File) : LookupResult
-        data class FoundWithWarning(val library: File, val warningText: String) : LookupResult
     }
 
     /**
@@ -122,31 +111,26 @@ fun <L : KotlinLibrary> SearchPathResolver<L>.resolve(unresolved: UnresolvedLibr
 
 // This is a simple library resolver that only cares for file names.
 abstract class KotlinLibrarySearchPathResolver<L : KotlinLibrary>(
-    repositories: List<String>,
     directLibs: List<String>,
     val distributionKlib: String?,
-    val localKotlinDir: String?,
-    val skipCurrentDir: Boolean,
+    private val skipCurrentDir: Boolean,
     override val logger: Logger
 ) : SearchPathResolver<L> {
 
-    val localHead: File?
-        get() = localKotlinDir?.File()?.klib
-
-    val distHead: File?
-        get() = distributionKlib?.File()?.child("common")
-
+    private val distHead: File? get() = distributionKlib?.File()?.child("common")
     open val distPlatformHead: File? = null
-
-    val currentDirHead: File?
-        get() = if (!skipCurrentDir) File.userDir else null
-
-    private val repoRoots: List<File> by lazy { repositories.map { File(it) } }
+    private val currentDirHead: File? get() = if (!skipCurrentDir) File.userDir else null
 
     abstract fun libraryComponentBuilder(file: File, isDefault: Boolean): List<L>
 
-    private val directLibraries: List<KotlinLibrary> by lazy {
-        directLibs.mapNotNull { SearchRoot.lookUpByAbsolutePath(File(it)) }.flatMap { libraryComponentBuilder(it, false) }
+    private val directLibraryUniqueNames: Map</* Unique Name*/ String, File> by lazy {
+        HashMap<String, File>().apply {
+            for (directLib in directLibs) {
+                val absolutePath = SearchRoot.lookUpByAbsolutePath(File(directLib)) ?: continue
+                val uniqueName = libraryComponentBuilder(absolutePath, false).singleOrNull()?.uniqueName ?: continue
+                this[uniqueName] = absolutePath
+            }
+        }
     }
 
     override val searchRoots: List<SearchRoot> by lazy {
@@ -155,31 +139,12 @@ abstract class KotlinLibrarySearchPathResolver<L : KotlinLibrary>(
         // Current working dir:
         searchRoots += currentDirHead?.let { SearchRoot(searchRootPath = it, allowLookupByRelativePath = true) }
 
-        // Custom repositories (deprecated, to be removed):
-        // TODO: remove after 2.0, KT-61098
-        repositories.mapTo(searchRoots) { SearchRoot(searchRootPath = File(it), allowLookupByRelativePath = true, isDeprecated = true) }
-
-        // Something likely never unused (deprecated, to be removed):
-        // TODO: remove after 2.0, KT-61098
-        searchRoots += localHead?.let { SearchRoot(searchRootPath = it, allowLookupByRelativePath = true, isDeprecated = true) }
-
         // Current Kotlin/Native distribution:
         searchRoots += distHead?.let { SearchRoot(searchRootPath = it) }
         searchRoots += distPlatformHead?.let { SearchRoot(searchRootPath = it) }
 
         searchRoots.filterNotNull()
     }
-
-    /**
-     * Returns a [File] instance if the [path] is valid on the current file system and null otherwise.
-     * Doesn't check whether the file denoted by [path] really exists.
-     */
-    private fun validFileOrNull(path: String): File? =
-        try {
-            File(Paths.get(path))
-        } catch (_: InvalidPathException) {
-            null
-        }
 
     /**
      * Returns a sequence of libraries passed to the compiler directly for which unique_name == [givenName].
@@ -193,11 +158,7 @@ abstract class KotlinLibrarySearchPathResolver<L : KotlinLibrary>(
         // resolution) so we can pass it to the compiler directly. This code takes this into account and looks for
         // a library dependencies also in libs passed to the compiler as files (passed to the resolver as the
         // 'directLibraries' property).
-        return directLibraries.asSequence().filter {
-            it.uniqueName == givenName
-        }.map {
-            it.libraryFile
-        }
+        return generateSequence { directLibraryUniqueNames[givenName] }
     }
 
     override fun resolutionSequence(givenPath: String): Sequence<File> {
@@ -215,10 +176,6 @@ abstract class KotlinLibrarySearchPathResolver<L : KotlinLibrary>(
                 val repoLibs = searchRoots.asSequence().map { searchRoot ->
                     when (val lookupResult = searchRoot.lookUp(given)) {
                         is LookupResult.Found -> lookupResult.library
-                        is LookupResult.FoundWithWarning -> {
-                            logger.strongWarning(lookupResult.warningText)
-                            lookupResult.library
-                        }
                         LookupResult.NotFound -> null
                     }
                 }
@@ -227,15 +184,6 @@ abstract class KotlinLibrarySearchPathResolver<L : KotlinLibrary>(
             }
         }
         return sequence.filterNotNull()
-    }
-
-    private fun Sequence<File>.filterOutPre_1_4_libraries(): Sequence<File> = this.filter {
-        if (it.isPre_1_4_Library) {
-            logger.strongWarning("KLIB resolver: Skipping '$it'. This is a pre 1.4 library.")
-            false
-        } else {
-            true
-        }
     }
 
     // Default libraries could be resolved several times during findLibraries and resolveDependencies.
@@ -249,7 +197,6 @@ abstract class KotlinLibrarySearchPathResolver<L : KotlinLibrary>(
             val givenPath = unresolved.path
             try {
                 resolutionSequence(givenPath)
-                    .filterOutPre_1_4_libraries()
                     .flatMap { libraryComponentBuilder(it, isDefaultLink).asSequence() }
                     .map { it.takeIf { libraryMatch(it, unresolved) } }
                     .filterNotNull()
@@ -264,6 +211,10 @@ abstract class KotlinLibrarySearchPathResolver<L : KotlinLibrary>(
 
     override fun resolve(unresolved: LenientUnresolvedLibrary, isDefaultLink: Boolean): L? {
         return resolveOrNull(unresolved, isDefaultLink)
+            ?: run {
+                logger.warning("KLIB resolver: Could not find \"${unresolved.path}\" in ${searchRoots.map { it.searchRootPath.absolutePath }}")
+                null
+            }
     }
 
     override fun resolve(unresolved: RequiredUnresolvedLibrary, isDefaultLink: Boolean): L {
@@ -333,15 +284,27 @@ abstract class KotlinLibrarySearchPathResolver<L : KotlinLibrary>(
 // such as abi version.
 // JS and Native resolvers are inherited from this one.
 abstract class KotlinLibraryProperResolverWithAttributes<L : KotlinLibrary>(
-    repositories: List<String>,
     directLibs: List<String>,
     distributionKlib: String?,
-    localKotlinDir: String?,
     skipCurrentDir: Boolean,
-    override val logger: Logger,
+    logger: Logger,
     private val knownIrProviders: List<String>
-) : KotlinLibrarySearchPathResolver<L>(repositories, directLibs, distributionKlib, localKotlinDir, skipCurrentDir, logger),
-    SearchPathResolver<L> {
+) : KotlinLibrarySearchPathResolver<L>(directLibs, distributionKlib, skipCurrentDir, logger), SearchPathResolver<L> {
+
+    @Deprecated(
+        "Please use the KotlinLibraryProperResolverWithAttributes constructor which does not has 'repositories' and 'localKotlinDir' value parameters",
+        ReplaceWith("KotlinLibraryProperResolverWithAttributes<L>(directLibs, distributionKlib, skipCurrentDir, logger, knownIrProviders)"),
+    )
+    constructor(
+        @Suppress("UNUSED_PARAMETER") repositories: List<String>,
+        directLibs: List<String>,
+        distributionKlib: String?,
+        @Suppress("UNUSED_PARAMETER") localKotlinDir: String?,
+        skipCurrentDir: Boolean,
+        logger: Logger,
+        knownIrProviders: List<String>
+    ) : this(directLibs, distributionKlib, skipCurrentDir, logger, knownIrProviders)
+
     override fun libraryMatch(candidate: L, unresolved: UnresolvedLibrary): Boolean {
         val candidatePath = candidate.libraryFile.absolutePath
 
@@ -352,7 +315,10 @@ abstract class KotlinLibraryProperResolverWithAttributes<L : KotlinLibrary>(
         // Please, don't add checks for other versions here. For example, check for the metadata version should be
         // implemented in KlibDeserializedContainerSource.incompatibility
         if (candidateAbiVersion?.isCompatible() != true) {
-            logger.strongWarning("KLIB resolver: Skipping '$candidatePath'. Incompatible ABI version. The current default is '${KotlinAbiVersion.CURRENT}', found '${candidateAbiVersion}'. The library was produced by '$candidateCompilerVersion' compiler.")
+            logger.strongWarning("KLIB resolver: Skipping '$candidatePath' having incompatible ABI version '${candidateAbiVersion}'. " +
+                        "The library was produced by '$candidateCompilerVersion' compiler.\n" +
+                        "The current Kotlin compiler can consume libraries having ABI version <= '${KotlinAbiVersion.CURRENT}'.\n" +
+                        "Please upgrade your Kotlin compiler version to consume this library.")
             return false
         }
 
@@ -372,8 +338,11 @@ class SingleKlibComponentResolver(
     logger: Logger,
     knownIrProviders: List<String>
 ) : KotlinLibraryProperResolverWithAttributes<KotlinLibrary>(
-    emptyList(), listOf(klibFile),
-    null, null, false, logger, knownIrProviders
+    directLibs = listOf(klibFile),
+    distributionKlib = null,
+    skipCurrentDir = false,
+    logger,
+    knownIrProviders = knownIrProviders
 ) {
     override fun libraryComponentBuilder(file: File, isDefault: Boolean) = createKotlinLibraryComponents(file, isDefault)
 }
@@ -382,7 +351,6 @@ class SingleKlibComponentResolver(
  * Resolves KLIB libraries by:
  * - expanding the given library path to the real path that may or may not contain ".klib" extension
  * - searching among user-supplied libraries by "unique_name" that matches the given library name
- * - filtering out pre-1.4 libraries (with the old style layout)
  * - filtering out library components that have different ABI version than the ABI version of the current compiler
  * - filtering out libraries with non-default ir_provider.
  *
@@ -412,3 +380,58 @@ class CompilerSingleFileKlibResolveAllowingIrProvidersStrategy(
             libraryFile.absolutePath, logger, knownIrProviders
         ).resolve(libraryFile.absolutePath)
 }
+
+/**
+ * Note: The chosen approach is a kind of hack: Instead of doing honest
+ * check inside KLIB resolver if a unique name was passed as one of
+ * user-defined libs (e.g., via `-library` or `-l` CLI argument), we do
+ * post-check. The post-check runs after the KLIB resolver, and just
+ * makes sure that every item that has been passed as a user-defined lib
+ * and looks like a unique name actually matches the file name of the KLIB.
+ *
+ * This approach works good enough. And it is much simpler to implement
+ * than implementing the "honest" check. Anyway, it's a temporary
+ * solution that will exist until we replace the KLIB resolved by
+ * a completely new, much simpler and well-tested component.
+ *
+ * Note: This check may give false positives in case unique name
+ * includes path separator character. We consider this as an ultimately
+ * rare case, and accept the possible risks.
+ */
+fun validateNoLibrariesWerePassedViaCliByUniqueName(givenNames: List<String>, resolvedLibraries: List<KotlinLibrary>, logger: Logger) {
+    if (givenNames.isEmpty() || resolvedLibraries.isEmpty()) return
+
+    val potentiallyUniqueNames: Set<String> = givenNames.filterTo(hashSetOf()) { givenName ->
+        val given: File? = validFileOrNull(givenName)
+        given == null || given.nameSegments.size == 1
+    }
+
+    if (potentiallyUniqueNames.isEmpty()) return
+
+    for (library in resolvedLibraries) {
+        val uniqueName = library.uniqueName
+        if (uniqueName in potentiallyUniqueNames && uniqueName != library.libraryFile.name) {
+            // The name of the library file or the library directory does not match the unique name,
+            // and at the same time this unique name was specified at CLI argument.
+            // Need to report an error.
+            logger.error(
+                "KLIB resolver: Library '${library.libraryFile}' was found by its unique name '$uniqueName'. " +
+                        "This could happen if the library unique name was passed instead of the library path via the compiler CLI argument `-library` (`-l`). " +
+                        "Note that using unique name is deprecated and will become unavailable in one of the future Kotlin releases. " +
+                        "Please, specify full paths to libraries in compiler CLI arguments."
+            )
+        }
+    }
+}
+
+/**
+ * Returns a [File] instance if the [path] is valid on the current file system and null otherwise.
+ * Doesn't check whether the file denoted by [path] really exists.
+ */
+private fun validFileOrNull(path: String): File? =
+    try {
+        File(Paths.get(path))
+    } catch (_: InvalidPathException) {
+        null
+    }
+

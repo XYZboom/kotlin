@@ -9,6 +9,8 @@ import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.codegen.ClassBuilderMode
 import org.jetbrains.kotlin.codegen.GenerationUtils
 import org.jetbrains.kotlin.codegen.OriginCollectingClassBuilderFactory
+import org.jetbrains.kotlin.fir.backend.Fir2IrComponentsStorage
+import org.jetbrains.kotlin.fir.backend.jvm.FirJvmBackendClassResolver
 import org.jetbrains.kotlin.kapt3.KaptContextForStubGeneration
 import org.jetbrains.kotlin.kapt3.util.MessageCollectorBackedKaptLogger
 import org.jetbrains.kotlin.test.model.*
@@ -35,7 +37,7 @@ class JvmCompilerWithKaptFacade(
         }
         val ktFiles = testServices.sourceFileProvider.getKtFilesForSourceFiles(module.files, project, findViaVfs = true).values.toList()
         val classBuilderFactory = OriginCollectingClassBuilderFactory(ClassBuilderMode.KAPT3)
-        val generationState = GenerationUtils.compileFiles(
+        val (generationState, bindingContext) = GenerationUtils.compileFiles(
             ktFiles,
             configurationProvider.getCompilerConfiguration(module),
             classBuilderFactory,
@@ -46,13 +48,17 @@ class JvmCompilerWithKaptFacade(
             isInfoAsWarnings = false,
             messageCollector = testServices.messageCollectorProvider.getCollector(module)
         )
+        val firFiles =
+            ((generationState.jvmBackendClassResolver as? FirJvmBackendClassResolver)?.components as? Fir2IrComponentsStorage)?.fir.orEmpty()
         val kaptContext = KaptContextForStubGeneration(
             testServices.kaptOptionsProvider[module],
             withJdk = true,
             logger,
             classBuilderFactory.compiledClasses,
             classBuilderFactory.origins,
-            generationState
+            generationState,
+            bindingContext,
+            firFiles,
         )
         return KaptContextBinaryArtifact(kaptContext)
     }
@@ -68,4 +74,3 @@ class KaptContextBinaryArtifact(val kaptContext: KaptContextForStubGeneration) :
     override val kind: BinaryKind<KaptContextBinaryArtifact>
         get() = Kind
 }
-

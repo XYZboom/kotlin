@@ -7,11 +7,12 @@ package org.jetbrains.kotlin.fir.scopes.impl
 
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.utils.isStatic
+import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
 import org.jetbrains.kotlin.fir.scopes.*
 import org.jetbrains.kotlin.fir.scopes.impl.FirTypeIntersectionScopeContext.ResultOfIntersection
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag
 import org.jetbrains.kotlin.fir.symbols.impl.*
+import org.jetbrains.kotlin.fir.types.ConeClassLikeLookupTag
 import org.jetbrains.kotlin.fir.types.ConeSimpleKotlinType
 import org.jetbrains.kotlin.name.Name
 
@@ -164,9 +165,17 @@ abstract class AbstractFirUseSiteMemberScope(
     private fun computeDirectOverriddenForDeclaredFunction(declaredFunctionSymbol: FirNamedFunctionSymbol): List<ResultOfIntersection<FirNamedFunctionSymbol>> {
         val result = mutableListOf<ResultOfIntersection<FirNamedFunctionSymbol>>()
         for (resultOfIntersection in getFunctionsFromSupertypesByName(declaredFunctionSymbol.name)) {
-            resultOfIntersection.collectDirectOverriddenForDeclared(declaredFunctionSymbol, result, overrideChecker::isOverriddenFunction)
+            resultOfIntersection.collectDirectOverriddenForDeclared(declaredFunctionSymbol, result, this::isOverriddenFunction)
         }
         return result
+    }
+
+    protected open fun isOverriddenFunction(
+        overrideCandidate: FirNamedFunctionSymbol,
+        baseDeclaration: FirNamedFunctionSymbol,
+        baseScope: FirTypeScope?
+    ): Boolean {
+        return overrideChecker.isOverriddenFunction(overrideCandidate, baseDeclaration)
     }
 
     /**
@@ -179,19 +188,19 @@ abstract class AbstractFirUseSiteMemberScope(
     protected inline fun <T : FirCallableSymbol<*>> ResultOfIntersection<T>.collectDirectOverriddenForDeclared(
         declared: T,
         result: MutableList<in ResultOfIntersection<T>>,
-        isOverridden: (T, T) -> Boolean,
+        isOverridden: (declaredSymbol: T, baseDeclaration: T, baseScope: FirTypeScope) -> Boolean,
     ) {
         when (this) {
             is ResultOfIntersection.SingleMember -> {
                 val symbolFromSupertype = chosenSymbol
-                if (isOverridden(declared, symbolFromSupertype)) {
+                if (isOverridden(declared, symbolFromSupertype, scopeOfChosenSymbol)) {
                     result.add(this)
                 }
             }
             is ResultOfIntersection.NonTrivial -> {
                 // For non-trivial intersections, declared can override a subset of the intersected symbols.
                 val (overridden, nonOverridden) = overriddenMembers.partition {
-                    isOverridden(declared, it.member)
+                    isOverridden(declared, it.member, it.baseScope)
                 }
 
                 if (nonOverridden.isEmpty()) {
@@ -290,4 +299,7 @@ abstract class AbstractFirUseSiteMemberScope(
     protected open fun FirNamedFunctionSymbol.replaceWithWrapperSymbolIfNeeded(): FirNamedFunctionSymbol {
         return this
     }
+
+    @DelicateScopeAPI
+    abstract override fun withReplacedSessionOrNull(newSession: FirSession, newScopeSession: ScopeSession): AbstractFirUseSiteMemberScope
 }

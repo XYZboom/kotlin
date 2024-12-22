@@ -5,26 +5,31 @@
 
 package org.jetbrains.kotlin.fir.backend.utils
 
+import org.jetbrains.kotlin.config.AnalysisFlags
 import org.jetbrains.kotlin.descriptors.ValueClassRepresentation
-import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.backend.Fir2IrComponents
 import org.jetbrains.kotlin.fir.backend.Fir2IrConversionScope
 import org.jetbrains.kotlin.fir.backend.toIrType
 import org.jetbrains.kotlin.fir.builder.buildPackageDirective
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.builder.buildFile
-import org.jetbrains.kotlin.fir.declarations.utils.isInline
+import org.jetbrains.kotlin.fir.declarations.utils.isInlineOrValue
 import org.jetbrains.kotlin.fir.extensions.FirExtensionApiInternals
 import org.jetbrains.kotlin.fir.extensions.declarationGenerators
 import org.jetbrains.kotlin.fir.extensions.extensionService
 import org.jetbrains.kotlin.fir.extensions.generatedDeclarationsSymbolProvider
-import org.jetbrains.kotlin.fir.moduleData
-import org.jetbrains.kotlin.fir.render
-import org.jetbrains.kotlin.ir.builders.declarations.UNDEFINED_PARAMETER_INDEX
+import org.jetbrains.kotlin.fir.resolve.providers.FirSymbolProvider
+import org.jetbrains.kotlin.fir.resolve.providers.impl.syntheticFunctionInterfacesSymbolProvider
+import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationParent
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.declarations.IrVariable
+import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
+import org.jetbrains.kotlin.ir.expressions.IrConst
+import org.jetbrains.kotlin.ir.expressions.IrElseBranch
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.*
@@ -32,29 +37,30 @@ import org.jetbrains.kotlin.ir.symbols.IrValueSymbol
 import org.jetbrains.kotlin.ir.symbols.impl.IrValueParameterSymbolImpl
 import org.jetbrains.kotlin.ir.types.IrSimpleType
 import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.types.impl.IrSimpleTypeImpl
 import org.jetbrains.kotlin.ir.types.makeNullable
-import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.name.SpecialNames
+import org.jetbrains.kotlin.name.*
 
 internal fun IrDeclarationParent.declareThisReceiverParameter(
     c: Fir2IrComponents,
     thisType: IrType,
     thisOrigin: IrDeclarationOrigin,
+    kind: IrParameterKind? = null,
     startOffset: Int = this.startOffset,
     endOffset: Int = this.endOffset,
     name: Name = SpecialNames.THIS,
     explicitReceiver: FirReceiverParameter? = null,
     isAssignable: Boolean = false
 ): IrValueParameter {
-    return c.irFactory.createValueParameter(
+    return IrFactoryImpl.createValueParameter(
         startOffset = startOffset,
         endOffset = endOffset,
         origin = thisOrigin,
+        kind = kind,
         name = name,
         type = thisType,
         isAssignable = isAssignable,
         symbol = IrValueParameterSymbolImpl(),
-        index = UNDEFINED_PARAMETER_INDEX,
         varargElementType = null,
         isCrossinline = false,
         isNoinline = false,
@@ -63,6 +69,19 @@ internal fun IrDeclarationParent.declareThisReceiverParameter(
         this.parent = this@declareThisReceiverParameter
         explicitReceiver?.let { c.annotationGenerator.generate(this, it) }
     }
+}
+
+internal fun IrClass.setThisReceiver(c: Fir2IrComponents, typeParameters: List<FirTypeParameterRef>) {
+    val typeArguments = typeParameters.map {
+        val typeParameter = c.classifierStorage.getIrTypeParameterSymbol(it.symbol, ConversionTypeOrigin.DEFAULT)
+        IrSimpleTypeImpl(typeParameter, hasQuestionMark = false, emptyList(), emptyList())
+    }
+    thisReceiver = declareThisReceiverParameter(
+        c,
+        kind = IrParameterKind.DispatchReceiver,
+        thisType = IrSimpleTypeImpl(symbol, false, typeArguments, emptyList()),
+        thisOrigin = IrDeclarationOrigin.INSTANCE_RECEIVER
+    )
 }
 
 fun Fir2IrComponents.createSafeCallConstruction(
@@ -77,21 +96,24 @@ fun Fir2IrComponents.createSafeCallConstruction(
     return IrBlockImpl(startOffset, endOffset, resultType, IrStatementOrigin.SAFE_CALL).apply {
         statements += receiverVariable
         statements += IrWhenImpl(startOffset, endOffset, resultType).apply {
-            val condition = IrCallImpl(
-                startOffset, endOffset, irBuiltIns.booleanType,
-                irBuiltIns.eqeqSymbol,
+            val condition = IrCallImplWithShape(
+                startOffset, endOffset, builtins.booleanType,
+                builtins.eqeqSymbol,
                 valueArgumentsCount = 2,
                 typeArgumentsCount = 0,
+                contextParameterCount = 0,
+                hasDispatchReceiver = false,
+                hasExtensionReceiver = false,
                 origin = IrStatementOrigin.EQEQ
             ).apply {
                 putValueArgument(0, IrGetValueImpl(startOffset, endOffset, receiverVariableSymbol))
-                putValueArgument(1, IrConstImpl.constNull(startOffset, endOffset, irBuiltIns.nothingNType))
+                putValueArgument(1, IrConstImpl.constNull(startOffset, endOffset, builtins.nothingNType))
             }
             branches += IrBranchImpl(
-                condition, IrConstImpl.constNull(startOffset, endOffset, irBuiltIns.nothingNType)
+                condition, IrConstImpl.constNull(startOffset, endOffset, builtins.nothingNType)
             )
             branches += IrElseBranchImpl(
-                IrConstImpl.boolean(startOffset, endOffset, irBuiltIns.booleanType, true),
+                IrConstImpl.boolean(startOffset, endOffset, builtins.booleanType, true),
                 expressionOnNotNull
             )
         }
@@ -114,7 +136,7 @@ fun Fir2IrConversionScope.createTemporaryVariableForSafeCallConstruction(
     createTemporaryVariable(receiverExpression, "safe_receiver")
 
 fun Fir2IrComponents.computeValueClassRepresentation(klass: FirRegularClass): ValueClassRepresentation<IrSimpleType>? {
-    require((klass.valueClassRepresentation != null) == klass.isInline) {
+    require((klass.valueClassRepresentation != null) == klass.isInlineOrValue) {
         "Value class has no representation: ${klass.render()}"
     }
     return klass.valueClassRepresentation?.mapUnderlyingType {
@@ -126,18 +148,56 @@ fun Fir2IrComponents.computeValueClassRepresentation(klass: FirRegularClass): Va
 fun FirSession.createFilesWithGeneratedDeclarations(): List<FirFile> {
     val symbolProvider = generatedDeclarationsSymbolProvider ?: return emptyList()
     val declarationGenerators = extensionService.declarationGenerators
-    val topLevelClasses = declarationGenerators.flatMap { it.topLevelClassIdsCache.getValue() }.groupBy { it.packageFqName }
-    val topLevelCallables = declarationGenerators.flatMap { it.topLevelCallableIdsCache.getValue() }.groupBy { it.packageName }
 
+    return createSyntheticFiles(
+        this@createFilesWithGeneratedDeclarations.moduleData,
+        "__GENERATED DECLARATIONS__.kt",
+        FirDeclarationOrigin.Synthetic.PluginFile,
+        symbolProvider,
+        topLevelClasses = declarationGenerators.flatMap { it.topLevelClassIdsCache.getValue() }.groupBy { it.packageFqName },
+        topLevelCallables = declarationGenerators.flatMap { it.topLevelCallableIdsCache.getValue() }.groupBy { it.packageName },
+    )
+}
+
+const val generatedBuiltinsDeclarationsFileName: String = "__GENERATED BUILTINS DECLARATIONS__.kt"
+
+fun FirSession.createFilesWithBuiltinsSyntheticDeclarationsIfNeeded(): List<FirFile> {
+    // Check `dependsOnDependencies` to avoid generating duplicated declarations (if HMPP project structure is used)
+    if (!languageVersionSettings.getFlag(AnalysisFlags.stdlibCompilation) ||
+        !moduleData.isCommon ||
+        moduleData.dependsOnDependencies.isNotEmpty()
+    ) {
+        return emptyList()
+    }
+    val symbolProvider = syntheticFunctionInterfacesSymbolProvider
+
+    return createSyntheticFiles(
+        this@createFilesWithBuiltinsSyntheticDeclarationsIfNeeded.moduleData,
+        generatedBuiltinsDeclarationsFileName,
+        FirDeclarationOrigin.Synthetic.Builtins,
+        symbolProvider,
+        topLevelClasses = symbolProvider.generatedClassIds.groupBy { it.packageFqName },
+        topLevelCallables = emptyMap(),
+    )
+}
+
+private fun createSyntheticFiles(
+    fileModuleData: FirModuleData,
+    fileName: String,
+    fileOrigin: FirDeclarationOrigin,
+    symbolProvider: FirSymbolProvider,
+    topLevelClasses: Map<FqName, List<ClassId>>,
+    topLevelCallables: Map<FqName, List<CallableId>>,
+): List<FirFile> {
     return buildList {
         for (packageFqName in (topLevelClasses.keys + topLevelCallables.keys)) {
             this += buildFile {
-                origin = FirDeclarationOrigin.Synthetic.PluginFile
-                moduleData = this@createFilesWithGeneratedDeclarations.moduleData
+                origin = fileOrigin
+                moduleData = fileModuleData
                 packageDirective = buildPackageDirective {
                     this.packageFqName = packageFqName
                 }
-                name = "__GENERATED DECLARATIONS__.kt"
+                name = fileName
                 declarations += topLevelCallables.getOrDefault(packageFqName, emptyList())
                     .flatMap { symbolProvider.getTopLevelCallableSymbols(packageFqName, it.callableName) }
                     .map { it.fir }
@@ -146,4 +206,18 @@ fun FirSession.createFilesWithGeneratedDeclarations(): List<FirFile> {
             }
         }
     }
+}
+
+fun Fir2IrComponents.constTrue(startOffset: Int, endOffset: Int): IrConst {
+    return IrConstImpl.constTrue(startOffset, endOffset, builtins.booleanType)
+}
+
+fun Fir2IrComponents.constFalse(startOffset: Int, endOffset: Int): IrConst {
+    return IrConstImpl.constFalse(startOffset, endOffset, builtins.booleanType)
+}
+
+fun Fir2IrComponents.elseBranch(elseExpr: IrExpression): IrElseBranch {
+    val startOffset = elseExpr.startOffset
+    val endOffset = elseExpr.endOffset
+    return IrElseBranchImpl(startOffset, endOffset, constTrue(startOffset, endOffset), elseExpr)
 }

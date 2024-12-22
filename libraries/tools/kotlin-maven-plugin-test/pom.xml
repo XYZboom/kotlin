@@ -5,7 +5,7 @@
     <parent>
         <artifactId>kotlin-project</artifactId>
         <groupId>org.jetbrains.kotlin</groupId>
-        <version>2.0.255-SNAPSHOT</version>
+        <version>2.1.255-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -122,10 +122,11 @@
                                 <artifact>org.jetbrains.kotlin:kotlin-maven-allopen:${project.version}</artifact>
                                 <artifact>org.jetbrains.kotlin:kotlin-maven-noarg:${project.version}</artifact>
                                 <artifact>org.jetbrains.kotlin:kotlin-maven-lombok:${project.version}</artifact>
+                                <artifact>org.jetbrains.kotlin:kotlin-maven-power-assert:${project.version}</artifact>
                                 <artifact>org.jetbrains.kotlin:kotlin-maven-sam-with-receiver:${project.version}</artifact>
                                 <artifact>org.jetbrains.kotlin:kotlin-script-runtime:${project.version}</artifact>
                                 <artifact>org.jetbrains.kotlin:kotlin-stdlib:${project.version}</artifact>
-                                <artifact>org.jetbrains.kotlin:kotlin-stdlib-common:${project.version}</artifact>
+                                <artifact>org.jetbrains.kotlin:kotlin-stdlib-common:${project.version}:pom</artifact>
                                 <artifact>org.jetbrains.kotlin:kotlin-stdlib-js:${project.version}:klib</artifact>
                                 <artifact>org.jetbrains.kotlin:kotlin-stdlib-jdk7:${project.version}</artifact>
                                 <artifact>org.jetbrains.kotlin:kotlin-stdlib-jdk8:${project.version}</artifact>

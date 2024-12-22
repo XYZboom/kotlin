@@ -5,8 +5,6 @@
 
 package org.jetbrains.kotlin.ir.backend.js.ic
 
-import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.JsIrProgramFragments
-import org.jetbrains.kotlin.ir.backend.js.utils.serialization.serializeTo
 import org.jetbrains.kotlin.konan.file.use
 import org.jetbrains.kotlin.utils.newHashSetWithExpectedSize
 import java.io.BufferedOutputStream
@@ -15,10 +13,10 @@ import java.io.File
 internal sealed class SourceFileCacheArtifact(val srcFile: KotlinSourceFile, val binaryAstFile: File) {
     abstract fun commitMetadata()
 
-    fun commitBinaryAst(fragments: JsIrProgramFragments) {
+    fun commitBinaryAst(fragments: IrICProgramFragments, icContext: PlatformDependentICContext) {
         binaryAstFile.parentFile?.mkdirs()
         BufferedOutputStream(binaryAstFile.outputStream()).use {
-            fragments.serializeTo(it)
+            fragments.serialize(it)
         }
     }
 
@@ -57,19 +55,28 @@ internal class IncrementalCacheArtifact(
 ) {
     fun getSourceFiles() = srcCacheActions.mapTo(newHashSetWithExpectedSize(srcCacheActions.size)) { it.srcFile }
 
-    fun buildModuleArtifactAndCommitCache(
+    fun commitCache(
+        rebuiltFileFragments: Map<KotlinSourceFile, IrICProgramFragments>,
+        icContext: PlatformDependentICContext,
+    ) {
+        srcCacheActions.forEach { srcFileAction ->
+            val rebuiltFileFragment = rebuiltFileFragments[srcFileAction.srcFile]
+            if (rebuiltFileFragment != null) {
+                srcFileAction.commitBinaryAst(rebuiltFileFragment, icContext)
+            }
+            srcFileAction.commitMetadata()
+        }
+    }
+
+    fun buildModuleArtifact(
         moduleName: String,
-        rebuiltFileFragments: Map<KotlinSourceFile, JsIrProgramFragments>,
+        rebuiltFileFragments: Map<KotlinSourceFile, IrICProgramFragments>,
+        icContext: PlatformDependentICContext,
     ): ModuleArtifact {
         val fileArtifacts = srcCacheActions.map { srcFileAction ->
             val rebuiltFileFragment = rebuiltFileFragments[srcFileAction.srcFile]
-            if (rebuiltFileFragment != null) {
-                srcFileAction.commitBinaryAst(rebuiltFileFragment)
-            }
-            srcFileAction.commitMetadata()
-            SrcFileArtifact(srcFileAction.srcFile.path, rebuiltFileFragment, srcFileAction.binaryAstFile)
+            icContext.createSrcFileArtifact(srcFileAction.srcFile.path, rebuiltFileFragment, srcFileAction.binaryAstFile)
         }
-
-        return ModuleArtifact(moduleName, fileArtifacts, artifactsDir, forceRebuildJs, externalModuleName)
+        return icContext.createModuleArtifact(moduleName, fileArtifacts, artifactsDir, forceRebuildJs, externalModuleName)
     }
 }

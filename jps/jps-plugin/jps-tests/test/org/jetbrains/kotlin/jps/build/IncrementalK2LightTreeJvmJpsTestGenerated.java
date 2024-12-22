@@ -212,6 +212,11 @@ public class IncrementalK2LightTreeJvmJpsTestGenerated extends AbstractIncrement
       runTest("jps/jps-plugin/testData/incremental/pureKotlin/dependencyClassReferenced/");
     }
 
+    @TestMetadata("differentFilesWithSameNameInSamePackage")
+    public void testDifferentFilesWithSameNameInSamePackage() {
+      runTest("jps/jps-plugin/testData/incremental/pureKotlin/differentFilesWithSameNameInSamePackage/");
+    }
+
     @TestMetadata("entriesMappings")
     public void testEntriesMappings() {
       runTest("jps/jps-plugin/testData/incremental/pureKotlin/entriesMappings/");
@@ -983,6 +988,11 @@ public class IncrementalK2LightTreeJvmJpsTestGenerated extends AbstractIncrement
       runTest("jps/jps-plugin/testData/incremental/inlineFunCallSite/primaryConstructorParameterDefaultValue/");
     }
 
+    @TestMetadata("publishedApi")
+    public void testPublishedApi() {
+      runTest("jps/jps-plugin/testData/incremental/inlineFunCallSite/publishedApi/");
+    }
+
     @TestMetadata("superCall")
     public void testSuperCall() {
       runTest("jps/jps-plugin/testData/incremental/inlineFunCallSite/superCall/");
@@ -1143,6 +1153,19 @@ public class IncrementalK2LightTreeJvmJpsTestGenerated extends AbstractIncrement
 
       public void testAllFilesPresentInPrimaryConstructorParameterDefaultValue() {
         KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/inlineFunCallSite/primaryConstructorParameterDefaultValue"), Pattern.compile("^([^\\.]+)$"), null, TargetBackend.JVM_IR, true);
+      }
+    }
+
+    @TestMetadata("jps/jps-plugin/testData/incremental/inlineFunCallSite/publishedApi")
+    @TestDataPath("$PROJECT_ROOT")
+    @RunWith(JUnit3RunnerWithInners.class)
+    public static class PublishedApi extends AbstractIncrementalK2LightTreeJvmJpsTest {
+      private void runTest(String testDataFilePath) {
+        KotlinTestUtils.runTest(this::doTest, TargetBackend.JVM_IR, testDataFilePath);
+      }
+
+      public void testAllFilesPresentInPublishedApi() {
+        KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/inlineFunCallSite/publishedApi"), Pattern.compile("^([^\\.]+)$"), null, TargetBackend.JVM_IR, true);
       }
     }
 
@@ -1406,11 +1429,6 @@ public class IncrementalK2LightTreeJvmJpsTestGenerated extends AbstractIncrement
       @TestMetadata("notChangeSignature")
       public void testNotChangeSignature() {
         runTest("jps/jps-plugin/testData/incremental/withJava/javaUsedInKotlin/notChangeSignature/");
-      }
-
-      @TestMetadata("potentialSamAdapter")
-      public void testPotentialSamAdapter() {
-        runTest("jps/jps-plugin/testData/incremental/withJava/javaUsedInKotlin/potentialSamAdapter/");
       }
 
       @TestMetadata("rawErrorTypeDuringSerialization")
@@ -1680,19 +1698,6 @@ public class IncrementalK2LightTreeJvmJpsTestGenerated extends AbstractIncrement
 
         public void testAllFilesPresentInNotChangeSignature() {
           KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/withJava/javaUsedInKotlin/notChangeSignature"), Pattern.compile("^([^\\.]+)$"), null, TargetBackend.JVM_IR, true);
-        }
-      }
-
-      @TestMetadata("jps/jps-plugin/testData/incremental/withJava/javaUsedInKotlin/potentialSamAdapter")
-      @TestDataPath("$PROJECT_ROOT")
-      @RunWith(JUnit3RunnerWithInners.class)
-      public static class PotentialSamAdapter extends AbstractIncrementalK2LightTreeJvmJpsTest {
-        private void runTest(String testDataFilePath) {
-          KotlinTestUtils.runTest(this::doTest, TargetBackend.JVM_IR, testDataFilePath);
-        }
-
-        public void testAllFilesPresentInPotentialSamAdapter() {
-          KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/withJava/javaUsedInKotlin/potentialSamAdapter"), Pattern.compile("^([^\\.]+)$"), null, TargetBackend.JVM_IR, true);
         }
       }
 
@@ -2671,23 +2676,8 @@ public class IncrementalK2LightTreeJvmJpsTestGenerated extends AbstractIncrement
       KotlinTestUtils.runTest(this::doTest, TargetBackend.JVM_IR, testDataFilePath);
     }
 
-    @TestMetadata("addAnnotationToJavaClass")
-    public void testAddAnnotationToJavaClass() {
-      runTest("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly/addAnnotationToJavaClass/");
-    }
-
-    @TestMetadata("addNestedClass")
-    public void testAddNestedClass() {
-      runTest("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly/addNestedClass/");
-    }
-
     public void testAllFilesPresentInIncrementalJvmCompilerOnly() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly"), Pattern.compile("^([^\\.]+)$"), null, TargetBackend.JVM_IR, true);
-    }
-
-    @TestMetadata("changeAnnotationInJavaClass")
-    public void testChangeAnnotationInJavaClass() {
-      runTest("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly/changeAnnotationInJavaClass/");
     }
 
     @TestMetadata("inlineFunctionRegeneratedObjectStability")
@@ -2698,45 +2688,6 @@ public class IncrementalK2LightTreeJvmJpsTestGenerated extends AbstractIncrement
     @TestMetadata("inlineFunctionSmapStability")
     public void testInlineFunctionSmapStability() {
       runTest("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly/inlineFunctionSmapStability/");
-    }
-
-    @TestMetadata("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly/addAnnotationToJavaClass")
-    @TestDataPath("$PROJECT_ROOT")
-    @RunWith(JUnit3RunnerWithInners.class)
-    public static class AddAnnotationToJavaClass extends AbstractIncrementalK2LightTreeJvmJpsTest {
-      private void runTest(String testDataFilePath) {
-        KotlinTestUtils.runTest(this::doTest, TargetBackend.JVM_IR, testDataFilePath);
-      }
-
-      public void testAllFilesPresentInAddAnnotationToJavaClass() {
-        KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly/addAnnotationToJavaClass"), Pattern.compile("^([^\\.]+)$"), null, TargetBackend.JVM_IR, true);
-      }
-    }
-
-    @TestMetadata("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly/addNestedClass")
-    @TestDataPath("$PROJECT_ROOT")
-    @RunWith(JUnit3RunnerWithInners.class)
-    public static class AddNestedClass extends AbstractIncrementalK2LightTreeJvmJpsTest {
-      private void runTest(String testDataFilePath) {
-        KotlinTestUtils.runTest(this::doTest, TargetBackend.JVM_IR, testDataFilePath);
-      }
-
-      public void testAllFilesPresentInAddNestedClass() {
-        KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly/addNestedClass"), Pattern.compile("^([^\\.]+)$"), null, TargetBackend.JVM_IR, true);
-      }
-    }
-
-    @TestMetadata("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly/changeAnnotationInJavaClass")
-    @TestDataPath("$PROJECT_ROOT")
-    @RunWith(JUnit3RunnerWithInners.class)
-    public static class ChangeAnnotationInJavaClass extends AbstractIncrementalK2LightTreeJvmJpsTest {
-      private void runTest(String testDataFilePath) {
-        KotlinTestUtils.runTest(this::doTest, TargetBackend.JVM_IR, testDataFilePath);
-      }
-
-      public void testAllFilesPresentInChangeAnnotationInJavaClass() {
-        KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly/changeAnnotationInJavaClass"), Pattern.compile("^([^\\.]+)$"), null, TargetBackend.JVM_IR, true);
-      }
     }
 
     @TestMetadata("jps/jps-plugin/testData/incremental/incrementalJvmCompilerOnly/inlineFunctionRegeneratedObjectStability")

@@ -303,7 +303,8 @@ class PostponedArgumentInputTypesResolver(
             return emptyList()
 
         for (i in 0 until type.argumentsCount()) {
-            val argumentType = type.getArgument(i).getType()
+            val argument = type.getArgument(i)
+            val argumentType = argument.getType() ?: continue
 
             if (argumentType.typeConstructor() == targetVariable) {
                 return path.toList() + (typeConstructor to i)
@@ -502,8 +503,9 @@ class PostponedArgumentInputTypesResolver(
             }
             type.argumentsCount() > 0 -> {
                 for (typeArgument in type.lowerBoundIfFlexible().asArgumentList()) {
-                    if (!typeArgument.isStarProjection()) {
-                        getAllDeeplyRelatedTypeVariables(typeArgument.getType(), variableDependencyProvider, typeVariableCollector)
+                    val argumentType = typeArgument.getType()
+                    if (argumentType != null) {
+                        getAllDeeplyRelatedTypeVariables(argumentType, variableDependencyProvider, typeVariableCollector)
                     }
                 }
             }
@@ -546,24 +548,6 @@ class PostponedArgumentInputTypesResolver(
             topLevelType,
             dependencyProvider,
             resolvedAtomProvider,
-        )
-    }
-
-    @K2Only
-    fun findNextVariableForReportingNotInferredInputType(
-        c: Context,
-        argument: PostponedResolvedAtomMarker,
-        postponedArguments: List<PostponedResolvedAtomMarker>,
-        topLevelType: KotlinTypeMarker,
-        dependencyProvider: TypeVariableDependencyInformationProvider,
-    ): VariableFixationFinder.VariableForFixation? {
-        val expectedType = argument.expectedFunctionType(c) ?: return null
-
-        return c.findNextVariableForParameterType(
-            expectedType,
-            dependencyProvider,
-            postponedArguments,
-            topLevelType,
         )
     }
 

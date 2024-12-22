@@ -13,12 +13,13 @@ import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationUseSiteTarget
-import org.jetbrains.kotlin.fir.tree.generator.context.generatedType
-import org.jetbrains.kotlin.fir.tree.generator.context.type
+import org.jetbrains.kotlin.fir.tree.generator.util.generatedType
+import org.jetbrains.kotlin.fir.tree.generator.util.type
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.ConeErrorType
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeSimpleKotlinType
+import org.jetbrains.kotlin.fir.types.impl.ConeClassLikeTypeImpl
 import org.jetbrains.kotlin.generators.tree.TypeKind
 import org.jetbrains.kotlin.generators.tree.TypeRef
 import org.jetbrains.kotlin.generators.tree.withArgs
@@ -30,6 +31,7 @@ import org.jetbrains.kotlin.types.SmartcastStability
 import org.jetbrains.kotlin.types.Variance
 
 val anyType = type<Any>()
+val stringType = type<String>()
 val sourceElementType = type<KtSourceElement>()
 val sourceFileType = type<KtSourceFile>()
 val sourceFileLinesMappingType = type<KtSourceFileLinesMapping>()
@@ -53,14 +55,15 @@ val coneKotlinTypeType = type<ConeKotlinType>()
 val coneErrorTypeType = type<ConeErrorType>()
 val coneSimpleKotlinTypeType = type<ConeSimpleKotlinType>()
 val coneClassLikeTypeType = type<ConeClassLikeType>()
+val coneClassLikeTypeImplType = type<ConeClassLikeTypeImpl>()
 val standardClassIdsType = type<StandardClassIds>()
 
 val whenRefType = generatedType("", "FirExpressionRef")
-    .withArgs(FirTreeBuilder.whenExpression)
+    .withArgs(FirTree.whenExpression)
 val referenceToSimpleExpressionType = generatedType("", "FirExpressionRef")
-    .withArgs(FirTreeBuilder.expression)
+    .withArgs(FirTree.expression)
 val safeCallCheckedSubjectReferenceType = generatedType("", "FirExpressionRef")
-    .withArgs(FirTreeBuilder.checkedSafeCallSubject)
+    .withArgs(FirTree.checkedSafeCallSubject)
 
 val firModuleDataType = type("fir", "FirModuleData")
 val firImplicitTypeWithoutSourceType = generatedType("types.impl", "FirImplicitTypeRefImplWithoutSource")
@@ -78,6 +81,7 @@ val propertyBodyResolveStateType = type("fir.declarations", "FirPropertyBodyReso
 val stubReferenceType = generatedType("references.impl", "FirStubReference")
 
 val firBasedSymbolType = type("fir.symbols", "FirBasedSymbol")
+val firThisOwnerSymbolType = type("fir.symbols.impl", "FirThisOwnerSymbol")
 val callableSymbolType = type("fir.symbols.impl", "FirCallableSymbol")
 val constructorSymbolType = type("fir.symbols.impl", "FirConstructorSymbol")
 val functionSymbolType = type("fir.symbols.impl", "FirFunctionSymbol")
@@ -86,6 +90,7 @@ val errorFunctionSymbolType = type("fir.symbols.impl", "FirErrorFunctionSymbol")
 val anonymousFunctionSymbolType = type("fir.symbols.impl", "FirAnonymousFunctionSymbol")
 val variableSymbolType = type("fir.symbols.impl", "FirVariableSymbol")
 val valueParameterSymbolType = type("fir.symbols.impl", "FirValueParameterSymbol")
+val receiverParameterSymbolType = type("fir.symbols.impl", "FirReceiverParameterSymbol")
 val fieldSymbolType = type("fir.symbols.impl", "FirFieldSymbol")
 val propertySymbolType = type("fir.symbols.impl", "FirPropertySymbol")
 val errorPropertySymbolType = type("fir.symbols.impl", "FirErrorPropertySymbol")
@@ -103,6 +108,7 @@ val anonymousInitializerSymbolType = type("fir.symbols.impl", "FirAnonymousIniti
 val danglingModifierSymbolType = type("fir.symbols.impl", "FirDanglingModifierSymbol")
 val fileSymbolType = type("fir.symbols.impl", "FirFileSymbol")
 val scriptSymbolType = type("fir.symbols.impl", "FirScriptSymbol")
+val replSnippetSymbolType = type("fir.symbols.impl", "FirReplSnippetSymbol")
 val codeFragmentSymbolType = type("fir.symbols.impl", "FirCodeFragmentSymbol")
 val emptyArgumentListType = type("fir.expressions", "FirEmptyArgumentList")
 val firScopeProviderType = type("fir.scopes", "FirScopeProvider")
@@ -116,6 +122,7 @@ val coneUnreportedDuplicateDiagnosticType = generatedType("diagnostics", "ConeUn
 val firImplementationDetailType = generatedType("FirImplementationDetail")
 val declarationOriginType = generatedType("declarations", "FirDeclarationOrigin")
 val declarationAttributesType = generatedType("declarations", "FirDeclarationAttributes")
+val valueParameterKindType = generatedType("declarations", "FirValueParameterKind")
 
 val exhaustivenessStatusType = generatedType("expressions", "ExhaustivenessStatus")
 
@@ -147,3 +154,5 @@ val unresolvedExpressionTypeAccessAnnotation = type("fir.expressions", "Unresolv
 val rawFirApi = type("fir.expressions", "RawFirApi", kind = TypeKind.Class)
 val firBuilderDslAnnotation = type("fir.builder", "FirBuilderDsl", kind = TypeKind.Class)
 val firResolvedArgumentListType = type("fir.expressions.impl", "FirResolvedArgumentList", kind = TypeKind.Class)
+
+val toSymbolUtilityFunction = type("fir.types", "toLookupTag")

@@ -18,14 +18,14 @@ internal object FirExpectActualAnnotationIncompatibilityDiagnosticRenderers {
     val SYMBOL_RENDERER = Renderer<FirBasedSymbol<*>> {
         val idRendererCreator = { ConeIdShortRenderer() }
         FirRenderer(
-            typeRenderer = ConeTypeRendererForReadability(idRendererCreator),
+            typeRenderer = ConeTypeRendererForReadability(null, idRendererCreator),
             idRenderer = idRendererCreator(),
             classMemberRenderer = null,
             bodyRenderer = null,
             annotationRenderer = null,
             modifierRenderer = null,
             contractRenderer = null,
-            valueParameterRenderer = FirValueParameterRendererForReadability(),
+            callableSignatureRenderer = FirCallableSignatureRendererForReadability(),
         ).renderElementAsString(it.fir, trim = true)
             // Write property accessors on the same line as the property
             .run { replace(Printer.LINE_SEPARATOR, "") }

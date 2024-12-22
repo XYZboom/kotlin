@@ -7,6 +7,7 @@
 package org.jetbrains.kotlin.gradle.plugin.mpp
 
 import org.gradle.api.*
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.attributes.AttributeContainer
@@ -15,6 +16,7 @@ import org.jetbrains.kotlin.gradle.dsl.HasConfigurableKotlinCompilerOptions
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmCompilerOptions
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmCompilerOptionsDefault
 import org.jetbrains.kotlin.gradle.plugin.*
+import org.jetbrains.kotlin.gradle.plugin.mpp.publishing.configureSourcesPublicationAttributes
 import org.jetbrains.kotlin.gradle.tasks.DefaultKotlinJavaToolchain
 import org.jetbrains.kotlin.gradle.utils.*
 import org.jetbrains.kotlin.gradle.utils.dashSeparatedName
@@ -24,6 +26,12 @@ import org.jetbrains.kotlin.gradle.utils.setProperty
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import org.jetbrains.kotlin.utils.addIfNotNull
 import javax.inject.Inject
+
+internal fun ObjectFactory.KotlinAndroidTarget(
+    project: Project,
+    targetName: String = "",
+    isMultiplatformProject: Boolean = false,
+): KotlinAndroidTarget = newInstance(targetName, project, isMultiplatformProject)
 
 abstract class KotlinAndroidTarget @Inject constructor(
     final override val targetName: String,
@@ -300,7 +308,7 @@ abstract class KotlinAndroidTarget @Inject constructor(
             description = "Source files of Android ${variantName}."
             isVisible = false
 
-            apiElementsConfiguration.copyAttributesTo(project, dest = this)
+            apiElementsConfiguration.copyAttributesTo(project.providers, dest = this)
             configureSourcesPublicationAttributes(this@KotlinAndroidTarget)
         }
     }
@@ -331,7 +339,6 @@ abstract class KotlinAndroidTarget @Inject constructor(
         attribute: Attribute<*>,
     ): Boolean = attribute.name != "com.android.build.api.attributes.AgpVersionAttr"
 
-    @ExperimentalKotlinGradlePluginApi
     override val compilerOptions: KotlinJvmCompilerOptions = project.objects
         .newInstance<KotlinJvmCompilerOptionsDefault>()
         .apply {

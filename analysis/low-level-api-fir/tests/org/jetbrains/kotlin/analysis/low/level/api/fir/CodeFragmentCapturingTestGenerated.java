@@ -24,6 +24,12 @@ public class CodeFragmentCapturingTestGenerated extends AbstractCodeFragmentCapt
   }
 
   @Test
+  @TestMetadata("classLiteral.kt")
+  public void testClassLiteral() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/classLiteral.kt");
+  }
+
+  @Test
   @TestMetadata("contextReceiver.kt")
   public void testContextReceiver() {
     runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/contextReceiver.kt");
@@ -72,6 +78,12 @@ public class CodeFragmentCapturingTestGenerated extends AbstractCodeFragmentCapt
   }
 
   @Test
+  @TestMetadata("extensionReceiverPropertyPrivate.kt")
+  public void testExtensionReceiverPropertyPrivate() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/extensionReceiverPropertyPrivate.kt");
+  }
+
+  @Test
   @TestMetadata("extensionReceiverSmartCasted.kt")
   public void testExtensionReceiverSmartCasted() {
     runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/extensionReceiverSmartCasted.kt");
@@ -84,9 +96,39 @@ public class CodeFragmentCapturingTestGenerated extends AbstractCodeFragmentCapt
   }
 
   @Test
+  @TestMetadata("fromExtensionGetterAnother.kt")
+  public void testFromExtensionGetterAnother() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/fromExtensionGetterAnother.kt");
+  }
+
+  @Test
+  @TestMetadata("fromExtensionGetterRecursive.kt")
+  public void testFromExtensionGetterRecursive() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/fromExtensionGetterRecursive.kt");
+  }
+
+  @Test
   @TestMetadata("initializer.kt")
   public void testInitializer() {
     runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/initializer.kt");
+  }
+
+  @Test
+  @TestMetadata("lambda1.kt")
+  public void testLambda1() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/lambda1.kt");
+  }
+
+  @Test
+  @TestMetadata("lambda2.kt")
+  public void testLambda2() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/lambda2.kt");
+  }
+
+  @Test
+  @TestMetadata("lambda3.kt")
+  public void testLambda3() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/lambda3.kt");
   }
 
   @Test
@@ -105,6 +147,12 @@ public class CodeFragmentCapturingTestGenerated extends AbstractCodeFragmentCapt
   @TestMetadata("localFunction.kt")
   public void testLocalFunction() {
     runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/localFunction.kt");
+  }
+
+  @Test
+  @TestMetadata("localFunction2.kt")
+  public void testLocalFunction2() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/localFunction2.kt");
   }
 
   @Test
@@ -150,9 +198,33 @@ public class CodeFragmentCapturingTestGenerated extends AbstractCodeFragmentCapt
   }
 
   @Test
+  @TestMetadata("localFunctionWithMultiFileClass.kt")
+  public void testLocalFunctionWithMultiFileClass() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/localFunctionWithMultiFileClass.kt");
+  }
+
+  @Test
+  @TestMetadata("localFunctionsInNestedClass.kt")
+  public void testLocalFunctionsInNestedClass() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/localFunctionsInNestedClass.kt");
+  }
+
+  @Test
   @TestMetadata("localMutated.kt")
   public void testLocalMutated() {
     runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/localMutated.kt");
+  }
+
+  @Test
+  @TestMetadata("localMutatedWithAugmentedAssignment.kt")
+  public void testLocalMutatedWithAugmentedAssignment() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/localMutatedWithAugmentedAssignment.kt");
+  }
+
+  @Test
+  @TestMetadata("localMutatedWithSugar.kt")
+  public void testLocalMutatedWithSugar() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/localMutatedWithSugar.kt");
   }
 
   @Test
@@ -219,6 +291,18 @@ public class CodeFragmentCapturingTestGenerated extends AbstractCodeFragmentCapt
   @TestMetadata("privateMemberCall.kt")
   public void testPrivateMemberCall() {
     runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/privateMemberCall.kt");
+  }
+
+  @Test
+  @TestMetadata("privateSealedClass.kt")
+  public void testPrivateSealedClass() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/privateSealedClass.kt");
+  }
+
+  @Test
+  @TestMetadata("propertyReference.kt")
+  public void testPropertyReference() {
+    runTest("analysis/analysis-api/testData/components/compilerFacility/compilation/codeFragments/capturing/propertyReference.kt");
   }
 
   @Test

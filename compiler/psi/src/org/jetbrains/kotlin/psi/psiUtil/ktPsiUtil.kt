@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.lexer.KotlinLexer
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.lexer.KtTokens.MODALITY_MODIFIERS
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.SpecialNames
@@ -189,7 +190,7 @@ fun StubBasedPsiElementBase<out KotlinClassOrObjectStub<out KtClassOrObject>>.ge
 
     require(this is KtClassOrObject) { "it should be ${KtClassOrObject::class} but it is a ${this::class.java.name}" }
 
-    val stub = stub
+    val stub = greenStub
     if (stub != null) {
         return stub.getSuperNames()
     }
@@ -325,6 +326,12 @@ fun PsiElement.isExtensionDeclaration(): Boolean {
     return callable?.receiverTypeReference != null
 }
 
+fun KtDeclaration.isExpectDeclaration(): Boolean = when {
+    hasExpectModifier() -> true
+    this is KtParameter -> ownerFunction?.isExpectDeclaration() == true
+    else -> containingClassOrObject?.isExpectDeclaration() == true
+}
+
 fun KtElement.isContextualDeclaration(): Boolean {
     val contextReceivers = when (this) {
         is KtCallableDeclaration -> contextReceivers
@@ -389,7 +396,11 @@ tailrec fun findAssignment(element: PsiElement?): KtBinaryExpression? =
     }
 
 fun KtStringTemplateExpression.getContentRange(): TextRange {
-    val start = node.firstChildNode.textLength
+    val interpolationPrefixOrOpenQuote = node.firstChildNode ?: return TextRange.EMPTY_RANGE
+    val openQuoteAfterPrefixOrNull = interpolationPrefixOrOpenQuote.treeNext?.takeIf { secondNode ->
+        interpolationPrefixOrOpenQuote.elementType == KtTokens.INTERPOLATION_PREFIX && secondNode.elementType == KtTokens.OPEN_QUOTE
+    }
+    val start = interpolationPrefixOrOpenQuote.textLength + (openQuoteAfterPrefixOrNull?.textLength ?: 0)
     val lastChild = node.lastChildNode
     val length = textLength
     return TextRange(start, if (lastChild.elementType == KtTokens.CLOSING_QUOTE) length - lastChild.textLength else length)
@@ -424,7 +435,8 @@ fun KtSimpleNameExpression.isCallee(): Boolean {
 val KtStringTemplateExpression.plainContent: String
     get() = getContentRange().substring(text)
 
-fun KtStringTemplateExpression.isSingleQuoted(): Boolean = node.firstChildNode.textLength == 1
+fun KtStringTemplateExpression.isSingleQuoted(): Boolean =
+    node.findChildByType(KtTokens.OPEN_QUOTE)?.textLength == 1
 
 val KtNamedDeclaration.isPrivateNestedClassOrObject: Boolean get() = this is KtClassOrObject && isPrivate() && !isTopLevel()
 
@@ -700,7 +712,6 @@ fun getTrailingCommaByElementsList(elementList: PsiElement?): PsiElement? {
 val KtNameReferenceExpression.isUnderscoreInBackticks
     get() = getReferencedName() == "`_`"
 
-@Suppress("NO_TAIL_CALLS_FOUND", "NON_TAIL_RECURSIVE_CALL") // K2 warning suppression, TODO: KT-62472
 tailrec fun KtTypeElement.unwrapNullability(): KtTypeElement? {
     return when (this) {
         is KtNullableType -> this.innerType?.unwrapNullability()
@@ -727,3 +738,9 @@ fun getImportedSimpleNameByImportAlias(file: KtFile, aliasName: String): String?
 
     return null
 }
+
+/**
+ * A best-effort way to get the class id of expression's type without resolve.
+ */
+fun KtConstantExpression.inferClassIdByPsi(): ClassId? =
+    ClassIdCalculator.inferConstantExpressionClassIdByPsi(this)

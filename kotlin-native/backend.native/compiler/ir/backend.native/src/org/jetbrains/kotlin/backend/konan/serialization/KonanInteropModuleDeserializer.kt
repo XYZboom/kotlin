@@ -26,7 +26,7 @@ import org.jetbrains.kotlin.ir.util.IdSignature
 import org.jetbrains.kotlin.ir.util.NaiveSourceBasedFileEntryImpl
 import org.jetbrains.kotlin.library.KotlinAbiVersion
 import org.jetbrains.kotlin.library.KotlinLibrary
-import org.jetbrains.kotlin.library.metadata.isInteropLibrary
+import org.jetbrains.kotlin.library.metadata.isCInteropLibrary
 import org.jetbrains.kotlin.name.NativeStandardInteropNames
 
 internal class KonanInteropModuleDeserializer(
@@ -36,10 +36,9 @@ internal class KonanInteropModuleDeserializer(
     private val isLibraryCached: Boolean,
     private val cenumsProvider: IrProviderForCEnumAndCStructStubs,
     private val stubGenerator: DeclarationStubGenerator,
-    private val builtIns: IrBuiltIns,
 ) : IrModuleDeserializer(moduleDescriptor, klib.versions.abiVersion ?: KotlinAbiVersion.CURRENT) {
     init {
-        require(klib.isInteropLibrary())
+        require(klib.isCInteropLibrary())
     }
 
     private val descriptorByIdSignatureFinder = DescriptorByIdSignatureFinderImpl(
@@ -91,7 +90,7 @@ internal class KonanInteropModuleDeserializer(
 
     override fun deserializedSymbolNotFound(idSig: IdSignature): Nothing = error("No descriptor found for $idSig")
 
-    override val moduleFragment: IrModuleFragment = IrModuleFragmentImpl(moduleDescriptor, builtIns)
+    override val moduleFragment: IrModuleFragment = IrModuleFragmentImpl(moduleDescriptor)
 
     override val kind get() = IrModuleDeserializerKind.DESERIALIZED
 }

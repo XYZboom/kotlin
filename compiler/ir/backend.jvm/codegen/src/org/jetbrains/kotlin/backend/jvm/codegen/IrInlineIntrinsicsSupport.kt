@@ -58,11 +58,6 @@ class IrInlineIntrinsicsSupport(
         when (val parent = typeParameter.owner.parent) {
             is IrClass -> putClassInstance(v, parent.defaultType).also { AsmUtil.wrapJavaClassIntoKClass(v) }
             is IrSimpleFunction -> {
-                check(classCodegen.context.config.generateOptimizedCallableReferenceSuperClasses) {
-                    "typeOf() of a non-reified type parameter is only allowed if optimized callable references are enabled.\n" +
-                            "Please make sure API version is set to 1.4, and -Xno-optimized-callable-references is NOT used.\n" +
-                            "Container: $parent"
-                }
                 val property = parent.correspondingPropertySymbol
                 if (property != null) {
                     generatePropertyReference(v, property.owner)
@@ -83,7 +78,7 @@ class IrInlineIntrinsicsSupport(
         // thus cannot have a backing field, and is required to have a getter.
         val getter = property.getter
             ?: error("Property without getter: ${property.render()}")
-        val arity = getter.allParametersCount
+        val arity = getter.parameters.size
         val implClass = (if (property.isVar) MUTABLE_PROPERTY_REFERENCE_IMPL else PROPERTY_REFERENCE_IMPL).getOrNull(arity)
             ?: error("No property reference impl class with arity $arity (${property.render()}")
 
@@ -96,7 +91,7 @@ class IrInlineIntrinsicsSupport(
         v.anew(implClass)
         v.dup()
         if (withArity) {
-            v.iconst(function.allParametersCount)
+            v.iconst(function.parameters.size)
         }
         putClassInstance(v, declaration.parent.getCallableReferenceOwnerKClassType(classCodegen.context))
         v.aconst(declaration.name.asString())

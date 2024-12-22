@@ -32,12 +32,12 @@ internal val TEMP_CLASS_FOR_INTERPRETER = IrDeclarationOriginImpl("TEMP_CLASS_FO
 internal val TEMP_FUNCTION_FOR_INTERPRETER = IrDeclarationOriginImpl("TEMP_FUNCTION_FOR_INTERPRETER")
 
 @Deprecated("Please migrate to `org.jetbrains.kotlin.ir.util.toIrConst`", level = DeprecationLevel.HIDDEN)
-fun Any?.toIrConst(irType: IrType, startOffset: Int = SYNTHETIC_OFFSET, endOffset: Int = SYNTHETIC_OFFSET): IrConst<*> =
+fun Any?.toIrConst(irType: IrType, startOffset: Int = SYNTHETIC_OFFSET, endOffset: Int = SYNTHETIC_OFFSET): IrConst =
     toIrConst(irType, startOffset, endOffset)
 
 internal fun IrFunction.createCall(origin: IrStatementOrigin? = null): IrCall {
     this as IrSimpleFunction
-    return IrCallImpl(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, returnType, symbol, typeParameters.size, valueParameters.size, origin)
+    return IrCallImpl(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, returnType, symbol, typeParameters.size, origin)
 }
 
 internal fun IrConstructor.createConstructorCall(irType: IrType = returnType): IrConstructorCall {
@@ -121,11 +121,12 @@ internal fun IrFunctionAccessExpression.shallowCopy(copyTypeArguments: Boolean =
         is IrConstructorCall -> symbol.owner.createConstructorCall()
         is IrDelegatingConstructorCall -> IrDelegatingConstructorCallImpl.fromSymbolOwner(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, type, symbol)
         is IrEnumConstructorCall ->
-            IrEnumConstructorCallImpl(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, type, symbol, typeArgumentsCount, valueArgumentsCount)
-        else -> TODO("Expression $this cannot be copied")
+            IrEnumConstructorCallImpl(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, type, symbol, typeArguments.size)
     }.apply {
         if (copyTypeArguments) {
-            (0 until this@shallowCopy.typeArgumentsCount).forEach { this.putTypeArgument(it, this@shallowCopy.getTypeArgument(it)) }
+            this@shallowCopy.typeArguments.indices.forEach {
+                typeArguments[it] = this@shallowCopy.typeArguments[it]
+            }
         }
     }
 }
@@ -152,7 +153,7 @@ internal fun IrBuiltIns.irIfNullThenElse(nullableArg: IrExpression, ifTrue: IrEx
     val trueBranch = IrBranchImpl(nullCondition, ifTrue) // use default
     val elseBranch = IrElseBranchImpl(IrConstImpl.constTrue(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, this.booleanType), ifFalse)
 
-    return IrIfThenElseImpl(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, ifTrue.type).apply { branches += listOf(trueBranch, elseBranch) }
+    return IrWhenImpl(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, ifTrue.type).apply { branches += listOf(trueBranch, elseBranch) }
 }
 
 internal fun IrBuiltIns.emptyArrayConstructor(arrayType: IrType): IrConstructorCall {
@@ -165,14 +166,20 @@ internal fun IrBuiltIns.emptyArrayConstructor(arrayType: IrType): IrConstructorC
         // TODO find a way to avoid creation of empty lambda
         val tempFunction = createTempFunction(Name.identifier("TempForVararg"), this.anyType)
         tempFunction.parent = arrayClass // can be anything, will not be used in any case
-        val initLambda = IrFunctionExpressionImpl(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, constructor.valueParameters[1].type, tempFunction, IrStatementOrigin.LAMBDA)
+        val initLambda = IrFunctionExpressionImpl(
+            SYNTHETIC_OFFSET,
+            SYNTHETIC_OFFSET,
+            constructor.valueParameters[1].type,
+            tempFunction,
+            IrStatementOrigin.LAMBDA
+        )
         constructorCall.putValueArgument(1, initLambda)
-        constructorCall.putTypeArgument(0, (arrayType as IrSimpleType).arguments.singleOrNull()?.typeOrNull)
+        constructorCall.typeArguments[0] = (arrayType as IrSimpleType).arguments.singleOrNull()?.typeOrNull
     }
     return constructorCall
 }
 
-internal fun IrConst<*>.toConstantValue(): ConstantValue<*> {
+internal fun IrConst.toConstantValue(): ConstantValue<*> {
     if (value == null) return NullValue
 
     val constType = this.type.makeNotNull().removeAnnotations()
@@ -224,7 +231,7 @@ internal fun IrElement.toConstantValueOrNull(): ConstantValue<*>? {
     }
 
     return when (this) {
-        is IrConst<*> -> this.toConstantValue()
+        is IrConst -> this.toConstantValue()
         is IrConstructorCall -> {
             if (!this.type.isAnnotation()) return null
             val classId = this.symbol.owner.constructedClass.classId ?: return null

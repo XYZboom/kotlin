@@ -16,6 +16,9 @@
 
 package org.jetbrains.kotlin.codegen
 
+import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
+import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
+import org.jetbrains.kotlin.cli.common.arguments.cliArgument
 import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.config.ApiVersion
@@ -23,7 +26,7 @@ import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.load.kotlin.loadModuleMapping
 import org.jetbrains.kotlin.metadata.jvm.deserialization.ModuleMapping
-import org.jetbrains.kotlin.resolve.jvm.JvmCompilerDeserializationConfiguration
+import org.jetbrains.kotlin.resolve.CompilerDeserializationConfiguration
 import org.jetbrains.kotlin.test.CompilerTestUtil
 import org.jetbrains.kotlin.test.KotlinTestUtils
 import org.jetbrains.kotlin.test.testFramework.KtUsefulTestCase
@@ -45,16 +48,16 @@ class JvmModuleProtoBufTest : KtUsefulTestCase() {
         CompilerTestUtil.executeCompilerAssertSuccessful(
             K2JVMCompiler(), listOf(
                 directory,
-                "-d", tmpdir.path,
-                "-module-name", moduleName,
-                "-language-version", compileWith.versionString
+                K2JVMCompilerArguments::destination.cliArgument, tmpdir.path,
+                K2JVMCompilerArguments::moduleName.cliArgument, moduleName,
+                CommonCompilerArguments::languageVersion.cliArgument, compileWith.versionString
             ) + extraOptions,
             messageRenderer
         )
 
         val mapping = ModuleMapping.loadModuleMapping(
             File(tmpdir, "META-INF/$moduleName.${ModuleMapping.MAPPING_FILE_EXT}").readBytes(), "test",
-            JvmCompilerDeserializationConfiguration(LanguageVersionSettingsImpl(loadWith, ApiVersion.createByLanguageVersion(loadWith))),
+            CompilerDeserializationConfiguration(LanguageVersionSettingsImpl(loadWith, ApiVersion.createByLanguageVersion(loadWith))),
             ::error
         )
         val result = buildString {

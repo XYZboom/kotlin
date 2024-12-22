@@ -1,7 +1,9 @@
+// IGNORE_FIR_DIAGNOSTICS
+// RUN_PIPELINE_TILL: FIR2IR
 // MODULE: m1-common
 // FILE: common.kt
 
-<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect annotation class A<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>(vararg val x: String)<!><!>
+<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>expect<!> annotation class A<!EXPECT_ACTUAL_INCOMPATIBILITY{JVM}!>(vararg val x: String)<!>
 
 @A("abc", "foo", "bar")
 fun test() {}

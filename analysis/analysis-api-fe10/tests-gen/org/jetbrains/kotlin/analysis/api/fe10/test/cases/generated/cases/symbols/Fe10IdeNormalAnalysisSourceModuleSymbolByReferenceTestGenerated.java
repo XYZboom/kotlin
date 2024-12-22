@@ -49,7 +49,43 @@ public class Fe10IdeNormalAnalysisSourceModuleSymbolByReferenceTestGenerated ext
 
   @Test
   public void testAllFilesPresentInSymbolByReference() {
-    KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByReference"), Pattern.compile("^(.+)\\.kt$"), null, true);
+    KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByReference"), Pattern.compile("^(.+)\\.kt$"), null, true, "withTestCompilerPluginEnabled");
+  }
+
+  @Test
+  @TestMetadata("constructorParameterViaTypeAlias.kt")
+  public void testConstructorParameterViaTypeAlias() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorParameterViaTypeAlias.kt");
+  }
+
+  @Test
+  @TestMetadata("constructorParameterViaTypeAlias_withTypeParameters.kt")
+  public void testConstructorParameterViaTypeAlias_withTypeParameters() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorParameterViaTypeAlias_withTypeParameters.kt");
+  }
+
+  @Test
+  @TestMetadata("constructorParameterViaTypeAlias_withTypeParametersFixed.kt")
+  public void testConstructorParameterViaTypeAlias_withTypeParametersFixed() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorParameterViaTypeAlias_withTypeParametersFixed.kt");
+  }
+
+  @Test
+  @TestMetadata("constructorReferenceViaTypeAlias.kt")
+  public void testConstructorReferenceViaTypeAlias() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorReferenceViaTypeAlias.kt");
+  }
+
+  @Test
+  @TestMetadata("constructorReferenceViaTypeAlias_withTypeParameters.kt")
+  public void testConstructorReferenceViaTypeAlias_withTypeParameters() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorReferenceViaTypeAlias_withTypeParameters.kt");
+  }
+
+  @Test
+  @TestMetadata("constructorReferenceViaTypeAlias_withTypeParametersFixed.kt")
+  public void testConstructorReferenceViaTypeAlias_withTypeParametersFixed() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorReferenceViaTypeAlias_withTypeParametersFixed.kt");
   }
 
   @Test
@@ -62,6 +98,36 @@ public class Fe10IdeNormalAnalysisSourceModuleSymbolByReferenceTestGenerated ext
   @TestMetadata("constructorViaTypeAlias.kt")
   public void testConstructorViaTypeAlias() {
     runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorViaTypeAlias.kt");
+  }
+
+  @Test
+  @TestMetadata("constructorViaTypeAlias_arrayList.kt")
+  public void testConstructorViaTypeAlias_arrayList() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorViaTypeAlias_arrayList.kt");
+  }
+
+  @Test
+  @TestMetadata("constructorViaTypeAlias_differentModules.kt")
+  public void testConstructorViaTypeAlias_differentModules() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorViaTypeAlias_differentModules.kt");
+  }
+
+  @Test
+  @TestMetadata("constructorViaTypeAlias_withTypeParameters.kt")
+  public void testConstructorViaTypeAlias_withTypeParameters() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorViaTypeAlias_withTypeParameters.kt");
+  }
+
+  @Test
+  @TestMetadata("constructorViaTypeAlias_withTypeParametersAltered.kt")
+  public void testConstructorViaTypeAlias_withTypeParametersAltered() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorViaTypeAlias_withTypeParametersAltered.kt");
+  }
+
+  @Test
+  @TestMetadata("constructorViaTypeAlias_withTypeParametersFixed.kt")
+  public void testConstructorViaTypeAlias_withTypeParametersFixed() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorViaTypeAlias_withTypeParametersFixed.kt");
   }
 
   @Test
@@ -149,6 +215,18 @@ public class Fe10IdeNormalAnalysisSourceModuleSymbolByReferenceTestGenerated ext
   }
 
   @Test
+  @TestMetadata("javaNestedAnnotation.kt")
+  public void testJavaNestedAnnotation() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/javaNestedAnnotation.kt");
+  }
+
+  @Test
+  @TestMetadata("javaOverriddenSyntheticProperty.kt")
+  public void testJavaOverriddenSyntheticProperty() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/javaOverriddenSyntheticProperty.kt");
+  }
+
+  @Test
   @TestMetadata("javaStaticField.kt")
   public void testJavaStaticField() {
     runTest("analysis/analysis-api/testData/symbols/symbolByReference/javaStaticField.kt");
@@ -164,6 +242,18 @@ public class Fe10IdeNormalAnalysisSourceModuleSymbolByReferenceTestGenerated ext
   @TestMetadata("javaSyntheticAccessor.kt")
   public void testJavaSyntheticAccessor() {
     runTest("analysis/analysis-api/testData/symbols/symbolByReference/javaSyntheticAccessor.kt");
+  }
+
+  @Test
+  @TestMetadata("javaValueParameter.kt")
+  public void testJavaValueParameter() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/javaValueParameter.kt");
+  }
+
+  @Test
+  @TestMetadata("javaValueParameterLibraryBinary.kt")
+  public void testJavaValueParameterLibraryBinary() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/javaValueParameterLibraryBinary.kt");
   }
 
   @Test
@@ -287,6 +377,12 @@ public class Fe10IdeNormalAnalysisSourceModuleSymbolByReferenceTestGenerated ext
   }
 
   @Test
+  @TestMetadata("nestedAnnotation.kt")
+  public void testNestedAnnotation() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/nestedAnnotation.kt");
+  }
+
+  @Test
   @TestMetadata("primaryConstructorValueParameter.kt")
   public void testPrimaryConstructorValueParameter() {
     runTest("analysis/analysis-api/testData/symbols/symbolByReference/primaryConstructorValueParameter.kt");
@@ -311,9 +407,87 @@ public class Fe10IdeNormalAnalysisSourceModuleSymbolByReferenceTestGenerated ext
   }
 
   @Test
+  @TestMetadata("samConstructorForTypeAlias.kt")
+  public void testSamConstructorForTypeAlias() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/samConstructorForTypeAlias.kt");
+  }
+
+  @Test
   @TestMetadata("setterValueParameter.kt")
   public void testSetterValueParameter() {
     runTest("analysis/analysis-api/testData/symbols/symbolByReference/setterValueParameter.kt");
+  }
+
+  @Test
+  @TestMetadata("staticFieldFromJavaClassFromSuper.kt")
+  public void testStaticFieldFromJavaClassFromSuper() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticFieldFromJavaClassFromSuper.kt");
+  }
+
+  @Test
+  @TestMetadata("staticImportFunction.kt")
+  public void testStaticImportFunction() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticImportFunction.kt");
+  }
+
+  @Test
+  @TestMetadata("staticImportFunctionFromSuper.kt")
+  public void testStaticImportFunctionFromSuper() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticImportFunctionFromSuper.kt");
+  }
+
+  @Test
+  @TestMetadata("staticImportJavaField.kt")
+  public void testStaticImportJavaField() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticImportJavaField.kt");
+  }
+
+  @Test
+  @TestMetadata("staticImportJavaFunction.kt")
+  public void testStaticImportJavaFunction() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticImportJavaFunction.kt");
+  }
+
+  @Test
+  @TestMetadata("staticImportNestedFunction.kt")
+  public void testStaticImportNestedFunction() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticImportNestedFunction.kt");
+  }
+
+  @Test
+  @TestMetadata("staticImportNestedJavaField.kt")
+  public void testStaticImportNestedJavaField() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticImportNestedJavaField.kt");
+  }
+
+  @Test
+  @TestMetadata("staticImportNestedJavaFunction.kt")
+  public void testStaticImportNestedJavaFunction() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticImportNestedJavaFunction.kt");
+  }
+
+  @Test
+  @TestMetadata("staticImportNestedProperty.kt")
+  public void testStaticImportNestedProperty() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticImportNestedProperty.kt");
+  }
+
+  @Test
+  @TestMetadata("staticImportProperty.kt")
+  public void testStaticImportProperty() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticImportProperty.kt");
+  }
+
+  @Test
+  @TestMetadata("staticImportPropertyFromSuper.kt")
+  public void testStaticImportPropertyFromSuper() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticImportPropertyFromSuper.kt");
+  }
+
+  @Test
+  @TestMetadata("staticMethodFromJavaClassFromSuper.kt")
+  public void testStaticMethodFromJavaClassFromSuper() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/staticMethodFromJavaClassFromSuper.kt");
   }
 
   @Test
@@ -345,8 +519,14 @@ public class Fe10IdeNormalAnalysisSourceModuleSymbolByReferenceTestGenerated ext
   @TestDataPath("$PROJECT_ROOT")
   public class Js {
     @Test
+    @TestMetadata("actualEnum.kt")
+    public void testActualEnum() {
+      runTest("analysis/analysis-api/testData/symbols/symbolByReference/js/actualEnum.kt");
+    }
+
+    @Test
     public void testAllFilesPresentInJs() {
-      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByReference/js"), Pattern.compile("^(.+)\\.kt$"), null, true);
+      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByReference/js"), Pattern.compile("^(.+)\\.kt$"), null, true, "withTestCompilerPluginEnabled");
     }
 
     @Test
@@ -365,22 +545,6 @@ public class Fe10IdeNormalAnalysisSourceModuleSymbolByReferenceTestGenerated ext
     @TestMetadata("propertyFromJsDynamicScope.kt")
     public void testPropertyFromJsDynamicScope() {
       runTest("analysis/analysis-api/testData/symbols/symbolByReference/js/propertyFromJsDynamicScope.kt");
-    }
-  }
-
-  @Nested
-  @TestMetadata("analysis/analysis-api/testData/symbols/symbolByReference/withTestCompilerPluginEnabled")
-  @TestDataPath("$PROJECT_ROOT")
-  public class WithTestCompilerPluginEnabled {
-    @Test
-    public void testAllFilesPresentInWithTestCompilerPluginEnabled() {
-      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/symbolByReference/withTestCompilerPluginEnabled"), Pattern.compile("^(.+)\\.kt$"), null, true);
-    }
-
-    @Test
-    @TestMetadata("generatedCompanionWorksAsValue.kt")
-    public void testGeneratedCompanionWorksAsValue() {
-      runTest("analysis/analysis-api/testData/symbols/symbolByReference/withTestCompilerPluginEnabled/generatedCompanionWorksAsValue.kt");
     }
   }
 }

@@ -6,9 +6,9 @@ import org.jetbrains.kotlin.backend.common.linkage.issues.checkNoUnboundSymbols
 import org.jetbrains.kotlin.backend.common.linkage.partial.createPartialLinkageSupportForLinker
 import org.jetbrains.kotlin.backend.common.overrides.FakeOverrideChecker
 import org.jetbrains.kotlin.backend.common.serialization.DescriptorByIdSignatureFinderImpl
+import org.jetbrains.kotlin.backend.common.serialization.IrModuleDeserializer
 import org.jetbrains.kotlin.backend.common.serialization.mangle.ManglerChecker
 import org.jetbrains.kotlin.backend.common.serialization.mangle.descriptor.Ir2DescriptorManglerAdapter
-import org.jetbrains.kotlin.backend.konan.descriptors.isForwardDeclarationModule
 import org.jetbrains.kotlin.backend.konan.driver.phases.PsiToIrContext
 import org.jetbrains.kotlin.backend.konan.driver.phases.PsiToIrInput
 import org.jetbrains.kotlin.backend.konan.driver.phases.PsiToIrOutput
@@ -16,26 +16,31 @@ import org.jetbrains.kotlin.backend.konan.ir.KonanSymbols
 import org.jetbrains.kotlin.backend.konan.ir.SymbolOverDescriptorsLookupUtils
 import org.jetbrains.kotlin.backend.konan.ir.interop.IrProviderForCEnumAndCStructStubs
 import org.jetbrains.kotlin.backend.konan.ir.konanLibrary
+import org.jetbrains.kotlin.backend.konan.serialization.CInteropModuleDeserializerFactory
+import org.jetbrains.kotlin.backend.konan.serialization.KonanInteropModuleDeserializer
 import org.jetbrains.kotlin.backend.konan.serialization.KonanIrLinker
 import org.jetbrains.kotlin.backend.konan.serialization.KonanManglerDesc
 import org.jetbrains.kotlin.backend.konan.serialization.KonanManglerIr
+import org.jetbrains.kotlin.backend.konan.serialization.isFromCInteropLibrary
 import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.config.messageCollector
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
-import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
-import org.jetbrains.kotlin.ir.builders.TranslationPluginContext
 import org.jetbrains.kotlin.ir.declarations.DescriptorMetadataSource
 import org.jetbrains.kotlin.ir.linkage.IrDeserializer
 import org.jetbrains.kotlin.ir.linkage.partial.partialLinkageConfig
 import org.jetbrains.kotlin.ir.objcinterop.IrObjCOverridabilityCondition
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
-import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.DeclarationStubGenerator
+import org.jetbrains.kotlin.ir.util.IdSignature
+import org.jetbrains.kotlin.ir.util.StubGeneratorExtensions
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
+import org.jetbrains.kotlin.library.KotlinLibrary
 import org.jetbrains.kotlin.library.isHeader
 import org.jetbrains.kotlin.library.metadata.DeserializedKlibModuleOrigin
 import org.jetbrains.kotlin.library.metadata.KlibModuleOrigin
-import org.jetbrains.kotlin.library.metadata.isFromInteropLibrary
+import org.jetbrains.kotlin.library.metadata.impl.isForwardDeclarationModule
 import org.jetbrains.kotlin.library.uniqueName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi2ir.Psi2IrConfiguration
@@ -58,14 +63,14 @@ internal fun PsiToIrContext.psiToIr(
     val symbolTable = symbolTable!!
     val (moduleDescriptor, environment, isProducingLibrary) = input
     // Translate AST to high level IR.
-    val messageLogger = config.configuration.irMessageLogger
+    val messageCollector = config.configuration.messageCollector
 
     val partialLinkageConfig = config.configuration.partialLinkageConfig
 
     val translator = Psi2IrTranslator(
             config.configuration.languageVersionSettings,
             Psi2IrConfiguration(ignoreErrors = false, partialLinkageConfig.isEnabled),
-            messageLogger::checkNoUnboundSymbols
+            messageCollector::checkNoUnboundSymbols
     )
     val generatorContext = translator.createGeneratorContext(moduleDescriptor, bindingContext, symbolTable)
 
@@ -97,7 +102,12 @@ internal fun PsiToIrContext.psiToIr(
             else
                 BuiltInFictitiousFunctionIrClassFactory(symbolTable, irBuiltInsOverDescriptors, reflectionTypes)
     irBuiltInsOverDescriptors.functionFactory = functionIrClassFactory
-    val symbols = KonanSymbols(this, SymbolOverDescriptorsLookupUtils(generatorContext.symbolTable), generatorContext.irBuiltIns, symbolTable.lazyWrapper)
+    val symbols = KonanSymbols(
+            this,
+            SymbolOverDescriptorsLookupUtils(generatorContext.symbolTable),
+            generatorContext.irBuiltIns,
+            this.config.configuration
+    )
 
     val irDeserializer = if (isProducingLibrary && !useLinkerWhenProducingLibrary) {
         // Enable lazy IR generation for newly-created symbols inside BE
@@ -117,17 +127,11 @@ internal fun PsiToIrContext.psiToIr(
         val exportedDependencies = (moduleDescriptor.getExportedDependencies(config) + libraryToCacheModule?.let { listOf(it) }.orEmpty()).distinct()
         val irProviderForCEnumsAndCStructs =
                 IrProviderForCEnumAndCStructStubs(generatorContext, symbols)
-
-        val translationContext = object : TranslationPluginContext {
-            override val moduleDescriptor: ModuleDescriptor
-                get() = generatorContext.moduleDescriptor
-            override val symbolTable: ReferenceSymbolTable
-                get() = symbolTable
-            override val typeTranslator: TypeTranslator
-                get() = generatorContext.typeTranslator
-            override val irBuiltIns: IrBuiltIns
-                get() = generatorContext.irBuiltIns
-        }
+        val cInteropModuleDeserializerFactory = KonanCInteropModuleDeserializerFactory(
+                cachedLibraries = config.cachedLibraries,
+                cenumsProvider = irProviderForCEnumsAndCStructs,
+                stubGenerator = stubGenerator,
+        )
 
         val friendModules = config.resolvedLibraries.getFullList()
                 .filter { it.libraryFile in config.friendModuleFiles }
@@ -140,20 +144,18 @@ internal fun PsiToIrContext.psiToIr(
 
         KonanIrLinker(
                 currentModule = moduleDescriptor,
-                translationPluginContext = translationContext,
-                messageLogger = messageLogger,
+                messageCollector = messageCollector,
                 builtIns = generatorContext.irBuiltIns,
                 symbolTable = symbolTable,
                 friendModules = friendModulesMap,
                 forwardModuleDescriptor = forwardDeclarationsModuleDescriptor,
                 stubGenerator = stubGenerator,
-                cenumsProvider = irProviderForCEnumsAndCStructs,
+                cInteropModuleDeserializerFactory = cInteropModuleDeserializerFactory,
                 exportedDependencies = exportedDependencies,
                 partialLinkageSupport = createPartialLinkageSupportForLinker(
                         partialLinkageConfig = partialLinkageConfig,
-                        allowErrorTypes = false, // Kotlin/Native does not support error types.
                         builtIns = generatorContext.irBuiltIns,
-                        messageLogger = messageLogger
+                        messageCollector = messageCollector
                 ),
                 cachedLibraries = config.cachedLibraries,
                 lazyIrForCaches = config.lazyIrForCaches,
@@ -194,7 +196,7 @@ internal fun PsiToIrContext.psiToIr(
 
             // We need to run `buildAllEnumsAndStructsFrom` before `generateModuleFragment` because it adds references to symbolTable
             // that should be bound.
-            if (libraryToCacheModule?.isFromInteropLibrary() == true)
+            if (libraryToCacheModule?.isFromCInteropLibrary() == true)
                 irProviderForCEnumsAndCStructs.referenceAllEnumsAndStructsFrom(libraryToCacheModule)
 
             translator.addPostprocessingStep {
@@ -212,26 +214,21 @@ internal fun PsiToIrContext.psiToIr(
                 generatorContext.typeTranslator,
                 generatorContext.irBuiltIns,
                 linker = irDeserializer,
-                diagnosticReporter = messageLogger
+                messageCollector = messageCollector
         )
         pluginExtensions.forEach { extension ->
             extension.generate(module, pluginContext)
         }
     }
 
-    val mainModule = translator.generateModuleFragment(
-            generatorContext,
-            environment.getSourceFiles(),
-            irProviders = listOf(irDeserializer),
-            linkerExtensions = pluginExtensions,
-    )
+    val mainModule = translator.generateModuleFragment(generatorContext, environment.getSourceFiles(), listOf(irDeserializer))
 
     irDeserializer.postProcess(inOrAfterLinkageStep = true)
 
     // Enable lazy IR genration for newly-created symbols inside BE
     stubGenerator.unboundSymbolGeneration = true
 
-    messageLogger.checkNoUnboundSymbols(symbolTable, "at the end of IR linkage process")
+    messageCollector.checkNoUnboundSymbols(symbolTable, "at the end of IR linkage process")
 
     mainModule.acceptVoid(ManglerChecker(KonanManglerIr, Ir2DescriptorManglerAdapter(KonanManglerDesc)))
 
@@ -262,12 +259,38 @@ internal fun PsiToIrContext.psiToIr(
     }
 
     return if (isProducingLibrary) {
-        PsiToIrOutput.ForKlib(mainModule, symbols)
+        PsiToIrOutput.ForKlib(mainModule, generatorContext.irBuiltIns, symbols)
     } else if (libraryToCache == null) {
-        PsiToIrOutput.ForBackend(modules, mainModule, symbols, irDeserializer as KonanIrLinker)
+        PsiToIrOutput.ForBackend(modules, mainModule, generatorContext.irBuiltIns, symbols, symbolTable, irDeserializer as KonanIrLinker)
     } else {
         val libraryName = libraryToCache.klib.libraryName
         val libraryModule = modules[libraryName] ?: error("No module for the library being cached: $libraryName")
-        PsiToIrOutput.ForBackend(modules.filterKeys { it != libraryName }, libraryModule, symbols, irDeserializer as KonanIrLinker)
+        PsiToIrOutput.ForBackend(
+                irModules = modules.filterKeys { it != libraryName },
+                irModule = libraryModule,
+                irBuiltIns = generatorContext.irBuiltIns,
+                symbols = symbols,
+                symbolTable = symbolTable,
+                irLinker = irDeserializer as KonanIrLinker
+        )
     }
+}
+
+internal class KonanCInteropModuleDeserializerFactory(
+        private val cachedLibraries: CachedLibraries,
+        private val cenumsProvider: IrProviderForCEnumAndCStructStubs,
+        private val stubGenerator: DeclarationStubGenerator,
+): CInteropModuleDeserializerFactory {
+    override fun createIrModuleDeserializer(
+            moduleDescriptor: ModuleDescriptor,
+            klib: KotlinLibrary,
+            moduleDependencies: Collection<IrModuleDeserializer>,
+    ): IrModuleDeserializer = KonanInteropModuleDeserializer(
+            moduleDescriptor,
+            klib,
+            moduleDependencies,
+            cachedLibraries.isLibraryCached(klib),
+            cenumsProvider,
+            stubGenerator,
+    )
 }

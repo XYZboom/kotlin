@@ -5,9 +5,9 @@
 
 package org.jetbrains.kotlin.analysis.api.impl.base.test.cases.components.compileTimeConstantProvider
 
-import org.jetbrains.kotlin.analysis.api.components.KtConstantEvaluationMode
+import org.jetbrains.kotlin.analysis.api.impl.base.test.cases.components.renderFrontendIndependentKClassNameOf
 import org.jetbrains.kotlin.analysis.test.framework.base.AbstractAnalysisApiBasedTest
-import org.jetbrains.kotlin.analysis.test.framework.project.structure.KtTestModule
+import org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModule
 import org.jetbrains.kotlin.analysis.test.framework.services.expressionMarkerProvider
 import org.jetbrains.kotlin.analysis.test.framework.utils.executeOnPooledThreadInReadAction
 import org.jetbrains.kotlin.psi.KtExpression
@@ -26,25 +26,17 @@ abstract class AbstractCompileTimeConstantEvaluatorTest : AbstractAnalysisApiBas
         } ?: testServices.assertions.fail { "Unsupported expression: $element" }
         val constantValue = executeOnPooledThreadInReadAction {
             analyseForTest(expression) {
-                expression.evaluate(KtConstantEvaluationMode.CONSTANT_EXPRESSION_EVALUATION)
+                expression.evaluate()
             }
         }
-        val constantLikeValue = executeOnPooledThreadInReadAction {
-            analyseForTest(expression) {
-                expression.evaluate(KtConstantEvaluationMode.CONSTANT_LIKE_EXPRESSION_EVALUATION)
-            }
-        }
+
         val actual = buildString {
             appendLine("expression: ${expression.text}")
-            appendLine()
-            appendLine("CONSTANT_EXPRESSION_EVALUATION")
-            appendLine("constant: ${constantValue?.renderAsKotlinConstant() ?: "NOT_EVALUATED"}")
-            appendLine("constantValueKind: ${constantValue?.constantValueKind ?: "NOT_EVALUATED"}")
-            appendLine()
-            appendLine("CONSTANT_LIKE_EXPRESSION_EVALUATION")
-            appendLine("constantLike: ${constantLikeValue?.renderAsKotlinConstant() ?: "NOT_EVALUATED"}")
-            appendLine("constantLikeValueKind: ${constantLikeValue?.constantValueKind ?: "NOT_EVALUATED"}")
+            appendLine("constant: ${constantValue?.render() ?: "NOT_EVALUATED"}")
+
+            appendLine("constantValueKind: ${constantValue?.let { renderFrontendIndependentKClassNameOf(it) } ?: "NOT_EVALUATED"}")
         }
+
         testServices.assertions.assertEqualsToTestDataFileSibling(actual)
     }
 }

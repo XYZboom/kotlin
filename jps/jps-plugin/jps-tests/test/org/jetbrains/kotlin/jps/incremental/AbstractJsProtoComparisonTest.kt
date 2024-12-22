@@ -18,13 +18,13 @@ package org.jetbrains.kotlin.jps.incremental
 
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JsArgumentConstants
+import org.jetbrains.kotlin.cli.common.messages.MessageCollectorImpl
 import org.jetbrains.kotlin.compilerRunner.OutputItemsCollectorImpl
 import org.jetbrains.kotlin.config.Services
 import org.jetbrains.kotlin.incremental.ProtoData
 import org.jetbrains.kotlin.incremental.getProtoData
 import org.jetbrains.kotlin.incremental.js.IncrementalResultsConsumer
 import org.jetbrains.kotlin.incremental.js.IncrementalResultsConsumerImpl
-import org.jetbrains.kotlin.incremental.utils.TestMessageCollector
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.test.kotlinPathsForDistDirectoryForTests
 import org.jetbrains.kotlin.utils.PathUtil
@@ -64,14 +64,13 @@ abstract class AbstractJsProtoComparisonTest(val languageVersionOverride: String
         }
 
         val ktFiles = sourceDir.walkMatching { it.name.endsWith(".kt") }.map { it.canonicalPath }.toList()
-        val messageCollector = TestMessageCollector()
+        val messageCollector = MessageCollectorImpl()
         val outputItemsCollector = OutputItemsCollectorImpl()
         val args = K2JSCompilerArguments().apply {
             this.outputDir = outputDir.normalize().absolutePath
             moduleName = "out"
             libraries = jsStdlibFile.absolutePath
             irProduceKlibDir = true
-            irOnly = true
             main = K2JsArgumentConstants.NO_CALL
             freeArgs = ktFiles
             languageVersionOverride?.let { languageVersion = it }
@@ -80,7 +79,7 @@ abstract class AbstractJsProtoComparisonTest(val languageVersionOverride: String
         val env = createTestingCompilerEnvironment(messageCollector, outputItemsCollector, services)
         runJSCompiler(args, env).let { exitCode ->
             val expectedOutput = "OK"
-            val actualOutput = (listOf(exitCode?.name) + messageCollector.errors).joinToString("\n")
+            val actualOutput = (listOf(exitCode?.name) + messageCollector.errors.map { it.message }).joinToString("\n")
             Assert.assertEquals(expectedOutput, actualOutput)
         }
 

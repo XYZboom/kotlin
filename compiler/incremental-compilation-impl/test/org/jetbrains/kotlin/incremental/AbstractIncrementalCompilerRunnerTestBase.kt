@@ -72,7 +72,7 @@ abstract class AbstractIncrementalCompilerRunnerTestBase<Args : CommonCompilerAr
             }
         }
         if (testPassed && failFile.exists()) {
-            fail("Test is successful and $FAIL_FILE_NAME can be removed")
+            fail("Test is successful and ${failFile.name} can be removed")
         }
     }
 
@@ -160,7 +160,7 @@ abstract class AbstractIncrementalCompilerRunnerTestBase<Args : CommonCompilerAr
                 // JPS logs should be updated carefully, because standalone logs are a bit different (no removed classes, iterations, etc)
                 Assert.assertEquals(expectedSB.toString(), actualSB.toString())
             } else {
-                KtUsefulTestCase.assertSameLinesWithFile(buildLogFile.canonicalPath, actualSB.toString(), false)
+                KtUsefulTestCase.assertSameLinesWithFile(buildLogFile.absolutePath, actualSB.toString(), false)
             }
         }
 

@@ -26,8 +26,9 @@ import org.jetbrains.kotlin.fir.declarations.utils.isInterface
 import org.jetbrains.kotlin.fir.declarations.utils.modality
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.fir.languageVersionSettings
-import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
+import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
+import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassifierSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirTypeAliasSymbol
@@ -52,12 +53,14 @@ object FirSupertypesChecker : FirClassChecker(MppCheckerKind.Common) {
             // skip implicit super types like Enum or Any
             if (superTypeRef.source == null || superTypeRef.source?.kind == KtFakeSourceElementKind.EnumSuperTypeRef) continue
 
-            val coneType = superTypeRef.coneType
-            if (!nullableSupertypeReported && coneType.nullability == ConeNullability.NULLABLE) {
+            val expandedSupertype = superTypeRef.coneType.fullyExpandedType(context.session)
+            val originalSupertype = expandedSupertype.abbreviatedTypeOrSelf
+            val supertypeIsDynamic = originalSupertype is ConeDynamicType
+            if (!nullableSupertypeReported && originalSupertype.isMarkedNullable) {
                 reporter.reportOn(superTypeRef.source, FirErrors.NULLABLE_SUPERTYPE, context)
                 nullableSupertypeReported = true
             }
-            if (!extensionFunctionSupertypeReported && coneType.isExtensionFunctionType &&
+            if (!extensionFunctionSupertypeReported && originalSupertype.isExtensionFunctionType &&
                 !context.session.languageVersionSettings.supportsFeature(LanguageFeature.FunctionalTypeWithExtensionAsSupertype)
             ) {
                 reporter.reportOn(superTypeRef.source, FirErrors.SUPERTYPE_IS_EXTENSION_FUNCTION_TYPE, context)
@@ -66,8 +69,7 @@ object FirSupertypesChecker : FirClassChecker(MppCheckerKind.Common) {
 
             checkAnnotationOnSuperclass(superTypeRef, context, reporter)
 
-            val fullyExpandedType = coneType.fullyExpandedType(context.session)
-            val symbol = fullyExpandedType.toSymbol(context.session)
+            val symbol = expandedSupertype.toSymbol(context.session)
 
             if (symbol is FirRegularClassSymbol) {
                 if (!superClassSymbols.add(symbol)) {
@@ -79,13 +81,15 @@ object FirSupertypesChecker : FirClassChecker(MppCheckerKind.Common) {
                     } else {
                         classAppeared = true
                     }
-                    if (!interfaceWithSuperclassReported) {
+                    // DYNAMIC_SUPERTYPE will be reported separately
+                    if (!interfaceWithSuperclassReported && !supertypeIsDynamic) {
                         reporter.reportOn(superTypeRef.source, FirErrors.INTERFACE_WITH_SUPERCLASS, context)
                         interfaceWithSuperclassReported = true
                     }
                 }
                 val isObject = symbol.classKind == ClassKind.OBJECT
-                if (!finalSupertypeReported && !isObject && symbol.modality == Modality.FINAL) {
+                // DYNAMIC_SUPERTYPE will be reported separately
+                if (!finalSupertypeReported && !isObject && symbol.modality == Modality.FINAL && !supertypeIsDynamic) {
                     reporter.reportOn(superTypeRef.source, FirErrors.FINAL_SUPERTYPE, context)
                     finalSupertypeReported = true
                 }
@@ -98,14 +102,14 @@ object FirSupertypesChecker : FirClassChecker(MppCheckerKind.Common) {
             checkClassCannotBeExtendedDirectly(symbol, reporter, superTypeRef, context)
             checkNamedFunctionTypeParameter(superTypeRef, context, reporter)
 
-            val shouldCheckSupertypeOnTypealiasWithTypeProjection = if (coneType.typeArguments.isNotEmpty()) {
-                !checkProjectionInImmediateArgumentToSupertype(coneType, superTypeRef, reporter, context)
+            val shouldCheckSupertypeOnTypealiasWithTypeProjection = if (originalSupertype.typeArguments.isNotEmpty()) {
+                !checkProjectionInImmediateArgumentToSupertype(originalSupertype, superTypeRef, reporter, context)
             } else {
-                !checkExpandedTypeCannotBeInherited(symbol, fullyExpandedType, reporter, superTypeRef, coneType, context)
+                !checkExpandedTypeCannotBeInherited(symbol, expandedSupertype, reporter, superTypeRef, originalSupertype, context)
             }
 
             if (shouldCheckSupertypeOnTypealiasWithTypeProjection) {
-                checkSupertypeOnTypeAliasWithTypeProjection(coneType, fullyExpandedType, superTypeRef, reporter, context)
+                checkSupertypeOnTypeAliasWithTypeProjection(originalSupertype, expandedSupertype, superTypeRef, reporter, context)
             }
         }
 
@@ -113,7 +117,7 @@ object FirSupertypesChecker : FirClassChecker(MppCheckerKind.Common) {
         checkDelegationWithoutPrimaryConstructor(declaration, context, reporter)
 
         if (declaration is FirRegularClass && declaration.superTypeRefs.size > 1) {
-            checkInconsistentTypeParameters(listOf(Pair(null, declaration.symbol)), context, reporter, declaration.source, true)
+            checkInconsistentTypeParameters(listOf(null to declaration.symbol), context, reporter, declaration.source, isValues = true)
         }
     }
 

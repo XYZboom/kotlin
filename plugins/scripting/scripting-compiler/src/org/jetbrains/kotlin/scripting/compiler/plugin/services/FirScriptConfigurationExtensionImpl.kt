@@ -11,33 +11,40 @@ import org.jetbrains.kotlin.*
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.analysis.checkers.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.builder.Context
 import org.jetbrains.kotlin.fir.builder.FirScriptConfiguratorExtension
-import org.jetbrains.kotlin.fir.builder.FirScriptConfiguratorExtension.Factory
 import org.jetbrains.kotlin.fir.declarations.FirAnonymousInitializer
 import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
-import org.jetbrains.kotlin.fir.declarations.builder.*
+import org.jetbrains.kotlin.fir.declarations.builder.FirFileBuilder
+import org.jetbrains.kotlin.fir.declarations.builder.FirScriptBuilder
+import org.jetbrains.kotlin.fir.declarations.builder.buildProperty
+import org.jetbrains.kotlin.fir.declarations.builder.buildScriptReceiverParameter
 import org.jetbrains.kotlin.fir.declarations.impl.FirDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.declarations.impl.FirDefaultPropertyGetter
 import org.jetbrains.kotlin.fir.declarations.primaryConstructorIfAny
-import org.jetbrains.kotlin.fir.declarations.utils.SCRIPT_SPECIAL_NAME_STRING
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.resolve.providers.dependenciesSymbolProvider
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirReceiverParameterSymbol
+import org.jetbrains.kotlin.fir.toFirResolvedTypeRef
+import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
+import org.jetbrains.kotlin.fir.types.FirTypeRef
+import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildUserTypeRef
+import org.jetbrains.kotlin.fir.types.constructType
 import org.jetbrains.kotlin.fir.types.impl.FirImplicitTypeRefImplWithoutSource
 import org.jetbrains.kotlin.fir.types.impl.FirQualifierPartImpl
 import org.jetbrains.kotlin.fir.types.impl.FirTypeArgumentListImpl
-import org.jetbrains.kotlin.fir.types.toFirResolvedTypeRef
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtScript
 import org.jetbrains.kotlin.scripting.definitions.annotationsForSamWithReceivers
 import org.jetbrains.kotlin.scripting.resolve.KtFileScriptSource
 import org.jetbrains.kotlin.scripting.resolve.VirtualFileScriptSource
@@ -49,31 +56,42 @@ import kotlin.script.experimental.host.StringScriptSource
 
 class FirScriptConfiguratorExtensionImpl(
     session: FirSession,
-    // TODO: left here because it seems it will be needed soon, remove supression if used or remove the param if it is not the case
-    @Suppress("UNUSED_PARAMETER") hostConfiguration: ScriptingHostConfiguration,
+    // TODO: left here because it seems it will be needed soon, remove suppression if used or remove the param if it is not the case
+    @Suppress("UNUSED_PARAMETER", "unused") hostConfiguration: ScriptingHostConfiguration,
 ) : FirScriptConfiguratorExtension(session) {
 
     override fun FirScriptBuilder.configureContainingFile(fileBuilder: FirFileBuilder) {
     }
 
+    // TODO: find out some way to differentiate detection form REPL snippets, to allow reporting conflicts on FIR building
+    override fun accepts(sourceFile: KtSourceFile?, scriptSource: KtSourceElement): Boolean =
+        sourceFile != null && // this implementation requires a file to find definition (this could be relaxed eventually)
+                (scriptSource is KtPsiSourceElement && scriptSource.psi is KtScript) // workd only with PSI so far
+
     @OptIn(SymbolInternals::class)
-    override fun FirScriptBuilder.configure(sourceFile: KtSourceFile, context: Context<PsiElement>) {
-        val configuration = getOrLoadConfiguration(sourceFile) ?: run {
+    override fun FirScriptBuilder.configure(sourceFile: KtSourceFile?, context: Context<PsiElement>) {
+        val configuration = getOrLoadConfiguration(sourceFile!!) ?: run {
             log.warn("Configuration for ${sourceFile.asString()} wasn't found. FirScriptBuilder wasn't configured.")
             return
         }
 
-        // TODO: rewrite/extract decision logic for clarity
         configuration.getNoDefault(ScriptCompilationConfiguration.baseClass)?.let { baseClass ->
-            val baseClassFqn = FqName.fromSegments(baseClass.typeName.split("."))
-            contextReceivers.add(buildContextReceiverWithFqName(baseClassFqn, Name.special(SCRIPT_SPECIAL_NAME_STRING)))
+            val baseClassTypeRef =
+                tryResolveOrBuildParameterTypeRefFromKotlinType(baseClass, source?.fakeElement(KtFakeSourceElementKind.ScriptBaseClass))
 
-            val baseClassSymbol =
-                session.dependenciesSymbolProvider.getClassLikeSymbolByClassId(ClassId(baseClassFqn.parent(), baseClassFqn.shortName()))
-                        as? FirRegularClassSymbol
-            if (baseClassSymbol != null) {
-                // assuming that if base class will be unresolved, the error will be reported on the contextReceiver
-                baseClassSymbol.fir.primaryConstructorIfAny(session)?.fir?.valueParameters?.forEach { baseCtorParameter ->
+            receivers.add(
+                buildScriptReceiverParameter {
+                    typeRef = baseClassTypeRef
+                    isBaseClassReceiver = true
+                    symbol = FirReceiverParameterSymbol()
+                    moduleData = session.moduleData
+                    origin = FirDeclarationOrigin.ScriptCustomization.ParameterFromBaseClass
+                    containingDeclarationSymbol = this@configure.symbol
+                }
+            )
+
+            if (baseClassTypeRef is FirResolvedTypeRef) {
+                baseClassTypeRef.toRegularClassSymbol(session)?.fir?.primaryConstructorIfAny(session)?.fir?.valueParameters?.forEach { baseCtorParameter ->
                     parameters.add(
                         buildProperty {
                             moduleData = session.moduleData
@@ -93,22 +111,25 @@ class FirScriptConfiguratorExtensionImpl(
         }
 
         configuration[ScriptCompilationConfiguration.implicitReceivers]?.forEach { implicitReceiver ->
-            contextReceivers.add(buildContextReceiverWithFqName(FqName.fromSegments(implicitReceiver.typeName.split("."))))
+            receivers.add(
+                buildScriptReceiverParameter {
+                    typeRef = this@configure.tryResolveOrBuildParameterTypeRefFromKotlinType(implicitReceiver)
+                    isBaseClassReceiver = false
+                    symbol = FirReceiverParameterSymbol()
+                    moduleData = session.moduleData
+                    origin = FirDeclarationOrigin.ScriptCustomization.Parameter
+                    containingDeclarationSymbol = this@configure.symbol
+                }
+            )
         }
 
         configuration[ScriptCompilationConfiguration.providedProperties]?.forEach { (propertyName, propertyType) ->
-            val typeRef = buildUserTypeRef {
-                isMarkedNullable = propertyType.isNullable
-                propertyType.typeName.split(".").forEach {
-                    qualifier.add(FirQualifierPartImpl(null, Name.identifier(it), FirTypeArgumentListImpl(null)))
-                }
-            }
             parameters.add(
                 buildProperty {
                     moduleData = session.moduleData
                     source = this@configure.source?.fakeElement(KtFakeSourceElementKind.ScriptParameter)
                     origin = FirDeclarationOrigin.ScriptCustomization.Parameter
-                    returnTypeRef = typeRef
+                    returnTypeRef = this@configure.tryResolveOrBuildParameterTypeRefFromKotlinType(propertyType)
                     name = Name.identifier(propertyName)
                     symbol = FirPropertySymbol(name)
                     status = FirDeclarationStatusImpl(Visibilities.Local, Modality.FINAL)
@@ -179,20 +200,34 @@ class FirScriptConfiguratorExtensionImpl(
         return configuration
     }
 
-    private fun buildContextReceiverWithFqName(classFqn: FqName, customName: Name? = null) =
-        buildContextReceiver {
-            val userTypeRef = buildUserTypeRef {
-                isMarkedNullable = false
+    private fun FirScriptBuilder.tryResolveOrBuildParameterTypeRefFromKotlinType(
+        kotlinType: KotlinType,
+        sourceElement: KtSourceElement? = source?.fakeElement(KtFakeSourceElementKind.ScriptParameter),
+    ): FirTypeRef {
+        // TODO: check/support generics and other cases (KT-72638)
+        // such a conversion by simple splitting by a '.', is overly simple and does not support all cases, e.g. generics or backticks
+        // but to support it properly, one may need to reimplement or reuse types paring code
+        // but since such cases a considered exotic, it is not implemented yet.
+        val fqName = FqName.fromSegments(kotlinType.typeName.split("."))
+        val classId = ClassId(fqName.parent(), fqName.shortName())
+        val classFromDeps = session.dependenciesSymbolProvider.getClassLikeSymbolByClassId(classId)
+        return if (classFromDeps != null) {
+            buildResolvedTypeRef {
+                source = sourceElement
+                coneType = classFromDeps.constructType(isMarkedNullable = kotlinType.isNullable)
+            }
+        } else {
+            buildUserTypeRef {
+                source = sourceElement
+                isMarkedNullable = kotlinType.isNullable
                 qualifier.addAll(
-                    classFqn.pathSegments().map {
+                    fqName.pathSegments().map {
                         FirQualifierPartImpl(null, it, FirTypeArgumentListImpl(null))
                     }
                 )
             }
-            typeRef = userTypeRef
-            labelNameFromTypeRef = userTypeRef.qualifier.lastOrNull()?.name
-            customLabelName = customName
         }
+    }
 
     private val _knownAnnotationsForSamWithReceiver = hashSetOf<String>()
 

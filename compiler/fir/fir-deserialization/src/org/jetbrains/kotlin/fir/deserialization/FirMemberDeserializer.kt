@@ -34,6 +34,7 @@ import org.jetbrains.kotlin.metadata.deserialization.*
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.SpecialNames
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.protobuf.MessageLite
 import org.jetbrains.kotlin.serialization.deserialization.ProtoEnumFlags
@@ -220,13 +221,14 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
 
             annotations += c.annotationDeserializer.loadTypeAliasAnnotations(proto, local.nameResolver)
             this.symbol = symbol
-            expandedTypeRef = proto.underlyingType(c.typeTable).toTypeRef(local)
+            expandedTypeRef = proto.expandedType(c.typeTable).toTypeRef(local)
             resolvePhase = FirResolvePhase.ANALYZED_DEPENDENCIES
             typeParameters += local.typeDeserializer.ownTypeParameters.map { it.fir }
             deprecationsProvider = annotations.getDeprecationsProviderFromAnnotations(c.session, fromJava = false, versionRequirements)
         }.apply {
             this.versionRequirements = versionRequirements
             sourceElement = c.containerSource
+            deserializeCompilerPluginMetadata(c, proto, ProtoBuf.TypeAlias::getCompilerPluginDataList)
         }
     }
 
@@ -385,6 +387,10 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
                 buildReceiverParameter {
                     typeRef = receiverType
                     annotations += receiverAnnotations
+                    this.symbol = FirReceiverParameterSymbol()
+                    this.moduleData = c.moduleData
+                    this.origin = FirDeclarationOrigin.Library
+                    containingDeclarationSymbol = symbol
                 }
             }
 
@@ -454,7 +460,7 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
             this.initializer = when {
                 Flags.HAS_CONSTANT.get(proto.flags) -> {
                     c.constDeserializer.loadConstant(
-                        proto, symbol.callableId, c.nameResolver, returnTypeRef.type.isUnsignedTypeOrNullableUnsignedType
+                        proto, symbol.callableId, c.nameResolver, returnTypeRef.coneType.isUnsignedTypeOrNullableUnsignedType
                     )
                 }
                 // classSymbol?.classKind?.isAnnotationClass throws 'Fir is not initialized for FirRegularClassSymbol kotlin/String'
@@ -470,28 +476,62 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
                 else -> null
             }
 
-            proto.contextReceiverTypes(c.typeTable).mapTo(contextReceivers) { loadContextReceiver(it, local) }
+            proto.contextReceiverTypes(c.typeTable).mapTo(contextParameters) {
+                loadContextParameter(it, local, FirDeclarationOrigin.Library, symbol)
+            }
         }.apply {
-            initializer?.replaceConeTypeOrNull(returnTypeRef.type)
+            when (val initializer = initializer) {
+                /**
+                 * Deserialized annotation values don't have any information about type arguments for annotation expression, so
+                 *   they should be updated from the expected type
+                 *
+                 * ```
+                 * annotation class One<T>(val s: String)
+                 *
+                 * annotation class Two(
+                 *     val one: One<Int> = One("hello") // <--------
+                 * )
+                 * ```
+                 *
+                 * Annotation value for `One("hello")` contains only annotation type (`One`) and argument values (`"hello"`)
+                 */
+                is FirAnnotation -> initializer.replaceAnnotationTypeRef(initializer.annotationTypeRef.withReplacedReturnType(returnTypeRef.coneType))
+                else -> initializer?.replaceConeTypeOrNull(returnTypeRef.coneType)
+            }
             this.versionRequirements = versionRequirements
             replaceDeprecationsProvider(getDeprecationsProvider(c.session))
+            deserializeCompilerPluginMetadata(c, proto, ProtoBuf.Property::getCompilerPluginDataList)
             setLazyPublishedVisibility(c.session)
             getter?.setLazyPublishedVisibility(annotations, this, c.session)
             setter?.setLazyPublishedVisibility(annotations, this, c.session)
         }
     }
 
-    private fun loadContextReceiver(proto: ProtoBuf.Type, context: FirDeserializationContext): FirContextReceiver {
+    private fun loadContextParameter(
+        proto: ProtoBuf.Type,
+        context: FirDeserializationContext,
+        origin: FirDeclarationOrigin,
+        containingDeclarationSymbol: FirBasedSymbol<*>,
+    ): FirValueParameter {
         val typeRef = proto.toTypeRef(context)
-        return buildContextReceiver {
-            val type = typeRef.coneType
-            this.labelNameFromTypeRef = (type as? ConeLookupTagBasedType)?.lookupTag?.name
-            this.typeRef = typeRef
+        return buildValueParameter {
+            this.moduleData = context.moduleData
+            this.origin = origin
+            this.name = SpecialNames.UNDERSCORE_FOR_UNUSED_VAR
+            this.symbol = FirValueParameterSymbol(name)
+            this.returnTypeRef = typeRef
+            this.containingDeclarationSymbol = containingDeclarationSymbol
+            this.valueParameterKind = FirValueParameterKind.ContextParameter
+            resolvePhase = FirResolvePhase.ANALYZED_DEPENDENCIES
         }
     }
 
-    internal fun createContextReceiversForClass(classProto: ProtoBuf.Class): List<FirContextReceiver> =
-        classProto.contextReceiverTypes(c.typeTable).map { loadContextReceiver(it, c) }
+    internal fun createContextParametersForClass(
+        classProto: ProtoBuf.Class,
+        origin: FirDeclarationOrigin,
+        containingDeclarationSymbol: FirBasedSymbol<*>,
+    ): List<FirValueParameter> =
+        classProto.contextReceiverTypes(c.typeTable).map { loadContextParameter(it, c, origin, containingDeclarationSymbol) }
 
     fun loadFunction(
         proto: ProtoBuf.Function,
@@ -524,6 +564,10 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
                 buildReceiverParameter {
                     typeRef = receiverType
                     annotations += receiverAnnotations
+                    this.symbol = FirReceiverParameterSymbol()
+                    this.moduleData = c.moduleData
+                    this.origin = deserializationOrigin
+                    containingDeclarationSymbol = symbol
                 }
             }
 
@@ -561,10 +605,13 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
             deprecationsProvider = annotations.getDeprecationsProviderFromAnnotations(c.session, fromJava = false, versionRequirements)
             this.containerSource = c.containerSource
 
-            proto.contextReceiverTypes(c.typeTable).mapTo(contextReceivers) { loadContextReceiver(it, local) }
+            proto.contextReceiverTypes(c.typeTable).mapTo(contextParameters) {
+                loadContextParameter(it, local, deserializationOrigin, symbol)
+            }
         }.apply {
             this.versionRequirements = versionRequirements
             setLazyPublishedVisibility(c.session)
+            deserializeCompilerPluginMetadata(c, proto, ProtoBuf.Function::getCompilerPluginDataList)
         }
         if (proto.hasContract()) {
             val contractDeserializer = if (proto.typeParameterList.isEmpty()) this.contractDeserializer else FirContractDeserializer(local)
@@ -591,7 +638,7 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
         val typeParameters = classBuilder.typeParameters
 
         val delegatedSelfType = buildResolvedTypeRef {
-            type = ConeClassLikeTypeImpl(
+            coneType = ConeClassLikeTypeImpl(
                 classBuilder.symbol.toLookupTag(),
                 typeParameters.map { ConeTypeParameterTypeImpl(it.symbol.toLookupTag(), false) }.toTypedArray(),
                 false
@@ -644,10 +691,11 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
             containerSource = c.containerSource
             deprecationsProvider = annotations.getDeprecationsProviderFromAnnotations(c.session, fromJava = false)
 
-            contextReceivers.addAll(createContextReceiversForClass(classProto))
+            contextParameters.addAll(createContextParametersForClass(classProto, FirDeclarationOrigin.Library, symbol))
         }.build().apply {
             containingClassForStaticMemberAttr = c.dispatchReceiver!!.lookupTag
             this.versionRequirements = VersionRequirement.create(proto, c)
+            deserializeCompilerPluginMetadata(c, proto, ProtoBuf.Constructor::getCompilerPluginDataList)
             setLazyPublishedVisibility(c.session)
         }
     }
@@ -672,7 +720,7 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
             val name = c.nameResolver.getName(proto.name)
             buildValueParameter {
                 moduleData = c.moduleData
-                this.containingFunctionSymbol = functionSymbol
+                this.containingDeclarationSymbol = functionSymbol
                 origin = FirDeclarationOrigin.Library
                 returnTypeRef = proto.type(c.typeTable).toTypeRef(c)
                 this.name = name

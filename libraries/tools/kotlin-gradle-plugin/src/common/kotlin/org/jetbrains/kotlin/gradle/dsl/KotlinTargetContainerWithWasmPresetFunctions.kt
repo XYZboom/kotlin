@@ -6,7 +6,7 @@
 package org.jetbrains.kotlin.gradle.dsl
 
 import org.gradle.api.Action
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinWasmJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinWasmWasiTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinWasmTargetPreset
@@ -20,7 +20,7 @@ interface KotlinTargetContainerWithWasmPresetFunctions : KotlinTargetContainerWi
     ): KotlinWasmJsTargetDsl =
         configureOrCreate(
             name,
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION_ERROR")
             presets.getByName("wasmJs") as KotlinWasmTargetPreset,
             configure
         )
@@ -44,7 +44,7 @@ interface KotlinTargetContainerWithWasmPresetFunctions : KotlinTargetContainerWi
     ): KotlinWasmWasiTargetDsl =
         configureOrCreate(
             name,
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION_ERROR")
             presets.getByName("wasmWasi") as KotlinWasmTargetPreset,
             configure
         )

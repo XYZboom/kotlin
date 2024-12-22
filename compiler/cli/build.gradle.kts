@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     id("jps-compatible")
+    id("gradle-plugin-compiler-dependency-configuration")
 }
 
 dependencies {
@@ -12,7 +13,6 @@ dependencies {
     implementation(project(":compiler:backend.jvm.entrypoint"))
     api(project(":compiler:serialization"))
     api(project(":compiler:plugin-api"))
-    api(project(":js:js.translator"))
     api(commonDependency("org.fusesource.jansi", "jansi"))
     api(project(":compiler:fir:raw-fir:psi2fir"))
     api(project(":compiler:fir:resolve"))
@@ -28,6 +28,7 @@ dependencies {
     api(project(":compiler:fir:checkers:checkers.native"))
     api(project(":compiler:fir:checkers:checkers.wasm"))
     api(project(":compiler:fir:fir-serialization"))
+    api(project(":compiler:ir.inline"))
     api(project(":kotlin-util-io"))
 
     compileOnly(toolsJarApi())

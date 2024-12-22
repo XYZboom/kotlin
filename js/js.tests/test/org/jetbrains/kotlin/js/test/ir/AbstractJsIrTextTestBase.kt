@@ -5,10 +5,13 @@
 
 package org.jetbrains.kotlin.js.test.ir
 
+import org.jetbrains.kotlin.js.test.converters.JsIrDeserializerFacade
+import org.jetbrains.kotlin.js.test.converters.JsKlibSerializerFacade
 import org.jetbrains.kotlin.platform.js.JsPlatforms
 import org.jetbrains.kotlin.test.Constructor
 import org.jetbrains.kotlin.test.TargetBackend
 import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
+import org.jetbrains.kotlin.test.backend.ir.KlibFacades
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
 import org.jetbrains.kotlin.test.frontend.classic.ClassicFrontend2IrConverter
 import org.jetbrains.kotlin.test.frontend.classic.ClassicFrontendFacade
@@ -42,4 +45,10 @@ open class AbstractClassicJsIrTextTest : AbstractJsIrTextTestBase<ClassicFronten
 
     override val converter: Constructor<Frontend2BackendConverter<ClassicFrontendOutputArtifact, IrBackendInput>>
         get() = ::ClassicFrontend2IrConverter
+
+    override val klibFacades: KlibFacades?
+        get() = KlibFacades(
+            serializerFacade = ::JsKlibSerializerFacade,
+            deserializerFacade = ::JsIrDeserializerFacade,
+        )
 }

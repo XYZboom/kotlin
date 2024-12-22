@@ -1,43 +1,50 @@
 -dontnote **
 -dontwarn apple.awt.*
--dontwarn dk.brics.automaton.*
--dontwarn org.fusesource.**
--dontwarn org.imgscalr.Scalr**
--dontwarn org.xerial.snappy.SnappyBundleActivator
--dontwarn com.intellij.util.CompressionUtil
--dontwarn com.intellij.util.SnappyInitializer
--dontwarn com.intellij.util.SVGLoader
--dontwarn com.intellij.util.SVGLoader$MyTranscoder
--dontwarn com.intellij.util.ImageLoader$ImageDesc
--dontwarn com.intellij.util.ui.**
--dontwarn com.intellij.ui.**
--dontwarn com.intellij.util.IconUtil
--dontwarn com.intellij.util.ImageLoader
--dontwarn net.sf.cglib.**
--dontwarn org.objectweb.asm.** # this is ASM3, the old version that we do not use
--dontwarn com.sun.jna.NativeString
--dontwarn com.sun.jna.WString
--dontwarn com.intellij.psi.util.PsiClassUtil
--dontwarn org.apache.hadoop.io.compress.*
--dontwarn com.google.j2objc.annotations.Weak
--dontwarn org.iq80.snappy.HadoopSnappyCodec$SnappyCompressionInputStream
--dontwarn org.iq80.snappy.HadoopSnappyCodec$SnappyCompressionOutputStream
 -dontwarn com.google.common.util.concurrent.*
--dontwarn org.apache.xerces.dom.**
--dontwarn org.apache.xerces.util.**
--dontwarn org.w3c.dom.ElementTraversal
--dontwarn javaslang.match.annotation.Unapply
--dontwarn javaslang.match.annotation.Patterns
--dontwarn javaslang.*
--dontwarn kotlinx.collections.immutable.*
--dontwarn kotlinx.collections.immutable.**
 -dontwarn com.google.errorprone.**
 -dontwarn com.google.j2objc.**
--dontwarn javax.crypto.**
--dontwarn java.lang.invoke.MethodHandle
--dontwarn org.jline.builtins.Nano$Buffer
--dontwarn com.intellij.util.io.TarUtil
+-dontwarn com.google.j2objc.annotations.Weak
+# True warning, should be removed later: https://github.com/JetBrains/intellij-community/commit/e84b32f0620126b0e2b3a3f477cda8c1c9b5b4d2
+-dontwarn com.intellij.openapi.vfs.VirtualFileUtil
+-dontwarn com.intellij.platform.util.progress.ProgressReporterKt
+-dontwarn com.intellij.platform.util.progress.RawProgressReporter
+-dontwarn com.intellij.psi.util.PsiClassUtil
+-dontwarn com.intellij.ui.**
+-dontwarn com.intellij.util.CompressionUtil
+-dontwarn com.intellij.util.IconUtil
+-dontwarn com.intellij.util.ImageLoader
+-dontwarn com.intellij.util.ImageLoader$ImageDesc
+-dontwarn com.intellij.util.SVGLoader
+-dontwarn com.intellij.util.SVGLoader$MyTranscoder
+-dontwarn com.intellij.util.SnappyInitializer
+-dontwarn com.intellij.util.diff.*
 -dontwarn com.intellij.util.io.Compressor$Tar
+-dontwarn com.intellij.util.io.TarUtil
+-dontwarn com.intellij.util.lang.*
+-dontwarn com.intellij.util.ui.**
+-dontwarn com.sun.jna.NativeString
+-dontwarn com.sun.jna.WString
+-dontwarn dk.brics.automaton.*
+-dontwarn java.lang.invoke.MethodHandle
+-dontwarn io.vavr.*
+-dontwarn javax.crypto.**
+-dontwarn kotlinx.collections.immutable.*
+-dontwarn kotlinx.collections.immutable.**
+-dontwarn kotlinx.coroutines.debug.DebugProbes
+-dontwarn kotlinx.coroutines.future.FutureKt
+-dontwarn kotlinx.serialization.**
+-dontwarn net.sf.cglib.**
+-dontwarn org.apache.hadoop.io.compress.*
+-dontwarn org.apache.xerces.dom.**
+-dontwarn org.apache.xerces.util.**
+-dontwarn org.fusesource.**
+-dontwarn org.imgscalr.Scalr**
+-dontwarn org.iq80.snappy.HadoopSnappyCodec$SnappyCompressionInputStream
+-dontwarn org.iq80.snappy.HadoopSnappyCodec$SnappyCompressionOutputStream
+-dontwarn org.jline.builtins.Nano$Buffer
+-dontwarn org.objectweb.asm.** # this is ASM3, the old version that we do not use
+-dontwarn org.w3c.dom.ElementTraversal
+-dontwarn org.xerial.snappy.SnappyBundleActivator
 
 # Some annotations from intellijCore/annotations.jar are not presented in org.jetbrains.annotations
 -dontwarn org.jetbrains.annotations.*
@@ -182,7 +189,6 @@
 -keep class gnu.trove.TIntHashSet { *; }
 -keep class gnu.trove.TIntIterator { *; }
 -keep class org.iq80.snappy.SlowMemory { *; }
--keep class javaslang.match.PatternsProcessor { *; }
 
 -keepclassmembers enum * {
     public static **[] values();
@@ -257,9 +263,12 @@
 }
 
 -keep class com.intellij.util.messages.impl.MessageBusEx {
-    void setLazyListeners(java.util.Map);
+    void setLazyListeners(java.util.concurrent.ConcurrentMap);
 }
 
+-keep class com.intellij.openapi.util.KeyWithDefaultValue {
+    public static com.intellij.openapi.util.KeyWithDefaultValue create(java.lang.String, java.util.function.Supplier);
+}
 
 -keepclassmembers class com.intellij.util.PathUtil {
     public static java.lang.String getJarPathForClass(java.lang.Class);
@@ -293,6 +302,7 @@
 -keep class org.jline.reader.History { *; }
 -keep class org.jline.reader.EndOfFileException { *; }
 -keep class org.jline.reader.UserInterruptException { *; }
+-keep class org.jline.terminal.TerminalBuilder { *; }
 -keep class org.jline.terminal.impl.jna.JnaSupportImpl  { *; }
 -keep class org.jline.terminal.impl.jansi.JansiSupportImpl  { *; }
 
@@ -316,8 +326,11 @@
     public ** plusAll(java.util.Map);
 }
 
-# This class is needed for test framework
+# These classes is needed for test framework
 -keep class com.intellij.openapi.util.text.StringUtil { *; }
+-keepclassmembers class com.intellij.openapi.util.io.NioFiles {
+    public static void deleteRecursively(java.nio.file.Path);
+}
 
 
 # This is used from standalone analysis API, which is NOT a part of the compiler but is bundled into kotlin-annotation-processing.
@@ -344,3 +357,15 @@
 -keepclassmembers class com.intellij.lang.jvm.JvmParameter {
     com.intellij.lang.jvm.types.JvmType getType();
 }
+-keepclassmembers class com.intellij.util.containers.ContainerUtil {
+    public static java.util.concurrent.ConcurrentMap createConcurrentSoftMap();
+    public static java.util.Map createSoftValueMap();
+}
+-keep class com.intellij.codeInsight.PsiEquivalenceUtil {
+    public static boolean areElementsEquivalent(com.intellij.psi.PsiElement, com.intellij.psi.PsiElement);
+}
+-keepclassmembers class com.intellij.util.indexing.FileContentImpl {
+    public static com.intellij.util.indexing.FileContent createByFile(com.intellij.openapi.vfs.VirtualFile);
+}
+# Uses a ClassLoader method from JDK 9+
+-dontwarn org.jetbrains.kotlin.buildtools.internal.ClassLoaderUtilsKt

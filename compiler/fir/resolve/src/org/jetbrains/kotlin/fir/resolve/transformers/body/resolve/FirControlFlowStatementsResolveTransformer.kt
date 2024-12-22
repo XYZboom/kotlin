@@ -5,15 +5,18 @@
 
 package org.jetbrains.kotlin.fir.resolve.transformers.body.resolve
 
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.fir.FirTargetElement
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.expressions.impl.FirElseIfTrueCondition
 import org.jetbrains.kotlin.fir.expressions.impl.FirEmptyExpressionBlock
+import org.jetbrains.kotlin.fir.languageVersionSettings
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.resolve.ResolutionMode
-import org.jetbrains.kotlin.fir.resolve.calls.isUnitOrFlexibleUnit
+import org.jetbrains.kotlin.fir.resolve.expectedType
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
-import org.jetbrains.kotlin.fir.resolve.transformWhenSubjectExpressionUsingSmartcastInfo
+import org.jetbrains.kotlin.fir.resolve.inference.TemporaryInferenceSessionHook
+import org.jetbrains.kotlin.fir.resolve.transformExpressionUsingSmartcastInfo
 import org.jetbrains.kotlin.fir.resolve.transformers.FirSyntheticCallGenerator
 import org.jetbrains.kotlin.fir.resolve.transformers.FirWhenExhaustivenessTransformer
 import org.jetbrains.kotlin.fir.resolve.withExpectedType
@@ -69,7 +72,7 @@ class FirControlFlowStatementsResolveTransformer(transformer: FirAbstractBodyRes
             context.withWhenSubjectType(subjectType, components) {
                 when {
                     whenExpression.branches.isEmpty() -> {
-                        whenExpression.resultType = session.builtinTypes.unitType.type
+                        whenExpression.resultType = session.builtinTypes.unitType.coneType
                     }
                     whenExpression.isOneBranch() && data.forceFullCompletion && data !is ResolutionMode.WithExpectedType -> {
                         whenExpression = whenExpression.transformBranches(transformer, ResolutionMode.ContextIndependent)
@@ -114,17 +117,10 @@ class FirControlFlowStatementsResolveTransformer(transformer: FirAbstractBodyRes
                     whenExpression = completionResult
                 }
                 dataFlowAnalyzer.exitWhenExpression(whenExpression, data.forceFullCompletion)
-                whenExpression = whenExpression.replaceReturnTypeIfNotExhaustive()
+                whenExpression.replaceReturnTypeIfNotExhaustive(session)
                 whenExpression
             }
         }
-    }
-
-    private fun FirWhenExpression.replaceReturnTypeIfNotExhaustive(): FirWhenExpression {
-        if (!isProperlyExhaustive && !usedAsExpression) {
-            resultType = session.builtinTypes.unitType.type
-        }
-        return this
     }
 
     private fun FirWhenExpression.isOneBranch(): Boolean {
@@ -149,7 +145,7 @@ class FirControlFlowStatementsResolveTransformer(transformer: FirAbstractBodyRes
         data: ResolutionMode
     ): FirStatement {
         dataFlowAnalyzer.exitWhenSubjectExpression(whenSubjectExpression)
-        return components.transformWhenSubjectExpressionUsingSmartcastInfo(whenSubjectExpression)
+        return components.transformExpressionUsingSmartcastInfo(whenSubjectExpression)
     }
 
     // ------------------------------- Try/catch expressions -------------------------------
@@ -240,23 +236,22 @@ class FirControlFlowStatementsResolveTransformer(transformer: FirAbstractBodyRes
         @Suppress("NAME_SHADOWING")
         val data = data.takeUnless { it is ResolutionMode.WithExpectedType && !it.forceFullCompletion } ?: ResolutionMode.ContextDependent
 
-        val expectedType = data.expectedType?.coneTypeSafe<ConeKotlinType>()
-        val mayBeCoercionToUnitApplied = (data as? ResolutionMode.WithExpectedType)?.mayBeCoercionToUnitApplied == true
-
-        val resolutionModeForLhs =
-            if (mayBeCoercionToUnitApplied && expectedType?.isUnitOrFlexibleUnit == true)
-                withExpectedType(expectedType, mayBeCoercionToUnitApplied = true)
-            else
-                withExpectedType(expectedType?.withNullability(ConeNullability.NULLABLE, session.typeContext))
         dataFlowAnalyzer.enterElvis(elvisExpression)
-        elvisExpression.transformLhs(transformer, resolutionModeForLhs)
+
+        elvisExpression.transformLhs(
+            transformer,
+            // should be` expectedType.makeNullable()` or ResolutionMode.ContextDependent since LV >= 2.1
+            computeResolutionModeForElvisLHS(data)
+        )
         dataFlowAnalyzer.exitElvisLhs(elvisExpression)
 
-        val resolutionModeForRhs = withExpectedType(
-            expectedType,
-            mayBeCoercionToUnitApplied = mayBeCoercionToUnitApplied
+        elvisExpression.transformRhs(
+            transformer,
+            withExpectedType(
+                data.expectedType,
+                mayBeCoercionToUnitApplied = (data as? ResolutionMode.WithExpectedType)?.mayBeCoercionToUnitApplied == true
+            )
         )
-        elvisExpression.transformRhs(transformer, resolutionModeForRhs)
 
         val result = callCompleter.completeCall(
             syntheticCallGenerator.generateCalleeForElvisExpression(elvisExpression, resolutionContext, data), data
@@ -264,7 +259,9 @@ class FirControlFlowStatementsResolveTransformer(transformer: FirAbstractBodyRes
 
         var isLhsNotNull = false
 
-        // TODO Check if the type of the RHS being null can lead to a bug, see KT-61837
+        // TODO: This whole `if` should be probably removed once we get rid of seemingly redundant
+        //  @Exact annotation on the return type of the synthetic function, see KT-55692
+        // TODO: Check if the type of the RHS being null can lead to a bug, see KT-61837
         @OptIn(UnresolvedExpressionTypeAccess::class)
         if (result.rhs.coneTypeOrNull?.isNothing == true) {
             val lhsType = result.lhs.resolvedType
@@ -273,6 +270,14 @@ class FirControlFlowStatementsResolveTransformer(transformer: FirAbstractBodyRes
                 lhsType.makeConeTypeDefinitelyNotNullOrNotNull(session.typeContext)
                     .convertToNonRawVersion()
             result.replaceConeTypeOrNull(newReturnType)
+
+            // For regularly resolved synthetic call, this hook is being called on the whole expression,
+            // thus correctly substituting necessary (fixed or fixed-on-demand) type variables.
+            // But it's not expected to do that on the arguments of such calls,
+            // so in `lhsType` (which above is being transferred to `result`) there might be some type variables left.
+            @OptIn(TemporaryInferenceSessionHook::class)
+            context.inferenceSession.updateExpressionReturnTypeWithCurrentSubstitutorInPCLA(result, data)
+
             isLhsNotNull = true
         }
 
@@ -295,6 +300,36 @@ class FirControlFlowStatementsResolveTransformer(transformer: FirAbstractBodyRes
         return result
     }
 
+    private fun computeResolutionModeForElvisLHS(
+        data: ResolutionMode,
+    ): ResolutionMode {
+        val expectedType = data.expectedType
+        val mayBeCoercionToUnitApplied = (data as? ResolutionMode.WithExpectedType)?.mayBeCoercionToUnitApplied == true
+
+        val isObsoleteCompilerMode =
+            !session.languageVersionSettings.supportsFeature(LanguageFeature.ElvisInferenceImprovementsIn21)
+        return when {
+            mayBeCoercionToUnitApplied && expectedType?.isUnitOrFlexibleUnit == true ->
+                when {
+                    isObsoleteCompilerMode ->
+                        // The problematic part is that we even forget about nullability
+                        // And forcefully run coercion to Unit of nullable LHS
+                        withExpectedType(
+                            expectedType, // Always Unit here
+                            mayBeCoercionToUnitApplied = true
+                        )
+                    else -> ResolutionMode.ContextDependent
+                }
+            // In general, it might be ResolutionMode.ContextDependent as in the Unit-case with modern LV.
+            // The expected type should be applied at the completion stage for the whole elvis-call, thus affecting the inference
+            // at the LHS, too.
+            //
+            // But in some situations (like KT-72996 and KT-73011 as its non-elvis generalized version) propagation of the expected type
+            // helps to resolve callable references properly, so at this point we can't just get it back.
+            else -> withExpectedType(expectedType?.withNullability(nullable = true, session.typeContext))
+        }
+    }
+
     private fun ConeKotlinType.makeConeFlexibleTypeWithNotNullableLowerBound(typeContext: ConeTypeContext): ConeKotlinType {
         with(typeContext) {
             return when (this@makeConeFlexibleTypeWithNotNullableLowerBound) {
@@ -304,14 +339,14 @@ class FirControlFlowStatementsResolveTransformer(transformer: FirAbstractBodyRes
                     if (!lowerBound.isNullableType()) {
                         this@makeConeFlexibleTypeWithNotNullableLowerBound
                     } else {
-                        ConeFlexibleType(lowerBound.makeConeTypeDefinitelyNotNullOrNotNull(typeContext) as ConeSimpleKotlinType, upperBound)
+                        ConeFlexibleType(lowerBound.makeConeTypeDefinitelyNotNullOrNotNull(typeContext) as ConeRigidType, upperBound)
                     }
                 }
                 is ConeIntersectionType -> ConeIntersectionType(
                     intersectedTypes.map { it.makeConeFlexibleTypeWithNotNullableLowerBound(typeContext) }
                 )
                 is ConeSimpleKotlinType -> ConeFlexibleType(
-                    makeConeTypeDefinitelyNotNullOrNotNull(typeContext) as ConeSimpleKotlinType,
+                    makeConeTypeDefinitelyNotNullOrNotNull(typeContext) as ConeRigidType,
                     this@makeConeFlexibleTypeWithNotNullableLowerBound
                 )
             }

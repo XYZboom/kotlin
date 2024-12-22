@@ -9,15 +9,21 @@ import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.fir.types.ConeDefinitelyNotNullType
 import org.jetbrains.kotlin.fir.types.ConeFlexibleType
 import org.jetbrains.kotlin.fir.types.ConeIntegerLiteralType
+import org.jetbrains.kotlin.fir.types.ConeIntersectionType
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.renderer.replacePrefixesInTypeRepresentations
 import org.jetbrains.kotlin.renderer.typeStringsDifferOnlyInNullability
-import org.jetbrains.kotlin.utils.addToStdlib.applyIf
+import org.jetbrains.kotlin.types.model.TypeConstructorMarker
 
-class ConeTypeRendererForReadability(
+open class ConeTypeRendererForReadability(
+    private val preRenderedConstructors: Map<TypeConstructorMarker, String>? = null,
     private val idRendererCreator: () -> ConeIdRenderer,
-) : ConeTypeRenderer(ConeAttributeRenderer.ForReadability) {
-    constructor(builder: StringBuilder, idRendererCreator: () -> ConeIdRenderer) : this(idRendererCreator) {
+) : ConeTypeRendererForDebugInfo() {
+    constructor(
+        builder: StringBuilder,
+        preRenderedConstructors: Map<TypeConstructorMarker, String>? = null,
+        idRendererCreator: () -> ConeIdRenderer,
+    ) : this(preRenderedConstructors, idRendererCreator) {
         this.builder = builder
         this.idRenderer = idRendererCreator()
         idRenderer.builder = builder
@@ -42,21 +48,20 @@ class ConeTypeRendererForReadability(
     }
 
     private fun renderBound(bound: ConeKotlinType): String {
-        val renderer = ConeTypeRendererForReadability(StringBuilder(), idRendererCreator)
+        val renderer = ConeTypeRendererForReadability(StringBuilder(), preRenderedConstructors, idRendererCreator)
         renderer.render(bound)
         return renderer.builder.toString()
     }
 
     private fun renderFlexibleTypeCompact(lowerRendered: String, upperRendered: String): String? {
-        if (typeStringsDifferOnlyInNullability(lowerRendered, upperRendered)) {
-            if (upperRendered.startsWith("(")) {
-                // the case of complex type, e.g. (() -> Unit)?
-                return "($lowerRendered)!"
-            }
-            return "$lowerRendered!"
+        // More precise handling of different cases inside typeStringsDifferOnlyInNullability
+        when {
+            lowerRendered == upperRendered.replace("?", "") -> return upperRendered.replace("?", "!")
+            upperRendered.endsWith("?") && ("$lowerRendered?") == upperRendered -> return "$lowerRendered!"
+            "($lowerRendered)?" == upperRendered -> return "($lowerRendered)!"
         }
 
-        val kotlinCollectionsPrefix = StandardNames.COLLECTIONS_PACKAGE_FQ_NAME.asString() + "."
+        val kotlinCollectionsPrefix = (StandardNames.COLLECTIONS_PACKAGE_FQ_NAME.asString() + ".").takeIf { lowerRendered.startsWith(it) } ?: ""
         val mutablePrefix = "Mutable"
         // java.util.List<Foo> -> (Mutable)List<Foo!>!
         val simpleCollection = replacePrefixesInTypeRepresentations(
@@ -77,7 +82,7 @@ class ConeTypeRendererForReadability(
         )
         if (mutableEntry != null) return mutableEntry
 
-        val kotlinPrefix = StandardNames.BUILT_INS_PACKAGE_FQ_NAME.asString() + "."
+        val kotlinPrefix = (StandardNames.BUILT_INS_PACKAGE_FQ_NAME.asString() + ".").takeIf { lowerRendered.startsWith(it) } ?: ""
         // Foo[] -> Array<(out) Foo!>!
         val array = replacePrefixesInTypeRepresentations(
             lowerRendered = lowerRendered,
@@ -90,11 +95,11 @@ class ConeTypeRendererForReadability(
         return null
     }
 
-    override fun render(type: ConeIntegerLiteralType) {
-        render(type.getApproximatedType())
-    }
-
-    override fun ConeKotlinType.renderAttributes() {
-        renderNonCompilerAttributes()
+    override fun renderConstructor(constructor: TypeConstructorMarker, nullabilityMarker: String) {
+        preRenderedConstructors?.get(constructor)?.let {
+            builder.append(it.replace("^", nullabilityMarker))
+            return
+        }
+        super.renderConstructor(constructor, nullabilityMarker)
     }
 }

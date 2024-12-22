@@ -1,4 +1,4 @@
-// FIR_IDENTICAL
+// RUN_PIPELINE_TILL: BACKEND
 // DIAGNOSTICS: -FINAL_UPPER_BOUND -CAST_NEVER_SUCCEEDS
 // LANGUAGE: +AllowEmptyIntersectionsInResultTypeResolver
 // LANGUAGE: -ForbidInferringTypeVariablesIntoEmptyIntersection

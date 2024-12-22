@@ -11,11 +11,12 @@ package org.jetbrains.kotlin.sir
 /**
  * Generated from: [org.jetbrains.kotlin.sir.tree.generator.SwiftIrTree.callable]
  */
-sealed class SirCallable : SirElementBase(), SirDeclaration {
-    abstract override val origin: SirOrigin
-    abstract override val visibility: SirVisibility
-    abstract override val documentation: String?
-    abstract override var parent: SirDeclarationParent
-    abstract val kind: SirCallableKind
-    abstract var body: SirFunctionBody?
+sealed interface SirCallable : SirDeclaration {
+    override val origin: SirOrigin
+    override val visibility: SirVisibility
+    override val documentation: String?
+    override var parent: SirDeclarationParent
+    override val attributes: List<SirAttribute>
+    var body: SirFunctionBody?
+    val errorType: SirType
 }

@@ -92,17 +92,26 @@ abstract class CommonToolArguments : Freezable(), Serializable {
             field = value
         }
 
-    var internalArguments: List<InternalArgument> = emptyList()
+    @GradleOption(
+        value = DefaultValue.BOOLEAN_FALSE_DEFAULT,
+        gradleInputType = GradleInputTypes.INPUT,
+    )
+    @Argument(
+        value = "-Wextra",
+        description = "Enable extra checkers for K2."
+    )
+    var extraWarnings = false
         set(value) {
             checkFrozen()
             field = value
         }
 
-    // This is a hack to workaround an issue that incremental compilation does not recompile CLI arguments classes after the change in
-    // the previous commit. This method can be removed after some time.
-    override fun equals(other: Any?): Boolean = super.equals(other)
+    var internalArguments: List<InternalArgument> = emptyList()
+        set(value) {
+            checkFrozen()
+            field = value
+        }
 }
-
 
 /**
  * An argument which should be passed to Kotlin compiler to enable [this] compiler option
@@ -114,3 +123,10 @@ val KProperty1<out CommonCompilerArguments, *>.cliArgument: String
         val argumentAnnotation = javaField.getAnnotation<Argument>(Argument::class.java)
         return argumentAnnotation.value
     }
+
+/**
+ * Returns a string of the form "argument=value" where "argument" is the [Argument.value] of this compiler argument.
+ */
+fun KProperty1<out CommonCompilerArguments, *>.cliArgument(value: String): String {
+    return "$cliArgument=$value"
+}

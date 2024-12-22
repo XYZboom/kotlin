@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -8,12 +8,11 @@ package org.jetbrains.kotlin.light.classes.symbol.parameters
 import com.intellij.psi.PsiIdentifier
 import com.intellij.psi.PsiModifierList
 import com.intellij.psi.PsiType
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
-import org.jetbrains.kotlin.analysis.api.components.buildClassType
-import org.jetbrains.kotlin.analysis.api.symbols.KtFunctionSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.markers.isPrivateOrPrivateToThis
-import org.jetbrains.kotlin.analysis.api.symbols.pointers.KtSymbolPointer
-import org.jetbrains.kotlin.analysis.api.types.KtTypeNullability
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolVisibility
+import org.jetbrains.kotlin.analysis.api.symbols.pointers.KaSymbolPointer
+import org.jetbrains.kotlin.analysis.api.types.KaTypeNullability
 import org.jetbrains.kotlin.asJava.classes.lazyPub
 import org.jetbrains.kotlin.codegen.coroutines.SUSPEND_FUNCTION_COMPLETION_PARAMETER_NAME
 import org.jetbrains.kotlin.light.classes.symbol.annotations.EmptyAnnotationsProvider
@@ -28,10 +27,10 @@ import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.psi.KtParameter
 
 internal class SymbolLightSuspendContinuationParameter(
-    private val functionSymbolPointer: KtSymbolPointer<KtFunctionSymbol>,
+    private val functionSymbolPointer: KaSymbolPointer<KaNamedFunctionSymbol>,
     private val containingMethod: SymbolLightMethodBase,
 ) : SymbolLightParameterBase(containingMethod) {
-    private inline fun <T> withFunctionSymbol(crossinline action: context(KtAnalysisSession) (KtFunctionSymbol) -> T): T {
+    private inline fun <T> withFunctionSymbol(crossinline action: KaSession.(KaNamedFunctionSymbol) -> T): T {
         return functionSymbolPointer.withSymbol(ktModule, action)
     }
 
@@ -45,9 +44,10 @@ internal class SymbolLightSuspendContinuationParameter(
         withFunctionSymbol { functionSymbol ->
             val ktType = buildClassType(StandardClassIds.Continuation) { argument(functionSymbol.returnType) }
             ktType.asPsiType(
-                this,
+                this@SymbolLightSuspendContinuationParameter,
                 allowErrorTypes = true,
-                getTypeMappingMode(ktType)
+                getTypeMappingMode(ktType),
+                allowNonJvmPlatforms = true,
             ) ?: nonExistentType()
         }
     }
@@ -62,10 +62,10 @@ internal class SymbolLightSuspendContinuationParameter(
             annotationsBox = GranularAnnotationsBox(
                 annotationsProvider = EmptyAnnotationsProvider,
                 additionalAnnotationsProvider = NullabilityAnnotationsProvider {
-                    if (withFunctionSymbol { it.visibility.isPrivateOrPrivateToThis() })
-                        KtTypeNullability.UNKNOWN
+                    if (withFunctionSymbol { it.visibility == KaSymbolVisibility.PRIVATE })
+                        KaTypeNullability.UNKNOWN
                     else
-                        KtTypeNullability.NON_NULLABLE
+                        KaTypeNullability.NON_NULLABLE
                 },
             ),
         )

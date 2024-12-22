@@ -9,7 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.search.GlobalSearchScope
-import org.jetbrains.kotlin.analysis.test.framework.project.structure.KtTestModule
+import org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModule
 import org.jetbrains.kotlin.analysis.test.framework.test.configurators.AnalysisApiTestConfigurator
 import org.jetbrains.kotlin.analysis.utils.printer.PrettyPrinter
 import org.jetbrains.kotlin.asJava.toLightClass
@@ -35,7 +35,7 @@ open class AbstractSymbolLightClassesStructureTestBase(
 ) : AbstractSymbolLightClassesTestBase(configurator) {
     override val currentExtension: String get() = throw UnsupportedOperationException()
     protected fun doTestInheritors(ktFiles: List<KtFile>, testServices: TestServices) {
-        val testData = getTestDataFileSiblingPath(extension = INHERITORS_EXTENSION, testPrefix = testPrefix)
+        val testData = getTestDataSibling(extension = INHERITORS_EXTENSION, testPrefix = testPrefix)
         if (testData.notExists()) return
         val project = ktFiles.first().project
 

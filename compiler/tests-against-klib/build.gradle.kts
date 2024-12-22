@@ -8,6 +8,7 @@ dependencies {
     api(kotlinStdlib())
     testApi(projectTests(":generators:test-generator"))
     testApi(projectTests(":compiler:tests-common"))
+    testApi(projectTests(":compiler:tests-integration"))
 
     testCompileOnly(intellijCore())
     testRuntimeOnly(intellijCore())
@@ -23,6 +24,13 @@ sourceSets {
 }
 
 testsJar {}
+
+compilerTests {
+    // only 2 files are really needed:
+    // - compiler/testData/codegen/boxKlib/properties.kt
+    // - compiler/testData/codegen/boxKlib/simple.kt
+    testData("../testData/codegen/boxKlib")
+}
 
 projectTest(parallel = true) {
     workingDir = rootDir

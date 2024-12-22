@@ -6,6 +6,7 @@
 package org.jetbrains.kotlin.gradle
 
 import org.gradle.api.logging.LogLevel
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.tasks.USING_JS_INCREMENTAL_COMPILATION_MESSAGE
 import org.jetbrains.kotlin.gradle.testbase.*
@@ -22,7 +23,6 @@ class KotlinJsIrK2IncrementalGradlePluginIT : AbstractKotlinJsIncrementalGradleP
 }
 
 @JsGradlePluginTests
-@GradleTestVersions(minVersion = TestVersions.Gradle.G_7_4)
 abstract class AbstractKotlinJsIncrementalGradlePluginIT(
     protected val irBackend: Boolean
 ) : KGPBaseTest() {
@@ -55,9 +55,10 @@ abstract class AbstractKotlinJsIncrementalGradlePluginIT(
             }
             build("compileKotlinJs", "compileTestKotlinJs") {
                 assertOutputContains(USING_JS_INCREMENTAL_COMPILATION_MESSAGE)
-                val affectedFiles = listOf("A.kt", "useAInLibMain.kt", "useAInAppMain.kt", "useAInAppTest.kt").mapNotNull {
-                    projectPath.findInPath(it)
-                }
+                val affectedFiles =
+                    listOf("A.kt", "useAInLibMain.kt", "useAInAppMain.kt", "useAInAppTest.kt", "useAInLibTest.kt").mapNotNull {
+                        projectPath.findInPath(it)
+                    }
                 assertCompiledKotlinSources(affectedFiles.relativizeTo(projectPath), output)
             }
         }
@@ -77,7 +78,6 @@ abstract class AbstractKotlinJsIncrementalGradlePluginIT(
 
     @DisplayName("incremental compilation with multiple js modules after frontend compilation error works")
     @GradleTest
-    @GradleTestVersions(minVersion = TestVersions.Gradle.G_7_6)
     fun testIncrementalCompilationWithMultipleModulesAfterCompilationError(gradleVersion: GradleVersion) {
         val buildOptions = defaultBuildOptions.copy(jsOptions = defaultJsOptions.copy(incrementalJsKlib = true))
         project("kotlin-js-ir-ic-multiple-artifacts", gradleVersion, buildOptions = buildOptions) {

@@ -14,7 +14,7 @@ function box() {
       tmp_0 = false;
     }
     if (tmp_0) {
-      tmp = check_1();
+      tmp = check_0();
     } else {
       tmp = false;
     }
@@ -33,13 +33,13 @@ function box() {
       tmp_3 = false;
     }
     if (tmp_3) {
-      tmp_2 = check_1();
+      tmp_2 = check_0();
     } else {
       tmp_2 = false;
     }
     if (tmp_2) {
-      check_1();
-      check_1();
+      check_0();
+      check_0();
     } else {
       // Inline function 'inlineFunction' call
     }
@@ -54,6 +54,8 @@ function box() {
     // Inline function 'inlineFunction' call
   } else {
     if (isNumber(tmp0_subject)) {
+      // Inline function 'inlineFunction' call
+    } else {
       // Inline function 'inlineFunction' call
     }
   }

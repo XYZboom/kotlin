@@ -112,7 +112,7 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
                                        irCallConstructor(constructor.symbol, irFunction.typeParameters.map {
                                            it.defaultType.makeNullable()
                                        }).apply {
-                                           val functionParameters = irFunction.explicitParameters
+                                           val functionParameters = irFunction.parameters
                                            functionParameters.forEachIndexed { index, argument ->
                                                putValueArgument(index, irGet(argument))
                                            }
@@ -131,7 +131,7 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
     private class BuiltCoroutine(val clazz: IrClass, val constructor: IrConstructor, val stateMachineFunction: IrFunction)
 
     private inner class CoroutineBuilder(val irFunction: IrFunction) {
-        private val functionParameters = irFunction.explicitParameters
+        private val functionParameters = irFunction.parameters
 
         private val coroutineClass: IrClass =
             context.irFactory.buildClass {
@@ -142,7 +142,7 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
                 visibility = DescriptorVisibilities.PRIVATE
             }.apply {
                 parent = irFunction.parent
-                createParameterDeclarations()
+                createThisReceiverParameter()
                 typeParameters = irFunction.typeParameters.memoryOptimizedMap { typeParam ->
                     typeParam.copyToWithoutSuperTypes(this).apply { superTypes = superTypes memoryOptimizedPlus typeParam.superTypes }
                 }
@@ -188,13 +188,13 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
                 coroutineClass.declarations += this
                 coroutineConstructors += this
 
-                valueParameters = functionParameters.memoryOptimizedMapIndexed { index, parameter ->
-                    parameter.copyTo(this, DECLARATION_ORIGIN_COROUTINE_IMPL, index)
+                valueParameters = functionParameters.memoryOptimizedMap { parameter ->
+                    parameter.copyTo(this, DECLARATION_ORIGIN_COROUTINE_IMPL)
                 }
                 val continuationParameter = coroutineBaseClassConstructor.valueParameters[0]
                 valueParameters = valueParameters memoryOptimizedPlus continuationParameter.copyTo(
                     this, DECLARATION_ORIGIN_COROUTINE_IMPL,
-                    index = valueParameters.size, type = continuationType
+                    type = continuationType
                 )
 
                 val irBuilder = context.createIrBuilder(symbol, startOffset, endOffset)
@@ -242,11 +242,12 @@ abstract class AbstractSuspendFunctionsLowering<C : CommonBackendContext>(val co
                         .apply { superTypes = superTypes memoryOptimizedPlus parameter.superTypes }
                 }
 
-                valueParameters = stateMachineFunction.valueParameters.memoryOptimizedMapIndexed { index, parameter ->
-                    parameter.copyTo(this, DECLARATION_ORIGIN_COROUTINE_IMPL, index)
-                }
+                this.parameters += this.createDispatchReceiverParameterWithClassParent()
 
-                this.createDispatchReceiverParameter()
+                this.parameters += stateMachineFunction.nonDispatchParameters
+                    .memoryOptimizedMap { parameter ->
+                        parameter.copyTo(this, DECLARATION_ORIGIN_COROUTINE_IMPL)
+                    }
 
                 overriddenSymbols = overriddenSymbols memoryOptimizedPlus stateMachineFunction.symbol
             }

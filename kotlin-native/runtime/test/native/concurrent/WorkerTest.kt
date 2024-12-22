@@ -26,7 +26,7 @@ class WorkerTest {
         assertEquals("Still working", execute(TransferMode.SAFE, { "Still" }) { "$it working" }.result)
     }
 
-    @OptIn(FreezingIsDeprecated::class)
+    @Suppress("DEPRECATION_ERROR") // Freezing API
     @Test
     fun executeWithDetachedObjectGraph() = withWorker {
         data class SharedDataMember(val double: Double)
@@ -180,23 +180,59 @@ class WorkerTest {
     }
 
     @Test
+    @Ignore // flaky test
     fun executeAfterCancelled() {
         val worker = Worker.start()
 
-        val future = worker.execute(TransferMode.SAFE, {}) {
+        val stage = AtomicInt(0)
+
+        val future = worker.execute(TransferMode.SAFE, { stage }) { stage ->
+            // Wait until termination request is definitely in the job queue.
+            while (stage.value == 0) {}
             // Here we processed termination request.
             assertEquals(false, Worker.current.processQueue())
+            // Now wait until the worker is fully terminated
+            while (stage.value == 1) {}
         }
 
         worker.executeAfter(1_000_000_000L) { error("FAILURE") }
 
-        // Request worker to terminate and wait for the request to be processed.
-        worker.requestTermination(processScheduledJobs = false).result
-        // Now wait for the worker to complete termination, cleaning up after itself.
+        // Request worker to terminate.
+        val terminationRequest = worker.requestTermination(processScheduledJobs = false)
+        // Allow `execute` above to `processQueue`.
+        stage.value = 1
+        // Now wait until `processQueue` processes termination request.
+        terminationRequest.result
+        // And now wait for the worker to complete termination, cleaning up after itself.
         waitWorkerTermination(worker)
+        // And finally allow `execute` to complete.
+        stage.value = 2
 
         // `future` is bound to terminated `worker` and so it's not available anymore.
         assertFailsWith<IllegalStateException> { future.result }
+    }
+
+    @Test
+    fun cancelJobsAfterTerminationRequest() {
+        val worker = Worker.start()
+
+        val canUnblockQueue = AtomicInt(0)
+        val blockQueueFuture = worker.execute(TransferMode.SAFE, { canUnblockQueue }) { canUnblockQueue ->
+            while (canUnblockQueue.value == 0) {}
+        }
+        val terminateRequestFuture = worker.requestTermination()
+        val afterTerminationFuture = worker.execute(TransferMode.SAFE, {}) {
+            error("Executed job after termination")
+        }
+
+        // Now that the entire queue is ready, unblock the first task, it will be successful, and wait for the termination request.
+        canUnblockQueue.value = 1
+        blockQueueFuture.result
+        terminateRequestFuture.result
+        // And now wait for the worker to complete termination, cleaning up after itself.
+        waitWorkerTermination(worker)
+        val exception = assertFailsWith<IllegalStateException> { afterTerminationFuture.result }
+        assertEquals("Future is cancelled", exception.message)
     }
 
     @Test

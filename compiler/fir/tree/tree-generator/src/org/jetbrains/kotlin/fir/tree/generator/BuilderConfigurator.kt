@@ -6,9 +6,10 @@
 package org.jetbrains.kotlin.fir.tree.generator
 
 import org.jetbrains.kotlin.fir.tree.generator.context.AbstractFirBuilderConfigurator
+import org.jetbrains.kotlin.fir.tree.generator.context.AbstractFirTreeBuilder
 
-object BuilderConfigurator : AbstractFirBuilderConfigurator<FirTreeBuilder>(FirTreeBuilder.elements) {
-    override fun configureBuilders() = with(FirTreeBuilder) {
+class BuilderConfigurator(model: Model) : AbstractFirBuilderConfigurator<AbstractFirTreeBuilder>(model) {
+    override fun configureBuilders() = with(FirTree) {
         val declarationBuilder by builder {
             fields from declaration without "symbol"
         }
@@ -33,6 +34,7 @@ object BuilderConfigurator : AbstractFirBuilderConfigurator<FirTreeBuilder>(FirT
             parents += declarationBuilder
             parents += annotationContainerBuilder
             fields from klass without listOf("symbol", "resolvePhase", "resolveState", "controlFlowGraphReference")
+            isSealed = true
         }
 
         builder(file) {
@@ -115,7 +117,7 @@ object BuilderConfigurator : AbstractFirBuilderConfigurator<FirTreeBuilder>(FirT
 
         builder(typeAlias) {
             parents += declarationBuilder
-            parents += typeParametersOwnerBuilder
+            parents += typeParameterRefsOwnerBuilder
             withCopy()
         }
 
@@ -159,6 +161,7 @@ object BuilderConfigurator : AbstractFirBuilderConfigurator<FirTreeBuilder>(FirT
         builder(propertyAccessExpression) {
             parents += qualifiedAccessExpressionBuilder
             defaultNoReceivers()
+            withCopy()
         }
 
         builder(callableReferenceAccess) {
@@ -251,6 +254,11 @@ object BuilderConfigurator : AbstractFirBuilderConfigurator<FirTreeBuilder>(FirT
             withCopy()
         }
 
+        builder(backingField) {
+            parents += variableBuilder
+            default("resolvePhase", "FirResolvePhase.DECLARATIONS")
+        }
+
         builder(enumEntry) {
             withCopy()
         }
@@ -271,14 +279,6 @@ object BuilderConfigurator : AbstractFirBuilderConfigurator<FirTreeBuilder>(FirT
             parents += qualifiedAccessExpressionBuilder
             default("isImplicit", "false")
             withCopy()
-        }
-
-        builder(thisReference, "FirExplicitThisReference") {
-            default("contextReceiverNumber", "-1")
-        }
-
-        builder(thisReference, "FirImplicitThisReference") {
-            default("contextReceiverNumber", "-1")
         }
 
         builder(anonymousFunction) {
@@ -319,19 +319,14 @@ object BuilderConfigurator : AbstractFirBuilderConfigurator<FirTreeBuilder>(FirT
             parents += loopJumpBuilder
         }
 
-        builder(contextReceiver) {
-            withCopy()
-        }
-
         builder(valueParameter, type = "FirValueParameterImpl") {
             openBuilder()
             withCopy()
+            defaultFalse("isCrossinline", "isNoinline", "isVararg")
+            default("valueParameterKind", "FirValueParameterKind.Regular")
         }
 
         builder(valueParameter, type = "FirDefaultSetterValueParameter") {
-            defaultNull("defaultValue", "initializer", "delegate", "receiverParameter", "getter", "setter")
-            defaultFalse("isCrossinline", "isNoinline", "isVararg", "isVar")
-            defaultTrue("isVal")
         }
 
         builder(simpleFunction) {

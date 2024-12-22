@@ -1,7 +1,7 @@
 FILE fqName:<root> fileName:/openDataClass.kt
   CLASS CLASS name:ValidatedProperties modality:OPEN visibility:public [data] superTypes:[kotlin.Any]
     annotations:
-      Suppress(names = ["INCOMPATIBLE_MODIFIERS"])
+      Suppress(names = ["INCOMPATIBLE_MODIFIERS"] type=kotlin.Array<out kotlin.String> varargElementType=kotlin.String)
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:<root>.ValidatedProperties
     PROPERTY name:test1 visibility:public modality:OPEN [val]
       FIELD PROPERTY_BACKING_FIELD name:test1 type:kotlin.String visibility:private [final]
@@ -30,7 +30,7 @@ FILE fqName:<root> fileName:/openDataClass.kt
       VALUE_PARAMETER name:test2 index:1 type:kotlin.String
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in kotlin.Any'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:ValidatedProperties modality:OPEN visibility:public [data] superTypes:[kotlin.Any]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:ValidatedProperties modality:OPEN visibility:public [data] superTypes:[kotlin.Any]' type=kotlin.Unit
     FUN GENERATED_DATA_CLASS_MEMBER name:component1 visibility:public modality:FINAL <> ($this:<root>.ValidatedProperties) returnType:kotlin.String [operator]
       $this: VALUE_PARAMETER name:<this> type:<root>.ValidatedProperties
       BLOCK_BODY

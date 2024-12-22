@@ -84,6 +84,31 @@ public class CompilerLightClassTestGenerated extends AbstractCompilerLightClassT
     runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/BackingFields.kt");
   }
 
+  @TestMetadata("classAndCompanionDelegatedProperty.kt")
+  public void testClassAndCompanionDelegatedProperty() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/classAndCompanionDelegatedProperty.kt");
+  }
+
+  @TestMetadata("classAndCompanionJvmFieldProperty.kt")
+  public void testClassAndCompanionJvmFieldProperty() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/classAndCompanionJvmFieldProperty.kt");
+  }
+
+  @TestMetadata("classAndCompanionProperty.kt")
+  public void testClassAndCompanionProperty() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/classAndCompanionProperty.kt");
+  }
+
+  @TestMetadata("classJvmFieldAndCompanionJvmFieldProperty.kt")
+  public void testClassJvmFieldAndCompanionJvmFieldProperty() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/classJvmFieldAndCompanionJvmFieldProperty.kt");
+  }
+
+  @TestMetadata("classJvmFieldAndCompanionProperty.kt")
+  public void testClassJvmFieldAndCompanionProperty() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/classJvmFieldAndCompanionProperty.kt");
+  }
+
   @TestMetadata("ClassTypeParameterAnnotation.kt")
   public void testClassTypeParameterAnnotation() {
     runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/ClassTypeParameterAnnotation.kt");
@@ -97,6 +122,16 @@ public class CompilerLightClassTestGenerated extends AbstractCompilerLightClassT
   @TestMetadata("CompanionObjectWithAConflictingProperty.kt")
   public void testCompanionObjectWithAConflictingProperty() {
     runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/CompanionObjectWithAConflictingProperty.kt");
+  }
+
+  @TestMetadata("constructorWithValueClass.kt")
+  public void testConstructorWithValueClass() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/constructorWithValueClass.kt");
+  }
+
+  @TestMetadata("constructorWithValueClassAsProperty.kt")
+  public void testConstructorWithValueClassAsProperty() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/constructorWithValueClassAsProperty.kt");
   }
 
   @TestMetadata("Constructors.kt")
@@ -122,6 +157,11 @@ public class CompilerLightClassTestGenerated extends AbstractCompilerLightClassT
   @TestMetadata("Delegation.kt")
   public void testDelegation() {
     runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/Delegation.kt");
+  }
+
+  @TestMetadata("Deprecated.kt")
+  public void testDeprecated() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/Deprecated.kt");
   }
 
   @TestMetadata("DeprecatedEnumEntry.kt")
@@ -194,6 +234,11 @@ public class CompilerLightClassTestGenerated extends AbstractCompilerLightClassT
     runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/InterfaceWithDefaultMethodAndCompanion.kt");
   }
 
+  @TestMetadata("internalValueClass.kt")
+  public void testInternalValueClass() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/internalValueClass.kt");
+  }
+
   @TestMetadata("InvalidJavaIdentifierAsAnnotationArgument.kt")
   public void testInvalidJavaIdentifierAsAnnotationArgument() {
     runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/InvalidJavaIdentifierAsAnnotationArgument.kt");
@@ -259,6 +304,11 @@ public class CompilerLightClassTestGenerated extends AbstractCompilerLightClassT
     runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/PrivateObject.kt");
   }
 
+  @TestMetadata("privateValueClass.kt")
+  public void testPrivateValueClass() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/privateValueClass.kt");
+  }
+
   @TestMetadata("PropertyTypeParameterAnnotation.kt")
   public void testPropertyTypeParameterAnnotation() {
     runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/PropertyTypeParameterAnnotation.kt");
@@ -314,9 +364,49 @@ public class CompilerLightClassTestGenerated extends AbstractCompilerLightClassT
     runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/ValueClassInParametersWithJvmName.kt");
   }
 
+  @TestMetadata("valueClassMembers.kt")
+  public void testValueClassMembers() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/valueClassMembers.kt");
+  }
+
+  @TestMetadata("valueClassWithDelegatedSuperInterface.kt")
+  public void testValueClassWithDelegatedSuperInterface() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/valueClassWithDelegatedSuperInterface.kt");
+  }
+
+  @TestMetadata("valueClassWithInternalParam.kt")
+  public void testValueClassWithInternalParam() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/valueClassWithInternalParam.kt");
+  }
+
+  @TestMetadata("valueClassWithPrivateParam.kt")
+  public void testValueClassWithPrivateParam() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/valueClassWithPrivateParam.kt");
+  }
+
+  @TestMetadata("valueClassWithSuperInterface.kt")
+  public void testValueClassWithSuperInterface() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/valueClassWithSuperInterface.kt");
+  }
+
+  @TestMetadata("valueClassWithValueClass.kt")
+  public void testValueClassWithValueClass() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/valueClassWithValueClass.kt");
+  }
+
   @TestMetadata("VarArgs.kt")
   public void testVarArgs() {
     runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/VarArgs.kt");
+  }
+
+  @TestMetadata("wildcardWithoutArguments.kt")
+  public void testWildcardWithoutArguments() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/wildcardWithoutArguments.kt");
+  }
+
+  @TestMetadata("wildcardWithoutArgumentsOnType.kt")
+  public void testWildcardWithoutArgumentsOnType() {
+    runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/wildcardWithoutArgumentsOnType.kt");
   }
 
   @TestMetadata("compiler/testData/asJava/lightClasses/lightClassByFqName/compilationErrors")
@@ -481,6 +571,11 @@ public class CompilerLightClassTestGenerated extends AbstractCompilerLightClassT
       runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/compilationErrors/unresolvedQuialifierInAnnotation.kt");
     }
 
+    @TestMetadata("valueClassInSuperType.kt")
+    public void testValueClassInSuperType() {
+      runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/compilationErrors/valueClassInSuperType.kt");
+    }
+
     @TestMetadata("WrongAnnotations.kt")
     public void testWrongAnnotations() {
       runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/compilationErrors/WrongAnnotations.kt");
@@ -530,6 +625,16 @@ public class CompilerLightClassTestGenerated extends AbstractCompilerLightClassT
     @TestMetadata("AllPrivate.kt")
     public void testAllPrivate() {
       runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/facades/AllPrivate.kt");
+    }
+
+    @TestMetadata("DelegatedProperty.kt")
+    public void testDelegatedProperty() {
+      runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/facades/DelegatedProperty.kt");
+    }
+
+    @TestMetadata("Deprecated.kt")
+    public void testDeprecated() {
+      runTest("compiler/testData/asJava/lightClasses/lightClassByFqName/facades/Deprecated.kt");
     }
 
     @TestMetadata("FunctionTypeParameterAnnotation.kt")

@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.typeParameterSymbols
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.collectUpperBounds
+import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassifierSymbol
@@ -20,7 +21,8 @@ import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ProjectionKind
 import org.jetbrains.kotlin.fir.types.forEachType
-import org.jetbrains.kotlin.fir.types.toSymbol
+import org.jetbrains.kotlin.fir.resolve.toSymbol
+import org.jetbrains.kotlin.fir.resolve.toTypeParameterSymbol
 import org.jetbrains.kotlin.utils.DFS
 
 /**
@@ -47,10 +49,10 @@ object FirFiniteBoundRestrictionChecker : FirRegularClassChecker(MppCheckerKind.
             }
         }
 
-        val problemSymbols = problemNodes.mapNotNullTo(mutableSetOf()) { it.toSymbol(context.session) as? FirTypeParameterSymbol }
-        if (problemSymbols.any { it.source != null }) return
+        val problemSymbols = problemNodes.mapNotNullTo(mutableSetOf()) { it.toTypeParameterSymbol(context.session) }
 
         val containers = problemSymbols.map { it.containingDeclarationSymbol }
+        if (containers.any { it.origin !is FirDeclarationOrigin.Java  }) return
         reporter.reportOn(declaration.source, FirErrors.FINITE_BOUNDS_VIOLATION_IN_JAVA, containers, context)
     }
 

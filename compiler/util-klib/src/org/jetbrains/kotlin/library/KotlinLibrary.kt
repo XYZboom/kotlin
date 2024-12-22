@@ -21,9 +21,12 @@ const val KLIB_PROPERTY_IR_SIGNATURE_VERSIONS = "ir_signature_versions"
  */
 const val KLIB_PROPERTY_METADATA_VERSION = "metadata_version"
 
-@Deprecated(DEPRECATED_DEPENDENCY_VERSIONS)
+@Deprecated(DEPRECATED_LIBRARY_AND_DEPENDENCY_VERSIONS)
 const val KLIB_PROPERTY_DEPENDENCY_VERSION = "dependency_version"
+
+@Deprecated(DEPRECATED_LIBRARY_AND_DEPENDENCY_VERSIONS)
 const val KLIB_PROPERTY_LIBRARY_VERSION = "library_version"
+
 const val KLIB_PROPERTY_UNIQUE_NAME = "unique_name"
 const val KLIB_PROPERTY_SHORT_NAME = "short_name"
 const val KLIB_PROPERTY_DEPENDS = "depends"
@@ -70,7 +73,6 @@ interface BaseKotlinLibrary {
     // Whether this library is default (provided by distribution)?
     val isDefault: Boolean
     val manifestProperties: Properties
-    val has_pre_1_4_manifest: Boolean
 }
 
 interface MetadataLibrary {
@@ -81,7 +83,6 @@ interface MetadataLibrary {
 
 interface IrLibrary {
     val hasIr: Boolean
-    val dataFlowGraph: ByteArray?
     fun irDeclaration(index: Int, fileIndex: Int): ByteArray
     fun type(index: Int, fileIndex: Int): ByteArray
     fun signature(index: Int, fileIndex: Int): ByteArray
@@ -125,9 +126,15 @@ val BaseKotlinLibrary.hasDependencies: Boolean
 
 interface KotlinLibrary : BaseKotlinLibrary, MetadataLibrary, IrLibrary
 
-// TODO: should we move the below ones to Native?
-val KotlinLibrary.isInterop: Boolean
-    get() = manifestProperties.getProperty(KLIB_PROPERTY_INTEROP) == "true"
+@Deprecated(
+    "Use BaseKotlinLibrary.isCInteropLibrary() for more precise check",
+    ReplaceWith("isCInteropLibrary()", "org.jetbrains.kotlin.library.metadata.isCInteropLibrary"),
+    DeprecationLevel.WARNING
+)
+val KotlinLibrary.isInterop: Boolean get() = interopFlag == "true"
+
+val BaseKotlinLibrary.interopFlag: String?
+    get() = manifestProperties.getProperty(KLIB_PROPERTY_INTEROP)
 
 val KotlinLibrary.isHeader: Boolean
     get() = manifestProperties.getProperty(KLIB_PROPERTY_HEADER) == "true"
@@ -153,7 +160,11 @@ val BaseKotlinLibrary.wasmTargets: List<String>
 val KotlinLibrary.containsErrorCode: Boolean
     get() = manifestProperties.getProperty(KLIB_PROPERTY_CONTAINS_ERROR_CODE) == "true"
 
+@Deprecated("Use BaseKotlinLibrary.commonizerTarget instead", level = DeprecationLevel.HIDDEN)
 val KotlinLibrary.commonizerTarget: String?
+    get() = commonizerTarget
+
+val BaseKotlinLibrary.commonizerTarget: String?
     get() = manifestProperties.getProperty(KLIB_PROPERTY_COMMONIZER_TARGET)
 
 @Deprecated("Use BaseKotlinLibrary.builtInsPlatform instead", level = DeprecationLevel.HIDDEN)
@@ -168,4 +179,4 @@ val BaseKotlinLibrary.commonizerNativeTargets: List<String>?
         manifestProperties.propertyList(KLIB_PROPERTY_COMMONIZER_NATIVE_TARGETS, escapeInQuotes = true)
     else null
 
-const val DEPRECATED_DEPENDENCY_VERSIONS = "Dependency versions have been phased out, see KT-65834"
+const val DEPRECATED_LIBRARY_AND_DEPENDENCY_VERSIONS = "Library and dependency versions have been phased out, see KT-65834"

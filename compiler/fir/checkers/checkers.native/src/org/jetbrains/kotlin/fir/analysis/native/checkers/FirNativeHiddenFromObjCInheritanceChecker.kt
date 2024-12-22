@@ -21,7 +21,7 @@ import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.types.isAny
 import org.jetbrains.kotlin.fir.types.isNullableAny
-import org.jetbrains.kotlin.fir.types.toSymbol
+import org.jetbrains.kotlin.fir.resolve.toSymbol
 
 /**
  * Check that the given class does not inherit from class or implements interface that is
@@ -53,7 +53,7 @@ object FirNativeHiddenFromObjCInheritanceChecker : FirRegularClassChecker(MppChe
 }
 
 private fun checkContainingClassIsHidden(classSymbol: FirClassLikeSymbol<*>, session: FirSession): Boolean {
-    return classSymbol.getContainingClassSymbol(session)?.let {
+    return classSymbol.getContainingClassSymbol()?.let {
         if (checkIsHiddenFromObjC(it, session)) {
             true
         } else {
@@ -65,7 +65,10 @@ private fun checkContainingClassIsHidden(classSymbol: FirClassLikeSymbol<*>, ses
 private fun checkIsHiddenFromObjC(classSymbol: FirClassLikeSymbol<*>, session: FirSession): Boolean {
     classSymbol.annotations.forEach { annotation ->
         val annotationClass = annotation.toAnnotationClassLikeSymbol(session) ?: return@forEach
-        val objCExportMetaAnnotations = annotationClass.annotations.findMetaAnnotations(session)
+
+        // `classSymbol` might be a checked class supertype, so its annotation arguments might stay unresolved.
+        // This means meta annotations also don't have to be fully resolved.
+        val objCExportMetaAnnotations = annotationClass.resolvedAnnotationsWithClassIds.findMetaAnnotations(session)
         if (objCExportMetaAnnotations.hidesFromObjCAnnotation != null) {
             return true
         }

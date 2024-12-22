@@ -1,7 +1,5 @@
-// IGNORE_REVERSED_RESOLVE
-// IGNORE_CONTRACT_VIOLATIONS
-// Issue appears bacause of `FirCompileTimeConstantEvaluator` from Analysis API.
-// Problem should be resolved when we will switch to compiler's FIR evaluator.
+// RUN_PIPELINE_TILL: FRONTEND
+// DISABLE_NEXT_TIER_SUGGESTION: FIR2IR reports "Const field is not containing const expression", and FIR must result in a diagnostic, but does not...
 // FIR_IDENTICAL
 // FILE: Bar.java
 

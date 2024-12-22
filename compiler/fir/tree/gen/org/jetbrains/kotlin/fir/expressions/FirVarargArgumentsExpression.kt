@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.fir.visitors.FirVisitor
 /**
  * [FirVarargArgumentsExpression]s are created during body resolution phase for arguments of `vararg` parameters.
  *
- * If one or multiple elements are passed to a `vararg` parameter, the will be wrapped with a [FirVarargArgumentsExpression]
+ * If one or multiple elements are passed to a `vararg` parameter, they will be wrapped with a [FirVarargArgumentsExpression]
  * and [arguments] will contain the individual elements.
  *
  * If a named argument is passed to a `vararg` parameter, [arguments] will contain a single [FirSpreadArgumentExpression]
@@ -28,7 +28,7 @@ import org.jetbrains.kotlin.fir.visitors.FirVisitor
  * If no element is passed to a `vararg` parameter, no [FirVarargArgumentsExpression] is created regardless of whether the
  * parameter has a default value.
  *
- * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTreeBuilder.varargArgumentsExpression]
+ * Generated from: [org.jetbrains.kotlin.fir.tree.generator.FirTree.varargArgumentsExpression]
  */
 abstract class FirVarargArgumentsExpression : FirExpression() {
     abstract override val source: KtSourceElement?

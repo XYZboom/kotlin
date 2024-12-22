@@ -121,11 +121,10 @@ open class VfsBasedProjectEnvironment(
                 } ?: GlobalSearchScope.EMPTY_SCOPE
         )
 
-    fun getSearchScopeByPsiFiles(files: Iterable<PsiFile>, allowOutOfProjectRoots: Boolean= false): AbstractProjectFileSearchScope =
+    fun getSearchScopeByPsiFiles(files: Iterable<PsiFile>): AbstractProjectFileSearchScope =
         PsiBasedProjectFileSearchScope(
             files.map { it.virtualFile }.let {
-                if (allowOutOfProjectRoots) GlobalSearchScope.filesWithLibrariesScope(project, it)
-                else GlobalSearchScope.filesWithoutLibrariesScope(project, it)
+                GlobalSearchScope.filesWithoutLibrariesScope(project, it)
             }
         )
 
@@ -150,7 +149,7 @@ private fun AbstractProjectFileSearchScope.asPsiSearchScope() =
         else -> (this as PsiBasedProjectFileSearchScope).psiSearchScope
     }
 
-fun KotlinCoreEnvironment.toAbstractProjectEnvironment(): AbstractProjectEnvironment =
+fun KotlinCoreEnvironment.toVfsBasedProjectEnvironment(): VfsBasedProjectEnvironment =
     VfsBasedProjectEnvironment(
         project, VirtualFileManager.getInstance().getFileSystem(StandardFileSystems.FILE_PROTOCOL),
         { createPackagePartProvider(it) }

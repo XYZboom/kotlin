@@ -16,23 +16,26 @@ import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.backend.js.JsCommonBackendContext
 import org.jetbrains.kotlin.ir.backend.js.JsIrBackendContext
 import org.jetbrains.kotlin.ir.backend.js.ir.JsIrBuilder
-import org.jetbrains.kotlin.ir.backend.js.utils.typeArguments
 import org.jetbrains.kotlin.ir.builders.declarations.buildFun
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.*
 import org.jetbrains.kotlin.ir.transformStatement
 import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.util.irError
 import org.jetbrains.kotlin.ir.util.isElseBranch
 import org.jetbrains.kotlin.utils.memoryOptimizedMap
 import org.jetbrains.kotlin.ir.util.patchDeclarationParents
 import org.jetbrains.kotlin.ir.util.transformFlat
-import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
+import org.jetbrains.kotlin.ir.visitors.IrTransformer
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.utils.addIfNotNull
 
+/**
+ * Transforms statement-like-expression nodes into pure-statement to make it easily transform into JS.
+ */
 class JsBlockDecomposerLowering(val context: JsIrBackendContext) : AbstractBlockDecomposerLowering(context) {
     override fun unreachableExpression(): IrExpression =
         JsIrBuilder.buildCall(context.intrinsics.unreachable, context.irBuiltIns.nothingType)
@@ -170,7 +173,7 @@ class BlockDecomposerTransformer(
 
     private fun destructureComposite(expression: IrStatement) = (expression as? IrComposite)?.statements ?: listOf(expression)
 
-    private inner class BreakContinueUpdater(val breakLoop: IrLoop, val continueLoop: IrLoop) : IrElementTransformer<IrLoop> {
+    private inner class BreakContinueUpdater(val breakLoop: IrLoop, val continueLoop: IrLoop) : IrTransformer<IrLoop>() {
         override fun visitBreak(jump: IrBreak, data: IrLoop) = jump.apply {
             if (loop == data) loop = breakLoop
         }
@@ -538,7 +541,7 @@ class BlockDecomposerTransformer(
                     compositesLeft == 0 -> value
                     index == 0 && dontDetachFirstArgument -> value
                     value == null -> value
-                    value.isPure(anyVariable = false, context = context) -> value
+                    value.isPure(anyVariable = false, symbols = context.ir.symbols) -> value
                     else -> {
                         // TODO: do not wrap if value is pure (const, variable, etc)
                         val (newArg, tempVar) = mapArgument(value)
@@ -575,7 +578,11 @@ class BlockDecomposerTransformer(
                     lastIntrinsicCall.putValueArgument(0, nextCall)
                     lastIntrinsicCall = nextCall
                 }
-                saveToTmp = saveToTmp.getValueArgument(0) ?: error("expect passing 1 argument to boxing intrinsic")
+                saveToTmp = saveToTmp.getValueArgument(0)
+                    ?: irError("expect passing 1 argument to boxing intrinsic") {
+                        withIrEntry("arg", arg)
+                        withIrEntry("saveToTmp", saveToTmp)
+                    }
             }
 
             val irTempVar = makeTempVar(saveToTmp.type, saveToTmp)
@@ -753,7 +760,7 @@ class BlockDecomposerTransformer(
             val newTryResult = wrap(aTry.tryResult, irVar)
             val newCatches = aTry.catches.memoryOptimizedMap {
                 val newCatchBody = wrap(it.result, irVar)
-                IrCatchImpl(it.startOffset, it.endOffset, it.catchParameter, newCatchBody)
+                IrCatchImpl(it.startOffset, it.endOffset, it.catchParameter, newCatchBody, it.origin)
             }
 
             val newTry = aTry.run { IrTryImpl(startOffset, endOffset, unitType, newTryResult, newCatches, finallyExpression) }

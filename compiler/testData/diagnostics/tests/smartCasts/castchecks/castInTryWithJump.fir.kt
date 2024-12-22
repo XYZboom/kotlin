@@ -1,3 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // ISSUE: KT-56744
 // DUMP_CFG
 
@@ -96,7 +97,7 @@ fun breakInCatch() {
 
 fun returnInFinally_insideTry_nonLocal() {
     var x: Any? = null
-    <!CANNOT_INFER_PARAMETER_TYPE!>run<!> <!CANNOT_INFER_PARAMETER_TYPE!>{
+    <!CANNOT_INFER_PARAMETER_TYPE!>run<!> {
         try {
             x as B
             try {
@@ -112,7 +113,7 @@ fun returnInFinally_insideTry_nonLocal() {
         }
         x.<!UNRESOLVED_REFERENCE!>aaa<!>() // should be error
         x.<!UNRESOLVED_REFERENCE!>bbb<!>() // should be error
-    }<!>
+    }
     x.<!UNRESOLVED_REFERENCE!>aaa<!>() // should be error
     x.<!UNRESOLVED_REFERENCE!>bbb<!>() // should be error
 }

@@ -31,14 +31,14 @@ sealed interface TestCompilationDependency<A : TestCompilationArtifact> {
     val type: TestCompilationDependencyType<A>
 }
 
-internal class CompiledDependency<A : TestCompilationArtifact>(
+class CompiledDependency<A : TestCompilationArtifact>(
     val compilation: TestCompilation<A>,
     override val type: TestCompilationDependencyType<A>
 ) : TestCompilationDependency<A> {
     override val artifact: A get() = compilation.result.assertSuccess().resultingArtifact
 }
 
-internal class ExistingDependency<A : TestCompilationArtifact>(
+class ExistingDependency<A : TestCompilationArtifact>(
     override val artifact: A,
     override val type: TestCompilationDependencyType<A>
 ) : TestCompilationDependency<A>

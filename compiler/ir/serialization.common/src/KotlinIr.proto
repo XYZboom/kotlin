@@ -144,6 +144,19 @@ message IrBlock {
   optional int32 origin_name = 2;
 }
 
+message IrReturnableBlock {
+  required int64 symbol = 1;
+  required IrBlock base = 2;
+}
+
+message IrInlinedFunctionBlock {
+  optional int64 inline_function_symbol = 1;
+  required FileEntry file_entry = 2;
+  required IrBlock base = 3;
+  required int32 inlined_function_start_offset = 4;
+  required int32 inlined_function_end_offset = 5;
+}
+
 message MemberAccessCommon {
   optional IrExpression dispatch_receiver = 1;
   optional IrExpression extension_receiver = 2;
@@ -439,6 +452,9 @@ message IrOperation {
     // Error code
     IrErrorExpression error_expression = 34;
     IrErrorCallExpression error_call_expression = 35;
+    // Operations again
+    IrReturnableBlock returnable_block = 36;
+    IrInlinedFunctionBlock inlined_function_block = 37;
   }
 }
 

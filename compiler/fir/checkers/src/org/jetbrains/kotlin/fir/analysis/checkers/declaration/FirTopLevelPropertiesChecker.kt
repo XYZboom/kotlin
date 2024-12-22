@@ -13,10 +13,10 @@ import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory0
 import org.jetbrains.kotlin.diagnostics.reportOn
-import org.jetbrains.kotlin.fir.analysis.cfa.checkPropertyAccesses
+import org.jetbrains.kotlin.fir.analysis.cfa.PropertyInitializationCheckProcessor
 import org.jetbrains.kotlin.fir.analysis.cfa.requiresInitialization
-import org.jetbrains.kotlin.fir.analysis.cfa.util.PropertyInitializationInfo
 import org.jetbrains.kotlin.fir.analysis.cfa.util.PropertyInitializationInfoData
+import org.jetbrains.kotlin.fir.analysis.cfa.util.VariableInitializationInfo
 import org.jetbrains.kotlin.fir.analysis.checkers.FirModifierList
 import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.contains
@@ -65,7 +65,7 @@ private fun FirDeclaration.collectionInitializationInfo(
     topLevelProperties: List<FirProperty>,
     context: CheckerContext,
     reporter: DiagnosticReporter,
-): PropertyInitializationInfo? {
+): VariableInitializationInfo? {
     val graph = (this as? FirControlFlowGraphOwner)?.controlFlowGraphReference?.controlFlowGraph ?: return null
 
     val propertySymbols = topLevelProperties.mapNotNullTo(mutableSetOf()) { declaration ->
@@ -75,7 +75,7 @@ private fun FirDeclaration.collectionInitializationInfo(
 
     // TODO, KT-59803: merge with `FirPropertyInitializationAnalyzer` for fewer passes.
     val data = PropertyInitializationInfoData(propertySymbols, conditionallyInitializedProperties = emptySet(), receiver = null, graph)
-    data.checkPropertyAccesses(isForInitialization = true, context, reporter)
+    PropertyInitializationCheckProcessor.check(data, isForInitialization = true, context, reporter)
     return data.getValue(graph.exitNode)[NormalPath]
 }
 
@@ -99,7 +99,7 @@ internal fun checkPropertyInitializer(
             returnTypeRef.noExplicitType()
         ) {
             property.source?.let {
-                reporter.reportOn(it, FirErrors.PROPERTY_WITH_NO_TYPE_NO_INITIALIZER, context)
+                reporter.reportOn(it, FirErrors.ABSTRACT_PROPERTY_WITHOUT_TYPE, context)
             }
         }
         return
@@ -148,11 +148,17 @@ internal fun checkPropertyInitializer(
         else -> {
             val propertySource = property.source ?: return
             val isExternal = property.isEffectivelyExternal(containingClass, context)
+            val noExplicitType =
+                property.returnTypeRef.noExplicitType() &&
+                        !property.hasExplicitBackingField &&
+                        (property.getter is FirDefaultPropertyAccessor || (property.getter?.hasBody == true && property.getter?.returnTypeRef?.noExplicitType() == true))
             val isCorrectlyInitialized =
                 property.initializer != null || isDefinitelyAssigned && !property.hasSetterAccessorImplementation &&
                         (property.getEffectiveModality(containingClass, context.languageVersionSettings) != Modality.OPEN ||
                                 // Drop this workaround after KT-64980 is fixed
                                 property.effectiveVisibility == org.jetbrains.kotlin.descriptors.EffectiveVisibility.PrivateInClass)
+
+            var initializationError = false
             if (
                 backingFieldRequired &&
                 !inInterface &&
@@ -163,6 +169,7 @@ internal fun checkPropertyInitializer(
             ) {
                 if (property.receiverParameter != null && !property.hasAllAccessorImplementation) {
                     reporter.reportOn(propertySource, FirErrors.EXTENSION_PROPERTY_MUST_HAVE_ACCESSORS_OR_BE_ABSTRACT, context)
+                    initializationError = true
                 } else if (!isCorrectlyInitialized && reachable) {
                     val isOpenValDeferredInitDeprecationWarning =
                         !context.languageVersionSettings.supportsFeature(LanguageFeature.ProhibitOpenValDeferredInitialization) &&
@@ -181,14 +188,17 @@ internal fun checkPropertyInitializer(
                             reporter,
                             context
                         )
+                        initializationError = true
                     }
                 }
-            } else if (
-                property.returnTypeRef.noExplicitType() &&
-                !property.hasExplicitBackingField &&
-                (property.getter is FirDefaultPropertyAccessor || (property.getter?.hasBody == true && property.getter?.returnTypeRef?.noExplicitType() == true))
-            ) {
-                reporter.reportOn(propertySource, FirErrors.PROPERTY_WITH_NO_TYPE_NO_INITIALIZER, context)
+            }
+
+            if (!initializationError && noExplicitType) {
+                reporter.reportOn(
+                    propertySource,
+                    if (property.isLateInit) FirErrors.LATEINIT_PROPERTY_WITHOUT_TYPE else FirErrors.PROPERTY_WITH_NO_TYPE_NO_INITIALIZER,
+                    context
+                )
             }
 
             if (property.isLateInit) {

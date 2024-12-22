@@ -158,7 +158,7 @@ class LLStandaloneFirElementByPsiElementChooser : LLFirElementByPsiElementChoose
 
     private fun FirTypeRef.renderTypeAsKotlinType(isVararg: Boolean = false): String {
         val rendered = when (this) {
-            is FirResolvedTypeRef -> type.renderTypeAsKotlinType()
+            is FirResolvedTypeRef -> coneType.renderTypeAsKotlinType()
             is FirUserTypeRef -> {
                 val renderedQualifier = qualifier.joinToString(separator = ".") { part ->
                     buildString {
@@ -223,7 +223,7 @@ class LLStandaloneFirElementByPsiElementChooser : LLFirElementByPsiElementChoose
             }
             append(typeRef.renderTypeAsKotlinType())
         }
-        else -> errorWithFirSpecificEntries("Invalid type reference", fir = this)
+        is FirPlaceholderProjection -> "_"
     }
 
     private fun isTheSameTypes(
@@ -264,8 +264,7 @@ class LLStandaloneFirElementByPsiElementChooser : LLFirElementByPsiElementChoose
             else -> errorWithFirSpecificEntries("Type should not be present in Kotlin declaration", coneType = this)
         }.replace('/', '.')
 
-        // UNKNOWN nullability occurs only on flexible types
-        val nullabilitySuffix = nullability.takeUnless { it == ConeNullability.UNKNOWN }?.suffix.orEmpty()
+        val nullabilitySuffix = if (isMarkedNullable) "?" else ""
 
         return rendered + nullabilitySuffix
     }
@@ -286,17 +285,23 @@ class LLStandaloneFirElementByPsiElementChooser : LLFirElementByPsiElementChoose
             memberRequiredPhase: FirResolvePhase?,
         ): FirTypeScope = shouldNotBeCalled()
 
-        override fun getStaticMemberScopeForCallables(
+        override fun getStaticCallableMemberScope(
             klass: FirClass,
             useSiteSession: FirSession,
             scopeSession: ScopeSession
-        ): FirContainingNamesAwareScope? = shouldNotBeCalled()
+        ): FirContainingNamesAwareScope = shouldNotBeCalled()
+
+        override fun getStaticCallableMemberScopeForBackend(
+            klass: FirClass,
+            useSiteSession: FirSession,
+            scopeSession: ScopeSession,
+        ): FirContainingNamesAwareScope = shouldNotBeCalled()
 
         override fun getNestedClassifierScope(
             klass: FirClass,
             useSiteSession: FirSession,
             scopeSession: ScopeSession
-        ): FirContainingNamesAwareScope? = shouldNotBeCalled()
+        ): FirContainingNamesAwareScope = shouldNotBeCalled()
 
         private fun shouldNotBeCalled(): Nothing = error("Should not be called in RawFirBuilder while converting KtTypeReference")
     }

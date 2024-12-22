@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -42,9 +42,13 @@ import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
 import org.jetbrains.kotlin.resolve.ImportPath
 import org.jetbrains.kotlin.resolve.checkers.OptInNames
 import org.jetbrains.kotlin.test.*
-import org.jetbrains.kotlin.test.InTextDirectivesUtils.*
-import org.jetbrains.kotlin.test.services.JUnit5Assertions.assertTrue
+import org.jetbrains.kotlin.test.InTextDirectivesUtils.isCompatibleTarget
+import org.jetbrains.kotlin.test.InTextDirectivesUtils.isDirectiveDefined
+import org.jetbrains.kotlin.test.directives.CodegenTestDirectives
+import org.jetbrains.kotlin.test.directives.KlibBasedCompilerTestDirectives
+import org.jetbrains.kotlin.test.directives.model.RegisteredDirectives
 import org.jetbrains.kotlin.test.services.JUnit5Assertions.assertFalse
+import org.jetbrains.kotlin.test.services.JUnit5Assertions.assertTrue
 import org.jetbrains.kotlin.test.services.JUnit5Assertions.fail
 import org.jetbrains.kotlin.utils.addIfNotNull
 import java.io.File
@@ -112,6 +116,7 @@ private class ExtTestDataFile(
     private val testMode = settings.get<TestMode>()
     private val cacheMode = settings.get<CacheMode>()
     private val optimizationMode = settings.get<OptimizationMode>()
+    private val klibIrInlinerMode = settings.get<KlibIrInlinerMode>()
 
     private val structure by lazy {
         val allSourceTransformers: ExternalSourceTransformers = if (customSourceTransformers.isNullOrEmpty())
@@ -132,13 +137,17 @@ private class ExtTestDataFile(
         val optIns = structure.directives.multiValues(OPT_IN_DIRECTIVE)
         val optInsForSourceCode = optIns subtract OPT_INS_PURELY_FOR_COMPILER
         val optInsForCompiler = optIns intersect OPT_INS_PURELY_FOR_COMPILER
+        val extraLanguageSettings = buildSet {
+            if (klibIrInlinerMode == KlibIrInlinerMode.ON)
+                add("+${LanguageFeature.IrInlinerBeforeKlibSerialization.name}")
+        }
 
         ExtTestDataFileSettings(
             languageSettings = structure.directives.multiValues(LANGUAGE_DIRECTIVE) {
                 // It is already on by default, but passing it explicitly turns on a special "compatibility mode" in FE,
                 // which is not desirable.
                 it != "+NewInference"
-            },
+            } + extraLanguageSettings,
             optInsForSourceCode = optInsForSourceCode + structure.directives.multiValues(USE_EXPERIMENTAL_DIRECTIVE),
             optInsForCompiler = optInsForCompiler,
             generatedSourcesDir = computeGeneratedSourcesDir(
@@ -150,14 +159,13 @@ private class ExtTestDataFile(
                 testDataBaseDir = testRoots.baseDir,
                 testDataFile = testDataFile
             ),
-            assertionsMode = AssertionsMode.fromString(structure.directives[ASSERTIONS_MODE.name])
+            assertionsMode = structure.directives.singleOrZeroValue(ASSERTIONS_MODE) ?: AssertionsMode.DEFAULT,
         )
     }
 
     val isRelevant: Boolean =
-        isCompatibleTarget(TargetBackend.NATIVE, testDataFile) // Checks TARGET_BACKEND/DONT_TARGET_EXACT_BACKEND directives.
+        isCompatibleTarget(TargetBackend.NATIVE, testDataFile, /*separatedDirectiveValues=*/true) // Checks TARGET_BACKEND/DONT_TARGET_EXACT_BACKEND directives.
                 && !settings.isDisabledNative(structure.directives)
-                && testDataFileSettings.languageSettings.none { it in INCOMPATIBLE_LANGUAGE_SETTINGS }
                 && INCOMPATIBLE_DIRECTIVES.none { it in structure.directives }
                 && structure.directives[API_VERSION_DIRECTIVE] !in INCOMPATIBLE_API_VERSIONS
                 && structure.directives[LANGUAGE_VERSION_DIRECTIVE] !in INCOMPATIBLE_LANGUAGE_VERSIONS
@@ -167,12 +175,20 @@ private class ExtTestDataFile(
                 && !(testDataFileSettings.languageSettings.contains("+${LanguageFeature.MultiPlatformProjects.name}")
                      && pipelineType == PipelineType.K2
                      && testMode == TestMode.ONE_STAGE_MULTI_MODULE)
+                && structure.defFilesContents.all { it.defFileContentsIsSupportedOn(settings.get<KotlinNativeTargets>().testTarget) }
 
-    private fun assembleFreeCompilerArgs(): TestCompilerArgs {
+    private fun assembleFreeCompilerArgs(settings: Settings): TestCompilerArgs {
         val args = mutableListOf<String>()
-        structure.directives.listValues(FREE_COMPILER_ARGS.name)?.let { args.addAll(it)}
+        val defaultDirectives = settings.get<RegisteredDirectives>()
+        args += defaultDirectives[FREE_COMPILER_ARGS]
+        args += structure.directives[FREE_COMPILER_ARGS]
         testDataFileSettings.languageSettings.sorted().mapTo(args) { "-XXLanguage:$it" }
         testDataFileSettings.optInsForCompiler.sorted().mapTo(args) { "-opt-in=$it" }
+        if (!structure.directives[CodegenTestDirectives.DISABLE_IR_VISIBILITY_CHECKS].containsNativeOrAny &&
+            !defaultDirectives[CodegenTestDirectives.DISABLE_IR_VISIBILITY_CHECKS].containsNativeOrAny
+        ) {
+            args.add("-Xverify-ir-visibility")
+        }
         args += "-opt-in=kotlin.native.internal.InternalForKotlinNative" // for `Any.isPermanent()` and `Any.isLocal()`
         args += "-opt-in=kotlin.native.internal.InternalForKotlinNativeTests" // for ReflectionPackageName
         val freeCInteropArgs = structure.directives.listValues(FREE_CINTEROP_ARGS.name)
@@ -201,13 +217,13 @@ private class ExtTestDataFile(
      */
     private fun determineIfStandaloneTest(): Boolean = with(structure) {
         if (directives.contains(NATIVE_STANDALONE_DIRECTIVE)) return true
-        if (directives.contains(FILECHECK_STAGE.name)) return true
-        if (directives.contains(ASSERTIONS_MODE.name)) return true
+        if (directives.contains(FILECHECK_STAGE)) return true
+        if (directives.contains(ASSERTIONS_MODE)) return true
         if (isExpectedFailure) return true
         // To make the debug of possible failed testruns easier, it makes sense to run dodgy tests alone
-        if (directives.contains(IGNORE_NATIVE.name) ||
-            directives.contains(IGNORE_NATIVE_K1.name) ||
-            directives.contains(IGNORE_NATIVE_K2.name)
+        if (directives.contains(IGNORE_NATIVE) ||
+            directives.contains(IGNORE_NATIVE_K1) ||
+            directives.contains(IGNORE_NATIVE_K2)
         ) return true
 
         /**
@@ -535,7 +551,7 @@ private class ExtTestDataFile(
             id = TestCaseId.TestDataFile(testDataFile),
             kind = if (isStandaloneTest) TestKind.STANDALONE else TestKind.REGULAR,
             modules = modules,
-            freeCompilerArgs = assembleFreeCompilerArgs(),
+            freeCompilerArgs = assembleFreeCompilerArgs(settings),
             nominalPackageName = testDataFileSettings.nominalPackageName,
             expectedFailure = isExpectedFailure,
             checks = TestRunChecks.Default(timeouts.executionTimeout).copy(
@@ -579,18 +595,6 @@ private class ExtTestDataFile(
         private val INCOMPATIBLE_LANGUAGE_VERSIONS = setOf("1.3", "1.4")
 
         private const val LANGUAGE_DIRECTIVE = "LANGUAGE"
-        private val INCOMPATIBLE_LANGUAGE_SETTINGS = setOf(
-            "-ProperIeee754Comparisons",                            // K/N supports only proper IEEE754 comparisons
-            "-ReleaseCoroutines",                                   // only release coroutines
-            "-DataClassInheritance",                                // old behavior is not supported
-            "-ProhibitAssigningSingleElementsToVarargsInNamedForm", // Prohibit these assignments
-            "-ProhibitDataClassesOverridingCopy",                   // Prohibit as no longer supported
-            "-ProhibitOperatorMod",                                 // Prohibit as no longer supported
-            "-ProhibitIllegalValueParameterUsageInDefaultArguments",  // Allow only legal values
-            "-UseBuilderInferenceOnlyIfNeeded",                     // Run only default one
-            "-UseCorrectExecutionOrderForVarargArguments"           // Run only correct one
-        )
-
         private const val USE_EXPERIMENTAL_DIRECTIVE = "USE_EXPERIMENTAL"
 
         private const val NATIVE_STANDALONE_DIRECTIVE = "NATIVE_STANDALONE"
@@ -639,6 +643,11 @@ private class ExtTestDataFileStructureFactory(parentDisposable: Disposable) : Te
 
         val directives: Directives get() = filesAndModules.directives
 
+        val defFilesContents: List<String>
+            get() = filesAndModules.parsedFiles.filterKeys { it.name.endsWith(".def") }.map {
+                it.value.text
+            }
+
         val filesToTransform: Iterable<CurrentFileHandler>
             get() = filesAndModules.parsedFiles.filter { it.key.name.endsWith(".kt") || it.key.name.endsWith(".def") }
                 .map { (extTestFile, psiFile) ->
@@ -684,9 +693,9 @@ private class ExtTestDataFileStructureFactory(parentDisposable: Disposable) : Te
                     source = extTestModule,
                     destination = TestModule.Exclusive(
                         name = extTestModule.name,
-                        directDependencySymbols = extTestModule.dependencies.mapToSet(::transformDependency),
-                        directFriendSymbols = extTestModule.friends.mapToSet(::transformDependency),
-                        directDependsOnSymbols = extTestModule.dependsOn.mapToSet(::transformDependency),
+                        directRegularDependencySymbols = extTestModule.dependencies.mapToSet(::transformDependency),
+                        directFriendDependencySymbols = extTestModule.friends.mapToSet(::transformDependency),
+                        directDependsOnDependencySymbols = extTestModule.dependsOn.mapToSet(::transformDependency),
                     ),
                     baseDir = testCaseDir
                 ) { module, file -> module.files += file }
@@ -809,7 +818,7 @@ private class ExtTestDataFileStructureFactory(parentDisposable: Disposable) : Te
 
         @OptIn(ObsoleteTestInfrastructure::class)
         private val generatedFiles = TestFiles.createTestFiles(
-            /* testFileName = */ DEFAULT_FILE_NAME,
+            /* testFileName = */ originalTestDataFile.name,
             /* expectedText = */ originalTestDataFile.readText(),
             /* factory = */ testFileFactory,
             /* preserveLocations = */ true

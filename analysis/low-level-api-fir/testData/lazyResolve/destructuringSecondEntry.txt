@@ -1,7 +1,7 @@
 RAW_FIR:
 FILE: [ResolvedTo(RAW_FIR)] destructuringSecondEntry.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
         public? final? [ResolvedTo(RAW_FIR)] var a: <implicit> = LAZY_EXPRESSION
@@ -12,7 +12,7 @@ FILE: [ResolvedTo(RAW_FIR)] destructuringSecondEntry.kts
             public? [ResolvedTo(RAW_FIR)] get(): <implicit>
             public? [ResolvedTo(RAW_FIR)] set([ResolvedTo(RAW_FIR)] value: <implicit>): R|kotlin/Unit|
 
-        public final? data [ResolvedTo(RAW_FIR)] class MyPair : R|kotlin/Any| {
+        public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=MyPair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.i] i: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.b] b: Int): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -44,8 +44,8 @@ FILE: [ResolvedTo(RAW_FIR)] destructuringSecondEntry.kts
 
 IMPORTS:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
         public? final? [ResolvedTo(RAW_FIR)] var a: <implicit> = LAZY_EXPRESSION
@@ -56,7 +56,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public? [ResolvedTo(RAW_FIR)] get(): <implicit>
             public? [ResolvedTo(RAW_FIR)] set([ResolvedTo(RAW_FIR)] value: <implicit>): R|kotlin/Unit|
 
-        public final? data [ResolvedTo(RAW_FIR)] class MyPair : R|kotlin/Any| {
+        public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=MyPair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.i] i: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.b] b: Int): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -88,8 +88,8 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
 
 COMPILER_REQUIRED_ANNOTATIONS:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
         public? final? [ResolvedTo(RAW_FIR)] var a: <implicit> = LAZY_EXPRESSION
@@ -100,7 +100,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public? [ResolvedTo(RAW_FIR)] get(): <implicit>
             public? [ResolvedTo(RAW_FIR)] set([ResolvedTo(RAW_FIR)] value: <implicit>): R|kotlin/Unit|
 
-        public final? data [ResolvedTo(RAW_FIR)] class MyPair : R|kotlin/Any| {
+        public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=MyPair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.i] i: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.b] b: Int): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -132,8 +132,8 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
 
 COMPANION_GENERATION:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
         public? final? [ResolvedTo(RAW_FIR)] var a: <implicit> = LAZY_EXPRESSION
@@ -144,7 +144,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public? [ResolvedTo(RAW_FIR)] get(): <implicit>
             public? [ResolvedTo(RAW_FIR)] set([ResolvedTo(RAW_FIR)] value: <implicit>): R|kotlin/Unit|
 
-        public final? data [ResolvedTo(RAW_FIR)] class MyPair : R|kotlin/Any| {
+        public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=MyPair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.i] i: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.b] b: Int): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -176,8 +176,8 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
 
 SUPER_TYPES:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
         public? final? [ResolvedTo(RAW_FIR)] var a: <implicit> = LAZY_EXPRESSION
@@ -188,7 +188,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public? [ResolvedTo(RAW_FIR)] get(): <implicit>
             public? [ResolvedTo(RAW_FIR)] set([ResolvedTo(RAW_FIR)] value: <implicit>): R|kotlin/Unit|
 
-        public final? data [ResolvedTo(RAW_FIR)] class MyPair : R|kotlin/Any| {
+        public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=MyPair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.i] i: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.b] b: Int): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -220,8 +220,8 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
 
 TYPES:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
         public? final? [ResolvedTo(RAW_FIR)] var a: <implicit> = LAZY_EXPRESSION
@@ -232,7 +232,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public? [ResolvedTo(RAW_FIR)] get(): <implicit>
             public? [ResolvedTo(RAW_FIR)] set([ResolvedTo(RAW_FIR)] value: <implicit>): R|kotlin/Unit|
 
-        public final? data [ResolvedTo(RAW_FIR)] class MyPair : R|kotlin/Any| {
+        public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=MyPair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.i] i: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.b] b: Int): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -264,8 +264,8 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
 
 STATUS:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
         public? final? [ResolvedTo(RAW_FIR)] var a: <implicit> = LAZY_EXPRESSION
@@ -276,7 +276,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public? [ResolvedTo(RAW_FIR)] get(): <implicit>
             public? [ResolvedTo(RAW_FIR)] set([ResolvedTo(RAW_FIR)] value: <implicit>): R|kotlin/Unit|
 
-        public final? data [ResolvedTo(RAW_FIR)] class MyPair : R|kotlin/Any| {
+        public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=MyPair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.i] i: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.b] b: Int): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -308,8 +308,8 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
 
 EXPECT_ACTUAL_MATCHING:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@kotlin.script.templates.standard.ScriptTemplateWithArgs)
     SCRIPT: [ResolvedTo(RAW_FIR)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(RAW_FIR)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(RAW_FIR)] lval args: R|kotlin/Array<kotlin/String>|
 
         public? final? [ResolvedTo(RAW_FIR)] var a: <implicit> = LAZY_EXPRESSION
@@ -320,7 +320,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public? [ResolvedTo(RAW_FIR)] get(): <implicit>
             public? [ResolvedTo(RAW_FIR)] set([ResolvedTo(RAW_FIR)] value: <implicit>): R|kotlin/Unit|
 
-        public final? data [ResolvedTo(RAW_FIR)] class MyPair : R|kotlin/Any| {
+        public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=MyPair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.i] i: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.b] b: Int): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -352,8 +352,8 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
 
 CONTRACTS:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
         public? final? [ResolvedTo(RAW_FIR)] var a: <implicit> = LAZY_EXPRESSION
@@ -364,7 +364,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public? [ResolvedTo(RAW_FIR)] get(): <implicit>
             public? [ResolvedTo(RAW_FIR)] set([ResolvedTo(RAW_FIR)] value: <implicit>): R|kotlin/Unit|
 
-        public final? data [ResolvedTo(RAW_FIR)] class MyPair : R|kotlin/Any| {
+        public final? data [ResolvedTo(RAW_FIR)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public? [ResolvedTo(RAW_FIR)] [ContainingClassKey=MyPair] constructor([ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.i] i: Int, [ResolvedTo(RAW_FIR)] [CorrespondingProperty=/MyPair.b] b: Int): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -386,18 +386,18 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
         public? final? [ResolvedTo(RAW_FIR)] val pair: <implicit> = LAZY_EXPRESSION
             public? [ResolvedTo(RAW_FIR)] get(): <implicit>
 
-        [ResolvedTo(CONTRACTS)] [DestructuringDeclarationContainerVariableMarkerKey=true] lval <destruct>: <implicit> = pair#
+        [ResolvedTo(CONTRACTS)] [DestructuringDeclarationContainerVariableMarkerKey=true] lval <destruct>: <implicit> = LAZY_EXPRESSION
         public final [ResolvedTo(RAW_FIR)] [DestructuringDeclarationContainerVariableKey=<local>/<destruct>] val first: <implicit> = LAZY_EXPRESSION
             public [ResolvedTo(RAW_FIR)] get(): <implicit>
 
-        public final [ResolvedTo(CONTRACTS)] [DestructuringDeclarationContainerVariableKey=<local>/<destruct>] val last: <implicit> = R|<local>/<destruct>|.component2#()
+        public final [ResolvedTo(CONTRACTS)] [DestructuringDeclarationContainerVariableKey=<local>/<destruct>] val last: <implicit> = LAZY_EXPRESSION
             public [ResolvedTo(CONTRACTS)] get(): <implicit>
 
 
 IMPLICIT_TYPES_BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
         public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] var a: R|kotlin/Int| = Int(-1)
@@ -408,7 +408,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] get(): R|kotlin/Int|
             public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] set([ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] value: R|kotlin/Int|): R|kotlin/Unit|
 
-        public final data [ResolvedTo(CONTRACTS)] class MyPair : R|kotlin/Any| {
+        public final data [ResolvedTo(CONTRACTS)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public [ResolvedTo(CONTRACTS)] [ContainingClassKey=MyPair] constructor([ResolvedTo(CONTRACTS)] [CorrespondingProperty=/MyPair.i] i: R|kotlin/Int|, [ResolvedTo(CONTRACTS)] [CorrespondingProperty=/MyPair.b] b: R|kotlin/Int|): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -440,8 +440,8 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
 
 CONSTANT_EVALUATION:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
         public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] var a: R|kotlin/Int| = Int(-1)
@@ -452,7 +452,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] get(): R|kotlin/Int|
             public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] set([ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] value: R|kotlin/Int|): R|kotlin/Unit|
 
-        public final data [ResolvedTo(CONTRACTS)] class MyPair : R|kotlin/Any| {
+        public final data [ResolvedTo(CONTRACTS)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public [ResolvedTo(CONTRACTS)] [ContainingClassKey=MyPair] constructor([ResolvedTo(CONTRACTS)] [CorrespondingProperty=/MyPair.i] i: R|kotlin/Int|, [ResolvedTo(CONTRACTS)] [CorrespondingProperty=/MyPair.b] b: R|kotlin/Int|): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -484,8 +484,8 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
 
 ANNOTATION_ARGUMENTS:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
         public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] var a: R|kotlin/Int| = Int(-1)
@@ -496,7 +496,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] get(): R|kotlin/Int|
             public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] set([ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] value: R|kotlin/Int|): R|kotlin/Unit|
 
-        public final data [ResolvedTo(CONTRACTS)] class MyPair : R|kotlin/Any| {
+        public final data [ResolvedTo(CONTRACTS)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public [ResolvedTo(CONTRACTS)] [ContainingClassKey=MyPair] constructor([ResolvedTo(CONTRACTS)] [CorrespondingProperty=/MyPair.i] i: R|kotlin/Int|, [ResolvedTo(CONTRACTS)] [CorrespondingProperty=/MyPair.b] b: R|kotlin/Int|): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -528,8 +528,8 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
 
 BODY_RESOLVE:
 FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(TYPES)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(TYPES)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(TYPES)] lval args: R|kotlin/Array<kotlin/String>|
 
         public final [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] var a: R|kotlin/Int| = Int(-1)
@@ -540,7 +540,7 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
             public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] get(): R|kotlin/Int|
             public [ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] set([ResolvedTo(IMPLICIT_TYPES_BODY_RESOLVE)] value: R|kotlin/Int|): R|kotlin/Unit|
 
-        public final data [ResolvedTo(CONTRACTS)] class MyPair : R|kotlin/Any| {
+        public final data [ResolvedTo(CONTRACTS)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public [ResolvedTo(CONTRACTS)] [ContainingClassKey=MyPair] constructor([ResolvedTo(CONTRACTS)] [CorrespondingProperty=/MyPair.i] i: R|kotlin/Int|, [ResolvedTo(CONTRACTS)] [CorrespondingProperty=/MyPair.b] b: R|kotlin/Int|): R|MyPair| {
                 LAZY_super<R|kotlin/Any|>
             }
@@ -572,8 +572,8 @@ FILE: [ResolvedTo(IMPORTS)] destructuringSecondEntry.kts
 
 FILE RAW TO BODY:
 FILE: [ResolvedTo(BODY_RESOLVE)] destructuringSecondEntry.kts
-    context(<script>@R|kotlin/script/templates/standard/ScriptTemplateWithArgs|)
     SCRIPT: [ResolvedTo(BODY_RESOLVE)] <script-destructuringSecondEntry.kts>
+        [ResolvedTo(BODY_RESOLVE)] <script receiver parameter>: R|kotlin/script/templates/standard/ScriptTemplateWithArgs|
         [ResolvedTo(BODY_RESOLVE)] lval args: R|kotlin/Array<kotlin/String>|
 
         public final [ResolvedTo(BODY_RESOLVE)] var a: R|kotlin/Int| = Int(-1)
@@ -584,7 +584,7 @@ FILE: [ResolvedTo(BODY_RESOLVE)] destructuringSecondEntry.kts
             public [ResolvedTo(BODY_RESOLVE)] get(): R|kotlin/Int|
             public [ResolvedTo(BODY_RESOLVE)] set([ResolvedTo(BODY_RESOLVE)] value: R|kotlin/Int|): R|kotlin/Unit|
 
-        public final data [ResolvedTo(BODY_RESOLVE)] class MyPair : R|kotlin/Any| {
+        public final data [ResolvedTo(BODY_RESOLVE)] [ContainingScriptKey=FirScriptSymbol <script-destructuringSecondEntry.kts>] class MyPair : R|kotlin/Any| {
             public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=MyPair] constructor([ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=/MyPair.i] i: R|kotlin/Int|, [ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=/MyPair.b] b: R|kotlin/Int|): R|MyPair| {
                 super<R|kotlin/Any|>()
             }
@@ -612,3 +612,4 @@ FILE: [ResolvedTo(BODY_RESOLVE)] destructuringSecondEntry.kts
 
         public final [ResolvedTo(BODY_RESOLVE)] [DestructuringDeclarationContainerVariableKey=<local>/<destruct>] val last: R|kotlin/Int| = R|<local>/<destruct>|.R|/MyPair.component2|()
             public [ResolvedTo(BODY_RESOLVE)] get(): R|kotlin/Int|
+

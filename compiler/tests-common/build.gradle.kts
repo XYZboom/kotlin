@@ -43,9 +43,7 @@ dependencies {
     testApi(project(":kotlin-preloader"))
     testApi(project(":compiler:cli-common"))
     testApi(project(":daemon-common"))
-    testApi(project(":js:js.serializer"))
     testApi(project(":js:js.frontend"))
-    testApi(project(":js:js.translator"))
     testApi(project(":native:frontend.native"))
     testCompileOnly(project(":plugins:android-extensions-compiler"))
     testApi(projectTests(":generators:test-generator"))
@@ -56,8 +54,9 @@ dependencies {
     testApi(libs.junit4) // for ComparisonFailure
     testApi(commonDependency("com.android.tools:r8"))
     testApi(project(":analysis:analysis-internal-utils"))
+    testApi(project(":compiler:tests-mutes:mutes-junit4"))
     testCompileOnly(commonDependency("org.jetbrains.kotlin:kotlin-reflect")) { isTransitive = false }
-    testCompileOnly(toolsJar())
+    testCompileOnly(toolsJarApi())
     testCompileOnly(intellijCore())
 
     /*
@@ -74,12 +73,11 @@ dependencies {
 
     testApi(jpsModel()) { isTransitive = false }
     testApi(jpsModelImpl()) { isTransitive = false }
-    testApi(intellijJavaRt()) // for FileComparisonFailure
 
     testImplementation(libs.guava)
-    testImplementation(commonDependency("org.jetbrains.intellij.deps:asm-all"))
+    testImplementation(libs.intellij.asm)
     testImplementation(commonDependency("org.jetbrains.intellij.deps:log4j"))
-    testImplementation(commonDependency("org.jetbrains.intellij.deps:jdom"))
+    testImplementation(intellijJDom())
 
     testApi(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)

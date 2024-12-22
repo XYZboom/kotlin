@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -7,6 +7,8 @@ package org.jetbrains.kotlin.ir.util
 
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 
 val IrDeclaration.isReal: Boolean get() = !isFakeOverride
@@ -25,10 +27,15 @@ val IrFunction.target: IrFunction
     get() = when (this) {
         is IrSimpleFunction -> this.target
         is IrConstructor -> this
-        else -> error(this)
     }
 
-fun <S : IrSymbol, T : IrOverridableDeclaration<S>> T.collectRealOverrides(
+val IrFunctionAccessExpression.isVirtualCall: Boolean
+    get() = this is IrCall && this.superQualifierSymbol == null && this.symbol.owner.isOverridable
+
+val IrFunctionAccessExpression.target: IrFunction
+    get() = this.symbol.owner.let { (it as? IrSimpleFunction)?.takeUnless { this.isVirtualCall }?.target ?: it }
+
+fun <T : IrOverridableDeclaration<*>> T.collectRealOverrides(
     toSkip: (T) -> Boolean = { false },
     filter: (T) -> Boolean = { false },
 ): Set<T> {
@@ -40,21 +47,18 @@ fun <S : IrSymbol, T : IrOverridableDeclaration<S>> T.collectRealOverrides(
         .collectAndFilterRealOverrides(toSkip, filter)
 }
 
-fun <S : IrSymbol, T : IrOverridableDeclaration<S>> Collection<T>.collectAndFilterRealOverrides(
+fun <T : IrOverridableDeclaration<*>> Collection<T>.collectAndFilterRealOverrides(
     toSkip: (T) -> Boolean = { false },
     filter: (T) -> Boolean = { false }
 ): Set<T> {
     val visited = mutableSetOf<T>()
-    val realOverrides = mutableMapOf<Any, T>()
-
-    // Due to IR copying in performByIrFile, overrides should only be distinguished up to their signatures.
-    fun T.toKey(): Any = symbol.signature ?: this
+    val realOverrides = mutableSetOf<T>()
 
     fun collectRealOverrides(member: T) {
         if (!visited.add(member) || filter(member)) return
 
         if (member.isReal && !toSkip(member)) {
-            realOverrides[member.toKey()] = member
+            realOverrides += member
         } else {
             @Suppress("UNCHECKED_CAST")
             for (overridden in member.overriddenSymbols) {
@@ -73,17 +77,17 @@ fun <S : IrSymbol, T : IrOverridableDeclaration<S>> Collection<T>.collectAndFilt
         for (overridden in member.overriddenSymbols) {
             @Suppress("UNCHECKED_CAST")
             val owner = overridden.owner as T
-            realOverrides.remove(owner.toKey())
+            realOverrides.remove(owner)
             excludeRepeated(owner)
         }
     }
 
     visited.clear()
-    for ((_, realOverride) in realOverrides.toList()) {
+    for (realOverride in realOverrides.toList()) {
         excludeRepeated(realOverride)
     }
 
-    return realOverrides.values.toSet()
+    return realOverrides
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -107,7 +111,7 @@ fun <S : IrSymbol, T : IrOverridableDeclaration<S>> T.resolveFakeOverrideOrFail(
     resolveFakeOverride() ?: error("No real overrides for ${this.render()}")
 
 // TODO: use this implementation instead of any other
-fun <S : IrSymbol, T : IrOverridableDeclaration<S>> T.resolveFakeOverride(
+fun <T : IrOverridableDeclaration<*>> T.resolveFakeOverride(
     toSkip: (T) -> Boolean = { false },
 ): T? {
     if (!isFakeOverride && !toSkip(this)) return this

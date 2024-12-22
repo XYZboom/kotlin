@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -15,12 +15,12 @@ import org.jetbrains.kotlin.ir.overrides.IrExternalOverridabilityCondition.Resul
 import org.jetbrains.kotlin.ir.types.IrTypeSystemContext
 import org.jetbrains.kotlin.ir.types.IrTypeSystemContextWithAdditionalAxioms
 import org.jetbrains.kotlin.ir.types.createIrTypeCheckerState
+import org.jetbrains.kotlin.ir.util.nonDispatchParameters
 import org.jetbrains.kotlin.ir.util.render
 import org.jetbrains.kotlin.resolve.OverridingUtil.OverrideCompatibilityInfo
 import org.jetbrains.kotlin.resolve.OverridingUtil.OverrideCompatibilityInfo.*
 import org.jetbrains.kotlin.types.AbstractTypeChecker
 import org.jetbrains.kotlin.types.TypeCheckerState
-import org.jetbrains.kotlin.utils.addToStdlib.unreachableBranch
 
 /**
  * @param member declaration that should be checked for overridability.
@@ -71,16 +71,15 @@ class IrOverrideChecker(
             }
             is IrProperty -> {
                 if (subMember !is IrProperty) return incompatible("Member kind mismatch")
+                if (superMember.getter == null || subMember.getter == null) return incompatible("Fields are not overridable")
                 superMember.getter to subMember.getter
             }
-            else -> error("Unexpected type of declaration: ${superMember::class.java}, $superMember")
         }
 
         if (checkIsInlineFlag) {
             val isInline = when (superMember) {
                 is IrSimpleFunction -> superMember.isInline
                 is IrProperty -> superMember.getter?.isInline == true || superMember.setter?.isInline == true
-                else -> unreachableBranch(superMember)
             }
             if (isInline) return incompatible("Inline declaration can't be overridden")
         }
@@ -91,17 +90,17 @@ class IrOverrideChecker(
             return incompatible("Name mismatch")
         }
 
-        val superExtensionReceiver = superFunction?.extensionReceiverParameter
-        val subExtensionReceiver = subFunction?.extensionReceiverParameter
-        if ((superExtensionReceiver == null) != (subExtensionReceiver == null)) return incompatible("Receiver presence mismatch")
-
         val superTypeParameters = superFunction?.typeParameters.orEmpty()
         val subTypeParameters = subFunction?.typeParameters.orEmpty()
         if (superTypeParameters.size != subTypeParameters.size) return incompatible("Type parameter number mismatch")
 
-        val superValueParameters = superFunction?.valueParameters.orEmpty()
-        val subValueParameters = subFunction?.valueParameters.orEmpty()
+        val superValueParameters = superFunction?.nonDispatchParameters.orEmpty()
+        val subValueParameters = subFunction?.nonDispatchParameters.orEmpty()
         if (superValueParameters.size != subValueParameters.size) return incompatible("Value parameter number mismatch")
+
+        if (superValueParameters.map { it.kind } != subValueParameters.map { it.kind }) {
+            return incompatible("Value parameter kind mismatch")
+        }
 
         val typeCheckerState = createIrTypeCheckerState(
             IrTypeSystemContextWithAdditionalAxioms(typeSystem, superTypeParameters, subTypeParameters)
@@ -111,12 +110,6 @@ class IrOverrideChecker(
             if (!areTypeParametersEquivalent(superTypeParameter, subTypeParameters[index], typeCheckerState)) {
                 return incompatible("Type parameter bounds mismatch")
             }
-        }
-
-        if (superExtensionReceiver != null && subExtensionReceiver != null &&
-            !AbstractTypeChecker.equalTypes(typeCheckerState, subExtensionReceiver.type, superExtensionReceiver.type)
-        ) {
-            return incompatible("Extension receiver parameter type mismatch")
         }
 
         for ((index, superValueParameter) in superValueParameters.withIndex()) {

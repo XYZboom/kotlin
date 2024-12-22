@@ -101,8 +101,6 @@ fun createStdLibVersionedDocTask(version: String, isLatest: Boolean) =
                 noJdkLink.set(true)
 
                 displayName.set("Common")
-                sourceRoots.from("$kotlin_root/core/builtins/native")
-                sourceRoots.from("$kotlin_root/core/builtins/src/")
 
                 sourceRoots.from("$kotlin_stdlib_dir/common/src")
                 sourceRoots.from("$kotlin_stdlib_dir/src")
@@ -117,6 +115,8 @@ fun createStdLibVersionedDocTask(version: String, isLatest: Boolean) =
                 dependsOn("common")
 
                 sourceRoots.from("$kotlin_stdlib_dir/jvm/src")
+
+                sourceRoots.from("$kotlin_stdlib_dir/jvm/builtins")
 
                 sourceRoots.from("$kotlin_stdlib_dir/jvm/runtime/kotlin/jvm/annotations")
                 sourceRoots.from("$kotlin_stdlib_dir/jvm/runtime/kotlin/jvm/JvmClassMapping.kt")
@@ -138,9 +138,6 @@ fun createStdLibVersionedDocTask(version: String, isLatest: Boolean) =
 
                 sourceRoots.from("$kotlin_stdlib_dir/js/src/generated")
                 sourceRoots.from("$kotlin_stdlib_dir/js/src/kotlin")
-                // kotlinx and org.w3c might become excluded in future
-                sourceRoots.from("$kotlin_stdlib_dir/js/src/kotlinx")
-                sourceRoots.from("$kotlin_stdlib_dir/js/src/org.w3c")
 
                 sourceRoots.from("$kotlin_stdlib_dir/js/builtins")
 
@@ -148,26 +145,18 @@ fun createStdLibVersionedDocTask(version: String, isLatest: Boolean) =
                 listOf(
                     "Annotation.kt",
                     "Any.kt",
-                    "Array.kt",
                     "CharSequence.kt",
                     "Comparable.kt",
                     "Iterator.kt",
                     "Nothing.kt",
                     "Number.kt",
-                ).forEach { sourceRoots.from("$kotlin_root/core/builtins/native/kotlin/$it") }
+                ).forEach { sourceRoots.from("$kotlin_stdlib_dir/jvm/builtins/$it") }
 
-                listOf(
-                    "annotation/Annotations.kt",
-                    "Function.kt",
-                    "internal/InternalAnnotations.kt",
-                    "Unit.kt",
-                ).forEach { sourceRoots.from("$kotlin_root/core/builtins/src/kotlin/$it") }
-
-                perPackageOption("org.w3c") {
-                    reportUndocumented.set(false)
+                perPackageOption("kotlin.browser") {
+                    suppress.set(true)
                 }
-                perPackageOption("org.khronos") {
-                    reportUndocumented.set(false)
+                perPackageOption("kotlin.dom") {
+                    suppress.set(true)
                 }
             }
             register("native") {
@@ -286,7 +275,7 @@ fun createKotlinTestVersionedDocTask(version: String, isLatest: Boolean) =
 
         val kotlinTestIncludeMd = file("$kotlin_root/libraries/kotlin.test/Module.md")
 
-        val kotlinTestCommonClasspath = fileTree("$kotlin_libs/kotlin-test-common")
+        val kotlinTestCommonClasspath = fileTree("$kotlin_libs/kotlin-stdlib-common")
         val kotlinTestJunitClasspath = fileTree("$kotlin_libs/kotlin-test-junit")
         val kotlinTestJunit5Classpath = fileTree("$kotlin_libs/kotlin-test-junit5")
         val kotlinTestTestngClasspath = fileTree("$kotlin_libs/kotlin-test-testng")
@@ -442,10 +431,22 @@ fun createAllLibsVersionedDocTask(version: String, isLatest: Boolean, vararg lib
         pluginsMapConfiguration.put("org.jetbrains.dokka.base.DokkaBase", """{ "templatesDir": "$templatesDir" }""")
         if (isLatest) {
             outputDirectory.set(outputDirLatest.resolve(moduleDirName))
-            pluginsMapConfiguration.put("org.jetbrains.dokka.versioning.VersioningPlugin", """{ "version": "$version", "olderVersionsDir": "${inputDirPrevious.resolve(moduleDirName).invariantSeparatorsPath}" }""")
+            pluginsMapConfiguration.put("org.jetbrains.dokka.versioning.VersioningPlugin", """{ "version": "$version", "olderVersionsDirName": "", "olderVersionsDir": "${inputDirPrevious.resolve(moduleDirName).invariantSeparatorsPath}" }""")
         } else {
             outputDirectory.set(outputDirPrevious.resolve(moduleDirName).resolve(version))
             pluginsMapConfiguration.put("org.jetbrains.dokka.versioning.VersioningPlugin", """{ "version": "$version" }""")
+        }
+
+        doLast {
+            // copy package-list files from partial tasks of single modules
+            libTasks.map { it.get() }.forEach { child ->
+                val originalOutput = child.outputDirectory
+                val mergedOutput = outputDirectory.dir(child.moduleName)
+                project.copy {
+                    from(originalOutput.file("package-list"))
+                    into(mergedOutput)
+                }
+            }
         }
     }
 

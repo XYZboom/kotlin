@@ -16,7 +16,7 @@ import kotlin.jvm.JvmName
  * Returns a copy of this string converted to upper case using the rules of the default locale.
  */
 @Deprecated("Use uppercase() instead.", ReplaceWith("uppercase()"))
-@DeprecatedSinceKotlin(warningSince = "1.5")
+@DeprecatedSinceKotlin(warningSince = "1.5", errorSince = "2.1")
 public expect fun String.toUpperCase(): String
 
 /**
@@ -35,7 +35,7 @@ public expect fun String.uppercase(): String
  * Returns a copy of this string converted to lower case using the rules of the default locale.
  */
 @Deprecated("Use lowercase() instead.", ReplaceWith("lowercase()"))
-@DeprecatedSinceKotlin(warningSince = "1.5")
+@DeprecatedSinceKotlin(warningSince = "1.5", errorSince = "2.1")
 public expect fun String.toLowerCase(): String
 
 /**
@@ -550,12 +550,15 @@ public inline fun String.replaceRange(range: IntRange, replacement: CharSequence
     (this as CharSequence).replaceRange(range, replacement).toString()
 
 /**
- * Returns a char sequence with content of this char sequence where its part at the given range is removed.
+ * Returns a [CharSequence] obtained by removing the specified subsequence from this char sequence.
  *
- * @param startIndex the index of the first character to be removed.
- * @param endIndex the index of the first character after the removed part to keep in the string.
+ * @param startIndex the beginning (inclusive) of the subsequence to remove.
+ * @param endIndex the end (exclusive) of the subsequence to remove.
  *
- * [endIndex] is not included in the removed part.
+ * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of this char sequence indices
+ *   or when `startIndex > endIndex`.
+ *
+ * @sample samples.text.Strings.removeRangeCharSequence
  */
 public fun CharSequence.removeRange(startIndex: Int, endIndex: Int): CharSequence {
     if (endIndex < startIndex)
@@ -571,27 +574,37 @@ public fun CharSequence.removeRange(startIndex: Int, endIndex: Int): CharSequenc
 }
 
 /**
- * Removes the part of a string at a given range.
- * @param startIndex the index of the first character to be removed.
- * @param endIndex the index of the first character after the removed part to keep in the string.
+ * Returns a [String] obtained by removing the specified substring from this string.
  *
- *  [endIndex] is not included in the removed part.
+ * @param startIndex the beginning (inclusive) of the substring to remove.
+ * @param endIndex the end (exclusive) of the substring to remove.
+ *
+ * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of this string indices
+ *   or when `startIndex > endIndex`.
+ *
+ * @sample samples.text.Strings.removeRangeString
  */
 @kotlin.internal.InlineOnly
 public inline fun String.removeRange(startIndex: Int, endIndex: Int): String =
     (this as CharSequence).removeRange(startIndex, endIndex).toString()
 
 /**
- * Returns a char sequence with content of this char sequence where its part at the given [range] is removed.
+ * Returns a [CharSequence] obtained by removing the specified subsequence from this char sequence.
  *
- * The end index of the [range] is included in the removed part.
+ * @param range the range of indexes of the subsequence to remove.
+ *   Note: the character at index [IntRange.endInclusive] of the [range] is removed as well.
+ *
+ * @sample samples.text.Strings.removeRangeCharSequence
  */
 public fun CharSequence.removeRange(range: IntRange): CharSequence = removeRange(range.start, range.endInclusive + 1)
 
 /**
- * Removes the part of a string at the given [range].
+ * Returns a [String] obtained by removing the specified substring from this char sequence.
  *
- * The end index of the [range] is included in the removed part.
+ * @param range the range of indexes of the substring to remove.
+ *   Note: the character at index [IntRange.endInclusive] of the [range] is removed as well.
+ *
+ * @sample samples.text.Strings.removeRangeString
  */
 @kotlin.internal.InlineOnly
 public inline fun String.removeRange(range: IntRange): String =
@@ -756,11 +769,13 @@ public fun String.replaceBeforeLast(delimiter: String, replacement: String, miss
 // public fun String.replace(oldValue: String, newValue: String, ignoreCase: Boolean): String // JVM- and JS-specific
 
 /**
- * Returns a new string obtained by replacing each substring of this char sequence that matches the given regular expression
- * with the given [replacement].
+ * Replaces all occurrences of the given regular expression [regex] in this char sequence
+ * with the specified [replacement] expression.
  *
- * The [replacement] can consist of any combination of literal text and $-substitutions. To treat the replacement string
- * literally escape it with the [kotlin.text.Regex.Companion.escapeReplacement] method.
+ * This is a convenience function that is equivalent to `regex.replace(this, replacement)`.
+ * For details about its behaviour and the substitution syntax of [replacement] expression, refer to [Regex.replace].
+ *
+ * @sample samples.text.Strings.replaceWithExpression
  */
 @kotlin.internal.InlineOnly
 public inline fun CharSequence.replace(regex: Regex, replacement: String): String = regex.replace(this, replacement)
@@ -775,9 +790,13 @@ public inline fun CharSequence.replace(regex: Regex, noinline transform: (MatchR
     regex.replace(this, transform)
 
 /**
- * Replaces the first occurrence of the given regular expression [regex] in this char sequence with specified [replacement] expression.
+ * Replaces the first occurrence of the given regular expression [regex] in this char sequence
+ * with the specified [replacement] expression.
  *
- * @param replacement A replacement expression that can include substitutions. See [Regex.replaceFirst] for details.
+ * This is a convenience function that is equivalent to `regex.replaceFirst(this, replacement)`.
+ * For details about its behaviour and the substitution syntax of [replacement] expression, refer to [Regex.replaceFirst].
+ *
+ * @sample samples.text.Strings.replaceFirstWithExpression
  */
 @kotlin.internal.InlineOnly
 public inline fun CharSequence.replaceFirst(regex: Regex, replacement: String): String = regex.replaceFirst(this, replacement)
@@ -1239,6 +1258,67 @@ private class DelimitedRangesSequence(
 }
 
 /**
+ * Iterates over [string] lines. Lines could be separated by either of `\n`, `\r`, `\r\n`.
+ * If the [string] ends with a line separator, this iterator will return an extra empty line.
+ */
+private class LinesIterator(private val string: CharSequence) : Iterator<String> {
+    private companion object State {
+        const val UNKNOWN = 0
+        const val HAS_NEXT = 1
+        const val EXHAUSTED = 2
+    }
+
+    private var state: Int = UNKNOWN
+    private var tokenStartIndex: Int = 0
+    private var delimiterStartIndex: Int = 0
+    private var delimiterLength: Int = 0 // serves as both a delimiter length and an end-of-input marker (with value < 0)
+
+    override fun hasNext(): Boolean {
+        if (state != UNKNOWN) {
+            return state == HAS_NEXT
+        }
+
+        if (delimiterLength < 0) {
+            state = EXHAUSTED
+            return false
+        }
+
+        var _delimiterLength = -1
+        var _delimiterStartIndex = string.length
+
+        for (idx in tokenStartIndex..<string.length) {
+            val c = string[idx]
+            if (c == '\n' || c == '\r') {
+                // If current character is `\n` then it's the only separator character,
+                // but for '\r' there are two options: the line ends either with `\r`, or with `\r\n`.
+                _delimiterLength = if (c == '\r' && idx + 1 < string.length && string[idx + 1] == '\n') 2 else 1
+                _delimiterStartIndex = idx
+                break
+            }
+        }
+
+        // Update fields after the main loop to avoid inconsistent iterator state in case of an exception.
+        state = HAS_NEXT
+        delimiterLength = _delimiterLength
+        delimiterStartIndex = _delimiterStartIndex
+
+        return true
+    }
+
+    override fun next(): String {
+        if (!hasNext()) {
+            throw NoSuchElementException()
+        }
+
+        state = UNKNOWN
+        val lastIndex = delimiterStartIndex
+        val firstIndex = tokenStartIndex
+        tokenStartIndex = delimiterStartIndex + delimiterLength
+        return string.substring(firstIndex, lastIndex)
+    }
+}
+
+/**
  * Returns a sequence of index ranges of substrings in this char sequence around occurrences of the specified [delimiters].
  *
  * @param delimiters One or more characters to be used as delimiters.
@@ -1403,7 +1483,7 @@ public inline fun CharSequence.splitToSequence(regex: Regex, limit: Int = 0): Se
  *
  * The lines returned do not include terminating line separators.
  */
-public fun CharSequence.lineSequence(): Sequence<String> = splitToSequence("\r\n", "\n", "\r")
+public fun CharSequence.lineSequence(): Sequence<String> = Sequence { LinesIterator(this) }
 
 /**
  * Splits this char sequence to a list of lines delimited by any of the following character sequences: CRLF, LF or CR.

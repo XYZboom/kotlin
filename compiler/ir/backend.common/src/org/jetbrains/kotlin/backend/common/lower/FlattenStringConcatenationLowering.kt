@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrStringConcatenationImpl
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
+import org.jetbrains.kotlin.ir.util.isTopLevelInPackage
 import org.jetbrains.kotlin.ir.util.isUnsigned
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
@@ -32,40 +33,43 @@ import kotlin.math.min
  *
  * Example expression:
  *
- *   val s = "1" + 2 + ("s1: '$s1'" + 3.0 + null)
+ * ```kotlin
+ * val s = "1" + 2 + ("s1: '$s1'" + 3.0 + null)
+ * ```
  *
  * IR before lowering:
  *
- *   VAR name:s type:kotlin.String flags:val
- *     CALL 'plus(Any?): String' type=kotlin.String origin=PLUS
+ * ```
+ * VAR name:s type:kotlin.String flags:val
+ *   CALL 'plus(Any?): String' type=kotlin.String origin=PLUS
+ *     $this: CALL 'plus(Any?): String' type=kotlin.String origin=PLUS
+ *       $this: CONST String type=kotlin.String value="1"
+ *       other: CONST Int type=kotlin.Int value=2
+ *     other: CALL 'plus(Any?): String' type=kotlin.String origin=PLUS
  *       $this: CALL 'plus(Any?): String' type=kotlin.String origin=PLUS
- *         $this: CONST String type=kotlin.String value="1"
- *         other: CONST Int type=kotlin.Int value=2
- *       other: CALL 'plus(Any?): String' type=kotlin.String origin=PLUS
- *         $this: CALL 'plus(Any?): String' type=kotlin.String origin=PLUS
- *           $this: STRING_CONCATENATION type=kotlin.String
- *             CONST String type=kotlin.String value="s1: '"
- *             GET_VAR 's1: String' type=kotlin.String origin=null
- *             CONST String type=kotlin.String value="'"
- *           other: CONST Double type=kotlin.Double value=3.0
- *         other: CONST Null type=kotlin.Nothing? value=null
+ *         $this: STRING_CONCATENATION type=kotlin.String
+ *           CONST String type=kotlin.String value="s1: '"
+ *           GET_VAR 's1: String' type=kotlin.String origin=null
+ *           CONST String type=kotlin.String value="'"
+ *         other: CONST Double type=kotlin.Double value=3.0
+ *       other: CONST Null type=kotlin.Nothing? value=null
+ * ```
  *
  * IR after lowering:
  *
- *   VAR name:s type:kotlin.String flags:val
- *     STRING_CONCATENATION type=kotlin.String
- *       CONST String type=kotlin.String value="1"
- *       CONST Int type=kotlin.Int value=2
- *       CONST String type=kotlin.String value="s1: '"
- *       GET_VAR 's1: String' type=kotlin.String origin=null
- *       CONST String type=kotlin.String value="'"
- *       CONST Double type=kotlin.Double value=3.0
- *       CONST Null type=kotlin.Nothing? value=null
+ * ```
+ * VAR name:s type:kotlin.String flags:val
+ *   STRING_CONCATENATION type=kotlin.String
+ *     CONST String type=kotlin.String value="1"
+ *     CONST Int type=kotlin.Int value=2
+ *     CONST String type=kotlin.String value="s1: '"
+ *     GET_VAR 's1: String' type=kotlin.String origin=null
+ *     CONST String type=kotlin.String value="'"
+ *     CONST Double type=kotlin.Double value=3.0
+ *     CONST Null type=kotlin.Nothing? value=null
+ * ```
  */
-@PhaseDescription(
-    name = "FlattenStringConcatenationLowering",
-    description = "Flatten nested string concatenation expressions into a single IrStringConcatenation"
-)
+@PhaseDescription(name = "FlattenStringConcatenationLowering")
 class FlattenStringConcatenationLowering(val context: CommonBackendContext) : FileLoweringPass, IrElementTransformerVoid() {
     companion object {
         // There are two versions of String.plus in the library. One for nullable and one for non-nullable strings.
@@ -102,14 +106,9 @@ class FlattenStringConcatenationLowering(val context: CommonBackendContext) : Fi
 
         /** @return true if the function is Any?.toString */
         private val IrSimpleFunction.isNullableToString: Boolean
-            get() {
-                if (name != OperatorNameConventions.TO_STRING || valueParameters.isNotEmpty() || !returnType.isString())
-                    return false
-
-                return dispatchReceiverParameter == null
-                        && extensionReceiverParameter?.type?.isNullableAny() == true
-                        && fqNameWhenAvailable?.parent() == StandardNames.BUILT_INS_PACKAGE_FQ_NAME
-            }
+            get() = isTopLevelInPackage(OperatorNameConventions.TO_STRING.asString(), StandardNames.BUILT_INS_PACKAGE_FQ_NAME)
+                    && valueParameters.isEmpty() && returnType.isString()
+                    && dispatchReceiverParameter == null && extensionReceiverParameter?.type?.isNullableAny() == true
 
         /** @return true if the given expression is a call to [toString] */
         private val IrCall.isToStringCall: Boolean
@@ -191,8 +190,8 @@ class FlattenStringConcatenationLowering(val context: CommonBackendContext) : Fi
         for (next in this.arguments) {
             val last = folded.lastOrNull()
             when {
-                next !is IrConst<*> -> folded += next
-                last !is IrConst<*> -> folded += IrConstImpl.string(
+                next !is IrConst -> folded += next
+                last !is IrConst -> folded += IrConstImpl.string(
                     next.startOffset, next.endOffset, context.irBuiltIns.stringType, constToString(next)
                 )
                 else -> folded[folded.size - 1] = IrConstImpl.string(
@@ -203,26 +202,26 @@ class FlattenStringConcatenationLowering(val context: CommonBackendContext) : Fi
                 )
             }
         }
-        return folded.singleOrNull() as? IrConst<*>
+        return folded.singleOrNull() as? IrConst
             ?: IrStringConcatenationImpl(this.startOffset, this.endOffset, this.type, folded)
     }
 
-    private fun constToString(const: IrConst<*>): String {
+    private fun constToString(const: IrConst): String {
         return normalizeUnsignedValue(const).toString()
     }
 
-    private fun normalizeUnsignedValue(const: IrConst<*>): Any? {
+    private fun normalizeUnsignedValue(const: IrConst): Any? {
         // Unsigned constants are represented through signed constants with a different IrType
         if (const.type.isUnsigned()) {
             when (val kind = const.kind) {
                 is IrConstKind.Byte ->
-                    return kind.valueOf(const).toUByte()
+                    return (const.value as Byte).toUByte()
                 is IrConstKind.Short ->
-                    return kind.valueOf(const).toUShort()
+                    return (const.value as Short).toUShort()
                 is IrConstKind.Int ->
-                    return kind.valueOf(const).toUInt()
+                    return (const.value as Int).toUInt()
                 is IrConstKind.Long ->
-                    return kind.valueOf(const).toULong()
+                    return (const.value as Long).toULong()
                 else -> {}
             }
         }

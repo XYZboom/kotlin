@@ -7,12 +7,12 @@ package org.jetbrains.kotlin.analysis.low.level.api.fir.lazy.resolve
 
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.KtSourceElement
+import org.jetbrains.kotlin.analysis.api.utils.errors.withPsiEntry
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.FirDesignation
-import org.jetbrains.kotlin.analysis.low.level.api.fir.project.structure.llFirModuleData
+import org.jetbrains.kotlin.analysis.low.level.api.fir.projectStructure.llFirModuleData
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.codeFragment
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.errorWithFirSpecificEntries
 import org.jetbrains.kotlin.analysis.utils.errors.requireIsInstance
-import org.jetbrains.kotlin.analysis.utils.errors.withPsiEntry
 import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.builder.BodyBuildingMode
 import org.jetbrains.kotlin.fir.builder.PsiRawFirBuilder
@@ -28,6 +28,7 @@ import org.jetbrains.kotlin.fir.utils.exceptions.withFirEntry
 import org.jetbrains.kotlin.name.NameUtils
 import org.jetbrains.kotlin.psi
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject
 import org.jetbrains.kotlin.psi.psiUtil.hasExpectModifier
 import org.jetbrains.kotlin.util.PrivateForInline
 import org.jetbrains.kotlin.utils.exceptions.errorWithAttachment
@@ -41,6 +42,9 @@ internal class RawFirNonLocalDeclarationBuilder private constructor(
     private val declarationToBuild: KtElement,
     private val functionsToRebind: Set<FirFunction>,
 ) : PsiRawFirBuilder(session, baseScopeProvider, bodyBuildingMode = BodyBuildingMode.NORMAL) {
+    override val KtProperty.sourceForDelegatedPropertyAccessors: KtSourceElement?
+        get() = this.toFirSourceElement()
+
     companion object {
         fun buildWithFunctionSymbolRebind(
             session: FirSession,
@@ -143,7 +147,7 @@ internal class RawFirNonLocalDeclarationBuilder private constructor(
                 this,
                 container = container,
                 element,
-                isVar = false,
+                isVar = element.isVar,
                 forceLocal = false,
                 index = element.index(),
                 configure = { configureScriptDestructuringDeclarationEntry(it, container) },
@@ -156,8 +160,8 @@ internal class RawFirNonLocalDeclarationBuilder private constructor(
             return destructuringDeclaration.entries.indexOf(this)
         }
 
-        fun convertAnonymousInitializer(element: KtAnonymousInitializer, containingDeclaration: FirDeclaration?): FirAnonymousInitializer {
-            return buildAnonymousInitializer(element, containingDeclaration?.symbol)
+        fun convertAnonymousInitializer(element: KtAnonymousInitializer, containingDeclaration: FirDeclaration): FirAnonymousInitializer {
+            return buildAnonymousInitializer(element, containingDeclaration.symbol)
         }
 
         private fun extractContructorConversionParams(
@@ -178,10 +182,7 @@ internal class RawFirNonLocalDeclarationBuilder private constructor(
         override fun visitSecondaryConstructor(constructor: KtSecondaryConstructor, data: FirElement?): FirElement {
             val classOrObject = constructor.getContainingClassOrObject()
             val params = extractContructorConversionParams(classOrObject, constructor)
-            val delegatedTypeRef = (originalDeclaration as FirConstructor).delegatedConstructor?.constructedTypeRef
-                ?: errorWithAttachment("Secondary constructor without delegated call") {
-                    withPsiEntry("constructor", constructor, baseSession.llFirModuleData.ktModule)
-                }
+            val delegatedTypeRef = (originalDeclaration as FirConstructor).delegatedConstructor?.constructedTypeRef ?: params.selfType
             return constructor.toFirConstructor(
                 delegatedTypeRef,
                 params.selfType,
@@ -233,7 +234,10 @@ internal class RawFirNonLocalDeclarationBuilder private constructor(
         override fun visitEnumEntry(enumEntry: KtEnumEntry, data: FirElement?): FirElement {
             val owner = containingClass ?: errorWithAttachment("Enum entry outside of class") {
                 withPsiEntry("enumEntry", enumEntry, baseSession.llFirModuleData.ktModule)
+                withPsiEntry("containingClassPsi", enumEntry.containingClassOrObject)
+                withFirEntry("originalDeclaration", originalDeclaration)
             }
+
             val classOrObject = owner.psi as KtClassOrObject
             val primaryConstructor = classOrObject.primaryConstructor
             val ownerClassHasDefaultConstructor =
@@ -252,7 +256,7 @@ internal class RawFirNonLocalDeclarationBuilder private constructor(
                 if (superTypeListEntry is KtDelegatedSuperTypeEntry) {
                     val expectedName = NameUtils.delegateFieldName(index)
                     if (originalDeclaration.name == expectedName) {
-                        return buildFieldForSupertypeDelegate(superTypeListEntry, type = null, index)
+                        return buildFieldForSupertypeDelegate(superTypeListEntry, originalDeclaration.returnTypeRef, index)
                     }
 
                     index++
@@ -292,7 +296,12 @@ internal class RawFirNonLocalDeclarationBuilder private constructor(
                     val firFile = visitor.convertElement(declarationToBuild, originalDeclaration) as FirFile
                     firFile.codeFragment
                 }
-                is KtAnonymousInitializer -> visitor.convertAnonymousInitializer(declarationToBuild, containingDeclaration)
+                is KtAnonymousInitializer -> {
+                    requireWithAttachment(containingDeclaration != null, { "Containing declaration is null" }) {
+                        withPsiEntry("elementToBuild.txt", declarationToBuild)
+                    }
+                    visitor.convertAnonymousInitializer(declarationToBuild, containingDeclaration)
+                }
                 else -> visitor.convertElement(declarationToBuild, originalDeclaration)
             } as FirDeclaration
         }

@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.CompilerConfigurationKey
+import org.jetbrains.kotlin.config.KlibConfigurationKeys
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.konan.file.File
 import org.jetbrains.kotlin.konan.library.impl.createKonanLibrary
@@ -73,6 +74,7 @@ class KonanDriver(
         }
 
         if (outputKind != CompilerOutputKind.LIBRARY && hasSourceRoots && !isCompilingFromBitcode) {
+            // TODO KT-72014: Consider raising deprecation error instead of `splitOntoTwoStages()` invocation
             splitOntoTwoStages()
             return
         }
@@ -106,7 +108,23 @@ class KonanDriver(
         if (configuration.get(KonanConfigKeys.LIST_TARGETS) == true) {
             konanConfig.targetManager.list()
         }
-        if (konanConfig.infoArgsOnly) return
+
+        val hasIncludedLibraries = configuration[KonanConfigKeys.INCLUDED_LIBRARIES]?.isNotEmpty() == true
+        val isProducingExecutableFromLibraries = konanConfig.produce == CompilerOutputKind.PROGRAM
+                && configuration[KonanConfigKeys.LIBRARY_FILES]?.isNotEmpty() == true && !hasIncludedLibraries
+        val hasCompilerInput = configuration.kotlinSourceRoots.isNotEmpty()
+                || hasIncludedLibraries
+                || configuration[KonanConfigKeys.EXPORTED_LIBRARIES]?.isNotEmpty() == true
+                || konanConfig.libraryToCache != null
+                || konanConfig.compileFromBitcode?.isNotEmpty() == true
+                || isProducingExecutableFromLibraries
+
+        if (!hasCompilerInput) return
+
+        if (isProducingExecutableFromLibraries && configuration.get(KonanConfigKeys.GENERATE_TEST_RUNNER) != TestRunnerKind.NONE) {
+            configuration.report(CompilerMessageSeverity.STRONG_WARNING,
+                    "Use `-Xinclude=<path-to-klib>` to pass libraries that contain tests.")
+        }
 
         // Avoid showing warning twice in 2-phase compilation.
         if (konanConfig.produce != CompilerOutputKind.LIBRARY && konanConfig.target in softDeprecatedTargets) {
@@ -126,7 +144,13 @@ class KonanDriver(
             konanConfig.cacheSupport.checkConsistency()
         }
 
-        DynamicCompilerDriver().run(konanConfig, environment)
+        val performanceManager = configuration[CLIConfigurationKeys.PERF_MANAGER]
+        val sourcesFiles = environment.getSourceFiles()
+        performanceManager?.notifyCompilerInitialized(
+                sourcesFiles.size, environment.countLinesOfCode(sourcesFiles), "${konanConfig.moduleId}-${konanConfig.produce}"
+        )
+
+        DynamicCompilerDriver(performanceManager).run(konanConfig, environment)
     }
 
     private fun ensureModuleName(config: KonanConfig) {
@@ -173,7 +197,6 @@ class KonanDriver(
             put(KonanConfigKeys.OUTPUT, intermediateKLib.absolutePath)
             copyNotNull(CLIConfigurationKeys.CONTENT_ROOTS)
             copyNotNull(KonanConfigKeys.LIBRARY_FILES)
-            copyNotNull(KonanConfigKeys.REPOSITORIES)
             copy(KonanConfigKeys.FRIEND_MODULES)
             copy(KonanConfigKeys.REFINES_MODULES)
             copy(KonanConfigKeys.EMIT_LAZY_OBJC_HEADER_FILE)
@@ -183,7 +206,15 @@ class KonanDriver(
             copy(BinaryOptions.objcExportDisableSwiftMemberNameMangling)
             copy(BinaryOptions.objcExportIgnoreInterfaceMethodCollisions)
             copy(KonanConfigKeys.OBJC_GENERICS)
-            copy(CommonConfigurationKeys.USE_FIR_BASED_FAKE_OVERRIDE_GENERATOR)
+
+            // KT-71976: Restore keys, which are reset within `compilationSpawner.spawn(emptyList())`,
+            // during invocation of `prepareEnvironment()` with empty arguments.
+            copy(KlibConfigurationKeys.DUPLICATED_UNIQUE_NAME_STRATEGY)
+            copy(KlibConfigurationKeys.KLIB_RELATIVE_PATH_BASES)
+            copy(KlibConfigurationKeys.KLIB_NORMALIZE_ABSOLUTE_PATH)
+            copy(CLIConfigurationKeys.RENDER_DIAGNOSTIC_INTERNAL_NAME)
+            copy(KlibConfigurationKeys.PRODUCE_KLIB_SIGNATURES_CLASH_CHECKS)
+            copy(KlibConfigurationKeys.SYNTHETIC_ACCESSORS_WITH_NARROWED_VISIBILITY)
         }
 
         // For the second stage, remove already compiled source files from the configuration.

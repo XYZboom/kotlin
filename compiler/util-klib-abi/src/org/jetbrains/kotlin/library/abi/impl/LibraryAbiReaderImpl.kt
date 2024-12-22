@@ -86,7 +86,6 @@ internal class LibraryAbiReaderImpl(libraryFile: File, filters: List<AbiReadingF
             },
             compilerVersion = versions.compilerVersion,
             abiVersion = versions.abiVersion?.toString(),
-            libraryVersion = versions.libraryVersion,
             irProviderName = library.irProviderName
         )
     }
@@ -299,6 +298,11 @@ private class LibraryDeserializer(
                 is ContainingEntity.Class -> {
                     containingProperty = null
                     containingClass = containingEntity
+
+                    if (isConstructor && containingClass.modality == AbiModality.SEALED) {
+                        // Exclude constructors of sealed classes from ABI dump.
+                        return null
+                    }
                 }
                 is ContainingEntity.Property -> {
                     containingProperty = containingEntity

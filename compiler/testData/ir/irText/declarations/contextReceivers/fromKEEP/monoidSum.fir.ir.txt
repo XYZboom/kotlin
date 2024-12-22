@@ -65,7 +65,7 @@ FILE fqName:<root> fileName:/monoidSum.kt
     CONSTRUCTOR visibility:private <> () returnType:<root>.IntMonoid [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in kotlin.Any'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS OBJECT name:IntMonoid modality:FINAL visibility:public superTypes:[<root>.Monoid<kotlin.Int>]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS OBJECT name:IntMonoid modality:FINAL visibility:public superTypes:[<root>.Monoid<kotlin.Int>]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Monoid
@@ -110,7 +110,7 @@ FILE fqName:<root> fileName:/monoidSum.kt
     CONSTRUCTOR visibility:private <> () returnType:<root>.StringMonoid [primary]
       BLOCK_BODY
         DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in kotlin.Any'
-        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS OBJECT name:StringMonoid modality:FINAL visibility:public superTypes:[<root>.Monoid<kotlin.String>]'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS OBJECT name:StringMonoid modality:FINAL visibility:public superTypes:[<root>.Monoid<kotlin.String>]' type=kotlin.Unit
     FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN <> ($this:kotlin.Any, other:kotlin.Any?) returnType:kotlin.Boolean [fake_override,operator]
       overridden:
         public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in <root>.Monoid
@@ -187,13 +187,13 @@ FILE fqName:<root> fileName:/monoidSum.kt
           $receiver: GET_VAR '<this>: kotlin.collections.List<T of <root>.sum> declared in <root>.sum' type=kotlin.collections.List<T of <root>.sum> origin=null
           initial: CALL 'public abstract fun <get-unit> (): T of <root>.Monoid declared in <root>.Monoid' type=T of <root>.sum origin=GET_PROPERTY
             $this: GET_VAR '$context_receiver_0: <root>.Monoid<T of <root>.sum> declared in <root>.sum' type=<root>.Monoid<T of <root>.sum> origin=null
-          operation: FUN_EXPR type=kotlin.Function2<@[ParameterName(name = "acc")] T of <root>.sum, T of <root>.sum, T of <root>.sum> origin=LAMBDA
-            FUN LOCAL_FUNCTION_FOR_LAMBDA name:<anonymous> visibility:local modality:FINAL <> (acc:@[ParameterName(name = "acc")] T of <root>.sum, e:T of <root>.sum) returnType:T of <root>.sum
-              VALUE_PARAMETER name:acc index:0 type:@[ParameterName(name = "acc")] T of <root>.sum
+          operation: FUN_EXPR type=kotlin.Function2<T of <root>.sum, T of <root>.sum, T of <root>.sum> origin=LAMBDA
+            FUN LOCAL_FUNCTION_FOR_LAMBDA name:<anonymous> visibility:local modality:FINAL <> (acc:T of <root>.sum, e:T of <root>.sum) returnType:T of <root>.sum
+              VALUE_PARAMETER name:acc index:0 type:T of <root>.sum
               VALUE_PARAMETER name:e index:1 type:T of <root>.sum
               BLOCK_BODY
-                RETURN type=kotlin.Nothing from='local final fun <anonymous> (acc: @[ParameterName(name = "acc")] T of <root>.sum, e: T of <root>.sum): T of <root>.sum declared in <root>.sum'
+                RETURN type=kotlin.Nothing from='local final fun <anonymous> (acc: T of <root>.sum, e: T of <root>.sum): T of <root>.sum declared in <root>.sum'
                   CALL 'public abstract fun combine (other: T of <root>.Monoid): T of <root>.Monoid declared in <root>.Monoid' type=T of <root>.sum origin=null
                     $this: GET_VAR '$context_receiver_0: <root>.Monoid<T of <root>.sum> declared in <root>.sum' type=<root>.Monoid<T of <root>.sum> origin=null
-                    $receiver: GET_VAR 'acc: @[ParameterName(name = "acc")] T of <root>.sum declared in <root>.sum.<anonymous>' type=@[ParameterName(name = "acc")] T of <root>.sum origin=null
+                    $receiver: GET_VAR 'acc: T of <root>.sum declared in <root>.sum.<anonymous>' type=T of <root>.sum origin=null
                     other: GET_VAR 'e: T of <root>.sum declared in <root>.sum.<anonymous>' type=T of <root>.sum origin=null

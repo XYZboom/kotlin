@@ -6,6 +6,7 @@
 #include "ConcurrentMarkAndSweep.hpp"
 
 #include <optional>
+#include <string_view>
 
 #include "AllocatorImpl.hpp"
 #include "CallsChecker.hpp"
@@ -17,19 +18,18 @@
 #include "ThreadSuspension.hpp"
 #include "GCState.hpp"
 #include "GCStatistics.hpp"
+#include "concurrent/UtilityThread.hpp"
 
 using namespace kotlin;
 
 namespace {
 
-[[clang::no_destroy]] std::mutex gcMutex;
-
 template <typename Body>
-ScopedThread createGCThread(const char* name, Body&& body) {
-    return ScopedThread(ScopedThread::attributes().name(name), [name, body] {
-        RuntimeLogDebug({kTagGC}, "%s %d starts execution", name, konan::currentThreadId());
+UtilityThread createGCThread(const char* name, Body&& body) {
+    return UtilityThread(std::string_view(name), [name, body] {
+        RuntimeLogDebug({kTagGC}, "%s %" PRIuPTR " starts execution", name, konan::currentThreadId());
         body();
-        RuntimeLogDebug({kTagGC}, "%s %d finishes execution", name, konan::currentThreadId());
+        RuntimeLogDebug({kTagGC}, "%s %" PRIuPTR " finishes execution", name, konan::currentThreadId());
     });
 }
 
@@ -63,7 +63,7 @@ bool gc::ConcurrentMarkAndSweep::ThreadData::tryLockRootSet() {
     bool locked = rootSetLocked_.compare_exchange_strong(expected, true, std::memory_order_acq_rel);
     if (locked) {
         RuntimeLogDebug(
-                {kTagGC}, "Thread %d have exclusively acquired thread %d's root set", konan::currentThreadId(), threadData_.threadId());
+                {kTagGC}, "Thread %" PRIuPTR " have exclusively acquired thread %" PRIuPTR "'s root set", konan::currentThreadId(), threadData_.threadId());
     }
     return locked;
 }
@@ -128,7 +128,8 @@ void gc::ConcurrentMarkAndSweep::mainGCThreadBody() {
 }
 
 void gc::ConcurrentMarkAndSweep::PerformFullGC(int64_t epoch) noexcept {
-    std::unique_lock mainGCLock(gcMutex);
+    auto mainGCLock = mm::GlobalData::Instance().gc().gcLock();
+
     auto gcHandle = GCHandle::create(epoch);
 
     markDispatcher_.beginMarkingEpoch(gcHandle);

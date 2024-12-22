@@ -1,6 +1,7 @@
+// RUN_PIPELINE_TILL: FRONTEND
 // constructor vs. fun overload
 
-// FILE: J.java
+// FILE: constructorVsFun/J.java
 package constructorVsFun;
 
 public class J {

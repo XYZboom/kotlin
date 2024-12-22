@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -15,9 +15,9 @@ import org.jetbrains.kotlin.fir.declarations.builder.FirTypeParameterBuilder
 import org.jetbrains.kotlin.fir.declarations.utils.addDefaultBoundIfNecessary
 import org.jetbrains.kotlin.fir.diagnostics.ConeSimpleDiagnostic
 import org.jetbrains.kotlin.fir.diagnostics.DiagnosticKind
+import org.jetbrains.kotlin.fir.resolve.diagnostics.ConeDynamicUnsupported
 import org.jetbrains.kotlin.fir.resolve.toSymbol
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag
-import org.jetbrains.kotlin.fir.symbols.ConeClassifierLookupTag
+import org.jetbrains.kotlin.fir.types.ConeClassifierLookupTag
 import org.jetbrains.kotlin.fir.symbols.ConeTypeParameterLookupTag
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.ConeClassLikeLookupTagImpl
@@ -36,7 +36,7 @@ import org.jetbrains.kotlin.serialization.deserialization.ProtoEnumFlags
 import org.jetbrains.kotlin.serialization.deserialization.getClassId
 import org.jetbrains.kotlin.serialization.deserialization.getName
 import org.jetbrains.kotlin.types.Variance
-import org.jetbrains.kotlin.utils.exceptions.shouldIjPlatformExceptionBeRethrown
+import org.jetbrains.kotlin.utils.exceptions.rethrowIntellijPlatformExceptionIfNeeded
 
 class FirTypeDeserializer(
     private val moduleData: FirModuleData,
@@ -88,7 +88,7 @@ class FirTypeDeserializer(
                 val builder = builders[index]
                 builder.apply {
                     proto.upperBounds(typeTable).mapTo(bounds) {
-                        buildResolvedTypeRef { type = type(it) }
+                        buildResolvedTypeRef { coneType = type(it) }
                     }
                     addDefaultBoundIfNecessary()
                 }.build()
@@ -122,7 +122,7 @@ class FirTypeDeserializer(
             val id = nameResolver.getClassId(fqNameIndex).takeIf { !it.isLocal } ?: StandardClassIds.Any
             return id.toLookupTag()
         } catch (e: Throwable) {
-            if (shouldIjPlatformExceptionBeRethrown(e)) throw e
+            rethrowIntellijPlatformExceptionIfNeeded(e)
             throw RuntimeException("Looking up for ${nameResolver.getClassId(fqNameIndex)}", e)
         }
     }
@@ -130,7 +130,7 @@ class FirTypeDeserializer(
     fun typeRef(proto: ProtoBuf.Type): FirResolvedTypeRef {
         return buildResolvedTypeRef {
             annotations += annotationDeserializer.loadTypeAnnotations(proto, nameResolver)
-            type = type(proto, annotations.computeTypeAttributes(moduleData.session, shouldExpandTypeAliases = false))
+            coneType = type(proto, annotations.computeTypeAttributes(moduleData.session, shouldExpandTypeAliases = false))
         }
     }
 
@@ -142,39 +142,54 @@ class FirTypeDeserializer(
         return type(proto, attributesFromAnnotations(proto))
     }
 
-    fun simpleType(proto: ProtoBuf.Type): ConeSimpleKotlinType {
-        return simpleType(proto, attributesFromAnnotations(proto))
+    fun rigidType(proto: ProtoBuf.Type): ConeRigidType {
+        return rigidType(proto, attributesFromAnnotations(proto))
             ?: ConeErrorType(ConeSimpleDiagnostic("?!id:0", DiagnosticKind.DeserializationError))
     }
 
     private fun type(proto: ProtoBuf.Type, attributes: ConeAttributes): ConeKotlinType {
         if (proto.hasFlexibleTypeCapabilitiesId()) {
-            val lowerBound = simpleType(proto, attributes)
-            val upperBound = simpleType(proto.flexibleUpperBound(typeTable)!!, attributes)
+            val lowerBound = rigidType(proto, attributes)
+            val upperBound = rigidType(proto.flexibleUpperBound(typeTable)!!, attributes)
 
-            val isDynamic = lowerBound?.classId == moduleData.session.builtinTypes.nothingType.id &&
-                    upperBound?.classId == moduleData.session.builtinTypes.nullableAnyType.id
+            val isDynamic = lowerBound?.classId == StandardClassIds.Nothing &&
+                    upperBound?.classId == StandardClassIds.Any
 
-            // TODO: Consider hiding dynamic type creation under FlexibleTypeFactory for JS only (KT-67452)
             return if (isDynamic) {
-                ConeDynamicType.create(moduleData.session, lowerBound?.attributes ?: ConeAttributes.Empty)
+                flexibleTypeFactory.createDynamicType(proto, lowerBound!!, upperBound!!)
             } else {
                 flexibleTypeFactory.createFlexibleType(proto, lowerBound!!, upperBound!!)
             }
         }
 
-        return simpleType(proto, attributes) ?: ConeErrorType(ConeSimpleDiagnostic("?!id:0", DiagnosticKind.DeserializationError))
+        return rigidType(proto, attributes) ?: ConeErrorType(ConeSimpleDiagnostic("?!id:0", DiagnosticKind.DeserializationError))
     }
 
     interface FlexibleTypeFactory {
-        fun createFlexibleType(proto: Type, lowerBound: ConeSimpleKotlinType, upperBound: ConeSimpleKotlinType): ConeFlexibleType
+        fun createFlexibleType(
+            proto: Type,
+            lowerBound: ConeRigidType,
+            upperBound: ConeRigidType,
+        ): ConeFlexibleType
+
+        fun createDynamicType(
+            proto: Type,
+            lowerBound: ConeRigidType,
+            upperBound: ConeRigidType,
+        ): ConeKotlinType
 
         object Default : FlexibleTypeFactory {
             override fun createFlexibleType(
                 proto: Type,
-                lowerBound: ConeSimpleKotlinType,
-                upperBound: ConeSimpleKotlinType,
+                lowerBound: ConeRigidType,
+                upperBound: ConeRigidType,
             ): ConeFlexibleType = ConeFlexibleType(lowerBound, upperBound)
+
+            override fun createDynamicType(
+                proto: Type,
+                lowerBound: ConeRigidType,
+                upperBound: ConeRigidType,
+            ): ConeKotlinType = ConeErrorType(ConeDynamicUnsupported)
         }
     }
 
@@ -193,10 +208,10 @@ class FirTypeDeserializer(
     fun FirClassLikeSymbol<*>.typeParameters(): List<FirTypeParameterSymbol> =
         (fir as? FirTypeParameterRefsOwner)?.typeParameters?.map { it.symbol }.orEmpty()
 
-    private fun simpleType(proto: ProtoBuf.Type, attributes: ConeAttributes): ConeSimpleKotlinType? {
+    private fun rigidType(proto: ProtoBuf.Type, attributes: ConeAttributes): ConeRigidType? {
         val constructor = typeSymbol(proto) ?: return null
         if (constructor is ConeTypeParameterLookupTag) {
-            return ConeTypeParameterTypeImpl(constructor, isNullable = proto.nullable, attributes).let {
+            return ConeTypeParameterTypeImpl(constructor, isMarkedNullable = proto.nullable, attributes).let {
                 if (Flags.DEFINITELY_NOT_NULL_TYPE.get(proto.flags))
                     ConeDefinitelyNotNullType.create(it, moduleData.session.typeContext, avoidComprehensiveCheck = true) ?: it
                 else
@@ -214,7 +229,7 @@ class FirTypeDeserializer(
             constructor.classId, attributes.customAnnotations
         )
 
-        val simpleType = when {
+        val classLikeType = when {
             extensionFunctionalKind != null -> {
                 val newConstructor = if (arguments.isNotEmpty()) {
                     ConeClassLikeLookupTagImpl(extensionFunctionalKind.numberedClassId(arguments.size - 1))
@@ -225,18 +240,18 @@ class FirTypeDeserializer(
                         attributes = attributes
                     )
                 }
-                ConeClassLikeTypeImpl(newConstructor, arguments, isNullable = proto.nullable, attributes)
+                ConeClassLikeTypeImpl(newConstructor, arguments, isMarkedNullable = proto.nullable, attributes)
             }
             Flags.SUSPEND_TYPE.get(proto.flags) -> {
                 createSuspendFunctionType(constructor, arguments, isNullable = proto.nullable, attributes)
             }
-            else -> ConeClassLikeTypeImpl(constructor, arguments, isNullable = proto.nullable, attributes)
+            else -> ConeClassLikeTypeImpl(constructor, arguments, isMarkedNullable = proto.nullable, attributes)
         }
 
-        val abbreviatedType = proto.abbreviatedType(typeTable)?.let { simpleType(it, attributes) }
-            ?: return simpleType
+        val abbreviatedType = proto.abbreviatedType(typeTable)?.let { rigidType(it, attributes) }
+            ?: return classLikeType
 
-        return simpleType.withAttributes(simpleType.attributes.plus(AbbreviatedTypeAttribute(abbreviatedType)))
+        return classLikeType.withAttributes(classLikeType.attributes.add(AbbreviatedTypeAttribute(abbreviatedType)))
     }
 
     private fun createSuspendFunctionTypeForBasicCase(
@@ -251,7 +266,10 @@ class FirTypeDeserializer(
             return true
         }
 
-        val continuationType = arguments.getOrNull(arguments.lastIndex - 1) as? ConeClassLikeType ?: return null
+        val continuationType = arguments.getOrNull(arguments.lastIndex - 1)
+            ?.type
+            ?.lowerBoundIfFlexible() as? ConeClassLikeType
+            ?: return null
         if (!continuationType.isContinuation()) return ConeClassLikeTypeImpl(functionTypeConstructor, arguments, isNullable, attributes)
         val suspendReturnType = continuationType.typeArguments.single()
         val valueParameters = arguments.dropLast(2)

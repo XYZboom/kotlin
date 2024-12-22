@@ -5,28 +5,32 @@
 
 package org.jetbrains.sir.lightclasses.extensions
 
-import org.jetbrains.kotlin.analysis.api.symbols.KtCallableSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KtSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.markers.KtSymbolKind
-import org.jetbrains.kotlin.analysis.api.symbols.psiSafe
+import org.jetbrains.kotlin.analysis.api.symbols.*
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.sir.SirCallableKind
+import org.jetbrains.kotlin.sir.SirModality
 
-internal val KtCallableSymbol.sirCallableKind: SirCallableKind
-    get() = when (symbolKind) {
-        KtSymbolKind.TOP_LEVEL -> {
-            val isRootPackage = callableIdIfNonLocal?.packageName?.isRoot
+internal val KaCallableSymbol.sirCallableKind: SirCallableKind
+    get() = when (location) {
+        KaSymbolLocation.TOP_LEVEL -> {
+            val isRootPackage = callableId?.packageName?.isRoot
             if (isRootPackage == true) {
                 SirCallableKind.FUNCTION
             } else {
-                SirCallableKind.STATIC_METHOD
+                SirCallableKind.CLASS_METHOD
             }
         }
-        KtSymbolKind.CLASS_MEMBER, KtSymbolKind.ACCESSOR,
-        -> SirCallableKind.INSTANCE_METHOD
-        KtSymbolKind.LOCAL,
-        KtSymbolKind.SAM_CONSTRUCTOR,
-        -> TODO("encountered callable kind($symbolKind) that is not translatable currently. Fix this crash during KT-65980.")
+        KaSymbolLocation.CLASS, KaSymbolLocation.PROPERTY,
+            -> SirCallableKind.INSTANCE_METHOD
+        KaSymbolLocation.LOCAL,
+            -> TODO("encountered callable location($location) that is not translatable currently. Fix this crash during KT-65980.")
     }
 
-internal fun KtSymbol.documentation(): String? = this.psiSafe<KtDeclaration>()?.docComment?.text
+internal fun KaSymbol.documentation(): String? = this.psiSafe<KtDeclaration>()?.docComment?.text
+
+internal val KaSymbolModality.sirModality: SirModality
+    get() = when (this) {
+        KaSymbolModality.FINAL -> SirModality.FINAL
+        KaSymbolModality.SEALED -> SirModality.UNSPECIFIED
+        KaSymbolModality.OPEN, KaSymbolModality.ABSTRACT -> SirModality.OPEN
+    }

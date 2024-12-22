@@ -20,13 +20,6 @@ import org.jetbrains.kotlin.test.services.TestServices
 
 // ---------------------------- codegen ----------------------------
 
-open class AbstractBlackBoxCodegenTestForNoArg : AbstractBlackBoxCodegenTest() {
-    override fun configure(builder: TestConfigurationBuilder) {
-        super.configure(builder)
-        builder.enableNoArg()
-    }
-}
-
 open class AbstractIrBlackBoxCodegenTestForNoArg : AbstractIrBlackBoxCodegenTest() {
     override fun configure(builder: TestConfigurationBuilder) {
         super.configure(builder)
@@ -91,12 +84,7 @@ class NoArgEnvironmentConfigurator(testServices: TestServices) : EnvironmentConf
         module: TestModule,
         configuration: CompilerConfiguration
     ) {
-        NoArgComponentRegistrar.registerNoArgComponents(
-            this,
-            NOARG_ANNOTATIONS,
-            useIr = module.targetBackend?.isIR == true,
-            invokeInitializers = NoArgDirectives.INVOKE_INITIALIZERS in module.directives
-        )
+        NoArgComponentRegistrar.registerNoArgComponents(this, NOARG_ANNOTATIONS, NoArgDirectives.INVOKE_INITIALIZERS in module.directives)
     }
 }
 

@@ -19,7 +19,6 @@ import java.io.File
 fun buildKotlinMetadataLibrary(configuration: CompilerConfiguration, serializedMetadata: SerializedMetadata, destDir: File) {
     val versions = KotlinLibraryVersioning(
         abiVersion = KotlinAbiVersion.CURRENT,
-        libraryVersion = null,
         compilerVersion = KotlinCompilerVersion.getVersion(),
         metadataVersion = KlibMetadataVersion.INSTANCE.toString(),
     )
@@ -34,7 +33,6 @@ fun buildKotlinMetadataLibrary(configuration: CompilerConfiguration, serializedM
         nopack = true,
         perFile = false,
         manifestProperties = null,
-        dataFlowGraph = null,
         builtInsPlatform = BuiltInsPlatform.COMMON,
         nativeTargets = emptyList()
     )

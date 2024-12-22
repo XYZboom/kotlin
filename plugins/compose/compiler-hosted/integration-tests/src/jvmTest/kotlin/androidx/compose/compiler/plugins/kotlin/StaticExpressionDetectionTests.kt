@@ -25,7 +25,6 @@ import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
-import org.junit.Assume.assumeFalse
 import org.junit.Test
 
 class StaticExpressionDetectionTests(useFir: Boolean) : AbstractIrTransformTest(useFir) {
@@ -241,7 +240,7 @@ class StaticExpressionDetectionTests(useFir: Boolean) : AbstractIrTransformTest(
         expression: String,
         @Language("kotlin")
         extraSrc: String = "",
-        includeUiImports: Boolean = false
+        includeUiImports: Boolean = false,
     ) {
         assertParameterChangeBitsForExpression(
             message = "Expression `$expression` did not compile with the correct %changed flags",
@@ -256,7 +255,7 @@ class StaticExpressionDetectionTests(useFir: Boolean) : AbstractIrTransformTest(
         expression: String,
         @Language("kotlin")
         extraSrc: String = "",
-        includeUiImports: Boolean = false
+        includeUiImports: Boolean = false,
     ) {
         assertParameterChangeBitsForExpression(
             message = "Expression `$expression` did not compile with the correct %changed flags",
@@ -273,7 +272,7 @@ class StaticExpressionDetectionTests(useFir: Boolean) : AbstractIrTransformTest(
         expectedEncodedChangedParameter: ChangedParameterEncoding,
         @Language("kotlin")
         extraSrc: String = "",
-        includeUiImports: Boolean = false
+        includeUiImports: Boolean = false,
     ) {
         @Language("kotlin")
         val source = """
@@ -292,7 +291,21 @@ class StaticExpressionDetectionTests(useFir: Boolean) : AbstractIrTransformTest(
             SourceFile("ExtraSrc.kt", extraSrc),
             SourceFile("Test.kt", source),
         )
-        val irModule = compileToIr(files)
+        val irModule = compileToIr(
+            files,
+            additionalPaths = if (includeUiImports) {
+                listOf(
+                    Classpath.composeUiJar(),
+                    Classpath.composeUiUnitJar(),
+                    Classpath.composeUiGraphicsJar(),
+                    Classpath.composeUiTextJar(),
+                    Classpath.composeFoundationTextJar(),
+                    Classpath.composeFoundationLayoutJar()
+                )
+            } else {
+                emptyList()
+            }
+        )
 
         val changeFlagsMatcher = Regex(
             pattern = """Receiver\(.+, %composer, (0b)?([01]+)\)""",
@@ -320,12 +333,14 @@ class StaticExpressionDetectionTests(useFir: Boolean) : AbstractIrTransformTest(
     private fun assertChangedBits(
         message: String,
         expected: ChangedParameterEncoding,
-        actual: Int
+        actual: Int,
     ) {
         val maskedActual = actual and ChangedParameterEncoding.Mask
         if (ChangedParameterEncoding.values().none { it.bits == maskedActual }) {
-            fail("$message\nThe actual %changed flags contained an illegal encoding: " +
-                "0b${maskedActual.toString(radix = 2)}")
+            fail(
+                "$message\nThe actual %changed flags contained an illegal encoding: " +
+                        "0b${maskedActual.toString(radix = 2)}"
+            )
         }
 
         assertEquals(

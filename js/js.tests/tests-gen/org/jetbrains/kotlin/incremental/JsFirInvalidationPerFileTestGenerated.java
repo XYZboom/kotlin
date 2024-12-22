@@ -109,9 +109,27 @@ public class JsFirInvalidationPerFileTestGenerated extends AbstractJsFirInvalida
   }
 
   @Test
+  @TestMetadata("crossModuleModifyClassAncestors")
+  public void testCrossModuleModifyClassAncestors() {
+    runTest("js/js.translator/testData/incremental/invalidation/crossModuleModifyClassAncestors/");
+  }
+
+  @Test
+  @TestMetadata("crossModuleObjectInitialization")
+  public void testCrossModuleObjectInitialization() {
+    runTest("js/js.translator/testData/incremental/invalidation/crossModuleObjectInitialization/");
+  }
+
+  @Test
   @TestMetadata("crossModuleReferences")
   public void testCrossModuleReferences() {
     runTest("js/js.translator/testData/incremental/invalidation/crossModuleReferences/");
+  }
+
+  @Test
+  @TestMetadata("defaultParamMethod")
+  public void testDefaultParamMethod() {
+    runTest("js/js.translator/testData/incremental/invalidation/defaultParamMethod/");
   }
 
   @Test
@@ -193,6 +211,12 @@ public class JsFirInvalidationPerFileTestGenerated extends AbstractJsFirInvalida
   }
 
   @Test
+  @TestMetadata("fileNameCaseClash")
+  public void testFileNameCaseClash() {
+    runTest("js/js.translator/testData/incremental/invalidation/fileNameCaseClash/");
+  }
+
+  @Test
   @TestMetadata("fileNameClash")
   public void testFileNameClash() {
     runTest("js/js.translator/testData/incremental/invalidation/fileNameClash/");
@@ -268,12 +292,6 @@ public class JsFirInvalidationPerFileTestGenerated extends AbstractJsFirInvalida
   @TestMetadata("inlineFunctionAsParam")
   public void testInlineFunctionAsParam() {
     runTest("js/js.translator/testData/incremental/invalidation/inlineFunctionAsParam/");
-  }
-
-  @Test
-  @TestMetadata("inlineFunctionCircleUsage")
-  public void testInlineFunctionCircleUsage() {
-    runTest("js/js.translator/testData/incremental/invalidation/inlineFunctionCircleUsage/");
   }
 
   @Test
@@ -406,6 +424,12 @@ public class JsFirInvalidationPerFileTestGenerated extends AbstractJsFirInvalida
   @TestMetadata("mainModuleInvalidation")
   public void testMainModuleInvalidation() {
     runTest("js/js.translator/testData/incremental/invalidation/mainModuleInvalidation/");
+  }
+
+  @Test
+  @TestMetadata("modifyClassAncestors")
+  public void testModifyClassAncestors() {
+    runTest("js/js.translator/testData/incremental/invalidation/modifyClassAncestors/");
   }
 
   @Test

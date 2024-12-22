@@ -23,12 +23,11 @@ import org.jetbrains.kotlin.analysis.low.level.api.fir.test.configurators.Analys
 import org.jetbrains.kotlin.analysis.low.level.api.fir.test.configurators.AnalysisApiFirSourceTestConfigurator
 import org.jetbrains.kotlin.analysis.low.level.api.fir.useFirSessionConfigurator
 import org.jetbrains.kotlin.analysis.test.framework.base.AbstractAnalysisApiBasedTest
-import org.jetbrains.kotlin.analysis.test.framework.project.structure.KtTestModule
+import org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModule
 import org.jetbrains.kotlin.fir.SessionConfiguration
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirFile
-import org.jetbrains.kotlin.fir.resolve.ImplicitReceiverStack
 import org.jetbrains.kotlin.fir.resolve.SessionHolderImpl
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
@@ -57,7 +56,7 @@ abstract class AbstractFirContextCollectionTest : AbstractAnalysisApiBasedTest()
             handler.elementsToCheckContext = allStructureElements.map(FileStructureElement::declaration)
             handler.firFile = mainFile.getOrBuildFirFile(firResolveSession)
 
-            mainFile.getDiagnostics(firResolveSession, DiagnosticCheckerFilter.ONLY_COMMON_CHECKERS)
+            mainFile.getDiagnostics(firResolveSession, DiagnosticCheckerFilter.ONLY_DEFAULT_CHECKERS)
         }
     }
 
@@ -90,12 +89,8 @@ abstract class AbstractFirContextCollectionTest : AbstractAnalysisApiBasedTest()
         }
 
         private fun compareStructurally(expected: CheckerContext, actual: CheckerContext) {
-            assertions.assertEquals(expected.implicitReceiverStack.asString(), actual.implicitReceiverStack.asString())
             assertions.assertEquals(expected.containingDeclarations.asString(), actual.containingDeclarations.asString())
         }
-
-        private fun ImplicitReceiverStack.asString() =
-            joinToString { it.boundSymbol.name() }
 
         private fun List<FirDeclaration>.asString() =
             joinToString(transform = FirDeclaration::name)

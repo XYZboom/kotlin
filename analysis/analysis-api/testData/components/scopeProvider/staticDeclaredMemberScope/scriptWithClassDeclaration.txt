@@ -1,8 +1,9 @@
-KtNamedClassOrObjectSymbol:
-  annotationsList: []
-  classIdIfNonLocal: Person
+KaNamedClassSymbol:
+  annotations: []
+  classId: Person
   classKind: CLASS
   companionObject: null
+  compilerVisibility: Public
   contextReceivers: []
   isActual: false
   isData: false
@@ -11,19 +12,19 @@ KtNamedClassOrObjectSymbol:
   isFun: false
   isInline: false
   isInner: false
+  location: TOP_LEVEL
   modality: ABSTRACT
   name: Person
   origin: SOURCE
   superTypes: [
-    KtUsualClassType:
-      annotationsList: []
-      ownTypeArguments: []
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
       type: kotlin/Any
   ]
-  symbolKind: TOP_LEVEL
   typeParameters: []
-  visibility: Public
-  getContainingFileSymbol: KtFileSymbol(scriptWithClassDeclaration.kts)
-  getContainingModule: KtScriptModule "Script scriptWithClassDeclaration.kts"
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(scriptWithClassDeclaration.kts)
+  getContainingModule: KaScriptModule "Script scriptWithClassDeclaration.kts"
   annotationApplicableTargets: null
   deprecationStatus: null

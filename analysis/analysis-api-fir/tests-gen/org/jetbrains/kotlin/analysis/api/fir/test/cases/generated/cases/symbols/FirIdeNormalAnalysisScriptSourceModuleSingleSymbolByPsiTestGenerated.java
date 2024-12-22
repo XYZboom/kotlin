@@ -46,6 +46,24 @@ public class FirIdeNormalAnalysisScriptSourceModuleSingleSymbolByPsiTestGenerate
     KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/singleSymbolByPsi"), Pattern.compile("^(.+)\\.kts$"), null, true);
   }
 
+  @Test
+  @TestMetadata("functionFromScriptStatement.kts")
+  public void testFunctionFromScriptStatement() {
+    runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/functionFromScriptStatement.kts");
+  }
+
+  @Test
+  @TestMetadata("topLevelScriptFunction.kts")
+  public void testTopLevelScriptFunction() {
+    runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/topLevelScriptFunction.kts");
+  }
+
+  @Test
+  @TestMetadata("variableFromScriptStatement.kts")
+  public void testVariableFromScriptStatement() {
+    runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/variableFromScriptStatement.kts");
+  }
+
   @Nested
   @TestMetadata("analysis/analysis-api/testData/symbols/singleSymbolByPsi/contracts")
   @TestDataPath("$PROJECT_ROOT")
@@ -64,6 +82,36 @@ public class FirIdeNormalAnalysisScriptSourceModuleSingleSymbolByPsiTestGenerate
     public void testAllFilesPresentInDestructuring() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/singleSymbolByPsi/destructuring"), Pattern.compile("^(.+)\\.kts$"), null, true);
     }
+
+    @Test
+    @TestMetadata("entryInScriptDestructuringDeclaration.kts")
+    public void testEntryInScriptDestructuringDeclaration() {
+      runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/destructuring/entryInScriptDestructuringDeclaration.kts");
+    }
+
+    @Test
+    @TestMetadata("entryInScriptDestructuringDeclarationMutable.kts")
+    public void testEntryInScriptDestructuringDeclarationMutable() {
+      runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/destructuring/entryInScriptDestructuringDeclarationMutable.kts");
+    }
+
+    @Test
+    @TestMetadata("entryUnderscoreInScriptDestructuringDeclaration.kts")
+    public void testEntryUnderscoreInScriptDestructuringDeclaration() {
+      runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/destructuring/entryUnderscoreInScriptDestructuringDeclaration.kts");
+    }
+
+    @Test
+    @TestMetadata("scriptDestructuringDeclaration.kts")
+    public void testScriptDestructuringDeclaration() {
+      runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/destructuring/scriptDestructuringDeclaration.kts");
+    }
+
+    @Test
+    @TestMetadata("scriptDestructuringDeclarationMutable.kts")
+    public void testScriptDestructuringDeclarationMutable() {
+      runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/destructuring/scriptDestructuringDeclarationMutable.kts");
+    }
   }
 
   @Nested
@@ -73,6 +121,16 @@ public class FirIdeNormalAnalysisScriptSourceModuleSingleSymbolByPsiTestGenerate
     @Test
     public void testAllFilesPresentInErrors() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/singleSymbolByPsi/errors"), Pattern.compile("^(.+)\\.kts$"), null, true);
+    }
+  }
+
+  @Nested
+  @TestMetadata("analysis/analysis-api/testData/symbols/singleSymbolByPsi/withTestCompilerPluginEnabled")
+  @TestDataPath("$PROJECT_ROOT")
+  public class WithTestCompilerPluginEnabled {
+    @Test
+    public void testAllFilesPresentInWithTestCompilerPluginEnabled() {
+      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/symbols/singleSymbolByPsi/withTestCompilerPluginEnabled"), Pattern.compile("^(.+)\\.kts$"), null, true);
     }
   }
 }

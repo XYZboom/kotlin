@@ -1,3 +1,5 @@
+// LATEST_LV_DIFFERENCE
+// RUN_PIPELINE_TILL: BACKEND
 // MODULE: m1-common
 // FILE: common.kt
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS)
@@ -23,8 +25,8 @@ actual annotation class ExpectIsSubsetOfActual
 @Target(AnnotationTarget.CONSTRUCTOR, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.CLASS)
 actual annotation class ExpectIsSubsetOfActualDifferentOrder
 
-<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>@Target(AnnotationTarget.FUNCTION)
-actual annotation class MoreTargetsOnExpect<!>
+@Target(AnnotationTarget.FUNCTION)
+<!ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT, ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT!>actual<!> annotation class MoreTargetsOnExpect
 
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS, AnnotationTarget.TYPEALIAS)
 actual annotation class RepeatedTargetsInExpect
