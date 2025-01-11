@@ -154,7 +154,7 @@ private class AutoboxingTransformer(val context: Context) : AbstractValueUsageTr
         val conversion = context.getTypeConversion(actualType, expectedType)
         return if (conversion == null) {
             val actualClass = actualType.classOrNull?.owner
-            val erasedExpectedType = expectedType.erasure()
+            val erasedExpectedType = expectedType.eraseTypeParameters()
             val erasedExpectedClass = erasedExpectedType.classOrFail.owner
             return when {
                 actualType.makeNotNull() == expectedType.makeNotNull() -> this
@@ -312,10 +312,6 @@ private class InlineClassTransformer(private val context: Context) : IrBuildingT
             if (declaration.constructedClass.isNativePrimitiveType()) {
                 // Constructors for these types aren't used and actually are malformed (e.g. lack the parameter).
                 // Skipping here for simplicity.
-            } else if (declaration.hasCCallAnnotation("CppClassConstructor") && !declaration.isPrimary) {
-                // At this point secondary cpp constructor calls have already been transformed
-                // by interop lowering. So don't mess with them.
-                // Otherwise we could assert having assumptions on (empty at the moment) body of the constructor.
             } else {
                 buildLoweredConstructor(declaration)
             }

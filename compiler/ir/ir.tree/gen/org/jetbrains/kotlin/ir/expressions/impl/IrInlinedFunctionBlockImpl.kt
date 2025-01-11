@@ -10,9 +10,9 @@
 
 package org.jetbrains.kotlin.ir.expressions.impl
 
+import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrFileEntry
 import org.jetbrains.kotlin.ir.IrStatement
-import org.jetbrains.kotlin.ir.declarations.IrAttributeContainer
 import org.jetbrains.kotlin.ir.expressions.IrInlinedFunctionBlock
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
@@ -27,12 +27,10 @@ class IrInlinedFunctionBlockImpl internal constructor(
     override var origin: IrStatementOrigin?,
     override var inlinedFunctionStartOffset: Int,
     override var inlinedFunctionEndOffset: Int,
-    override var inlineFunctionSymbol: IrFunctionSymbol?,
-    override var fileEntry: IrFileEntry,
+    override var inlinedFunctionSymbol: IrFunctionSymbol?,
+    override var inlinedFunctionFileEntry: IrFileEntry,
 ) : IrInlinedFunctionBlock() {
-    override var attributeOwnerId: IrAttributeContainer = this
-
-    override var originalBeforeInline: IrAttributeContainer? = null
+    override var attributeOwnerId: IrElement = this
 
     override val statements: MutableList<IrStatement> = ArrayList(2)
 }

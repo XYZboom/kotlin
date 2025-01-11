@@ -327,7 +327,6 @@ abstract class AbstractAnalysisApiBasedTest : TestWithDisposable() {
         useDirectives(JvmEnvironmentConfigurationDirectives)
         useDirectives(TestModuleCompiler.Directives)
 
-
         useSourcePreprocessor(::ExpressionMarkersSourceFilePreprocessor)
         useAdditionalService { ExpressionMarkerProvider() }
         useDirectives(ExpressionMarkerProvider.Directives)
@@ -392,8 +391,8 @@ abstract class AbstractAnalysisApiBasedTest : TestWithDisposable() {
 
     private fun prepareToTheAnalysis(testConfiguration: TestConfiguration) {
         val moduleStructure = testServices.moduleStructure
-        val dependencyProvider = DependencyProviderImpl(testServices, moduleStructure.modules)
-        testServices.registerDependencyProvider(dependencyProvider)
+        val artifactsProvider = ArtifactsProvider(testServices, moduleStructure.modules)
+        testServices.registerArtifactsProvider(artifactsProvider)
 
         testConfiguration.preAnalysisHandlers.forEach { preprocessor -> preprocessor.preprocessModuleStructure(moduleStructure) }
         testConfiguration.preAnalysisHandlers.forEach { preprocessor -> preprocessor.prepareSealedClassInheritors(moduleStructure) }

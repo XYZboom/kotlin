@@ -1806,8 +1806,8 @@ internal class ConditionTypeMismatchImpl(
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.ConditionTypeMismatch
 
 internal class ArgumentTypeMismatchImpl(
-    override val expectedType: KaType,
     override val actualType: KaType,
+    override val expectedType: KaType,
     override val isMismatchDueToNullability: Boolean,
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
@@ -4214,6 +4214,12 @@ internal class ConstructorOrSupertypeOnTypealiasWithTypeProjectionWarningImpl(
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.ConstructorOrSupertypeOnTypealiasWithTypeProjectionWarning
 
+internal class TypealiasExpansionCapturesOuterTypeParametersImpl(
+    override val outerTypeParameters: List<KaTypeParameterSymbol>,
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.TypealiasExpansionCapturesOuterTypeParameters
+
 internal class RedundantVisibilityModifierImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
@@ -4825,8 +4831,8 @@ internal class NullabilityMismatchBasedOnJavaAnnotationsImpl(
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.NullabilityMismatchBasedOnJavaAnnotations
 
 internal class TypeMismatchWhenFlexibilityChangesImpl(
-    override val expectedType: KaType,
     override val actualType: KaType,
+    override val expectedType: KaType,
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.TypeMismatchWhenFlexibilityChanges

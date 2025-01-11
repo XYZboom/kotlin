@@ -6,14 +6,15 @@
 package org.jetbrains.kotlin.test.directives
 
 import org.jetbrains.kotlin.test.directives.model.SimpleDirectivesContainer
+import org.jetbrains.kotlin.test.services.TestTierLabel
 
 object TestTierDirectives : SimpleDirectivesContainer() {
     /**
-     * See: [TestTiersLabel][org.jetbrains.kotlin.test.runners.TestTierLabel] for the list of values.
-     * If not set, the test will be generated into [FRONTEND][org.jetbrains.kotlin.test.runners.TestTierLabel.FRONTEND]
+     * See: [TestTierLabel] for the list of values.
+     * If not set, the test will be generated into [FRONTEND][TestTierLabel.FRONTEND]
      * tiers, but the infrastructure will still complain about the missing directive.
      */
-    val RUN_PIPELINE_TILL by stringDirective(
+    val RUN_PIPELINE_TILL by enumDirective<TestTierLabel>(
         description = "Verify that the test runs successfully until the specified tier (including). See `TestTiers` for the list of tiers"
     )
 

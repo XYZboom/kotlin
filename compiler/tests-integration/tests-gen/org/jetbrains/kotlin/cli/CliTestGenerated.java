@@ -642,6 +642,11 @@ public class CliTestGenerated extends AbstractCliTest {
       runTest("compiler/testData/cli/jvm/internalArgCommonChecks/internalArgPassValue.args");
     }
 
+    @TestMetadata("internalArgTestOnlyFeature.args")
+    public void testInternalArgTestOnlyFeature() {
+      runTest("compiler/testData/cli/jvm/internalArgCommonChecks/internalArgTestOnlyFeature.args");
+    }
+
     @TestMetadata("internalArgUnrecognizedFeature.args")
     public void testInternalArgUnrecognizedFeature() {
       runTest("compiler/testData/cli/jvm/internalArgCommonChecks/internalArgUnrecognizedFeature.args");
@@ -1641,6 +1646,16 @@ public class CliTestGenerated extends AbstractCliTest {
     @TestMetadata("modulesWithDependencyCycle.args")
     public void testModulesWithDependencyCycle() {
       runTest("compiler/testData/cli/jvm/modulesWithDependencyCycle.args");
+    }
+
+    @TestMetadata("nestedTypeAliasesEnabled.args")
+    public void testNestedTypeAliasesEnabled() {
+      runTest("compiler/testData/cli/jvm/nestedTypeAliasesEnabled.args");
+    }
+
+    @TestMetadata("nestedTypeAliasesError.args")
+    public void testNestedTypeAliasesError() {
+      runTest("compiler/testData/cli/jvm/nestedTypeAliasesError.args");
     }
 
     @TestMetadata("noJdkAvoidFailure.args")

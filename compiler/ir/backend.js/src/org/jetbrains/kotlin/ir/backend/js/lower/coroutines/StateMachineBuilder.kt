@@ -15,7 +15,6 @@ import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.backend.js.JsCommonBackendContext
 import org.jetbrains.kotlin.ir.backend.js.ir.JsIrBuilder
-import org.jetbrains.kotlin.ir.declarations.IrAttributeContainer
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.*
@@ -51,8 +50,7 @@ class IrDispatchPoint(val target: SuspendState) : IrExpression() {
             target.entryBlock.type = value
         }
 
-    override var attributeOwnerId: IrAttributeContainer = this
-    override var originalBeforeInline: IrAttributeContainer? = null
+    override var attributeOwnerId: IrElement = this
 
     override fun <R, D> accept(visitor: IrElementVisitor<R, D>, data: D) = visitor.visitExpression(this, data)
 }
@@ -78,7 +76,7 @@ class StateMachineBuilder(
     private val thisSymbol: IrValueParameterSymbol,
     private val getSuspendResultAsType: (IrType) -> IrExpression,
     private val setSuspendResultValue: (IrExpression) -> IrStatement
-) : IrElementVisitorVoid {
+) : IrVisitorVoid() {
 
     private val loopMap = hashMapOf<IrLoop, LoopBounds>()
     private val unit = context.irBuiltIns.unitType

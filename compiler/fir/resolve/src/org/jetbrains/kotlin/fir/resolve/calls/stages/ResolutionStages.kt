@@ -70,7 +70,7 @@ object CheckExtensionReceiver : ResolutionStage() {
             }
         }
 
-        val expectedReceiverType = candidate.symbol.getExpectedReceiverType() ?: return
+        val expectedReceiverType = candidate.getExpectedReceiverType() ?: return
         val expectedType = candidate.substitutor.substituteOrSelf(expectedReceiverType)
 
         // Probably, we should add an assertion here since we check consistency on the level of scope tower levels
@@ -120,6 +120,11 @@ object CheckExtensionReceiver : ResolutionStage() {
         candidate.chosenExtensionReceiver = atom
 
         sink.yieldIfNeed()
+    }
+
+    private fun Candidate.getExpectedReceiverType(): ConeKotlinType? {
+        val callableSymbol = symbol as? FirCallableSymbol<*> ?: return null
+        return callableSymbol.fir.receiverParameter?.typeRef?.coneType
     }
 }
 
@@ -582,10 +587,10 @@ internal object MapArguments : ResolutionStage() {
         val arguments = buildList {
             candidate.getExpectedContextParameterTypesForInvoke(context, function, sink)?.let { expectedContextTypes ->
                 // Those stubs shall be replaced at CheckContextArguments.replaceArgumentPrefixForInvokeWithImplicitlyMappedContextValues
-                addAll(expectedContextTypes.map {
+                expectedContextTypes.mapTo(this) {
                     @OptIn(UnsafeExpressionUtility::class) // It's a temporary atom anyway
                     ConeResolutionAtom.createRawAtomForPotentiallyUnresolvedExpression(buildExpressionStub())
-                })
+                }
                 candidate.expectedContextParameterTypesForInvoke = expectedContextTypes
             }
             callInfo.arguments.mapTo(this) { ConeResolutionAtom.createRawAtom(it) }

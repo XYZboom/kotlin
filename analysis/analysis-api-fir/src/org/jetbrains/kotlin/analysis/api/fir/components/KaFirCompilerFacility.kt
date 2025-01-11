@@ -34,7 +34,6 @@ import org.jetbrains.kotlin.analysis.low.level.api.fir.util.errorWithFirSpecific
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.jvm.*
 import org.jetbrains.kotlin.builtins.DefaultBuiltIns
-import org.jetbrains.kotlin.codegen.CodegenFactory
 import org.jetbrains.kotlin.codegen.state.GenerationState
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
@@ -87,7 +86,7 @@ import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.IrSimpleType
 import org.jetbrains.kotlin.ir.util.StubGeneratorExtensions
 import org.jetbrains.kotlin.ir.util.classId
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
+import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.load.kotlin.toSourceElement
@@ -353,18 +352,16 @@ internal class KaFirCompilerFacility(
 
         ProgressManager.checkCanceled()
 
-        codegenFactory.generateModuleInFrontendIRMode(
-            generationState,
+        val backendInput = JvmIrCodegenFactory.BackendInput(
             fir2IrResult.irModuleFragment,
+            fir2IrResult.pluginContext.irBuiltIns,
             fir2IrResult.symbolTable,
             fir2IrResult.components.irProviders,
             CompilerFacilityJvmGeneratorExtensions(jvmGeneratorExtensions),
             FirJvmBackendExtension(fir2IrResult.components, null),
-            fir2IrResult.pluginContext
+            fir2IrResult.pluginContext,
         )
-
-        CodegenFactory.doCheckCancelled(generationState)
-        generationState.factory.done()
+        codegenFactory.generateModule(generationState, backendInput)
 
         val outputFiles = generationState.factory.asList().map(::KaBaseCompiledFileForOutputFile)
         val capturedValues = buildList {
@@ -735,7 +732,7 @@ internal class KaFirCompilerFacility(
     }
 }
 
-private class IrDeclarationMappingCollectingVisitor : IrElementVisitorVoid {
+private class IrDeclarationMappingCollectingVisitor : IrVisitorVoid() {
     private val collectedMappings = HashMap<FirDeclaration, IrDeclaration>()
 
     val mappings: Map<FirDeclaration, IrDeclaration>
@@ -760,7 +757,7 @@ private class IrDeclarationMappingCollectingVisitor : IrElementVisitorVoid {
     }
 }
 
-private class IrDeclarationPatchingVisitor(private val mapping: Map<FirDeclaration, IrDeclaration>) : IrElementVisitorVoid {
+private class IrDeclarationPatchingVisitor(private val mapping: Map<FirDeclaration, IrDeclaration>) : IrVisitorVoid() {
     override fun visitElement(element: IrElement) {
         element.acceptChildrenVoid(this)
     }

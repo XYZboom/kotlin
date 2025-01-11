@@ -657,8 +657,8 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         }
 
         val ARGUMENT_TYPE_MISMATCH by error<PsiElement> {
-            parameter<ConeKotlinType>("expectedType")
             parameter<ConeKotlinType>("actualType")
+            parameter<ConeKotlinType>("expectedType")
             parameter<Boolean>("isMismatchDueToNullability")
         }
 
@@ -1761,6 +1761,9 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         val CONSTRUCTOR_OR_SUPERTYPE_ON_TYPEALIAS_WITH_TYPE_PROJECTION by deprecationError<KtElement>(
             LanguageFeature.ProhibitConstructorAndSupertypeOnTypealiasWithTypeProjection
         )
+        val TYPEALIAS_EXPANSION_CAPTURES_OUTER_TYPE_PARAMETERS by error<KtElement> {
+            parameter<Set<FirTypeParameterSymbol>>("outerTypeParameters")
+        }
     }
 
     val EXTRA_CHECKERS by object : DiagnosticGroup("Extra checkers") {

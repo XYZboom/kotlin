@@ -5,8 +5,8 @@
 
 package org.jetbrains.kotlin.backend.common.lower.inline
 
-import org.jetbrains.kotlin.backend.common.LoweringContext
 import org.jetbrains.kotlin.backend.common.BodyLoweringPass
+import org.jetbrains.kotlin.backend.common.LoweringContext
 import org.jetbrains.kotlin.backend.common.ScopeWithIr
 import org.jetbrains.kotlin.backend.common.ir.isInlineLambdaBlock
 import org.jetbrains.kotlin.backend.common.ir.isInlineLambdaBlock
@@ -56,8 +56,12 @@ class LocalClassesInInlineLambdasLowering(val context: LoweringContext) : BodyLo
                 val inlineLambdas = mutableListOf<IrFunction>()
                 for (index in expression.arguments.indices) {
                     val argument = expression.arguments[index]
-                    val inlineLambda = (argument as? IrFunctionExpression)?.function
-                        ?.takeIf { rootCallee.parameters[index].isInlineParameter() }
+                    val inlineLambda = when (argument) {
+                       is IrFunctionExpression -> argument.function
+                       is IrRichPropertyReference -> argument.getterFunction
+                       is IrRichFunctionReference -> argument.invokeFunction
+                       else -> null
+                    }?.takeIf { rootCallee.parameters[index].isInlineParameter() }
                     if (inlineLambda == null)
                         expression.arguments[index] = argument?.transform(this, data)
                     else
@@ -69,7 +73,7 @@ class LocalClassesInInlineLambdasLowering(val context: LoweringContext) : BodyLo
                 val adaptedFunctions = mutableSetOf<IrSimpleFunction>()
                 val transformer = this
                 for (lambda in inlineLambdas) {
-                    lambda.acceptChildrenVoid(object : IrElementVisitorVoid {
+                    lambda.acceptChildrenVoid(object : IrVisitorVoid() {
                         override fun visitElement(element: IrElement) {
                             element.acceptChildrenVoid(this)
                         }
@@ -82,6 +86,17 @@ class LocalClassesInInlineLambdasLowering(val context: LoweringContext) : BodyLo
 
                         override fun visitFunctionExpression(expression: IrFunctionExpression) {
                             expression.function.acceptChildrenVoid(this)
+                        }
+
+                        override fun visitRichFunctionReference(expression: IrRichFunctionReference) {
+                            expression.boundValues.forEach { it.acceptVoid(this)  }
+                            expression.invokeFunction.acceptChildrenVoid(this)
+                        }
+
+                        override fun visitRichPropertyReference(expression: IrRichPropertyReference) {
+                            expression.boundValues.forEach { it.acceptVoid(this)  }
+                            expression.getterFunction.acceptChildrenVoid(this)
+                            expression.setterFunction?.acceptChildrenVoid(this)
                         }
 
                         override fun visitFunction(declaration: IrFunction) {
@@ -151,7 +166,7 @@ private fun IrFunction.collectExtractableLocalClassesInto(classesToExtract: Muta
     if (typeParameters.any { it.isReified }) return
 
     val crossinlineParameters = parameters.filter { it.isCrossinline }.toSet()
-    acceptChildrenVoid(object : IrElementVisitorVoid {
+    acceptChildrenVoid(object : IrVisitorVoid() {
         override fun visitElement(element: IrElement) {
             element.acceptChildrenVoid(this)
         }
@@ -159,7 +174,7 @@ private fun IrFunction.collectExtractableLocalClassesInto(classesToExtract: Muta
         override fun visitClass(declaration: IrClass) {
             var canExtract = true
             if (crossinlineParameters.isNotEmpty()) {
-                declaration.acceptVoid(object : IrElementVisitorVoid {
+                declaration.acceptVoid(object : IrVisitorVoid() {
                     override fun visitElement(element: IrElement) {
                         element.acceptChildrenVoid(this)
                     }

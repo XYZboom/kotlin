@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.test.builders.*
 import org.jetbrains.kotlin.test.directives.JvmEnvironmentConfigurationDirectives
 import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives
 import org.jetbrains.kotlin.test.directives.configureFirParser
-import org.jetbrains.kotlin.test.model.BinaryKind
+import org.jetbrains.kotlin.test.model.ArtifactKind
 import org.jetbrains.kotlin.test.model.DependencyKind
 import org.jetbrains.kotlin.test.model.FrontendKind
 import org.jetbrains.kotlin.test.model.FrontendKinds
@@ -27,10 +27,10 @@ import org.jetbrains.kotlin.test.services.sourceProviders.IrInterpreterHelpersSo
 open class AbstractIrInterpreterTest(
     private val frontendKind: FrontendKind<*>, targetBackend: TargetBackend
 ) : AbstractKotlinCompilerWithTargetBackendTest(targetBackend) {
-    override fun TestConfigurationBuilder.configuration() {
+    override fun configure(builder: TestConfigurationBuilder) = with(builder) {
         globalDefaults {
             frontend = frontendKind
-            artifactKind = BinaryKind.NoArtifact
+            artifactKind = ArtifactKind.NoArtifact
             dependencyKind = DependencyKind.Source
         }
 

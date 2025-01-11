@@ -64,7 +64,7 @@ import org.jetbrains.kotlin.test.frontend.fir.FirOutputArtifact
 import org.jetbrains.kotlin.test.model.AfterAnalysisChecker
 import org.jetbrains.kotlin.test.model.TestFile
 import org.jetbrains.kotlin.test.model.TestModule
-import org.jetbrains.kotlin.test.runners.lightTreeSyntaxDiagnosticsReporterHolder
+import org.jetbrains.kotlin.test.services.fir.lightTreeSyntaxDiagnosticsReporterHolder
 import org.jetbrains.kotlin.test.services.*
 import org.jetbrains.kotlin.test.utils.AbstractTwoAttributesMetaInfoProcessor
 import org.jetbrains.kotlin.test.utils.MultiModuleInfoDumper
@@ -610,7 +610,7 @@ fun KtDiagnostic.toMetaInfos(
         metaInfo.attributes += if (lightTreeEnabled) PsiLightTreeMetaInfoProcessor.LT else PsiLightTreeMetaInfoProcessor.PSI
     }
     if (file !in module.files) {
-        val targetPlatform = module.targetPlatform
+        val targetPlatform = module.targetPlatform(globalMetadataInfoHandler.testServices)
         metaInfo.attributes += when {
             targetPlatform.isJvm() -> "JVM"
             targetPlatform.isJs() -> "JS"

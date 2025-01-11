@@ -52,6 +52,7 @@ data class BuildOptions(
     val usePreciseOutputsBackup: Boolean? = null,
     val keepIncrementalCompilationCachesInMemory: Boolean? = null,
     val enableUnsafeIncrementalCompilationForMultiplatform: Boolean? = null,
+    val enableMonotonousIncrementalCompileSetExpansion: Boolean? = null,
     val useDaemonFallbackStrategy: Boolean = false,
     val useParsableDiagnosticsFormatting: Boolean = true,
     val showDiagnosticsStacktrace: Boolean? = false, // false by default to not clutter the testdata + stacktraces change often
@@ -63,6 +64,7 @@ data class BuildOptions(
     val compilerArgumentsLogLevel: String? = "info",
     val kmpIsolatedProjectsSupport: KmpIsolatedProjectsSupport? = null,
     val fileLeaksReportFile: File? = null,
+    val continueAfterFailure: Boolean = false,
     /**
      * Override the directory to store flag files indicating "daemon process is alive" controlled by Kotlin Daemon.
      *
@@ -190,6 +192,10 @@ data class BuildOptions(
             arguments.add("--no-parallel")
         }
 
+        if (continueAfterFailure) {
+            arguments.add("--continue")
+        }
+
         if (incremental != null) {
             arguments.add("-Pkotlin.incremental=$incremental")
         }
@@ -255,6 +261,10 @@ data class BuildOptions(
 
         if (enableUnsafeIncrementalCompilationForMultiplatform != null) {
             arguments.add("-Pkotlin.internal.incremental.enableUnsafeOptimizationsForMultiplatform=$enableUnsafeIncrementalCompilationForMultiplatform")
+        }
+
+        if (enableMonotonousIncrementalCompileSetExpansion != null) {
+            arguments.add("-Pkotlin.internal.incremental.enableMonotonousCompileSetExpansion=$enableMonotonousIncrementalCompileSetExpansion")
         }
 
         arguments.add("-Pkotlin.daemon.useFallbackStrategy=$useDaemonFallbackStrategy")

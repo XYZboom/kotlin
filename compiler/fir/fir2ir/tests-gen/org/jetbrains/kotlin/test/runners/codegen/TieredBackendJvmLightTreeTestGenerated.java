@@ -10495,6 +10495,12 @@ public class TieredBackendJvmLightTreeTestGenerated extends AbstractTieredBacken
       }
 
       @Test
+      @TestMetadata("overrideWithTypeParameter.kt")
+      public void testOverrideWithTypeParameter() {
+        runTest("compiler/testData/diagnostics/tests/j+k/overrideWithTypeParameter.kt");
+      }
+
+      @Test
       @TestMetadata("overrideWithTypeParameterReverse.kt")
       public void testOverrideWithTypeParameterReverse() {
         runTest("compiler/testData/diagnostics/tests/j+k/overrideWithTypeParameterReverse.kt");
@@ -12006,12 +12012,6 @@ public class TieredBackendJvmLightTreeTestGenerated extends AbstractTieredBacken
       }
 
       @Test
-      @TestMetadata("actualExternalInJs.kt")
-      public void testActualExternalInJs() {
-        runTest("compiler/testData/diagnostics/tests/multiplatform/actualExternalInJs.kt");
-      }
-
-      @Test
       @TestMetadata("actualTypealiasToSpecialAnnotation_oldLanguageVersion.kt")
       public void testActualTypealiasToSpecialAnnotation_oldLanguageVersion() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/actualTypealiasToSpecialAnnotation_oldLanguageVersion.kt");
@@ -12114,12 +12114,6 @@ public class TieredBackendJvmLightTreeTestGenerated extends AbstractTieredBacken
       }
 
       @Test
-      @TestMetadata("expectShouldBeJSExportable.kt")
-      public void testExpectShouldBeJSExportable() {
-        runTest("compiler/testData/diagnostics/tests/multiplatform/expectShouldBeJSExportable.kt");
-      }
-
-      @Test
       @TestMetadata("expectTailrec_oldLanguageVersion.kt")
       public void testExpectTailrec_oldLanguageVersion() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/expectTailrec_oldLanguageVersion.kt");
@@ -12147,12 +12141,6 @@ public class TieredBackendJvmLightTreeTestGenerated extends AbstractTieredBacken
       @TestMetadata("incDecOperatorsInExpectClass.kt")
       public void testIncDecOperatorsInExpectClass() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/incDecOperatorsInExpectClass.kt");
-      }
-
-      @Test
-      @TestMetadata("JsExternalTypeExtendsActualExternalType.kt")
-      public void testJsExternalTypeExtendsActualExternalType() {
-        runTest("compiler/testData/diagnostics/tests/multiplatform/JsExternalTypeExtendsActualExternalType.kt");
       }
 
       @Test
@@ -13895,6 +13883,12 @@ public class TieredBackendJvmLightTreeTestGenerated extends AbstractTieredBacken
       }
 
       @Test
+      @TestMetadata("dnnOverridesFlexible.kt")
+      public void testDnnOverridesFlexible() {
+        runTest("compiler/testData/diagnostics/tests/override/dnnOverridesFlexible.kt");
+      }
+
+      @Test
       @TestMetadata("dnnOverridesFlexibleDnnRepresentation.kt")
       public void testDnnOverridesFlexibleDnnRepresentation() {
         runTest("compiler/testData/diagnostics/tests/override/dnnOverridesFlexibleDnnRepresentation.kt");
@@ -14006,6 +14000,24 @@ public class TieredBackendJvmLightTreeTestGenerated extends AbstractTieredBacken
       @TestMetadata("MultipleDefaultParametersInSupertypesWithOverloads.kt")
       public void testMultipleDefaultParametersInSupertypesWithOverloads() {
         runTest("compiler/testData/diagnostics/tests/override/MultipleDefaultParametersInSupertypesWithOverloads.kt");
+      }
+
+      @Test
+      @TestMetadata("overridesWithFlexibleBase.kt")
+      public void testOverridesWithFlexibleBase() {
+        runTest("compiler/testData/diagnostics/tests/override/overridesWithFlexibleBase.kt");
+      }
+
+      @Test
+      @TestMetadata("overridesWithFlexibleBase2.kt")
+      public void testOverridesWithFlexibleBase2() {
+        runTest("compiler/testData/diagnostics/tests/override/overridesWithFlexibleBase2.kt");
+      }
+
+      @Test
+      @TestMetadata("overridesWithFlexibleBase3.kt")
+      public void testOverridesWithFlexibleBase3() {
+        runTest("compiler/testData/diagnostics/tests/override/overridesWithFlexibleBase3.kt");
       }
 
       @Test
@@ -18832,6 +18844,12 @@ public class TieredBackendJvmLightTreeTestGenerated extends AbstractTieredBacken
     @TestDataPath("$PROJECT_ROOT")
     public class Typealias {
       @Test
+      @TestMetadata("callableReferenceWithTypeAliasToObjectLHSOriginal.kt")
+      public void testCallableReferenceWithTypeAliasToObjectLHSOriginal() {
+        runTest("compiler/testData/diagnostics/tests/typealias/callableReferenceWithTypeAliasToObjectLHSOriginal.kt");
+      }
+
+      @Test
       @TestMetadata("classReference.kt")
       public void testClassReference() {
         runTest("compiler/testData/diagnostics/tests/typealias/classReference.kt");
@@ -23158,6 +23176,12 @@ public class TieredBackendJvmLightTreeTestGenerated extends AbstractTieredBacken
     @TestMetadata("compiler/fir/analysis-tests/testData/resolve/contextParameters")
     @TestDataPath("$PROJECT_ROOT")
     public class ContextParameters {
+      @Test
+      @TestMetadata("expectActualMatch.kt")
+      public void testExpectActualMatch() {
+        runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/expectActualMatch.kt");
+      }
+
       @Nested
       @TestMetadata("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics")
       @TestDataPath("$PROJECT_ROOT")
@@ -23224,12 +23248,6 @@ public class TieredBackendJvmLightTreeTestGenerated extends AbstractTieredBacken
           @TestMetadata("propertyWithContextAndContextType.kt")
           public void testPropertyWithContextAndContextType() {
             runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/declarationAndUsages/propertyWithContextAndContextType.kt");
-          }
-
-          @Test
-          @TestMetadata("visibilityOfContextTypeOnProperty.kt")
-          public void testVisibilityOfContextTypeOnProperty() {
-            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/declarationAndUsages/visibilityOfContextTypeOnProperty.kt");
           }
         }
       }
@@ -24589,12 +24607,6 @@ public class TieredBackendJvmLightTreeTestGenerated extends AbstractTieredBacken
     @TestMetadata("compiler/fir/analysis-tests/testData/resolve/nestedTypeAliases")
     @TestDataPath("$PROJECT_ROOT")
     public class NestedTypeAliases {
-      @Test
-      @TestMetadata("nestedTypeAliasWithInnerRHS.kt")
-      public void testNestedTypeAliasWithInnerRHS() {
-        runTest("compiler/fir/analysis-tests/testData/resolve/nestedTypeAliases/nestedTypeAliasWithInnerRHS.kt");
-      }
-
       @Test
       @TestMetadata("simple.kt")
       public void testSimple() {
@@ -26818,6 +26830,28 @@ public class TieredBackendJvmLightTreeTestGenerated extends AbstractTieredBacken
     @TestMetadata("manyCapturedTypes.nkt")
     public void testManyCapturedTypes() {
       runTest("compiler/fir/analysis-tests/testData/resolveFreezesIDE/manyCapturedTypes.nkt");
+    }
+
+    @Nested
+    @TestMetadata("compiler/fir/analysis-tests/testData/resolveFreezesIDE/pcla")
+    @TestDataPath("$PROJECT_ROOT")
+    public class Pcla {
+      @Nested
+      @TestMetadata("compiler/fir/analysis-tests/testData/resolveFreezesIDE/pcla/issues")
+      @TestDataPath("$PROJECT_ROOT")
+      public class Issues {
+        @Test
+        @TestMetadata("kt73771Original.nkt")
+        public void testKt73771Original() {
+          runTest("compiler/fir/analysis-tests/testData/resolveFreezesIDE/pcla/issues/kt73771Original.nkt");
+        }
+
+        @Test
+        @TestMetadata("kt73771Simple.nkt")
+        public void testKt73771Simple() {
+          runTest("compiler/fir/analysis-tests/testData/resolveFreezesIDE/pcla/issues/kt73771Simple.nkt");
+        }
+      }
     }
   }
 }

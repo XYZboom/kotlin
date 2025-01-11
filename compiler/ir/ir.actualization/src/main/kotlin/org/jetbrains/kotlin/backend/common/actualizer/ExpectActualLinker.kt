@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.backend.common.actualizer
 
+import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
@@ -22,6 +23,8 @@ internal class ActualizerSymbolRemapper(private val expectActualMap: IrExpectAct
     override fun getDeclaredAnonymousInitializer(symbol: IrAnonymousInitializerSymbol) = symbol
 
     override fun getDeclaredScript(symbol: IrScriptSymbol) = symbol
+
+    override fun getDeclaredReplSnippet(symbol: IrReplSnippetSymbol): IrReplSnippetSymbol = symbol
 
     override fun getDeclaredSimpleFunction(symbol: IrSimpleFunctionSymbol) = symbol
 
@@ -96,7 +99,7 @@ internal open class ActualizerVisitor(private val symbolRemapper: SymbolRemapper
 
     // We shouldn't touch attributes, because Fir2Ir wouldn't set them to anything meaningful anyway.
     // So it would be better to have them as is, i.e. referring to `this`, not some random node removed from the tree
-    override fun <D : IrAttributeContainer> D.processAttributes(other: IrAttributeContainer?): D = this
+    override fun <D : IrElement> D.processAttributes(other: IrElement) {}
 
     override fun visitModuleFragment(declaration: IrModuleFragment) =
         declaration.also { it.transformChildren(this, null) }
@@ -223,6 +226,7 @@ internal open class ActualizerVisitor(private val symbolRemapper: SymbolRemapper
         ).apply {
             copyRemappedTypeArgumentsFrom(expression)
             transformValueArguments(expression)
-        }.processAttributes(expression)
+            processAttributes(expression)
+        }
     }
 }

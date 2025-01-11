@@ -376,6 +376,7 @@ enum class LanguageFeature(
     AvoidWrongOptimizationOfTypeOperatorsOnValueClasses(KOTLIN_2_2), // KT-67517, KT-67518, KT-67520
     ForbidSyntheticPropertiesWithoutBaseJavaGetter(KOTLIN_2_2, kind = BUG_FIX), // KT-72305, KT-64358
     AnnotationDefaultTargetMigrationWarning(KOTLIN_2_2, kind = BUG_FIX), // KT-73255, KT-73494
+    AllowDnnTypeOverridingFlexibleType(KOTLIN_2_2, kind = OTHER), // KT-74049
 
     // 2.3
 
@@ -443,9 +444,9 @@ enum class LanguageFeature(
     CustomEqualsInValueClasses(sinceVersion = null, kind = OTHER), // KT-24874
     EnableDfaWarningsInK2(sinceVersion = null, kind = OTHER), // KT-50965
     ContractSyntaxV2(sinceVersion = null, kind = UNSTABLE_FEATURE), // KT-56127
-    ImplicitSignedToUnsignedIntegerConversion(sinceVersion = null), // KT-56583
+    ImplicitSignedToUnsignedIntegerConversion(sinceVersion = null, kind = TEST_ONLY), // KT-56583
     ForbidInferringTypeVariablesIntoEmptyIntersection(sinceVersion = null, kind = BUG_FIX), // KT-51221
-    IntrinsicConstEvaluation(sinceVersion = null, kind = UNSTABLE_FEATURE), // KT-49303
+    IntrinsicConstEvaluation(sinceVersion = null, kind = TEST_ONLY), // KT-49303
 
     // K1 support only. We keep it, as it's currently unclear what to do with this feature in K2
     DisableCheckingChangedProgressionsResolve(sinceVersion = null, kind = OTHER), // KT-49276
@@ -457,12 +458,16 @@ enum class LanguageFeature(
     WhenGuards(sinceVersion = null, kind = OTHER), // KT-13626
     MultiDollarInterpolation(sinceVersion = null, kind = OTHER), // KT-2425
     IrInlinerBeforeKlibSerialization(sinceVersion = null, kind = UNSTABLE_FEATURE), // KT-69765
-    NestedTypeAliases(sinceVersion = null, kind = OTHER) // KT-45285
+    NestedTypeAliases(sinceVersion = null, kind = UNSTABLE_FEATURE) // KT-45285
     ;
 
     init {
         if (sinceVersion == null && isEnabledWithWarning) {
             error("$this: '${::isEnabledWithWarning.name}' has no effect if the feature is disabled by default")
+        }
+
+        if (kind.testOnly && sinceVersion != null) {
+            error("$this: '${::isEnabledWithWarning.name}' should be enabled by default since version $sinceVersion but is test only")
         }
     }
 
@@ -513,7 +518,7 @@ enum class LanguageFeature(
      *
      * NB: Currently, [canBeEnabledInProgressiveMode] makes sense only for features with [sinceVersion] > [LanguageVersion.LATEST_STABLE]
      */
-    enum class Kind(val canBeEnabledInProgressiveMode: Boolean, val forcesPreReleaseBinaries: Boolean) {
+    enum class Kind(val canBeEnabledInProgressiveMode: Boolean, val forcesPreReleaseBinaries: Boolean, val testOnly: Boolean = false) {
         /**
          * Simple bug fix which just forbids some language constructions.
          * Rule of thumb: it turns "green code" into "red".
@@ -521,14 +526,14 @@ enum class LanguageFeature(
          * Note that, some actual bug fixes can affect overload resolution/inference, silently changing semantics of
          * users' code -- DO NOT use Kind.BUG_FIX for them!
          */
-        BUG_FIX(true, false),
+        BUG_FIX(canBeEnabledInProgressiveMode = true, forcesPreReleaseBinaries = false),
 
         /**
          * Enables support of some new and *unstable* construction in language.
          * Rule of thumb: it turns "red" code into "green", and we want to strongly demotivate people from manually enabling
          * that feature in production.
          */
-        UNSTABLE_FEATURE(false, true),
+        UNSTABLE_FEATURE(canBeEnabledInProgressiveMode = false, forcesPreReleaseBinaries = true),
 
         /**
          * A new feature in the language which has no impact on the binary output of the compiler, and therefore
@@ -538,7 +543,13 @@ enum class LanguageFeature(
          *
          * NB. OTHER is not a conservative fallback, as it doesn't imply generation of pre-release binaries
          */
-        OTHER(false, false),
+        OTHER(canBeEnabledInProgressiveMode = false, forcesPreReleaseBinaries = false),
+
+        /**
+         * A feature that can be used only in tests, thus it's neither possible to enable it in progressive mode,
+         * nor it forces pre-release binaries
+         */
+        TEST_ONLY(canBeEnabledInProgressiveMode = false, forcesPreReleaseBinaries = false, testOnly = true),
     }
 
     companion object {

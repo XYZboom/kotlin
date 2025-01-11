@@ -7,16 +7,17 @@ package org.jetbrains.kotlin.test.services.configuration
 
 import com.intellij.psi.PsiJavaModule.MODULE_INFO_FILE
 import com.intellij.util.lang.JavaVersion
-import org.jetbrains.kotlin.config.phaser.PhaseConfig
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.jvm.addModularRootIfNotNull
 import org.jetbrains.kotlin.cli.jvm.config.*
 import org.jetbrains.kotlin.codegen.forTestCompile.ForTestCompileRuntime
 import org.jetbrains.kotlin.config.*
+import org.jetbrains.kotlin.config.phaser.PhaseConfig
 import org.jetbrains.kotlin.config.phaser.PhaseSet
 import org.jetbrains.kotlin.constant.EvaluatedConstTracker
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
+import org.jetbrains.kotlin.platform.jvm.isJvm
 import org.jetbrains.kotlin.test.ConfigurationKind
 import org.jetbrains.kotlin.test.MockLibraryUtil.compileJavaFilesLibraryToJar
 import org.jetbrains.kotlin.test.TestJdkKind
@@ -196,7 +197,7 @@ open class JvmEnvironmentConfigurator(testServices: TestServices) : EnvironmentC
     }
 
     override fun configureCompilerConfiguration(configuration: CompilerConfiguration, module: TestModule) {
-        if (module.targetPlatform !in JvmPlatforms.allJvmPlatforms) return
+        if (!module.targetPlatform(testServices).isJvm()) return
         configureDefaultJvmTarget(configuration)
         val registeredDirectives = module.directives
 
@@ -318,7 +319,7 @@ open class JvmEnvironmentConfigurator(testServices: TestServices) : EnvironmentC
         configurationKind: ConfigurationKind,
         module: TestModule
     ) {
-        val moduleDependencies = module.allDependencies.map { testServices.dependencyProvider.getTestModule(it.moduleName) }
+        val moduleDependencies = module.allDependencies.map { it.dependencyModule }
         val javaModuleInfoFilesFromModuleDependencies = moduleDependencies.mapNotNull { moduleDependency ->
             moduleDependency.javaFiles.singleOrNull { javaFile -> javaFile.name == MODULE_INFO_FILE }
         }
@@ -373,7 +374,7 @@ open class JvmEnvironmentConfigurator(testServices: TestServices) : EnvironmentC
     private fun List<DependencyDescription>.toFileList(): List<File> = this.flatMap(::convertDependencyToFileList)
 
     protected open fun convertDependencyToFileList(dependency: DependencyDescription): List<File> {
-        val friendModule = testServices.dependencyProvider.getTestModule(dependency.moduleName)
+        val friendModule = dependency.dependencyModule
         return listOf(testServices.compiledClassesManager.compileKotlinToDiskAndGetOutputDir(friendModule, classFileFactory = null))
     }
 }

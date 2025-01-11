@@ -44,8 +44,8 @@ import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.util.isNullable
 import org.jetbrains.kotlin.ir.util.isSubtypeOfClass
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
+import org.jetbrains.kotlin.ir.visitors.IrVisitor
+import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.load.java.JvmAbi
@@ -140,7 +140,7 @@ class ExpressionCodegen(
     val classCodegen: ClassCodegen,
     val smap: SourceMapper,
     val reifiedTypeParametersUsages: ReifiedTypeParametersUsages,
-) : IrElementVisitor<PromisedValue, BlockInfo>, BaseExpressionCodegen {
+) : IrVisitor<PromisedValue, BlockInfo>(), BaseExpressionCodegen {
     override fun toString(): String = signature.toString()
 
     var finallyDepth = 0
@@ -495,8 +495,7 @@ class ExpressionCodegen(
             val lastStatement = callee?.body?.statements?.lastOrNull()
             if (lastStatement is IrReturn) {
                 val returnTarget = lastStatement.returnTargetSymbol.owner
-                val originalReturnTarget = (returnTarget as? IrAttributeContainer)?.attributeOwnerId ?: returnTarget
-                if (originalReturnTarget == inlinedBlock.inlineDeclaration) {
+                if (returnTarget.attributeOwnerId == inlinedBlock.inlineDeclaration) {
                     // if return is implicit we must put new LN at the end of expression
                     inlinedBlock.statements.last().markLineNumber(startOffset = lastStatement.startOffset != lastStatement.endOffset)
                     mv.nop()
@@ -1217,7 +1216,7 @@ class ExpressionCodegen(
     // such as D8 will see locals information that makes no sense.
     private fun endUnreferencedDoWhileLocals(blockInfo: BlockInfo, loop: IrDoWhileLoop, continueLabel: Label) {
         val referencedValues = hashSetOf<IrValueSymbol>()
-        loop.condition.acceptVoid(object : IrElementVisitorVoid {
+        loop.condition.acceptVoid(object : IrVisitorVoid() {
             override fun visitElement(element: IrElement) {
                 element.acceptChildrenVoid(this)
             }
