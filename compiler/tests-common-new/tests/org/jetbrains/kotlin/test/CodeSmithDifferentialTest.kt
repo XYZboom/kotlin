@@ -3,16 +3,17 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-package org.jetbrains.kotlin.test/*
- * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
- * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
- */
+package org.jetbrains.kotlin.test
+
 import com.github.xyzboom.codesmith.generator.GeneratorConfig
 import com.github.xyzboom.codesmith.generator.impl.IrDeclGeneratorImpl
+import com.github.xyzboom.codesmith.ir.types.builtin.IrBuiltInType
+import com.github.xyzboom.codesmith.mutator.MutatorConfig
+import com.github.xyzboom.codesmith.mutator.impl.IrMutatorImpl
 import com.github.xyzboom.codesmith.printer.IrProgramPrinter
+import com.github.xyzboom.codesmith.utils.nextBoolean
 import org.jetbrains.kotlin.test.runners.codegen.AbstractFirPsiBlackBoxCodegenTest
 import org.jetbrains.kotlin.test.runners.codegen.AbstractIrBlackBoxCodegenTest
-import org.jetbrains.kotlin.test.runners.codegen.AbstractFirLightTreeBlackBoxCodegenTest
 import org.jetbrains.kotlin.test.runners.AbstractKotlinCompilerTest
 import org.jetbrains.kotlin.test.runners.toKotlinTestInfo
 import org.junit.jupiter.api.BeforeEach
@@ -20,7 +21,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
 import java.io.File
 import kotlin.reflect.jvm.jvmName
+import kotlinx.coroutines.*
+import org.jetbrains.kotlin.test.services.KotlinTestInfo
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.measureTime
+import kotlin.random.Random
+import kotlin.system.exitProcess
 
 @OptIn(ExperimentalStdlibApi::class)
 class CodeSmithDifferentialTest {
@@ -28,10 +34,51 @@ class CodeSmithDifferentialTest {
         val logFile = File(System.getProperty("codesmith.logger.outdir"))
     }
 
-    val irTest = object : AbstractIrBlackBoxCodegenTest() {}
-    val firPsiTest = object : AbstractFirPsiBlackBoxCodegenTest() {}
-    val firLightTreeTest = object : AbstractFirLightTreeBlackBoxCodegenTest() {}
-    val testers = listOf(irTest, firPsiTest, firLightTreeTest)
+    interface IDifferentialTest {
+        val jdk: TestJdkKind
+        fun testProgram(fileContent: String): TestResult {
+            val tempFile = File.createTempFile("code-smith", ".kt")
+            tempFile.writeText("// JDK_KIND: ${jdk.name}\n$fileContent")
+            try {
+                runTest(tempFile.absolutePath)
+            } catch (e: Throwable) {
+                return TestResult(e, fileContent, this::class.simpleName!!)
+            }
+            return TestResult(null, fileContent, this::class.simpleName!!)
+        }
+
+        fun runTest(filePath: String)
+        fun initTestInfo(testInfo: KotlinTestInfo)
+    }
+
+    object K1Jdk8Test : AbstractIrBlackBoxCodegenTest(), IDifferentialTest {
+        override val jdk: TestJdkKind = TestJdkKind.FULL_JDK
+    }
+
+    object K1Jdk11Test : AbstractIrBlackBoxCodegenTest(), IDifferentialTest {
+        override val jdk: TestJdkKind = TestJdkKind.FULL_JDK_11
+    }
+
+    object K1Jdk17Test : AbstractIrBlackBoxCodegenTest(), IDifferentialTest {
+        override val jdk: TestJdkKind = TestJdkKind.FULL_JDK_17
+    }
+
+    object K2Jdk8Test : AbstractFirPsiBlackBoxCodegenTest(), IDifferentialTest {
+        override val jdk: TestJdkKind = TestJdkKind.FULL_JDK
+    }
+
+    object K2Jdk11Test : AbstractFirPsiBlackBoxCodegenTest(), IDifferentialTest {
+        override val jdk: TestJdkKind = TestJdkKind.FULL_JDK_11
+    }
+
+    object K2Jdk17Test : AbstractFirPsiBlackBoxCodegenTest(), IDifferentialTest {
+        override val jdk: TestJdkKind = TestJdkKind.FULL_JDK_17
+    }
+
+    private val testers = listOf<IDifferentialTest>(
+        K1Jdk8Test, K1Jdk11Test, K1Jdk17Test,
+        K2Jdk8Test, K2Jdk11Test, K2Jdk17Test,
+    )
 
     @BeforeEach
     fun initTestInfo(testInfo: TestInfo) {
@@ -49,6 +96,8 @@ class CodeSmithDifferentialTest {
 
             if (e == null && other.e != null) return false
             if (e != null && other.e == null) return false
+//            if (e is JavaCompilationError) return other.e is JavaCompilationError
+//            if (other.e is JavaCompilationError) return e is JavaCompilationError
             if (fileContent != other.fileContent) return false
 
             return true
@@ -100,20 +149,56 @@ class CodeSmithDifferentialTest {
 
     @Test
     fun test() {
-        var i = 1
+        val i = AtomicInteger(0)
         val throwException = false
-        while (true) {
-            val printer = IrProgramPrinter()
-            val generator = IrDeclGeneratorImpl(
-                GeneratorConfig()
-            )
-            val prog = generator.genProgram()
-            repeat(5) {
-                val fileContent = printer.printToSingle(prog)
-                val dur = measureTime { doOneRound(fileContent, throwException) }
-                println("${i++}: $dur")
-                generator.shuffleLanguage(prog)
+        val parallelSize = 16
+        runBlocking(Dispatchers.IO.limitedParallelism(parallelSize)) {
+            val jobs = mutableListOf<Job>()
+            repeat(parallelSize) {
+                val job = launch {
+                    var enableGeneric: Boolean
+                    val threadName = Thread.currentThread().name
+                    while (true) {
+                        enableGeneric = Random.nextBoolean(0.15f)
+//                        enableGeneric = false
+                        val printer = IrProgramPrinter()
+                        val generator = IrDeclGeneratorImpl(
+                            GeneratorConfig(
+                                /*classHasTypeParameterProbability = if (enableGeneric) {
+                                    Random.nextFloat() / 4f
+                                } else {
+                                    0f
+                                }*/
+                            )
+                        )
+                        val prog = generator.genProgram()
+                        repeat(5) {
+                            val fileContent = printer.printToSingle(prog)
+                            val dur = measureTime { doOneRound(fileContent, throwException) }
+                            println("$threadName ${i.incrementAndGet()}:${dur}\t\t")
+                            generator.shuffleLanguage(prog)
+                        }
+                        /*val config = MutatorConfig.allZero.copy(
+                            mutateParameterNullabilityWeight = 1
+                        )*/
+                        val config = MutatorConfig.default
+                        val mutator = IrMutatorImpl(
+                            config,
+                            generator = generator
+                        )
+                        if (mutator.mutate(prog)) {
+                            repeat(5) {
+                                val fileContent = printer.printToSingle(prog)
+                                val dur = measureTime { doOneRound(fileContent, throwException) }
+                                println("$threadName ${i.incrementAndGet()}:${dur}\t\t")
+                                generator.shuffleLanguage(prog)
+                            }
+                        }
+                    }
+                }
+                jobs.add(job)
             }
+            jobs.joinAll()
         }
     }
 }

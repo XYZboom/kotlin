@@ -4,6 +4,9 @@
       <verify-metadata>true</verify-metadata>
       <verify-signatures>false</verify-signatures>
       <trusted-artifacts>
+         <trust group="com.github.XYZboom" name="CodeSmith"/>
+         <trust group=".*" name=".*" regex="true"/>
+         <trust group="org.jetbrains.kotlin" name=".*" regex="true"/>
          <trust group="androidx.compose.runtime" name="runtime"/>
          <trust group="androidx.compose.runtime" name="runtime-jvmstubs"/>
          <trust group="androidx.compose.runtime" name="runtime-test-utils"/>

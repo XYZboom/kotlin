@@ -7,10 +7,12 @@ package org.jetbrains.kotlin.test
 
 import com.github.xyzboom.codesmith.generator.GeneratorConfig
 import com.github.xyzboom.codesmith.generator.impl.IrDeclGeneratorImpl
+import com.github.xyzboom.codesmith.ir.IrProgram
 import com.github.xyzboom.codesmith.mutator.impl.IrMutatorImpl
 import com.github.xyzboom.codesmith.mutator.MutatorConfig
 import com.github.xyzboom.codesmith.printer.IrProgramPrinter
 import com.github.xyzboom.codesmith.runner.CoverageRunner
+import com.github.xyzboom.codesmith.serde.defaultIrMapper
 import org.jetbrains.kotlin.test.runners.codegen.AbstractFirPsiBlackBoxCodegenTest
 import org.jetbrains.kotlin.test.runners.codegen.AbstractIrBlackBoxCodegenTest
 import org.junit.jupiter.api.Disabled
@@ -43,26 +45,13 @@ class CodeSmithTest : AbstractIrBlackBoxCodegenTest() {
         ).genProgram()
         val fileContent = printer.printToSingle(prog)
         val tempFile = File.createTempFile("code-smith", ".kt")
-        tempFile.writeText(fileContent)
+        tempFile.writeText("// JDK_KIND: FULL_JDK_11\n" + fileContent)
         val dur: Duration = try {
             measureTime {
                 runTest(tempFile.absolutePath)
             }
         } catch (e: Throwable) {
-            e.printStackTrace()
-            val dir = File(logFile, System.currentTimeMillis().toHexString())
-            if (!dir.exists()) {
-                dir.mkdirs()
-            }
-            val writer = File(dir, "exception.txt").printWriter()
-            e.printStackTrace(writer)
-            writer.flush()
-            File(dir, "main.kt").writeText(fileContent)
-            File("codesmith-trace.log").copyTo(File(dir, "codesmith-trace.log"))
-            if (throwException) {
-                throw e
-            }
-            Duration.ZERO
+            recordException(e, fileContent, throwException, prog)
         }
         return fileContent to dur
         /*val jacocoRuntimeData = CoverageRunner.getJacocoRuntimeData()
@@ -74,12 +63,35 @@ class CodeSmithTest : AbstractIrBlackBoxCodegenTest() {
         println(coverage.branchCounter.totalCount)*/
     }
 
+    private fun recordException(
+        e: Throwable, fileContent: String, throwException: Boolean,
+        prog: IrProgram
+    ): Duration {
+        e.printStackTrace()
+        val dir = File(logFile, System.currentTimeMillis().toHexString())
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        val writer = File(dir, "exception.txt").printWriter()
+        e.printStackTrace(writer)
+        writer.flush()
+        File(dir, "main.kt").writeText(fileContent)
+        File("codesmith-trace.log").copyTo(File(dir, "codesmith-trace.log"))
+        val jsonFile = File(dir, "program.json")
+        defaultIrMapper.writeValue(jsonFile, prog)
+        if (throwException) {
+            throw e
+        }
+        return Duration.ZERO
+    }
+
     @Test
     fun test() {
         val i = AtomicInteger(1)
-        val throwException = false
+        val throwException = true
+        val parallelSize = 1
         doOneRound(throwException)
-        runBlocking(Dispatchers.IO.limitedParallelism(32)) {
+        runBlocking(Dispatchers.IO.limitedParallelism(parallelSize)) {
             val jobs = mutableListOf<Job>()
             repeat(32) {
                 val job = launch {

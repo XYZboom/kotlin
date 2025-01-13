@@ -11,7 +11,16 @@ repositories {
     mavenLocal()
 }
 
+configurations {
+    all {
+        exclude("org.slf4j", "log4j-over-slf4j")
+    }
+}
+
 dependencies {
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.18.+")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.18.+")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.+")
     testImplementation("com.github.XYZboom:CodeSmith:1.0-SNAPSHOT")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     testApi(project(":compiler:fir:entrypoint"))
@@ -120,4 +129,5 @@ tasks.test {
         systemProperties["java.io.tmpdir"] = tmpPath
     }
     systemProperties["codesmith.logger.outdir"] = System.getProperty("codesmith.logger.outdir")
+//    jvmArgs("-Xmx64g")
 }
